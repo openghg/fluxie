@@ -18,7 +18,8 @@ model_colors = {'intem':[['darkslateblue','dodgerblue'],
 
 model_q_indices = {'intem':[0,1],
                    'rhime':[0,1],
-                   'elris':[0,1]}
+                   'elris':[0,1],
+                   'mcmc':[0,1]}
 
 countrycodes_dict = {'IRELAND':'IRL',
                      'UK':'GBR',
@@ -95,7 +96,7 @@ def read_flux(data_dir,species,models,model_filenames):
         model_dir = model_filenames[m].split('_')[0]
         
         try:
-            filepath = glob.glob(os.path.join(data_dir,model_dir,species,f'{model_filenames[m]}_{s_data[species]["model_species"][m0]}_{s_data[species]["period"]}.nc'))
+            filepath = glob.glob(os.path.join(data_dir,model_dir,species,f'{model_filenames[m]}_{s_data[species]["model_species"][m0]}*_{s_data[species]["period"]}.nc'))
             print(f'Reading data from: {filepath[0]}')
             with xr.open_dataset(filepath[0]) as in_ds:
                 ds_all[m] = in_ds
@@ -115,7 +116,7 @@ def read_flux(data_dir,species,models,model_filenames):
             except:
                 print(f'Failed!')
                 print(f'Cannot find {m} file for {species}. This model will not be plotted')
-    
+
     return ds_all
 
 #####################################################################
@@ -156,7 +157,7 @@ def slice_flux(ds_all,start_date,end_date,
     for m in ds_all.keys():
         
         m0 = m.split('_')[0]
-        
+                
         print(f'\nMasking data from {m}')
         try:
             ds_all[m] = ds_all[m].sel(time=slice(start_date,end_date))
@@ -164,7 +165,7 @@ def slice_flux(ds_all,start_date,end_date,
             ds_all[m] = None
             print(f'No {m} fluxes found between {start_date} and {end_date}')
             print(f'Skipping {m}')
-            
+
         if scale_units == True:
             print(f'Scaling {m} units by {s_data[species]["units_scaling"][m0]}')
             if ds_all[m] is not None:
@@ -292,13 +293,18 @@ def slice_mf(ds_all,start_date=None,end_date=None,site=None,
             ds_all[m]['time'] = ds_all[m]['time'].dt.round('s')
 
         if site is not None:
-            try:
-                site_index = np.where(ds_all[m]['sitenames'].astype(str) == site)[0][0]
-                ds_all[m] = ds_all[m].sel(time=slice(start_date,end_date),
-                                        nsite=site_index)
-            except:
-                ds_all[m] = None
-                print(f'No {m} obs found for {site} between {start_date} and {end_date}')
+            #try:
+                if 'mcmc' in m:
+                    site_index = np.where(ds_all[m][f'sitenames_{species}'].astype(str) == site)[0][0]
+                    ds_all[m] = ds_all[m].sel({f'time_{species}':slice(start_date,end_date),
+                                               f'nsite_{species}':site_index})
+                else:
+                    site_index = np.where(ds_all[m]['sitenames'].astype(str) == site)[0][0]
+                    ds_all[m] = ds_all[m].sel(time=slice(start_date,end_date),
+                                            nsite=site_index)
+            #except:
+            #    ds_all[m] = None
+            #    print(f'No {m} obs found for {site} between {start_date} and {end_date}')
         else:
             try:
                 ds_all[m] = ds_all[m].sel(time=slice(start_date,end_date))
@@ -309,7 +315,10 @@ def slice_mf(ds_all,start_date=None,end_date=None,site=None,
         if scale_units == True:
             print(f'Scaling {m} units by {s_data[species]["mf_units_scaling"]}')
             if ds_all[m] is not None:
-                var_names = [k for k in ds_all[m].keys() if k not in ['sitenames','Yav']]
+                if 'mcmc' in m:
+                    var_names = [k for k in ds_all[m].keys() if k not in [f'sitenames_{species}','Yav']]
+                else:
+                    var_names = [k for k in ds_all[m].keys() if k not in ['sitenames','Yav']]
                 for v in var_names:
                     ds_all[m][v] = ds_all[m][v]/s_data[species]["mf_units_scaling"]
       
@@ -460,12 +469,12 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
                   'uYobs':'observed mf uncertainty',
                   'uYmod':'model uncertainty'}
     var_colors = {'Yapriori':1,
-                  'Yapost':0,
+                  'Yapost':1,
                   'YaprioriBC':1,
-                  'YapostBC':0,
+                  'YapostBC':1,
                   'Ybias':0,
                   'YaprioriOUTER':1,
-                  'YapostOUTER':0,
+                  'YapostOUTER':1,
                   'Yobs':0,
                   'uYobs':0,
                   'uYmod':1}
@@ -1152,6 +1161,8 @@ def plot_country_flux(ds_all,species,plot_regions,model_labels,
                 c_key = 'country'
             elif m0 == 'elris':
                 c_key = 'country'
+            elif m0 == 'mcmc':
+                c_key = 'countrynumber'
             
             try:
                 
@@ -1190,7 +1201,7 @@ def plot_country_flux(ds_all,species,plot_regions,model_labels,
         
             except:
                 try:
-                    region_search = regions_dict[country]
+                    region_search = countrycodes_dict[country]
                     print(f'{country} emissions are not present in {m}. Considering covariance matrix and sum of individual countries: {region_search}.')
 
                     country_list = region_search.split('-')
@@ -1201,6 +1212,8 @@ def plot_country_flux(ds_all,species,plot_regions,model_labels,
                         c_key = 'country'
                     elif m0 == 'elris':
                         c_key = 'country'
+                    elif m0 == 'mcmc':
+                        c_key = 'countrynumber'
 
                     country_index_vec = np.zeros(len(ds_all[m][c_key]))
                     sigma2_region_flux_total_prior = 0
@@ -1223,12 +1236,12 @@ def plot_country_flux(ds_all,species,plot_regions,model_labels,
                             print(f'WARNING: {var} emissions are not present in {m}. This country will be neglected in {country} emissions.')
 
                     ax[a,b].plot(ds_all[m].time.values.astype('datetime64[ns]'),
-                                 region_flux_total_posterior,
-                                 label=model_labels[m],color=model_colors[m][0])
+                                    region_flux_total_posterior,
+                                    label=model_labels[m],color=model_colors[m][0])
 
                     ax[a,b].plot(ds_all[m].time.values.astype('datetime64[ns]'),
-                                 region_flux_total_prior,
-                                 label=f'{model_labels[m]} prior',color=model_colors[m][0],linestyle='dashed')
+                                    region_flux_total_prior,
+                                    label=f'{model_labels[m]} prior',color=model_colors[m][0],linestyle='dashed')
 
                     max_cf.append(ax[a,b].get_ylim()[1])
 
@@ -1334,7 +1347,8 @@ def plot_country_flux(ds_all,species,plot_regions,model_labels,
 
 #####################################################################
 
-def plot_spatial_flux(ds_all,species,plot_area,model_labels):
+def plot_spatial_flux(ds_all,species,plot_area,model_labels,cmap='viridis',
+                                 cmap_diff='coolwarm',border_color_in='floralwhite'):
     """
     Plots posterior and prior fluxes and the difference between these
     for all models.
@@ -1360,8 +1374,8 @@ def plot_spatial_flux(ds_all,species,plot_area,model_labels):
             of the absolute difference between these, for each model.
     """
     
-    cmap = 'viridis' #'Blues'
-    cmap_diff = 'coolwarm'
+    #cmap = 'viridis' #'Blues'
+    #cmap_diff = 'coolwarm'
     
     n_cols = len(ds_all.keys())
     
@@ -1402,7 +1416,7 @@ def plot_spatial_flux(ds_all,species,plot_area,model_labels):
             if i == 2:
                 border_color = 'dimgrey'
             else:
-                border_color = 'floralwhite'
+                border_color = border_color_in #'floralwhite'
 
             if n_cols == 1:
                 ax_var = ax[i]
@@ -1488,7 +1502,8 @@ def plot_spatial_flux(ds_all,species,plot_area,model_labels):
 
 #####################################################################
 
-def plot_spatial_flux_comparison(ds_all,species,plot_area,model_labels):
+def plot_spatial_flux_comparison(ds_all,species,plot_area,model_labels,cmap='viridis',
+                                 cmap_diff='coolwarm',border_color_in='floralwhite'):
     """
     Plots posterior fluxes and the difference between these
     for two models.
@@ -1516,8 +1531,8 @@ def plot_spatial_flux_comparison(ds_all,species,plot_area,model_labels):
             of the absolute difference between these.
     """
     
-    cmap = 'viridis' #'Blues'
-    cmap_diff = 'coolwarm'
+    #cmap = 'viridis' #'Blues'
+    #cmap_diff = 'coolwarm'
     
     n_cols = len(ds_all.keys())
     
@@ -1554,7 +1569,7 @@ def plot_spatial_flux_comparison(ds_all,species,plot_area,model_labels):
         if i == 2:
             border_color = 'dimgrey'
         else:
-            border_color = 'floralwhite'
+            border_color = border_color_in #'floralwhite'
         ax[i].add_feature(cartopy.feature.BORDERS,edgecolor=border_color,linewidth=1.)
         ax[i].coastlines(resolution='50m',color=border_color,linewidth=1.)
         ax[i].set_extent(region_limits[plot_area])
