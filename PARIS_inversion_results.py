@@ -286,12 +286,21 @@ def slice_mf(ds_all,start_date=None,end_date=None,site=None,
             baseline = f.sel(time=slice(start_date,end_date))
     
     for m in ds_all.keys():
+        
+        m0 = m.split('_')[0]
+        
+        if 'mcmc' in m0:
+            time_name = f'time_{species}'
+        else:
+            time_name = 'time'
+        
         print(f'\nMasking data from {m}')
         
         if 'Yav' in ds_all[m].keys():
             offset = int(np.mean(ds_all[m]['Yav'].values))
         else:
-            offset = (ds_all[m].time.values[1].astype('datetime64[h]') - ds_all[m].time.values[0].astype('datetime64[h]')).astype(int)
+            if 'mcmc' in m:
+                offset = (ds_all[m][f'{time_name}'].values[1].astype('datetime64[h]') - ds_all[m][f'{time_name}'].values[0].astype('datetime64[h]')).astype(int)
 
         # fix to move elris timestamps back to the middle of av period - to be removed once fixed in .nc files
         if 'elris_old' in m:
@@ -303,20 +312,15 @@ def slice_mf(ds_all,start_date=None,end_date=None,site=None,
 
         if site is not None:
             #try:
-                if 'mcmc' in m:
-                    site_index = np.where(ds_all[m][f'sitenames_{species}'].astype(str) == site)[0][0]
-                    ds_all[m] = ds_all[m].sel({f'time_{species}':slice(start_date,end_date),
-                                               f'nsite_{species}':site_index})
-                else:
-                    site_index = np.where(ds_all[m]['sitenames'].astype(str) == site)[0][0]
-                    ds_all[m] = ds_all[m].sel(time=slice(start_date,end_date),
+                site_index = np.where(ds_all[m]['sitenames'].astype(str) == site)[0][0]
+                ds_all[m] = ds_all[m].sel(**{time_name:slice(start_date,end_date)},
                                             nsite=site_index)
             #except:
             #    ds_all[m] = None
             #    print(f'No {m} obs found for {site} between {start_date} and {end_date}')
         else:
             try:
-                ds_all[m] = ds_all[m].sel(time=slice(start_date,end_date))
+                ds_all[m] = ds_all[m].sel(**{time_name:slice(start_date,end_date)})
             except:
                 ds_all[m] = None
                 print(f'No {m} obs found between {start_date} and {end_date}')
@@ -333,21 +337,21 @@ def slice_mf(ds_all,start_date=None,end_date=None,site=None,
       
         if baseline_site is not None:
             print('Masking timeseries to only include baseline times')
-            
+
             try:
                                         
                 #average baseline mask over obs averaging period
-                b = baseline.resample(time=f'{offset}H').mean()
+                b = baseline.resample(**{time_name:f'{offset}H'}).mean()
                 #adjust baseline mask time back to centre of av period (resample removes this)
-                b['time'] = b['time'] + np.timedelta64(offset,'h')/2
+                b[time_name] = b[time_name] + np.timedelta64(offset,'h')/2
                                     
                 #mask baseline mask again, to only include timestamps where every period in the averaging period is classified as baseline
-                b_masked = b.sel(time=b['time'].values[np.where(b['baseline'] == 1.)])
+                b_masked = b.sel(**{time_name:b[time_name].values[np.where(b['baseline'] == 1.)]})
                                 
                 #mask dataset using only baseline times
-                both_times = np.isin(ds_all[m].time.values,b_masked.time.values)
+                both_times = np.isin(ds_all[m][time_name].values,b_masked[time_name].values)
                                 
-                ds_all[m] = ds_all[m].sel(time=both_times)
+                ds_all[m] = ds_all[m].sel(**{time_name:both_times})
                     
             except:
                 print('Failed to mask {m} data by baseline times')
@@ -361,7 +365,7 @@ def slice_mf(ds_all,start_date=None,end_date=None,site=None,
 
 #####################################################################
 
-def stats_mf(ds_all):
+def stats_mf(ds_all,species):
     """
     Calculates the Pearson correlation coefficent and normalised root
     mean square error, of the fit between the posterior mean mf and the 
@@ -371,6 +375,8 @@ def stats_mf(ds_all):
         ds_all (dictionary of datasets):
             xarray datasets from slice_mf(), sliced between chosen dates
             but still containing all sites.
+        species (str):
+            Used to extract data for correct species when using multi gas MCMC model.
     Returns:
         pearson (dictionary of dictionaries):
             Pearson correlation coeffiecient, for each site and for each model.
@@ -381,7 +387,14 @@ def stats_mf(ds_all):
     sites_all = np.array([])
 
     for i,m in enumerate(ds_all.keys()):
-        sites_all = np.hstack((sites_all,ds_all[m]['sitenames'].values.astype(str)))
+        m0 = m.split('_')[0]
+        
+        if 'mcmc' in m0:
+            s = f'_{species}'
+        else:
+            s = ''
+        
+        sites_all = np.hstack((sites_all,ds_all[m][f'sitenames{s}'].values.astype(str)))
     
     sites_unique,sites_index = np.unique(sites_all,return_index=True)
     sites_all = sites_all[np.sort(sites_index)]
@@ -395,13 +408,21 @@ def stats_mf(ds_all):
         nrmse[site] = {}
         #std[site] = {}
         for i,m in enumerate(ds_all.keys()):
-            if site in ds_all[m]['sitenames'].values.astype('str'):
-                s = np.where(ds_all[m]['sitenames'].values.astype('str') == site)[0][0]
-                if ds_all[m]['Yobs'].values[:,s][~np.isnan(ds_all[m]['Yobs'].values[:,s])].shape[0] != 0:
-                    pearson[site][m] = np.round(np.corrcoef(ds_all[m]['Yobs'].values[:,s][~np.isnan(ds_all[m]['Yobs'].values[:,s])],
-                                                            ds_all[m]['Yapost'].values[:,s][~np.isnan(ds_all[m]['Yobs'].values[:,s])])[0,1],3)
-                    nrmse[site][m] = np.round(np.sqrt(np.mean((ds_all[m]['Yapost'].values[:,s][~np.isnan(ds_all[m]['Yobs'].values[:,s])]-
-                                                    ds_all[m]['Yobs'].values[:,s][~np.isnan(ds_all[m]['Yobs'].values[:,s])])**2))/np.mean(ds_all[m]['Yobs'].values[:,s][~np.isnan(ds_all[m]['Yobs'].values[:,s])]),3)
+            
+            m0 = m.split('_')[0]
+        
+            if 'mcmc' in m0:
+                sp = f'_{species}'
+            else:
+                sp = ''
+            
+            if site in ds_all[m][f'sitenames{sp}'].values.astype('str'):
+                s = np.where(ds_all[m][f'sitenames{sp}'].values.astype('str') == site)[0][0]
+                if ds_all[m][f'Yobs{sp}'].values[:,s][~np.isnan(ds_all[m][f'Yobs{sp}'].values[:,s])].shape[0] != 0:
+                    pearson[site][m] = np.round(np.corrcoef(ds_all[m][f'Yobs{sp}'].values[:,s][~np.isnan(ds_all[m][f'Yobs{sp}'].values[:,s])],
+                                                            ds_all[m][f'Yapost{sp}'].values[:,s][~np.isnan(ds_all[m][f'Yobs{sp}'].values[:,s])])[0,1],3)
+                    nrmse[site][m] = np.round(np.sqrt(np.mean((ds_all[m][f'Yapost{sp}'].values[:,s][~np.isnan(ds_all[m][f'Yobs{sp}'].values[:,s])]-
+                                                    ds_all[m][f'Yobs{sp}'].values[:,s][~np.isnan(ds_all[m][f'Yobs{sp}'].values[:,s])])**2))/np.mean(ds_all[m][f'Yobs{sp}'].values[:,s][~np.isnan(ds_all[m][f'Yobs{sp}'].values[:,s])]),3)
                     #std[site][m] = np.std(ds_all[m]['Yapost'].values[:,s][~np.isnan(ds_all[m]['Yobs'].values[:,s])]-
                     #                      ds_all[m]['Yobs'].values[:,s][~np.isnan(ds_all[m]['Yobs'].values[:,s])])
                     
@@ -506,47 +527,52 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
         ax_all.append(ax)
         ax2_all.append(ax2)
         
+        if m0 == 'mcmc':
+            s = f'_{species}'
+        else:
+            s = ''
+            
         for var in include:
 
             if var == 'Yobs':
                 if len(include) == 1:
-                    ax.scatter(ds_all[m].time.values,
-                               ds_all[m]['Yobs'].values,
+                    ax.scatter(ds_all[m][f'time{s}'].values,
+                               ds_all[m][f'Yobs{s}'].values,
                                color=model_colors[m][var_colors[var]],
                                label=f'Obs ({model_labels[m]})',s=8,alpha=0.8,marker='s')
                     
                     if add_unc:
-                        ax.errorbar(ds_all[m].time.values,
-                                    ds_all[m]['Yobs'].values,
-                                    ds_all[m]['uYobs'].values,
+                        ax.errorbar(ds_all[m][f'time{s}'].values,
+                                    ds_all[m][f'Yobs{s}'].values,
+                                    ds_all[m][f'uYobs{s}'].values,
                                     color=model_colors[m][var_colors[var]],alpha=0.4,fmt='none')
                 else:
                     
-                    ax.scatter(ds_all[m].time.values,
-                                ds_all[m]['Yobs'].values,
+                    ax.scatter(ds_all[m][f'time{s}'].values,
+                                ds_all[m][f'Yobs{s}'].values,
                                 color='black',label=f'Obs ({model_labels[m]})',s=8,alpha=0.8,
                                 marker='s')
                     
                     if add_unc:
-                        ax.errorbar(ds_all[m].time.values,
-                                    ds_all[m]['Yobs'].values,
-                                    ds_all[m]['uYobs'].values,
+                        ax.errorbar(ds_all[m][f'time{s}'].values,
+                                    ds_all[m][f'Yobs{s}'].values,
+                                    ds_all[m][f'uYobs{s}'].values,
                                         color='black',alpha=0.4,fmt='none')
 
             elif var == 'uYmod':
-                uYmod = ds_all[m]['Yobs'].values - ds_all[m]['qYmod'].values[:,model_q_indices[m0][0]]
-                ax.scatter(ds_all[m].time.values,
+                uYmod = ds_all[m][f'Yobs{s}'].values - ds_all[m][f'qYmod{s}'].values[:,model_q_indices[m0][0]]
+                ax.scatter(ds_all[m][f'time{s}'].values,
                            uYmod,
                            color=model_colors[m][var_colors[var]],label=f'{model_labels[m]} {var_labels[var]}',s=8,alpha=0.8)
 
             else:
-                ax.plot(ds_all[m].time.values,
-                        ds_all[m][var].values,
+                ax.plot(ds_all[m][f'time{s}'].values,
+                        ds_all[m][f'{var}{s}'].values,
                         color=model_colors[m][var_colors[var]],alpha=0.8,
                         linewidth=2.,
                         label=f'{model_labels[m]} {var_labels[var]}')
                 
-                #ax.scatter(ds_all[m].time.values,
+                #ax.scatter(ds_all[m][f'time{s}'].values,
                 #        ds_all[m][var].values,
                 #        color=model_colors[m][var_colors[var]],alpha=0.5,
                 #        s=8,
@@ -554,12 +580,12 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
                 
 
                 if (var == 'Yapost') and add_unc:
-                    ax.fill_between(ds_all[m].time.values,
-                                    ds_all[m]['qYapost'].values[:,model_q_indices[m0][0]],
-                                    ds_all[m]['qYapost'].values[:,model_q_indices[m0][1]],
+                    ax.fill_between(ds_all[m][f'time{s}'].values,
+                                    ds_all[m][f'qYapost{s}'].values[:,model_q_indices[m0][0]],
+                                    ds_all[m][f'qYapost{s}'].values[:,model_q_indices[m0][1]],
                                     color=model_colors[m][var_colors[var]],alpha=0.2)
                 #if var == 'YapostBC':
-                #    ax.fill_between(ds_all[m].time.values,
+                #    ax.fill_between(ds_all[m][f'time{s}'].values,
                 #                    ds_all[m]['qYapostBC'].values[:,model_q_indices[m][0]],
                 #                    ds_all[m]['qYapostBC'].values[:,model_q_indices[m][1]],
                 #                    color=model_colors[m][var_colors[var]],alpha=0.5)
@@ -578,12 +604,12 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
         for i,var in enumerate(vars):
             
             if make_diff:
-                var_plot = ds_all[m]['Yobs'].values - ds_all[m][var].values
+                var_plot = ds_all[m][f'Yobs{s}'].values - ds_all[m][f'{var}{s}'].values
             else:
                 if var == 'uYmod':
                     var_plot = uYmod
                 else:
-                    var_plot = ds_all[m][var].values
+                    var_plot = ds_all[m][f'{var}{s}'].values
 
             var_mean = np.round(np.nanmean(var_plot),2)
             var_sd = np.round(np.nanstd(var_plot),2)
@@ -598,7 +624,7 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
                                 xycoords='axes fraction',color=model_colors[m][var_colors[var]])
 
         # Write number of obs to plot
-        n_obs = (~np.isnan(ds_all[m]['Yobs'].values)).sum()
+        n_obs = (~np.isnan(ds_all[m][f'Yobs{s}'].values)).sum()
         ax2.annotate('\n$N_{obs}$: '+str(n_obs),xy=[0.65,1.05],xycoords='axes fraction',color='k')
 
         ax2.set_xlabel(legend_hist)
@@ -616,7 +642,7 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
             for l in leg.legendHandles:
                 l.set_linewidth(5.0)
         
-        if int(ds_all[m].time.values[-1].astype('datetime64[M]')-ds_all[m].time.values[0].astype('datetime64[M]')) > 12:
+        if int(ds_all[m][f'time{s}'].values[-1].astype('datetime64[M]')-ds_all[m][f'time{s}'].values[0].astype('datetime64[M]')) > 12:
             ax.xaxis.set_minor_locator(MonthLocator())
             ax.xaxis.set_minor_formatter(NullFormatter())
             ax.xaxis.set_major_locator(YearLocator())
@@ -705,48 +731,53 @@ def plot_obs_modelled_together(ds_all,species,site,model_labels,
     for i,m in enumerate(models):
         
         m0 = m.split('_')[0]
+        
+        if m0 == 'mcmc':
+            s = f'_{species}'
+        else:
+            s = ''
                 
         for var in include:
 
             if var == 'Yobs':
                 if len(include) == 1:
-                    ax.scatter(ds_all[m].time.values,
-                                ds_all[m]['Yobs'].values,
+                    ax.scatter(ds_all[m][f'time{s}'].values,
+                                ds_all[m][f'Yobs{s}'].values,
                                 color=model_colors[m][var_colors[var]],label=f'Obs ({model_labels[m]})',s=5,alpha=0.5)
 
                     if add_unc:
-                        ax.fill_between(ds_all[m].time.values,
-                                        ds_all[m]['Yobs'].values - ds_all[m]['uYobs'].values,
-                                        ds_all[m]['Yobs'].values + ds_all[m]['uYobs'].values,
+                        ax.fill_between(ds_all[m][f'time{s}'].values,
+                                        ds_all[m][f'Yobs{s}'].values - ds_all[m][f'uYobs{s}'].values,
+                                        ds_all[m][f'Yobs{s}'].values + ds_all[m][f'uYobs{s}'].values,
                                         color=model_colors[m][var_colors[var]],alpha=0.2)
                 else:
-                    #ax.plot(ds_all[m].time.values,
-                    #            ds_all[m]['Yobs'].values,
+                    #ax.plot(ds_all[m][f'time{s}'].values,
+                    #            ds_all[m][f'Yobs{s}'].values,
                     #            color='dimgrey',label=f'Obs ({model_labels[m]})')
-                    ax.scatter(ds_all[m].time.values,
-                                ds_all[m]['Yobs'].values,
+                    ax.scatter(ds_all[m][f'time{s}'].values,
+                                ds_all[m][f'Yobs{s}'].values,
                                 color='dimgrey',label=f'Obs ({model_labels[m]})',s=5,alpha=0.5)
 
             elif var == 'uYmod':
-                uYmod = ds_all[m]['Yobs'].values - ds_all[m]['qYmod'].values[:,model_q_indices[m0][0]]
-                ax.scatter(ds_all[m].time.values,
+                uYmod = ds_all[m][f'Yobs{s}'].values - ds_all[m][f'qYmod{s}'].values[:,model_q_indices[m0][0]]
+                ax.scatter(ds_all[m][f'time{s}'].values,
                            uYmod,
                            color=model_colors[m][var_colors[var]],label=f'{model_labels[m]} {var_labels[var]}',s=8,alpha=0.8)
 
             else:
-                ax.scatter(ds_all[m].time.values,
-                        ds_all[m][var].values,
+                ax.scatter(ds_all[m][f'time{s}'].values,
+                        ds_all[m][f'{var}{s}'].values,
                         color=model_colors[m][var_colors[var]],alpha=0.5,
                         label=f'{model_labels[m]} {var_labels[var]}',
                         linewidth=2,s=8)
 
                 if (var == 'Yapost') and add_unc:
-                    ax.fill_between(ds_all[m].time.values,
-                                    ds_all[m]['qYapost'].values[:,model_q_indices[m0][0]],
-                                    ds_all[m]['qYapost'].values[:,model_q_indices[m0][1]],
+                    ax.fill_between(ds_all[m][f'time{s}'].values,
+                                    ds_all[m][f'qYapost{s}'].values[:,model_q_indices[m0][0]],
+                                    ds_all[m][f'qYapost{s}'].values[:,model_q_indices[m0][1]],
                                     color=model_colors[m][var_colors[var]],alpha=0.3)
                 #if var == 'YapostBC':
-                #    ax.fill_between(ds_all[m].time.values,
+                #    ax.fill_between(ds_all[m][f'time{s}'].values,
                 #                    ds_all[m]['qYapostBC'].values[:,model_q_indices[m][0]],
                 #                    ds_all[m]['qYapostBC'].values[:,model_q_indices[m][1]],
                 #                    color=model_colors[m][var_colors[var]],alpha=0.5)
@@ -766,12 +797,12 @@ def plot_obs_modelled_together(ds_all,species,site,model_labels,
         for v,var in enumerate(vars):
             
             if make_diff:
-                var_plot = ds_all[m]['Yobs'].values - ds_all[m][var].values
+                var_plot = ds_all[m][f'Yobs{s}'].values - ds_all[m][f'{var}{s}'].values
             else:
                 if var == 'uYmod':
                     var_plot = uYmod
                 else:
-                    var_plot = ds_all[m][var].values
+                    var_plot = ds_all[m][f'{var}{s}'].values
 
             var_mean = np.round(np.nanmean(var_plot),2)
             var_sd = np.round(np.nanstd(var_plot),2)
@@ -800,7 +831,7 @@ def plot_obs_modelled_together(ds_all,species,site,model_labels,
         for l in leg.legendHandles:
             l.set_linewidth(5.0)
     
-    if int(ds_all[m].time.values[-1].astype('datetime64[M]')-ds_all[m].time.values[0].astype('datetime64[M]')) > 12:
+    if int(ds_all[m][f'time{s}'].values[-1].astype('datetime64[M]')-ds_all[m][f'time{s}'].values[0].astype('datetime64[M]')) > 12:
         ax.xaxis.set_minor_locator(MonthLocator())
         ax.xaxis.set_minor_formatter(NullFormatter())
         ax.xaxis.set_major_locator(YearLocator())
@@ -884,20 +915,36 @@ def plot_obs_diff(ds_all,species,site,model_labels,
     ax = fig.add_subplot(gs[0])
     ax2 = fig.add_subplot(gs[1])
     
-    both_times0 = np.isin(ds_all[models[0]].time.values,ds_all[models[1]].time.values)
-    both_times1 = np.isin(ds_all[models[1]].time.values,ds_all[models[0]].time.values)
+    m00 = models[0].split('_')[0]
+    m01 = models[1].split('_')[0]
     
-    ds_all[models[0]] = ds_all[models[0]].sel(time=both_times0)
-    ds_all[models[1]] = ds_all[models[1]].sel(time=both_times1)
+    if m00 == 'mcmc':
+        s0 = f'_{species}'
+        time_name0 = f'time_{species}'
+    else:
+        s0 = ''
+        time_name0 = 'time'
+        
+    if m01 == 'mcmc':
+        s1 = f'_{species}'
+        time_name1 = f'time_{species}'
+    else:
+        s1 = ''
+        time_name1 = 'time'
+
+    both_times0 = np.isin(ds_all[models[0]][f'time{s0}'].values,ds_all[models[1]][f'time{s1}'].values)
+    both_times1 = np.isin(ds_all[models[1]][f'time{s1}'].values,ds_all[models[0]][f'time{s0}'].values)
     
+    ds_all[models[0]] = ds_all[models[0]].sel(**{time_name0:both_times0})
+    ds_all[models[1]] = ds_all[models[1]].sel(**{time_name1:both_times1})
+    
+    #ds_all[models[1]] = ds_all[models[1]].sel(time=both_times1)
             
     for var in include:
         if var == 'uYmod':
-            m00 = models[0].split('_')[0]
-            m01 = models[1].split('_')[0]
 
-            uYmod0 = ds_all[models[0]]['Yobs'].values - ds_all[models[0]]['qYmod'].values[:,model_q_indices[m00][0]]
-            uYmod1 = ds_all[models[1]]['Yobs'].values - ds_all[models[1]]['qYmod'].values[:,model_q_indices[m01][0]]
+            uYmod0 = ds_all[models[0]][f'Yobs{s0}'].values - ds_all[models[0]][f'qYmod{s0}'].values[:,model_q_indices[m00][0]]
+            uYmod1 = ds_all[models[1]][f'Yobs{s1}'].values - ds_all[models[1]][f'qYmod{s1}'].values[:,model_q_indices[m01][0]]
 
             ax.scatter(ds_all[models[0]].time.values,
                        uYmod0 - uYmod1,
@@ -906,8 +953,8 @@ def plot_obs_diff(ds_all,species,site,model_labels,
                        linewidth=2,s=8)
 
         else:
-            ax.scatter(ds_all[models[0]].time.values,
-                       ds_all[models[0]][var].values - ds_all[models[1]][var].values,
+            ax.scatter(ds_all[models[0]][f'time{s0}'].values,
+                       ds_all[models[0]][f'{var}{s0}'].values - ds_all[models[1]][f'{var}{s1}'].values,
                        color=model_colors[models[0]][var_colors[var]],alpha=0.5,
                        label=f'{model_labels[models[0]]} - {model_labels[models[1]]}\n{var_labels[var]}',
                        linewidth=2,s=8)
@@ -926,6 +973,11 @@ def plot_obs_diff(ds_all,species,site,model_labels,
     for i,m in enumerate(models):
         
         m0 = m.split('_')[0]
+        
+        if m0 == 'mcmc':
+            s = f'_{species}'
+        else:
+            s = ''
 
         # Plot histogram
         if len(diff_include) == 0:
@@ -941,12 +993,12 @@ def plot_obs_diff(ds_all,species,site,model_labels,
         for v,var in enumerate(vars):
 
             if make_diff:
-                var_plot = ds_all[m]['Yobs'].values - ds_all[m][var].values
+                var_plot = ds_all[m][f'Yobs{s}'].values - ds_all[m][f'{var}{s}'].values
             else:
                 if var == 'uYmod':
-                    var_plot = ds_all[m]['Yobs'].values - ds_all[m]['qYmod'].values[:,model_q_indices[m0][0]]
+                    var_plot = ds_all[m][f'Yobs{s}'].values - ds_all[m][f'qYmod{s}'].values[:,model_q_indices[m0][0]]
                 else:
-                    var_plot = ds_all[m][var].values
+                    var_plot = ds_all[m][f'{var}{s}'].values
             
             var_mean = np.round(np.nanmean(var_plot),2)
             var_sd = np.round(np.nanstd(var_plot),2)
@@ -975,7 +1027,7 @@ def plot_obs_diff(ds_all,species,site,model_labels,
         for l in leg.legendHandles:
             l.set_linewidth(5.0)
     
-    if int(ds_all[m].time.values[-1].astype('datetime64[M]')-ds_all[m].time.values[0].astype('datetime64[M]')) > 12:
+    if int(ds_all[m][time_name1].values[-1].astype('datetime64[M]')-ds_all[m][time_name1].values[0].astype('datetime64[M]')) > 12:
         ax.xaxis.set_minor_locator(MonthLocator())
         ax.xaxis.set_minor_formatter(NullFormatter())
         ax.xaxis.set_major_locator(YearLocator())
@@ -1029,14 +1081,14 @@ def plot_stats_mf(pearson,nrmse,species,model_labels,
         for m,model in enumerate(pearson[site]):
             model0 = model.split('_')[0]
             if i == 0:
-                ax[0].scatter(i+m*0.2,pearson[site][model],color=model_colors[model][0],marker='x',s=150,label=model_labels[model])
-                ax[1].scatter(i+m*0.2,nrmse[site][model],color=model_colors[model][0],marker='x',s=150,label=model_labels[model])
-                #ax[2].scatter(i+m*0.2,std[site][model],color=model_colors_stats[model],marker='x',s=150,label=model_labels[model])
+                ax[0].scatter(i+m*0.2,pearson[site][model],color=model_colors[model][0],marker='+',s=150,label=model_labels[model])
+                ax[1].scatter(i+m*0.2,nrmse[site][model],color=model_colors[model][0],marker='+',s=150,label=model_labels[model])
+                #ax[2].scatter(i+m*0.2,std[site][model],color=model_colors_stats[model],marker='+',s=150,label=model_labels[model])
                 
             else:
-                ax[0].scatter(i+m*0.2,pearson[site][model],color=model_colors[model][0],marker='x',s=150)
-                ax[1].scatter(i+m*0.2,nrmse[site][model],color=model_colors[model][0],marker='x',s=150)
-                #ax[2].scatter(i+m*0.2,std[site][model],color=model_colors_stats[model],marker='x',s=150)
+                ax[0].scatter(i+m*0.2,pearson[site][model],color=model_colors[model][0],marker='+',s=150)
+                ax[1].scatter(i+m*0.2,nrmse[site][model],color=model_colors[model][0],marker='+',s=150)
+                #ax[2].scatter(i+m*0.2,std[site][model],color=model_colors_stats[model],marker='+',s=150)
                 
         x_val.append(i)
         x_label.append(site)
@@ -1474,13 +1526,13 @@ def plot_spatial_flux(ds_all,species,plot_area,model_labels,cmap=None,
                             np.mean(ds_all[m]['flux_total_prior'][:,:-1,:-1],axis=0),cmap=cmap,
                             vmin=fluxlim[species][0],vmax=fluxlim[species][1],shading='flat')
 
-            ax0.set_title(f'{model_labels[m]}: prior')
+            ax0.set_title(f'{model_labels[m]}:\nprior')
             
             ax1.pcolormesh(lon,lat,
                             np.mean(ds_all[m]['flux_total_posterior'][:,:-1,:-1],axis=0),cmap=cmap,
                             vmin=fluxlim[species][0],vmax=fluxlim[species][1],shading='flat')
 
-            ax1.set_title(f'{model_labels[m]}: posterior')
+            ax1.set_title(f'{model_labels[m]}:\nposterior')
             
             flux_diff = np.mean(ds_all[m]['flux_total_posterior'][:,:-1,:-1],axis=0)-np.mean(ds_all[m]['flux_total_prior'][:,:-1,:-1],axis=0)
             flux_diff[np.where(flux_diff) == np.nan] = 0.
@@ -1489,8 +1541,8 @@ def plot_spatial_flux(ds_all,species,plot_area,model_labels,cmap=None,
                             flux_diff,
                             cmap=cmap_diff,vmin=difflim[species][0],vmax=difflim[species][1],shading='flat')
 
-            ax2.set_title(f'{model_labels[m]}: posterior - prior')
-                
+            ax2.set_title(f'{model_labels[m]}:\nposterior - prior')
+                    
         except:
             print(f'ERROR: Either start and end dates are incorrect or there is no model output from {m}.')
             print(f'Skipping plotting {m}.')
