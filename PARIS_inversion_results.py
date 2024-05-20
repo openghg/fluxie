@@ -75,7 +75,7 @@ print('NOTE: If plotting units or scales look odd, edit species_info.json to fix
 
 #####################################################################
 
-def read_flux(data_dir,species,models,model_filenames):
+def read_flux(data_dir,species,models,model_filenames,period_override=None):
     """
     Extracts flux and country flux timeseries from each model.
     
@@ -89,11 +89,28 @@ def read_flux(data_dir,species,models,model_filenames):
         model_filenames (dict of str): 
             Paired models and filenames, e.g. {'intem':'InTEM_NAME_EUROPE',
                                                'elris':'ELRIS_NAME_EUROPE_baselinetest'}
-                                       
+        period_override (list of str) (optional):
+            Inversion periods to include, to override the standards in species_info.json.
+            Must be the same length as models, e.g. ['monthly',None,'yearly']            
     Returns:
         ds_all (dictionary of datasets): 
             xarray dataset read directly from each model's flux netCDF.
     """
+    
+    period_all = {}
+
+    if period_override != None and len(period_override) != len(models):
+        print('ERROR: if using period_override, this list must be the same length as models.')
+        return None
+
+    for i,m in enumerate(models):
+        if period_override is not None:
+            if period_override[i] is not None:
+                period_all[m] = period_override[i]
+            else:
+                period_all[m] = s_data[species]["period"]
+        else:
+            period_all[m] = s_data[species]["period"]
     
     ds_all = {}
 
@@ -105,7 +122,8 @@ def read_flux(data_dir,species,models,model_filenames):
         model_dir = model_filenames[m].split('_')[0]
         
         try:
-            filepath = glob.glob(os.path.join(data_dir,model_dir,species,f'{model_filenames[m]}_{s_data[species]["model_species"][m0]}*_{s_data[species]["period"]}.nc'))
+            filepath = glob.glob(os.path.join(data_dir,model_dir,species,
+                                              f'{model_filenames[m]}_{s_data[species]["model_species"][m0]}_{period_all[m]}.nc'))
             print(f'Reading data from: {filepath[0]}')
             with xr.open_dataset(filepath[0]) as in_ds:
                 ds_all[m] = in_ds
@@ -114,7 +132,7 @@ def read_flux(data_dir,species,models,model_filenames):
             try:
                 if (model_filenames[m].split('_')[-1] == 'std*'):
                     alternative_filename = f'{model_filenames[m][0:-5]}_{m0}_obs_{m0}_baseline_optimized'
-                    filepath = glob.glob(os.path.join(data_dir,model_dir,species,f'{alternative_filename}_{s_data[species]["model_species"][m0]}_{s_data[species]["period"]}.nc'))
+                    filepath = glob.glob(os.path.join(data_dir,model_dir,species,f'{alternative_filename}_{s_data[species]["model_species"][m0]}_{period_all[m]}.nc'))
                     print(f'Cannot find {m} file for {species}. Reading data from: {filepath[0]}')
                     with xr.open_dataset(filepath[0]) as in_ds:
                         ds_all[m] = in_ds
@@ -197,7 +215,7 @@ def slice_flux(ds_all,start_date,end_date,
 
 #####################################################################
 
-def read_mf(data_dir,species,models,model_filenames):
+def read_mf(data_dir,species,models,model_filenames,period_override=None):
     """
     Extracts mole fraction timeseries data from each model.
     Args:
@@ -210,11 +228,28 @@ def read_mf(data_dir,species,models,model_filenames):
         model_filenames (dict of str): 
             Paired models and filenames, e.g. {'intem':'InTEM_NAME_EUROPE',
                                                'elris':'ELRIS_NAME_EUROPE_baselinetest'}
-                                       
+         period_override (list of str) (optional):
+            Inversion periods to include, to override the standards in species_info.json.
+            Must be the same length as models, e.g. ['monthly',None,'yearly']                
     Returns:
         ds_all (dictionary of datasets): 
             xarray dataset read directly from each model's mole fraction netCDF.
     """
+    
+    period_all = {}
+
+    if period_override != None and len(period_override) != len(models):
+        print('ERROR: if using period_override, this list must be the same length as models.')
+        return None
+
+    for i,m in enumerate(models):
+        if period_override is not None:
+            if period_override[i] is not None:
+                period_all[m] = period_override[i]
+            else:
+                period_all[m] = s_data[species]["period"]
+        else:
+            period_all[m] = s_data[species]["period"]
 
     ds_all = {}
 
@@ -225,7 +260,7 @@ def read_mf(data_dir,species,models,model_filenames):
         
         print(f'\nAttempting to read data from {m}')
         try:
-            filepath = glob.glob(os.path.join(data_dir,model_dir,species,f'{model_filenames[m]}_{s_data[species]["model_species"][m0]}*_{s_data[species]["period"]}_concentrations.nc'))
+            filepath = glob.glob(os.path.join(data_dir,model_dir,species,f'{model_filenames[m]}_{s_data[species]["model_species"][m0]}_{period_all[m]}_concentrations.nc'))
             print(f'Reading data from: {filepath[0]}')
             with xr.open_dataset(filepath[0]) as in_ds:
                 ds_all[m] = in_ds
@@ -234,7 +269,7 @@ def read_mf(data_dir,species,models,model_filenames):
             try:
                 if (model_filenames[m].split('_')[-1] == 'std*'):
                     alternative_filename = f'{model_filenames[m][0:-5]}_{m0}_obs_{m0}_baseline_optimized'
-                    filepath = glob.glob(os.path.join(data_dir,model_dir,species,f'{alternative_filename}_{s_data[species]["model_species"][m0]}_{s_data[species]["period"]}_concentrations.nc'))
+                    filepath = glob.glob(os.path.join(data_dir,model_dir,species,f'{alternative_filename}_{s_data[species]["model_species"][m0]}_{period_all[m]}_concentrations.nc'))
                     print(f'Cannot find {m} file for {species}. Reading data from: {filepath[0]}')
                     with xr.open_dataset(filepath[0]) as in_ds:
                         ds_all[m] = in_ds
