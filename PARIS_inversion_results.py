@@ -225,7 +225,7 @@ def read_mf(data_dir,species,models,model_filenames):
         
         print(f'\nAttempting to read data from {m}')
         try:
-            filepath = glob.glob(os.path.join(data_dir,model_dir,species,f'{model_filenames[m]}_{s_data[species]["model_species"][m0]}_{s_data[species]["period"]}_concentrations.nc'))
+            filepath = glob.glob(os.path.join(data_dir,model_dir,species,f'{model_filenames[m]}_{s_data[species]["model_species"][m0]}*_{s_data[species]["period"]}_concentrations.nc'))
             print(f'Reading data from: {filepath[0]}')
             with xr.open_dataset(filepath[0]) as in_ds:
                 ds_all[m] = in_ds
@@ -290,17 +290,16 @@ def slice_mf(ds_all,start_date=None,end_date=None,site=None,
         m0 = m.split('_')[0]
         
         if 'mcmc' in m0:
-            time_name = f'time_{species}'
+            s = f'_{species}'
         else:
-            time_name = 'time'
+            s = ''
         
         print(f'\nMasking data from {m}')
         
         if 'Yav' in ds_all[m].keys():
             offset = int(np.mean(ds_all[m]['Yav'].values))
         else:
-            if 'mcmc' in m:
-                offset = (ds_all[m][f'{time_name}'].values[1].astype('datetime64[h]') - ds_all[m][f'{time_name}'].values[0].astype('datetime64[h]')).astype(int)
+            offset = (ds_all[m][f'time{s}'].values[1].astype('datetime64[h]') - ds_all[m][f'time{s}'].values[0].astype('datetime64[h]')).astype(int)
 
         # fix to move elris timestamps back to the middle of av period - to be removed once fixed in .nc files
         if 'elris_old' in m:
@@ -312,15 +311,15 @@ def slice_mf(ds_all,start_date=None,end_date=None,site=None,
 
         if site is not None:
             #try:
-                site_index = np.where(ds_all[m]['sitenames'].astype(str) == site)[0][0]
-                ds_all[m] = ds_all[m].sel(**{time_name:slice(start_date,end_date)},
-                                            nsite=site_index)
+            site_index = np.where(ds_all[m][f'sitenames{s}'].astype(str) == site)[0][0]
+            ds_all[m] = ds_all[m].sel(**{f'time{s}':slice(start_date,end_date),
+                                        f'nsite{s}':site_index})
             #except:
             #    ds_all[m] = None
             #    print(f'No {m} obs found for {site} between {start_date} and {end_date}')
         else:
             try:
-                ds_all[m] = ds_all[m].sel(**{time_name:slice(start_date,end_date)})
+                ds_all[m] = ds_all[m].sel(**{f'time{s}':slice(start_date,end_date)})
             except:
                 ds_all[m] = None
                 print(f'No {m} obs found between {start_date} and {end_date}')
@@ -328,10 +327,10 @@ def slice_mf(ds_all,start_date=None,end_date=None,site=None,
         if scale_units == True:
             print(f'Scaling {m} units by {s_data[species]["mf_units_scaling"]}')
             if ds_all[m] is not None:
-                if 'mcmc' in m:
-                    var_names = [k for k in ds_all[m].keys() if k not in [f'sitenames_{species}','Yav']]
-                else:
-                    var_names = [k for k in ds_all[m].keys() if k not in ['sitenames','Yav']]
+                var_names = [k for k in ds_all[m].keys() if k not in ['Yav',f'sitenames_{species}']]
+                for s in ds_all[m].species:
+                    if f'sitenames_{s}' in var_names:
+                        var_names.remove(f'sitenames_{s}')
                 for v in var_names:
                     ds_all[m][v] = ds_all[m][v]/s_data[species]["mf_units_scaling"]
       
@@ -341,17 +340,17 @@ def slice_mf(ds_all,start_date=None,end_date=None,site=None,
             try:
                                         
                 #average baseline mask over obs averaging period
-                b = baseline.resample(**{time_name:f'{offset}H'}).mean()
+                b = baseline.resample(**{f'time{s}':f'{offset}H'}).mean()
                 #adjust baseline mask time back to centre of av period (resample removes this)
-                b[time_name] = b[time_name] + np.timedelta64(offset,'h')/2
+                b[f'time{s}'] = b[f'time{s}'] + np.timedelta64(offset,'h')/2
                                     
                 #mask baseline mask again, to only include timestamps where every period in the averaging period is classified as baseline
-                b_masked = b.sel(**{time_name:b[time_name].values[np.where(b['baseline'] == 1.)]})
+                b_masked = b.sel(**{f'time{s}':b[f'time{s}'].values[np.where(b['baseline'] == 1.)]})
                                 
                 #mask dataset using only baseline times
-                both_times = np.isin(ds_all[m][time_name].values,b_masked[time_name].values)
+                both_times = np.isin(ds_all[m][f'time{s}'].values,b_masked[f'time{s}'].values)
                                 
-                ds_all[m] = ds_all[m].sel(**{time_name:both_times})
+                ds_all[m] = ds_all[m].sel(**{f'time{s}':both_times})
                     
             except:
                 print('Failed to mask {m} data by baseline times')
