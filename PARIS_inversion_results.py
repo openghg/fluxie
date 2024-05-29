@@ -37,10 +37,12 @@ countrycodes_dict = {'IRELAND':'IRL',
                      'POLAND':'POL',
                      'CZECHIA':'CZE',
                      'CROATIA':'HRV',
-                     'SLOVAKIA':'SKV',
+                     'SLOVAKIA':'SVK',
                      'FINLAND':'FIN',
                      'SLOVENIA':'SVN',
-                     'GREECE':'GRC'}
+                     'GREECE':'GRC',
+                     'SPAIN':'ESP',
+                     'PORTUGAL':'PRT'}
 
 regions_dict = {'BELUX':'BEL-LUX',
                 'BENELUX':'BEL-LUX-NLD',
@@ -362,10 +364,13 @@ def slice_mf(ds_all,start_date=None,end_date=None,site=None,
         if scale_units == True:
             print(f'Scaling {m} units by {s_data[species]["mf_units_scaling"]}')
             if ds_all[m] is not None:
-                var_names = [k for k in ds_all[m].keys() if k not in ['Yav',f'sitenames_{species}']]
-                for s in ds_all[m].species:
+                var_names = [k for k in ds_all[m].keys() if k not in ['Yav','sitenames']]
+                print(ds_all[m].species)
+
+                for s in [ds_all[m].species]:
                     if f'sitenames_{s}' in var_names:
                         var_names.remove(f'sitenames_{s}')
+                        s
                 for v in var_names:
                     ds_all[m][v] = ds_all[m][v]/s_data[species]["mf_units_scaling"]
       
@@ -1216,35 +1221,37 @@ def plot_country_flux(ds_all,species,plot_regions,model_labels,
         
         if plot_inventory == True:
             try:
-                inv_c_index = np.where(inv_ds['country'].values == country)[0][0]
-                ax[a,b].bar(inv_ds.time.values,inv_ds['inventory'].values[:,inv_c_index]/s_data[species]["units_scaling"]["intem"],
-                            np.timedelta64(340, 'D'),color='white',edgecolor='black',align='edge',
-                            label='Inventory 2023',zorder=0)
-            except:
-                try:
-                    region_search = regions_dict[country]
-                    country_list = region_search.split('-')
+                region_search = regions_dict[country]
+                country_list = region_search.split('-')
 
-                    inv_c_index = [0]*len(country_list)
-                    inv_c_value = np.zeros(len(inv_ds.time.values))
+                inv_c_index = [0]*len(country_list)
+                inv_c_value = np.zeros(len(inv_ds.time.values))
 
+                print(f'No inventory data available for {country}. Considering sum of individual countries: {region_search}')
+
+                for i,var in enumerate(country_list):
                     try:
-                        for i,var in enumerate(country_list):
-                            inv_key = [k for k, code in countrycodes_dict.items() if code == var]
-                            inv_c_index[i] = np.where(inv_ds['country'].values == inv_key[0])[0][0]
-                            inv_c_value = inv_c_value + inv_ds['inventory'].values[:,inv_c_index[i]]
+                        inv_key = [k for k, code in countrycodes_dict.items() if code == var]
+                        inv_c_index[i] = np.where(inv_ds['country'].values == inv_key[0])[0][0]
+                        inv_c_temp = inv_ds['inventory'].values[:,inv_c_index[i]]
+                        if np.any(np.isnan(inv_c_temp) == True):
+                            inv_c_temp = np.zeros(len(inv_ds.time.values))
+                            print(f'WARNING: Inventory data for {inv_key[0]} is NaN. Inventory value for {country} will not include {inv_key[0]} contributions.')
 
-                        ax[a,b].bar(inv_ds.time.values,inv_c_value/s_data[species]["units_scaling"]["intem"],
-                                    np.timedelta64(340, 'D'),color='white',edgecolor='black',align='edge',
-                                    label='Inventory 2023',zorder=0)
-
-                        print(f'No inventory data available for {country}. Considering sum of individual countries: {region_search}')
+                        inv_c_value = inv_c_value + inv_c_temp
 
                     except:
-                        print(f'No inventory data available for {inv_key[0]}. Inventory data will not be plotted for {country}.')
+                        try:
+                            print(f'WARNING: No inventory data available for {inv_key[0]}. Inventory value for {country} will not include {inv_key[0]} contributions.')
+                        except:
+                            print(f'ERROR: {var} does not exist in country dictionary!')
 
-                except:
-                    print(f'No inventory data available for {country}')
+                ax[a,b].bar(inv_ds.time.values,inv_c_value/s_data[species]["units_scaling"]["intem"],
+                            np.timedelta64(340, 'D'),color='white',edgecolor='black',align='edge',
+                            label='Inventory 2023',zorder=0)
+
+            except:
+                print(f'No inventory data available for {country}')
         
         for m in ds_all.keys():
             
@@ -1485,6 +1492,7 @@ def plot_spatial_flux(ds_all,species,plot_area,model_labels,cmap=None,
     n_cols = len(ds_all.keys())
     
     fluxlim = {'ch4':[0,1e-7],
+               'c2h6':[0,1e-9],
         'hfc134a':[0,1e-11],
         'hfc143a':[0,5e-12],
         'hfc125':[0,1e-11],
@@ -1495,6 +1503,7 @@ def plot_spatial_flux(ds_all,species,plot_area,model_labels,cmap=None,
         'n2o':[0,1e-9]}
 
     difflim = {'ch4':[-1e-7,1e-7],
+               'c2h6':[-1e-9,1e-9],
             'hfc134a':[-1e-11,1e-11],
             'hfc143a':[-5e-12,5e-12],
             'hfc125':[-1e-11,1e-11],
