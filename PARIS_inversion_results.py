@@ -367,10 +367,13 @@ def slice_mf(ds_all,start_date=None,end_date=None,site=None,
                 var_names = [k for k in ds_all[m].keys() if k not in ['Yav','sitenames']]
                 print(ds_all[m].species)
 
-                for s in [ds_all[m].species]:
+                if type(ds_all[m].species) is not list:
+                    species_test = [ds_all[m].species]
+                else:
+                    species_test = ds_all[m].species
+                for s in species_test:
                     if f'sitenames_{s}' in var_names:
                         var_names.remove(f'sitenames_{s}')
-                        s
                 for v in var_names:
                     ds_all[m][v] = ds_all[m][v]/s_data[species]["mf_units_scaling"]
       
@@ -1423,9 +1426,11 @@ def plot_country_flux(ds_all,species,plot_regions,model_labels,
     if set_global_leg:
         handles, labels = ax[0,0].get_legend_handles_labels()
         ncol=len(ds_all.keys())
+        ncol=3
+        bbox_to_anchor=(0.5, 1.12)
         if plot_inventory == True:
             ncol=ncol+1
-        leg = fig.legend(handles, labels, loc='upper center',ncol=ncol,borderpad=.4,columnspacing=1.0,fontsize=10,bbox_to_anchor=(0.5, 1.07))
+        leg = fig.legend(handles, labels, loc='upper center',ncol=ncol,borderpad=.4,columnspacing=1.0,fontsize=10,bbox_to_anchor=bbox_to_anchor)
         if plot_inventory == True:
             for l in leg.legendHandles[:-1]:
                 l.set_linewidth(3.0)
@@ -1449,7 +1454,7 @@ def plot_country_flux(ds_all,species,plot_regions,model_labels,
 
 #####################################################################
 
-def plot_spatial_flux(ds_all,species,plot_area,model_labels,cmap=None,
+def plot_spatial_flux(ds_all,species,plot_area,model_labels,sectors=None,cmap=None,
                       cmap_diff=None,c_border=None):
     """
     Plots posterior and prior fluxes and the difference between these
@@ -1481,6 +1486,9 @@ def plot_spatial_flux(ds_all,species,plot_area,model_labels,cmap=None,
             A plot of spatial flux posterior and prior mean/mode and a plot 
             of the absolute difference between these, for each model.
     """
+    
+    if sectors == None:
+        sectors = ['total' for i in range(len(models))]
     
     if cmap == None:
         cmap = 'viridis' #'Blues'
@@ -1549,7 +1557,18 @@ def plot_spatial_flux(ds_all,species,plot_area,model_labels,cmap=None,
         m0 = m.split('_')[0]
         
         try:
-        
+            
+            for s,sector_name in enumerate(sectors[i]):
+                if s == 0:
+                    flux_total_prior = np.mean(ds_all[m][f'flux_{sector_name}_prior'][:,:-1,:-1],axis=0)
+                    flux_total_posterior = np.mean(ds_all[m][f'flux_{sector_name}_posterior'][:,:-1,:-1],axis=0)
+                    
+                else:
+                    flux_total_prior = np.mean(ds_all[m][f'flux_{sector_name}_prior'][:,:-1,:-1],axis=0)
+                    flux_total_posterior = np.mean(ds_all[m][f'flux_{sector_name}_posterior'][:,:-1,:-1],axis=0)
+                    
+            flux_diff = flux_total_posterior - flux_total_prior
+
             if len(ds_all[m].time.values) == 1:
                 time_out = to_datetime(ds_all[m].time.values[0].astype(s_data[species]["dt_units"][m0])).strftime('%d/%m/%Y')
             else:
@@ -1565,19 +1584,17 @@ def plot_spatial_flux(ds_all,species,plot_area,model_labels,cmap=None,
                 ax1 = ax[1,i]
                 ax2 = ax[2,i]
 
-            ax0.pcolormesh(lon,lat,
-                            np.mean(ds_all[m]['flux_total_prior'][:,:-1,:-1],axis=0),cmap=cmap,
+            ax0.pcolormesh(lon,lat,flux_total_prior,cmap=cmap,
                             vmin=fluxlim[species][0],vmax=fluxlim[species][1],shading='flat')
 
             ax0.set_title(f'{model_labels[m]}:\nprior')
             
-            ax1.pcolormesh(lon,lat,
-                            np.mean(ds_all[m]['flux_total_posterior'][:,:-1,:-1],axis=0),cmap=cmap,
+            ax1.pcolormesh(lon,lat,flux_total_posterior,cmap=cmap,
                             vmin=fluxlim[species][0],vmax=fluxlim[species][1],shading='flat')
 
             ax1.set_title(f'{model_labels[m]}:\nposterior')
             
-            flux_diff = np.mean(ds_all[m]['flux_total_posterior'][:,:-1,:-1],axis=0)-np.mean(ds_all[m]['flux_total_prior'][:,:-1,:-1],axis=0)
+            #flux_diff = np.mean(ds_all[m]['flux_total_posterior'][:,:-1,:-1],axis=0)-np.mean(ds_all[m]['flux_total_prior'][:,:-1,:-1],axis=0)
             flux_diff[np.where(flux_diff) == np.nan] = 0.
             
             ax2.pcolormesh(lon,lat,
