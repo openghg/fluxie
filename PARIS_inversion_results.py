@@ -5,11 +5,12 @@ import matplotlib.pyplot as plt
 import os
 import glob
 import math
-from matplotlib.dates import YearLocator, MonthLocator
+from matplotlib.dates import YearLocator, MonthLocator, DayLocator
 from matplotlib.ticker import NullFormatter
 import pprint
 import cartopy
 from json import load
+import matplotlib.dates as mdates
 
 model_colors = {'intem':[['darkslateblue','dodgerblue'],
                          ['black','grey']],
@@ -690,6 +691,7 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
             ax.xaxis.set_major_locator(YearLocator())
         else:
             ax.xaxis.set_major_locator(MonthLocator())
+            ax.xaxis.set_minor_locator(DayLocator())
                     
     for i in range(len(models)):
         ax_all[i].set_ylim([min(min_mf)-(0.02*min(min_mf)),
@@ -1411,10 +1413,17 @@ def plot_country_flux(ds_all,species,plot_regions,model_labels,
                     l.set_linewidth(3.0)
                 
         ax[a,b].set_title(f'{country}')
-        ax[a,b].grid(visible=True,which='major',alpha=0.4)
+        ax[a,b].grid(visible=True,which='major',alpha=0.4,axis='y')
+        #ax[a,b].xaxis.set_minor_locator(MonthLocator())
+        #ax[a,b].xaxis.set_minor_formatter(NullFormatter())
+        #ax[a,b].xaxis.set_major_locator(YearLocator())
+        
+        locator = mdates.AutoDateLocator(minticks=3, maxticks=7)
+        formatter = mdates.ConciseDateFormatter(locator)
+        ax[a,b].xaxis.set_major_locator(locator)
+        ax[a,b].xaxis.set_major_formatter(formatter)
         ax[a,b].xaxis.set_minor_locator(MonthLocator())
         ax[a,b].xaxis.set_minor_formatter(NullFormatter())
-        ax[a,b].xaxis.set_major_locator(YearLocator())
         
         #increase row and column counts
         if (b - (n_cols-1)) == 0:
@@ -1602,7 +1611,7 @@ def plot_spatial_flux(ds_all,species,plot_area,model_labels,sectors=None,cmap=No
                             cmap=cmap_diff,vmin=difflim[species][0],vmax=difflim[species][1],shading='flat')
 
             ax2.set_title(f'{model_labels[m]}:\nposterior - prior')
-                    
+                        
         except:
             print(f'ERROR: Either start and end dates are incorrect or there is no model output from {m}.')
             print(f'Skipping plotting {m}.')
