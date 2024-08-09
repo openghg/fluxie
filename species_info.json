@@ -3,7 +3,7 @@
         "species_print":"CH$_4$",
         "period":"monthly",
         "units_scaling":{"intem":1e9,
-                        "rhime":1e12,
+                        "rhime":1e9,
                         "elris":1e9,
                         "mcmc":1},
         "model_species":{"intem":"ch4",
@@ -16,34 +16,18 @@
                     "elris":"datetime64[M]",
                     "mcmc":"datetime64[M]"},
         "mf_units_scaling":1e-9,
-        "mf_units_print":"ppt"
+        "mf_units_print":"ppt",
+        "fluxlim":[0,5e-8],
+        "difflim":[-2e-8,2e-8]
         },
-    "c2h6":{
-            "species_print":"C$_2$H$_6$",
-            "period":"monthly",
-            "units_scaling":{"intem":1e9,
-                            "rhime":1e12,
-                            "elris":1e9,
-                            "mcmc":1},
-            "model_species":{"intem":"c2h6",
-                            "rhime":"c2h6",
-                            "elris":"c2h6",
-                            "mcmc":"c2h6"},
-            "units_print":"T",
-            "dt_units":{"intem":"datetime64[M]",
-                        "rhime":"datetime64[M]",
-                        "elris":"datetime64[M]",
-                        "mcmc":"datetime64[M]"},
-            "mf_units_scaling":1e-9,
-            "mf_units_print":"ppt"
-            },
+
     "hfc134a":{
         "species_print":"HFC-134a",
         "period":"yearly",
         "units_scaling":{"intem":1e6,
                         "rhime":1e6,
                         "elris":1e6,
-                        "mcmc":1e6},
+                        "mcmc":1},
         "model_species":{"intem":"hfc134a",
                         "rhime":"hfc134a",
                         "elris":"HFC_134a",
@@ -54,7 +38,9 @@
                     "elris":"datetime64[Y]",
                     "mcmc":"datetime64[Y]"},
         "mf_units_scaling":1e-12,
-        "mf_units_print":"ppt"
+        "mf_units_print":"ppt",
+        "fluxlim":[0,1e-11],
+        "difflim":[-1e-11,1e-11]
         },
 
     "hfc143a":{
@@ -63,18 +49,20 @@
         "units_scaling":{"intem":1e6,
                         "rhime":1e6,
                         "elris":1e6,
-                        "mcmc":1e6},
+                        "mcmc":1},
         "model_species":{"intem":"hfc143a",
                         "rhime":"hfc143a",
                         "elris":"HFC_143a",
-                        "mcmc":"HFC_143a"},
+                        "mcmc":"hfc143a"},
         "units_print":"G",
         "dt_units":{"intem":"datetime64[Y]",
                     "rhime":"datetime64[Y]",
                     "elris":"datetime64[Y]",
                     "mcmc":"datetime64[Y]"},
         "mf_units_scaling":1e-12,
-        "mf_units_print":"ppt"
+        "mf_units_print":"ppt",
+        "fluxlim":[0,5e-12],
+        "difflim":[-5e-12,5e-12]
         },
 
     "hfc125":{
@@ -82,20 +70,38 @@
         "period":"yearly",
         "units_scaling":{"intem":1e6,
                         "rhime":1e6,
-                        "elris":1e6,
-                        "mcmc":1e6},
+                        "elris":1e6},
         "model_species":{"intem":"hfc125",
                         "rhime":"hfc125",
-                        "elris":"HFC_125",
-                        "mcmc":"hfc125"},
+                        "elris":"HFC_125"},
         "units_print":"G",
         "dt_units":{"intem":"datetime64[Y]",
                     "rhime":"datetime64[Y]",
-                    "elris":"datetime64[Y]",
-                    "mcmc":"datetime64[Y]"},
+                    "elris":"datetime64[Y]"},
         "mf_units_scaling":1e-12,
-        "mf_units_print":"ppt"
+        "mf_units_print":"ppt",
+        "fluxlim":[0,1e-11],
+        "difflim":[-1e-11,1e-11]
         },     
+
+        "hfc152a":{
+            "species_print":"HFC-152a",
+            "period":"yearly",
+            "units_scaling":{"intem":1e6,
+                            "rhime":1e6,
+                            "elris":1e6},
+            "model_species":{"intem":"hfc152a",
+                            "rhime":"hfc152a",
+                            "elris":"HFC_152a"},
+            "units_print":"G",
+            "dt_units":{"intem":"datetime64[Y]",
+                        "rhime":"datetime64[Y]",
+                        "elris":"datetime64[Y]"},
+            "mf_units_scaling":1e-12,
+            "mf_units_print":"ppt",
+            "fluxlim":[0,1e-11],
+            "difflim":[-1e-11,1e-11]
+            },   
 
     "hfc32":{
         "species_print":"HFC-32",
@@ -111,7 +117,9 @@
                     "rhime":"datetime64[Y]",
                     "elris":"datetime64[Y]"},
         "mf_units_scaling":1e-12,
-        "mf_units_print":"ppt"
+        "mf_units_print":"ppt",
+        "fluxlim":[0,1e-11],
+        "difflim":[-1e-11,1e-11]
         },    
 
     "hfc227ea":{
@@ -128,8 +136,86 @@
                     "rhime":"datetime64[Y]",
                     "elris":"datetime64[Y]"},
         "mf_units_scaling":1e-12,
-        "mf_units_print":"ppt"
+        "mf_units_print":"ppt",
+        "fluxlim":[0,1e-12],
+        "difflim":[-1e-12,1e-12]
         }, 
+
+    "hfc23":{
+        "species_print":"HFC-23",
+        "period":"yearly",
+        "units_scaling":{"intem":1e6,
+                        "rhime":1e6,
+                        "elris":1e6},
+        "model_species":{"intem":"hfc23",
+                        "rhime":"hfc23",
+                        "elris":"HFC_23"},
+        "units_print":"G",
+        "dt_units":{"intem":"datetime64[Y]",
+                    "rhime":"datetime64[Y]",
+                    "elris":"datetime64[Y]"},
+        "mf_units_scaling":1e-12,
+        "mf_units_print":"ppt",
+        "fluxlim":[0,1e-12],
+        "difflim":[-1e-12,1e-12]
+    },
+
+    "hfc245fa":{
+        "species_print":"HFC-245fa",
+        "period":"yearly",
+        "units_scaling":{"intem":1e6,
+                        "rhime":1e6,
+                        "elris":1e6},
+        "model_species":{"intem":"hfc245fa",
+                        "rhime":"hfc245fa",
+                        "elris":"HFC_245fa"},
+        "units_print":"G",
+        "dt_units":{"intem":"datetime64[Y]",
+                    "rhime":"datetime64[Y]",
+                    "elris":"datetime64[Y]"},
+        "mf_units_scaling":1e-12,
+        "mf_units_print":"ppt",
+        "fluxlim":[0,1e-11],
+        "difflim":[-1e-11,1e-11]
+        },   
+
+    "hfc365mfc":{
+        "species_print":"HFC-365mfc",
+        "period":"yearly",
+        "units_scaling":{"intem":1e6,
+                        "rhime":1e6,
+                        "elris":1e6},
+        "model_species":{"intem":"hfc365mfc",
+                        "rhime":"hfc365mfc",
+                        "elris":"HFC_365mfc"},
+        "units_print":"G",
+        "dt_units":{"intem":"datetime64[Y]",
+                    "rhime":"datetime64[Y]",
+                    "elris":"datetime64[Y]"},
+        "mf_units_scaling":1e-12,
+        "mf_units_print":"ppt",
+        "fluxlim":[0,1e-11],
+        "difflim":[-1e-11,1e-11]
+        },
+
+    "hfc4310mee":{
+        "species_print":"HFC-4310mee",
+        "period":"yearly",
+        "units_scaling":{"intem":1e6,
+                        "rhime":1e6,
+                        "elris":1e6},
+        "model_species":{"intem":"hfc4310mee",
+                        "rhime":"hfc4310mee",
+                        "elris":"HFC_4310mee"},
+        "units_print":"G",
+        "dt_units":{"intem":"datetime64[Y]",
+                    "rhime":"datetime64[Y]",
+                    "elris":"datetime64[Y]"},
+        "mf_units_scaling":1e-12,
+        "mf_units_print":"ppt",
+        "fluxlim":[0,1e-11],
+        "difflim":[-1e-11,1e-11]
+        },   
 
     "pfc218":{
         "species_print":"PFC-218",
@@ -145,7 +231,9 @@
                     "rhime":"datetime64[Y]",
                     "elris":"datetime64[Y]"},
         "mf_units_scaling":1e-12,
-        "mf_units_print":"ppt"
+        "mf_units_print":"ppt",
+        "fluxlim":[0,5e-14],
+        "difflim":[-5e-14,5e-14]
         },    
 
     "sf6":{
@@ -162,7 +250,9 @@
                     "rhime":"datetime64[M]",
                     "elris":"datetime64[M]"},
         "mf_units_scaling":1e-12,
-        "mf_units_print":"ppt"
+        "mf_units_print":"ppt",
+        "fluxlim":[0,2e-13],
+        "difflim":[-5e-13,5e-13]
         },    
 
     "n2o":{
@@ -179,7 +269,9 @@
                     "rhime":"datetime64[M]",
                     "elris":"datetime64[M]"},
         "mf_units_scaling":1e-12,
-        "mf_units_print":"ppt"
+        "mf_units_print":"ppt",
+        "fluxlim":[0,1e-9],
+        "difflim":[-1e-9,1e-9]
         },
 
     "hfc1234yf":{
@@ -196,7 +288,9 @@
                     "rhime":"datetime64[Y]",
                     "elris":"datetime64[Y]"},
         "mf_units_scaling":1e-12,
-        "mf_units_print":"ppt"
+        "mf_units_print":"ppt",
+        "fluxlim":[0,1e-12],
+        "difflim":[-1e-12,1e-12]
         },  
 
     "hfc1234zee":{
@@ -213,7 +307,9 @@
                     "rhime":"datetime64[Y]",
                     "elris":"datetime64[Y]"},
         "mf_units_scaling":1e-12,
-        "mf_units_print":"ppt"
+        "mf_units_print":"ppt",
+        "fluxlim":[0,1e-12],
+        "difflim":[-1e-12,1e-12]
         },      
             
     "hcfo1233zde":{
@@ -230,7 +326,9 @@
                     "rhime":"datetime64[Y]",
                     "elris":"datetime64[Y]"},
         "mf_units_scaling":1e-12,
-        "mf_units_print":"ppt"
+        "mf_units_print":"ppt",
+        "fluxlim":[0,1e-12],
+        "difflim":[-1e-12,1e-12]
         },
 
     "clch2ch2cl":{
@@ -241,13 +339,15 @@
                         "elris":1e6},
         "model_species":{"intem":"clch2ch2cl",
                         "rhime":"clch2ch2cl",
-                        "elris":"clch2ch2cl"},
+                        "elris":"ClCH2CH2Cl"},
         "units_print":"G",
         "dt_units":{"intem":"datetime64[Y]",
                     "rhime":"datetime64[Y]",
                     "elris":"datetime64[Y]"},
         "mf_units_scaling":1e-12,
-        "mf_units_print":"ppt"
+        "mf_units_print":"ppt",
+        "fluxlim":[0,2e-12],
+        "difflim":[-2e-12,2e-12]
         },
 
     "ch3br":{
@@ -264,7 +364,9 @@
                     "rhime":"datetime64[Y]",
                     "elris":"datetime64[Y]"},
         "mf_units_scaling":1e-12,
-        "mf_units_print":"ppt"
+        "mf_units_print":"ppt",
+        "fluxlim":[0,1e-12],
+        "difflim":[-1e-12,1e-12]
         },
 
     "so2f2":{
@@ -281,6 +383,8 @@
                     "rhime":"datetime64[Y]",
                     "elris":"datetime64[Y]"},
         "mf_units_scaling":1e-12,
-        "mf_units_print":"ppt"
+        "mf_units_print":"ppt",
+        "fluxlim":[0,1e-12],
+        "difflim":[-1e-12,1e-12]
         }
 }
