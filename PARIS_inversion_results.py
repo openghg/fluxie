@@ -695,8 +695,8 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
 
                 if (var == 'Yapost') and add_unc:
                     ax.fill_between(ds_all[m][f'time{s}'].values,
-                                    ds_all[m]['qYapost{s}'].values[:,model_q_indices[m0][0]],
-                                    ds_all[m]['qYapost{s}'].values[:,model_q_indices[m0][1]],
+                                    ds_all[m][f'qYapost{s}'].values[:,model_q_indices[m0][0]],
+                                    ds_all[m][f'qYapost{s}'].values[:,model_q_indices[m0][1]],
                                     color=model_colors[m][var_colors[var]],alpha=0.2)
 
         # Plot histogram
@@ -725,7 +725,7 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
                     else:
                         continue
 
-            if np.nanmean(var_plot) <= 0.01:
+            if np.abs(np.nanmean(var_plot)) <= 0.01:
                 var_mean = np.round(np.nanmean(var_plot),5)
                 var_sd = np.round(np.nanstd(var_plot),5)
             else:
