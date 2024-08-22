@@ -1953,7 +1953,7 @@ def plot_country_flux_sectors(ds_all,species,sectors,plot_region,model_labels,
 
     n_rows = len(sectors)
         
-    fig,ax = plt.subplots(n_rows,1,figsize=(12,n_rows*2),constrained_layout=True)
+    fig,ax = plt.subplots(n_rows,1,figsize=(12,n_rows*3),constrained_layout=True)
 
     for i,sector in enumerate(sectors):
         '''
