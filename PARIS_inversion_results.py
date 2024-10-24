@@ -2062,17 +2062,18 @@ def plot_country_flux(ds_all,species,plot_regions,
                 
                 if inventory_flux is not None:
                     ax.bar(inventory_time,inventory_flux,
-                                np.timedelta64(340, 'D'),color='white',edgecolor=inv_colours[y],align='edge',
+                                np.timedelta64(300, 'D'),color='white',edgecolor=inv_colours[y],align='edge',
                                 label=f'Inventory {i_year}',zorder=0)
         
         ds_count = 0
+        #region_time_years = np. #TODO: tidy up y axis by finding min/max of all model runs
         
         if plot_resample_and_original == True:
             all_datasets = [ds_all_p,ds_all]
         else:
             all_datasets = [ds_all_p]
         
-        for ds in all_datasets:
+        for d,ds in enumerate(all_datasets):
         
             post_pdfs = {}
             
@@ -2095,6 +2096,11 @@ def plot_country_flux(ds_all,species,plot_regions,
                 region_flux_total_posterior_lower,region_flux_total_posterior_upper,\
                 region_flux_total_prior_lower,region_flux_total_prior_upper = extract_region_flux(ds,m,m0,country)
                 
+                if d == 0 and j == 0:
+                    region_time_years = region_time.astype('datetime64[Y]')
+                else:
+                    region_time_years = np.hstack((region_time_years,region_time.astype('datetime64[Y]')))
+                    
                 if region_time is not None:
             
                     if plot_combined == True:
@@ -2132,9 +2138,9 @@ def plot_country_flux(ds_all,species,plot_regions,
                                     label=include_label,color=model_colors[m][0])
                         
                         if not(plot_combined):
-                            ax.plot(region_time,
-                                        region_flux_total_prior,
-                                        label=include_label_prior,color=model_colors[m][0],linestyle='dashed')
+                            #ax.plot(region_time,
+                            #            region_flux_total_prior,
+                            #            label=include_label_prior,color=model_colors[m][0],linestyle='dashed')
                         
                             ax.fill_between(region_time,
                                                 region_flux_total_posterior_lower,
@@ -2252,10 +2258,13 @@ def plot_country_flux(ds_all,species,plot_regions,
             ax.set_title(f'{print_country}')
             
         ax.grid(visible=True,which='major',alpha=0.4)
-            
+        
+        # x axis labels used for longer timeseries
+        region_time_years = sorted(np.unique(region_time_years))
+
         if (region_time[-1]-region_time[0]).astype('timedelta64[Y]') > 8:
-            ax.set_xticks(region_time[::2])
-            ax.set_xticklabels(region_time[::2].astype('datetime64[Y]'))
+            ax.set_xticks(region_time_years[::2])
+            ax.set_xticklabels(region_time_years[::2],rotation=90)
             ax.xaxis.set_minor_formatter(NullFormatter())
 
         else:
