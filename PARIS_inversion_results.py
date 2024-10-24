@@ -13,14 +13,21 @@ from json import load
 import inspect
 from IPython.utils import io
 import sys
+import cartopy.crs as ccrs
 
 model_q_indices = {'intem':[0,1],
                    'rhime':[0,1],
                    'elris':[0,1]}
 
 point_source_dict = {'paris':[2.340430,48.860050],
-                     'london':[-0.127799,51.507593],
-                     'nw_england':[-2.796870,53.774820]}
+                     'london':[-0.1278, 51.5074],
+                     'nw_england':[-2.796870,53.774820],
+                     'edinburgh':[-3.1883, 55.9533],
+                     'cardiff':[-3.1791, 51.4816],
+                     'belfast':[-5.9302, 54.5973],
+                     'birmingham':[-1.8904, 52.4862],
+                     'manchester':[-2.2426, 53.4808],
+                     'dublin':[-6.2675, 53.3441]}
 
 countrycodes_dict = {'IRELAND':'IRL',
                      'UK':'GBR',
@@ -2260,8 +2267,9 @@ def plot_country_flux(ds_all,species,plot_regions,
             units_print = "T"
         else:
             y_label_append = ''
+            units_print = s_data[species]["units_print"]
         
-        ax.set_ylabel(f'{s_data[species]["species_print"]} ({s_data[species]["units_print"]}g y$^{{-1}}${y_label_append})')
+        ax.set_ylabel(f'{s_data[species]["species_print"]} ({units_print}g y$^{{-1}}${y_label_append})')
         
         if period_all[list(ds.keys())[0]] == 'monthly' and resample != 'year':
             ax.set_xlim([np.min(min_x)-np.timedelta64(1,'M'),
@@ -2270,7 +2278,7 @@ def plot_country_flux(ds_all,species,plot_regions,
             ax.set_xlim([np.min(min_x)-np.timedelta64(7,'M'),
                             np.max(max_x)+np.timedelta64(7,'M')])        
         
-        ncol = 2
+        ncol = 1
         if set_global_leg == False:
             leg = ax.legend(ncol=ncol,borderpad=.4,columnspacing=1.0)
             if plot_inventory == True:
@@ -2304,7 +2312,7 @@ def plot_country_flux(ds_all,species,plot_regions,
         # x axis labels used for longer timeseries
         region_time_years = sorted(np.unique(region_time_years))
 
-        if (region_time[-1]-region_time[0]).astype('timedelta64[Y]') > 8:
+        if (region_time_years[-1]-region_time_years[0]).astype('timedelta64[Y]') > 8:
             ax.set_xticks(region_time_years[::2])
             ax.set_xticklabels(region_time_years[::2],rotation=90)
             ax.xaxis.set_minor_formatter(NullFormatter())
@@ -2618,6 +2626,7 @@ def plot_spatial_flux(ds_all,species,plot_area,s_data,m_data,cmap=None,
             print(f'Skipping plotting {m}.')
             
         if plot_point_markers is not None:
+
             if i == 0:
                 print(f'\nPlotting markers for: {plot_point_markers}')
                 print(f'Edit lines below line {inspect.getframeinfo(inspect.currentframe()).lineno} to change marker colour and size')
@@ -2935,7 +2944,8 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
                                     var='flux_total_posterior',
                                     chop_by='year',dt=1,period_override=None,
                                     plot_site_locations=False,plot_point_markers=False,
-                                   plot_inversion_grid_flux=False):
+                                   plot_inversion_grid_flux=False,
+                                   scale_to_kgkm2yr=False,nir_style_plot=False):
     """
     Plots posterior fluxes, prior fluxes or difference between these
     for all models and specific time intervals.
@@ -2985,6 +2995,11 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
             If True, plots fluxes at the spatial resolution of the inversion (using the 
             inversion_grid variable). If False, plots fluxes at the spatial resolution
             of the prior.
+        scale_to_kgkm2yr (bool, default False):
+            If True, outputs fluxes in kg/km2/year. If False, uses mol/m2/s.
+        nir_style_plot (bool, default False):
+            If True, plots sites and cities using NIR-style markers (triangles for sites and red circles for cities.)
+            And simplifies plot title and colourbar title.
     Returns:
         fig (figure):
             A plot of spatial flux of the variable specified in var
@@ -2993,6 +3008,17 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
     dt_units_all = {}
     period_all = {}
     
+    if scale_to_kgkm2yr == True:
+        if species == 'ch4':
+            flux_units_scaling = s_data[species]['mwt'] / 1e6 * 1e6 * 365*24*60*60 
+            cb_units = 't km$^{-2}$ yr$^{-1}$'
+        else:
+            flux_units_scaling = s_data[species]['mwt'] / 1000 * 1e6 * 365*24*60*60 
+            cb_units = 'kg km$^{-2}$ yr$^{-1}$'
+    else:
+        flux_units_scaling = 1
+        cb_units = 'mol m$^{-2}$ s$^{-1}$'
+        
     for i,m in enumerate(ds_all.keys()):
         m0 = m.split('_')[0]
         if period_override is not None:
@@ -3031,10 +3057,16 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
 
     # Define variable specific settings
     if var == 'posterior_prior_diff':
-        lim = s_data[species]['difflim']
+        if scale_to_kgkm2yr == True:
+            lim = s_data[species]['difflim_kgkm2yr']
+        else:
+            lim = s_data[species]['difflim']
         extend ='both'
     else:
-        lim = s_data[species]['fluxlim']
+        if scale_to_kgkm2yr == True:
+            lim = s_data[species]['fluxlim_kgkm2yr']
+        else:
+            lim = s_data[species]['fluxlim']
         extend = 'max'
 
     # Figure size and averaging period
@@ -3235,9 +3267,11 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
                     time_out = (f'{start_print[m][i]} - {end_print[m][i]}')
 
             # Make plot
+
             if n_cols == 1 and n_lines == 1:
-                ax.pcolormesh(lon,lat,var_plot,cmap=cmap,vmin=lim[0],vmax=lim[1],shading='nearest')
-                ax.set_title(f'{m_data[m]["label"]}\n{time_out}')
+                ax.pcolormesh(lon,lat,var_plot*flux_units_scaling,cmap=cmap,vmin=lim[0],vmax=lim[1],shading='nearest')
+                if nir_style_plot == False:
+                    ax.set_title(f'{m_data[m]["label"]}\n{time_out}')
                 ax_var = ax
             else:
                 if n_lines == 1:
@@ -3247,8 +3281,9 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
                 else:
                     ax_var = ax[j,i]
 
-                ax_var.pcolormesh(lon,lat,var_plot,cmap=cmap,vmin=lim[0],vmax=lim[1],shading='nearest')
-                ax_var.set_title(f'{time_out}')
+                ax_var.pcolormesh(lon,lat,var_plot*flux_units_scaling,cmap=cmap,vmin=lim[0],vmax=lim[1],shading='nearest')
+                if nir_style_plot == False:
+                    ax_var.set_title(f'{time_out}')
                 if i == 0:
                     if '\n' in m_data[m]["label"]:
                         ax_var.text(-0.14, 0.25, f'{m_data[m]["label"]}', transform=ax_var.transAxes, rotation=90)
@@ -3257,30 +3292,50 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
                 
             # Add site location
             if plot_site_locations == True:
+    
                 if sites_info[m] is not None:
                     for s in sites_info[m]:
-                        ax_var.scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],color='white',
-                                        edgecolor='none',marker='o',s=30,zorder=2,alpha=0.5)
-                        ax_var.scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],color='none',
-                                    edgecolor='black',marker='o',s=30,zorder=2)
+                        if nir_style_plot == True:
+                            ax_var.scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],facecolor='none',
+                                            edgecolor='darkblue',marker='^',s=30,zorder=2)
+                        else:
+                            ax_var.scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],color='white',
+                                            edgecolor='none',marker='o',s=30,zorder=2,alpha=0.5)
+                            ax_var.scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],color='none',
+                                        edgecolor='black',marker='o',s=30,zorder=2)
                 
             # Add markers at specific locations
             if plot_point_markers is not None:
+                
+                if nir_style_plot == True:
+                    marker_edge_color = 'purple'
+                    marker_fill_color = 'None'
+                    marker_s = 20
+                else:
+                    marker_edge_color = 'black'
+                    marker_fill_color = 'black'
+                    marker_s = 2
+                
                 if i == 0:
                     print(f'\nPlotting markers for: {plot_point_markers}')
                     print(f'Edit lines below line {inspect.getframeinfo(inspect.currentframe()).lineno} to change marker colour')
                 for p in plot_point_markers:
                     if type(p) == list:
-                        ax_var.scatter(p[0],p[1],color='black',marker='o',s=2,zorder=2)
+                        ax_var.scatter(p[0],p[1],facecolors=marker_fill_color,edgecolors=marker_edge_color,
+                                       marker='o',s=marker_s,zorder=2)
                     elif type(p) == str:
                         if p not in point_source_dict.keys():
                             print(f'{p} is not specified in point_source_dict, edit this to add a lat/lon location.')
                         else:
-                            ax_var.scatter(point_source_dict[p][0],point_source_dict[p][1],color='black',marker='o',s=2,zorder=2)
+                            ax_var.scatter(point_source_dict[p][0],point_source_dict[p][1],
+                                           facecolors=marker_fill_color,edgecolors=marker_edge_color,marker='o',s=marker_s,zorder=2)
 
             #except:
             #    print(f'ERROR: Either start and end dates are incorrect or there is no model output from {m}.')
             #    print(f'Skipping plotting {m}.')
+            
+            if nir_style_plot == True:
+                ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=False,linewidth=1, color='gray', alpha=0.5, linestyle='-')
 
     #flux colorbar
     cbar = plt.cm.ScalarMappable(cmap=cmap)
@@ -3309,8 +3364,12 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
         cbar_ax = fig.add_axes([f_left, f_bottom, f_width, f_height])
         color_bar = fig.colorbar(cbar,cax=cbar_ax,orientation='vertical',cmap=cmap,extend=extend)
 
-    color_bar.set_label(f'{var_labels[var]} {s_data[species]["species_print"]} (mol m$^{{-2}}$ s$^{{-1}}$)')
-    fig.subplots_adjust(left=0.05, right=0.9, top=0.95, bottom=0.05, wspace=0.04, hspace=0.12)
+    if nir_style_plot == True:
+        color_bar.set_label(f'{cb_units}')
+    else:
+        color_bar.set_label(f'{var_labels[var]} {s_data[species]["species_print"]} ({cb_units})')
+    
+    fig.subplots_adjust(left=0.05, right=0.98, top=0.95, bottom=0.05, wspace=0.04, hspace=0.12)
 
     return fig
 

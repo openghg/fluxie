@@ -15,8 +15,11 @@
         "mf_units_scaling":1e-9,
         "mf_units_print":"ppt",
         "fluxlim":[0,5e-8],
+        "fluxlim_kgkm2yr":[0,20],
         "difflim":[-2e-8,2e-8],
+        "difflim_kgkm2yr":[-20,20],
         "gwp":28,
+        "mwt":16.0,
         "std_run":{"intem":"name_wetcharts_31sites",
                    "rhime":"name_wetcharts_31sites",
                    "elris":"name_wetcharts_31sites"}
@@ -38,8 +41,11 @@
         "mf_units_scaling":1e-12,
         "mf_units_print":"ppt",
         "fluxlim":[0,1e-11],
+        "fluxlim_kgkm2yr":[0,50],
         "difflim":[-1e-11,1e-11],
+        "difflim_kgkm2yr":[-50,50],
         "gwp":1300,
+        "mwt":102.0,
         "std_run":{"intem":"name_edgar",
                    "rhime":"name_edgar",
                    "elris":"name_edgar"}
@@ -61,8 +67,11 @@
         "mf_units_scaling":1e-12,
         "mf_units_print":"ppt",
         "fluxlim":[0,5e-12],
+        "fluxlim_kgkm2yr":[0,10],
         "difflim":[-5e-12,5e-12],
+        "difflim_kgkm2yr":[-10,10],
         "gwp":4800,
+        "mwt":84.0,
         "std_run":{"intem":"name_edgar",
                    "rhime":"name_edgar",
                    "elris":"name_edgar"}
@@ -84,8 +93,11 @@
         "mf_units_scaling":1e-12,
         "mf_units_print":"ppt",
         "fluxlim":[0,1e-11],
+        "fluxlim_kgkm2yr":[0,20],
         "difflim":[-1e-11,1e-11],
+        "difflim_kgkm2yr":[-20,20],
         "gwp":3170,
+        "mwt":120.0,
         "std_run":{"intem":"name_edgar",
                    "rhime":"name_edgar",
                    "elris":"name_edgar"}
@@ -107,8 +119,11 @@
         "mf_units_scaling":1e-12,
         "mf_units_print":"ppt",
         "fluxlim":[0,1e-11],
+        "fluxlim_kgkm2yr":[0,2.5],
         "difflim":[-1e-11,1e-11],
+        "difflim_kgkm2yr":[-2.5,2.5],
         "gwp":138,
+        "mwt":66.0,
         "std_run":{"intem":"name_flat",
                    "rhime":"name_flat",
                    "elris":"name_flat"}
@@ -130,8 +145,11 @@
         "mf_units_scaling":1e-12,
         "mf_units_print":"ppt",
         "fluxlim":[0,1e-11],
+        "fluxlim_kgkm2yr":[0,10],
         "difflim":[-1e-11,1e-11],
+        "difflim_kgkm2yr":[-10,10],
         "gwp":677,
+        "mwt":52.0,
         "std_run":{"intem":"name_edgar",
                    "rhime":"name_edgar",
                    "elris":"name_edgar"}
@@ -153,8 +171,11 @@
         "mf_units_scaling":1e-12,
         "mf_units_print":"ppt",
         "fluxlim":[0,1e-12],
+        "fluxlim_kgkm2yr":[0,1],
         "difflim":[-1e-12,1e-12],
+        "difflim_kgkm2yr":[-1,1],
         "gwp":3350,
+        "mwt":170.03,
         "std_run":{"intem":"name_flat",
                    "rhime":"name_flat",
                    "elris":"name_flat"}
@@ -176,8 +197,11 @@
         "mf_units_scaling":1e-12,
         "mf_units_print":"ppt",
         "fluxlim":[0,1e-12],
+        "fluxlim_kgkm2yr":[0,0.3],
         "difflim":[-1e-12,1e-12],
+        "difflim_kgkm2yr":[-0.3,0.3],
         "gwp":12400,
+        "mwt":70.0,
         "std_run":{"intem":"name_flat",
                    "rhime":"name_flat",
                    "elris":"name_edgar"}
@@ -199,8 +223,11 @@
         "mf_units_scaling":1e-12,
         "mf_units_print":"ppt",
         "fluxlim":[0,1e-11],
+        "fluxlim_kgkm2yr":[0,1.5],
         "difflim":[-1e-11,1e-11],
+        "difflim_kgkm2yr":[-1.5,1.5],
         "gwp":858,
+        "mwt":134.05,
         "std_run":{"intem":"name_flat",
                    "rhime":"name_flat",
                    "elris":"name_flat"}
@@ -222,8 +249,11 @@
         "mf_units_scaling":1e-12,
         "mf_units_print":"ppt",
         "fluxlim":[0,1e-11],
+        "fluxlim_kgkm2yr":[0,2],
         "difflim":[-1e-11,1e-11],
+        "difflim_kgkm2yr":[-2,2],
         "gwp":804,
+        "mwt":148.0,
         "std_run":{"intem":"name_flat",
                    "rhime":"name_flat",
                    "elris":"name_flat"}
@@ -245,8 +275,11 @@
         "mf_units_scaling":1e-12,
         "mf_units_print":"ppt",
         "fluxlim":[0,1e-11],
+        "fluxlim_kgkm2yr":[0,0.15],
         "difflim":[-1e-11,1e-11],
+        "difflim_kgkm2yr":[-0.15,0.15],
         "gwp":1650,
+        "mwt":252.05,
         "std_run":{"intem":"name_flat",
                    "rhime":"name_flat",
                    "elris":"name_flat"}
@@ -268,8 +301,11 @@
         "mf_units_scaling":1e-12,
         "mf_units_print":"ppt",
         "fluxlim":[0,5e-14],
+        "fluxlim_kgkm2yr":[0,0.5],
         "difflim":[-5e-14,5e-14],
+        "difflim_kgkm2yr":[-0.5,0.5],
         "gwp":8900,
+        "mwt":188.0,
         "std_run":{"intem":"name_flat",
                    "rhime":"name_flat",
                    "elris":"name_flat"}
@@ -291,8 +327,11 @@
             "mf_units_scaling":1e-12,
             "mf_units_print":"ppt",
             "fluxlim":[0,5e-14],
+            "fluxlim_kgkm2yr":[0,0.3],
             "difflim":[-5e-14,5e-14],
+            "difflim_kgkm2yr":[-0.3,0.3],
             "gwp":9540,
+            "mwt":200.0,
             "std_run":{"intem":"name_flat",
                        "rhime":"name_flat",
                        "elris":"name_flat"}
@@ -313,8 +352,11 @@
             "mf_units_scaling":1e-12,
             "mf_units_print":"ppt",
             "fluxlim":[0,5e-14],
+            "fluxlim_kgkm2yr":[0,0.3],
             "difflim":[-5e-14,5e-14],
+            "difflim_kgkm2yr":[-0.3,0.3],
             "gwp":11100,
+            "mwt":138.0,
             "std_run":{"intem":"name_edgarminval",
                        "rhime":"name_edgarminval",
                        "elris":"name_edgarminval"}
@@ -335,8 +377,11 @@
             "mf_units_scaling":1e-12,
             "mf_units_print":"ppt",
             "fluxlim":[0,5e-14],
+            "fluxlim_kgkm2yr":[0,1.5],
             "difflim":[-5e-14,5e-14],
+            "difflim_kgkm2yr":[-1.5,1.5],
             "gwp":6630,
+            "mwt":88.0,
             "std_run":{"intem":"name_edgarminval",
                        "rhime":"name_edgarminval",
                        "elris":"name_edgarminval"}
@@ -358,8 +403,11 @@
         "mf_units_scaling":1e-12,
         "mf_units_print":"ppt",
         "fluxlim":[0,2e-13],
+        "fluxlim_kgkm2yr":[0,0.5],
         "difflim":[-5e-13,5e-13],
+        "difflim_kgkm2yr":[-0.5,0.5],
         "gwp":23500,
+        "mwt":146.06,
         "std_run":{"intem":"name_flat",
                    "rhime":"name_flat",
                    "elris":"name_flat"}
@@ -368,21 +416,24 @@
     "n2o":{
         "species_print":"N$_2$O",
         "period":"monthly",
-        "units_scaling":{"intem":1e6,
-                        "rhime":1e6,
-                        "elris":1e6},
+        "units_scaling":{"intem":1e9,
+                        "rhime":1e9,
+                        "elris":1e9},
         "model_species":{"intem":"n2o",
                         "rhime":"n2o",
                         "elris":"N2O"},
-        "units_print":"G",
+        "units_print":"T",
         "dt_units":{"intem":"datetime64[M]",
                     "rhime":"datetime64[M]",
                     "elris":"datetime64[M]"},
         "mf_units_scaling":1e-12,
         "mf_units_print":"ppt",
         "fluxlim":[0,1e-9],
+        "fluxlim_kgkm2yr":[0,800],
         "difflim":[-1e-9,1e-9],
+        "difflim_kgkm2yr":[-800,800],
         "gwp":265,
+        "mwt":44.0,
         "std_run":{"intem":"name_edgar_26sites",
                    "rhime":"name_edgar_26sites",
                    "elris":"name_edgar_26sites"}
@@ -405,7 +456,8 @@
         "mf_units_print":"ppt",
         "fluxlim":[0,1e-12],
         "difflim":[-1e-12,1e-12],
-        "gwp":1
+        "gwp":1,
+        "mwt":114.0
         },  
 
     "hfc1234zee":{
@@ -425,7 +477,8 @@
         "mf_units_print":"ppt",
         "fluxlim":[0,1e-12],
         "difflim":[-1e-12,1e-12],
-        "gwp":1
+        "gwp":1,
+        "mwt":114.0
         },      
             
     "hcfo1233zde":{
@@ -444,7 +497,8 @@
         "mf_units_scaling":1e-12,
         "mf_units_print":"ppt",
         "fluxlim":[0,1e-12],
-        "difflim":[-1e-12,1e-12]
+        "difflim":[-1e-12,1e-12],
+        "mwt":130.49
         },
 
     "clch2ch2cl":{
