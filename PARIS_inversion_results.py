@@ -2262,6 +2262,7 @@ def plot_country_flux(ds_all,species,plot_regions,
         #format each subplot
         if 'all' in species:
             y_label_append = ' CO$_2$-eq'
+            units_print = "T"
         elif scale_co2eq:
             y_label_append = ' CO$_2$-eq'
             units_print = "T"
