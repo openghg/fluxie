@@ -587,6 +587,49 @@ def read_flux_total_fgases(data_dir,species,models,s_data,m_data,regions,
     print('\nTo change the files used as the standard for each HFC/PFC, edit variable std_run in species_info.json')
 
     return ds_all
+
+#####################################################################
+def calculate_resample_uncertainty(ds_all_original,ds_all_p,rtime,
+                                   resample_uncert_correlation=False):
+    """
+    Recalculates resampled flux uncertainty, using the assumption
+    that all periods in the resampled flux average are uncorrelated.
+    Args:
+        ds_all_original (dictionary of datasets):
+            Extracted flux datasets from flux-format netcdfs.
+        ds_all_p (dictionary of datasets):
+            Same as above, but resampled down to lower time resolution, 
+            using the .mean() method.
+        rtime (str):
+            Time used for resampling, e.g. 'YS' or 'QS-DEC'.
+        resample_uncert_correlation (bool, default False):
+            If False, recalculates resampled flux uncertainties with
+            uncorrelated assumption. If True, does not recalculate
+            uncertainties, and uses the mean uncertainty.
+    Returns:
+        ds_all_p (dictionary of datasets):
+            Same dataset as above, but with updated 'percentile_...'
+            terms.
+    """
+    
+    if resample_uncert_correlation == False:
+    
+        for m in ds_all_original.keys():
+            for v in ds_all_original[m].keys():
+                if 'percentile_country' in v:
+                    n_periods = ds_all_original[m][v].resample(time=rtime).count()[:,0,:]   #number of periods in each average
+                    lower = (ds_all_original[m][v.replace('percentile_','')] - ds_all_original[m][v][:,0,:])    #recalculate upper and low standard deviations
+                    upper = (ds_all_original[m][v][:,1,:] - ds_all_original[m][v.replace('percentile_','')])
+                    lower_resampled = np.sqrt(((lower**2).resample(time=rtime).sum(dim="time")))/np.sqrt(n_periods)  #resample using sqrt of variances,divided by number of periods
+                    upper_resampled = np.sqrt(((upper**2).resample(time=rtime).sum(dim="time")))/np.sqrt(n_periods)
+                    lower_out = ds_all_p[m][v.replace('percentile_','')] - lower_resampled  #recalculated percentile upper and lower bounds
+                    upper_out = ds_all_p[m][v.replace('percentile_','')] + upper_resampled
+                    
+                    ds_all_p[m][v] = xr.DataArray(np.concatenate((np.expand_dims(lower_out,axis=1),
+                                                                    np.expand_dims(upper_out,axis=1)),axis=1),
+                                                    dims=ds_all_p[m][v].dims)
+        
+    return ds_all_p
     
 #####################################################################
 
@@ -1872,7 +1915,7 @@ def plot_country_flux(ds_all,species,plot_regions,
                       add_prior_unc=False, set_global_leg=False,
                       country_codes_as_titles=None,plot_separate=True,
                       plot_combined=False,resample=None,
-                      update_uncert_in_resample=True,
+                      resample_uncert_correlation=False,
                       plot_resample_and_original=False,
                       period_override=None):
     """
@@ -1921,9 +1964,9 @@ def plot_country_flux(ds_all,species,plot_regions,
             Option to be passed to resample built-in function of xarray Dataset. 
             For yearly average, 'YS' option should be used; 'QS-DEC' for seasonaly average.
             See http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
-        update_uncert_in_resample (bool, default True):
-            If False, calculates the resampled uncertainty as the mean from all averaged periods.
-            If True, recalculates uncertainty assuming no correlation between all averaged periods,
+        resample_uncert_correlation (bool, default False):
+            If True, calculates the resampled uncertainty as the mean from all averaged periods.
+            If False, recalculates uncertainty assuming no correlation between all averaged periods,
             by taking the square root of the summed variances, divided by the number of averaging 
             periods.
         plot_resample_and_original (bool):
@@ -1949,13 +1992,13 @@ def plot_country_flux(ds_all,species,plot_regions,
             print(f'ERROR: Option resample=\'{resample}\' is not available. Try \'year\' or \'season\'.')
             return None
 
-        tmp = {m:ds_all[m].copy() for m in ds_all.keys()}
+        ds_all_original = {m:ds_all[m].copy() for m in ds_all.keys()}
                 
         if period_override is not None: 
             for m in ds_all.keys():
                 if 'elris' in m:
-                    del tmp[m]['covariance_country_flux_total_posterior']
-            ds_all_p = {m:tmp[m].resample(time=rtime).mean(dim="time") if period_override[i] == 'monthly' else tmp[m] for i,m in enumerate(ds_all.keys())}
+                    del ds_all_original[m]['covariance_country_flux_total_posterior']
+            ds_all_p = {m:ds_all_original[m].resample(time=rtime).mean(dim="time") if period_override[i] == 'monthly' else ds_all_original[m] for i,m in enumerate(ds_all.keys())}
             for i,m in enumerate(ds_all.keys()):
                 if 'elris' in m and period_override[i] == 'monthly':
                     ds_all_p[m]['country'] = ds_all_p[m]['country'].isel(time=0).drop('time')
@@ -1966,8 +2009,8 @@ def plot_country_flux(ds_all,species,plot_regions,
         elif s_data[species]["period"]=='monthly':
             for m in ds_all.keys():
                 if 'elris' in m:
-                    del tmp[m]['covariance_country_flux_total_posterior']
-            ds_all_p = {m:tmp[m].resample(time=rtime).mean(dim="time") for m in ds_all.keys()}
+                    del ds_all_original[m]['covariance_country_flux_total_posterior']
+            ds_all_p = {m:ds_all_original[m].resample(time=rtime).mean(dim="time") for m in ds_all.keys()}
             for m in ds_all.keys():
                 if 'elris' in m:
                     ds_all_p[m]['country'] = ds_all_p[m]['country'].isel(time=0).drop('time')
@@ -1977,23 +2020,11 @@ def plot_country_flux(ds_all,species,plot_regions,
         
         else:
             ds_all_p = ds_all.copy()
-            
-        if update_uncert_in_resample == True:
-            for m in ds_all.keys():
-                for v in ds_all[m].keys():
-                    if 'percentile_country' in v:
-                        n_periods = tmp[m][v].resample(time=rtime).count()[:,0,:]   #number of periods in each average
-                        lower = (tmp[m][v.replace('percentile_','')] - tmp[m][v][:,0,:])    #recalculate upper and low standard deviations
-                        upper = (tmp[m][v][:,1,:] - tmp[m][v.replace('percentile_','')])
-                        lower_resampled = np.sqrt(((lower**2).resample(time=rtime).sum(dim="time")))/n_periods  #resample using sqrt of variances,divided by number of periods
-                        upper_resampled = np.sqrt(((upper**2).resample(time=rtime).sum(dim="time")))/n_periods
-                        lower_out = ds_all_p[m][v.replace('percentile_','')] - lower_resampled  #recalculated percentile upper and lower bounds
-                        upper_out = ds_all_p[m][v.replace('percentile_','')] + upper_resampled
-                        
-                        ds_all_p[m][v] = xr.DataArray(np.concatenate((np.expand_dims(lower_out,axis=1),
-                                                                      np.expand_dims(upper_out,axis=1)),axis=1),
-                                                      dims=ds_all_p[m][v].dims)
-        del tmp
+    
+        ds_all_p = calculate_resample_uncertainty(ds_all_original,ds_all_p,rtime,
+                                                  resample_uncert_correlation=resample_uncert_correlation)
+    
+        del ds_all_original
         
         # shift timestamps of averaged data forwards to centre of inversion period
         for m in ds_all.keys():
