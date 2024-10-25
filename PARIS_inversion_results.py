@@ -1893,6 +1893,11 @@ def extract_region_inventory_flux(country,data_dir,species,
         inv_ds = inv_ds.sel(time=slice(start_date,end_date))
         inv_c_index = np.where(inv_ds['country'].values == country)[0][0]
         inventory_flux = inv_ds['inventory'].values[:,inv_c_index]/scale_factor * gwp
+        try:
+            inventory_std = inv_ds['inventory_std'].values[:,inv_c_index]/scale_factor * gwp
+        except:
+            inventory_std = np.zeros(inventory_flux.shape)
+            
         inventory_time = inv_ds.time.values
 
     except:
@@ -1902,6 +1907,7 @@ def extract_region_inventory_flux(country,data_dir,species,
 
             inv_c_index = [0]*len(country_list)
             inv_c_value = np.zeros(len(inv_ds.time.values))
+            inv_c_std_value = np.zeros(len(inv_ds.time.values))
 
             print(f'No inventory data available for {country}. Considering sum of individual countries: {region_search}')
 
@@ -1910,12 +1916,18 @@ def extract_region_inventory_flux(country,data_dir,species,
                     inv_key = [k for k, code in countrycodes_dict.items() if code == var]
                     inv_c_index[i] = np.where(inv_ds['country'].values == inv_key[0])[0][0]
                     inv_c_temp = inv_ds['inventory'].values[:,inv_c_index[i]]
+                    try:
+                        inv_c_std_temp = inv_ds['inventory_std'].values[:,inv_c_index[i]]
+                    except:
+                        inv_c_std_temp = np.zeros(inv_c_temp.shape)
                     if np.all(np.isnan(inv_c_temp) == True):
                         inv_c_temp = np.zeros(len(inv_ds.time.values))
                         print(f'WARNING: Inventory data for {inv_key[0]} is NaN. Inventory value for {country} will not include {inv_key[0]} contributions.')
 
                     inv_c_value = inv_c_value + inv_c_temp
+                    inv_c_std_value = np.mean(np.vstack((inv_c_std_value,inv_c_std_temp)),axis=0)
                     inventory_flux = inv_c_value/scale_factor * gwp
+                    inventory_std = inv_c_std_value/scale_factor * gwp
                     inventory_time = inv_ds.time.values
 
                 except:
@@ -1924,14 +1936,16 @@ def extract_region_inventory_flux(country,data_dir,species,
                     except:
                         print(f'ERROR: {var} does not exist in country dictionary!')
                     inventory_flux = None
+                    inventory_std = None
                     inventory_time = None
 
         except:
             print(f'No inventory data available for {country}')
             inventory_flux = None
+            inventory_std = None
             inventory_time = None
     
-    return inventory_flux,inventory_time
+    return inventory_flux,inventory_std,inventory_time
 
 #####################################################################
 
@@ -2123,15 +2137,20 @@ def plot_country_flux(ds_all,species,plot_regions,
             
             for y,i_year in enumerate(inventory_years):
             
-                inventory_flux,inventory_time = extract_region_inventory_flux(country,data_dir,species,s_data,scale_co2eq,
+                inventory_flux,inventory_std,inventory_time = extract_region_inventory_flux(country,data_dir,species,s_data,scale_co2eq,
                                                                               start_date,end_date,
                                                                               inventory_year=i_year)
                 
                 if inventory_flux is not None:
-                    ax.bar(inventory_time,inventory_flux,
-                                np.timedelta64(280, 'D'),color='None',edgecolor=inv_colours[y],align='edge',
-                                label=f'Inventory {i_year}',zorder=0,linewidth=1.1)
-
+                    if np.any(inventory_std > 0.) == True and i_year == max(inventory_years):
+                        ax.bar(inventory_time,inventory_flux,
+                               np.timedelta64(280, 'D'),color='None',edgecolor=inv_colours[y],align='edge',
+                               label=f'Inventory {i_year}',zorder=0,linewidth=1.1,
+                               yerr=inventory_std,capsize=2)
+                    else:
+                        ax.bar(inventory_time,inventory_flux,
+                                    np.timedelta64(280, 'D'),color='None',edgecolor=inv_colours[y],align='edge',
+                                    label=f'Inventory {i_year}',zorder=0,linewidth=1.1)
         
                 if i == 0:
                     region_time_years = inventory_time.astype('datetime64[Y]')
