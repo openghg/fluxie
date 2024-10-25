@@ -620,8 +620,8 @@ def calculate_resample_uncertainty(ds_all_original,ds_all_p,rtime,
                     n_periods = ds_all_original[m][v].resample(time=rtime).count()[:,0,:]   #number of periods in each average
                     lower = (ds_all_original[m][v.replace('percentile_','')] - ds_all_original[m][v][:,0,:])    #recalculate upper and low standard deviations
                     upper = (ds_all_original[m][v][:,1,:] - ds_all_original[m][v.replace('percentile_','')])
-                    lower_resampled = np.sqrt(((lower**2).resample(time=rtime).sum(dim="time")))/np.sqrt(n_periods)  #resample using sqrt of variances,divided by number of periods
-                    upper_resampled = np.sqrt(((upper**2).resample(time=rtime).sum(dim="time")))/np.sqrt(n_periods)
+                    lower_resampled = np.sqrt(((lower**2).resample(time=rtime).sum(dim="time")))/n_periods  #resample using sqrt of variances,divided by number of periods
+                    upper_resampled = np.sqrt(((upper**2).resample(time=rtime).sum(dim="time")))/n_periods
                     lower_out = ds_all_p[m][v.replace('percentile_','')] - lower_resampled  #recalculated percentile upper and lower bounds
                     upper_out = ds_all_p[m][v.replace('percentile_','')] + upper_resampled
                     
