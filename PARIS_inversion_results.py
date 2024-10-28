@@ -436,8 +436,8 @@ def read_flux_total_fgases(data_dir,species,models,s_data,m_data,regions,
         
         longrun = False
         if 'longrun' in model:
-            model = model.split('_')[0]
-            models[m] = model
+            #model = model.split('_')[0]
+            #models[m] = model
             longrun = True
 
         missing_species[model] = []
@@ -451,7 +451,7 @@ def read_flux_total_fgases(data_dir,species,models,s_data,m_data,regions,
             
             #tries to read from standard filename
             try:
-                model_read = f'{model}_{s_data[species]["std_run"][m0]}'
+                model_read = f'{m0}_{s_data[species]["std_run"][m0]}'
                 if longrun: model_read = f'{model_read}_longrun'
                 
                 ds_in[model] = read_flux(data_dir,species,[model_read],s_data,m_data,period_override[s],verbose=False)[model_read]    #edit read_flux so that it searches for correct filename per gas

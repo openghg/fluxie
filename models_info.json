@@ -243,8 +243,13 @@
 
     "intem":{
             "filename":"None",
-            "label":"InTEM"
+            "label":"InTEM 1yr"
             },
+
+    "intem_longrun":{
+                "filename":"None",
+                "label":"InTEM 2yr"
+                },
     
     "rhime":{
             "filename":"None",
