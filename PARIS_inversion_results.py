@@ -14,6 +14,7 @@ import inspect
 from IPython.utils import io
 import sys
 import cartopy.crs as ccrs
+from matplotlib import colors, ticker
 
 model_q_indices = {'intem':[0,1],
                    'rhime':[0,1],
@@ -225,6 +226,68 @@ def set_model_colors_2(models,model_colors):
 
     return mc
 
+def set_colormaps(cols):
+    """ 
+    Picks the color map to use and spreads the range of data over ten colors.
+    Has an 11th color for anything over the max value if a custom range is 
+    specified.  There is the choice of giving color bar labels for every 
+    color or for every two colors.
+    Code written by MO GHG inversion group.
+    """
+    
+    if cols == 'greyscale':
+        c0 = 'white'
+        c1 = '#F0F0F0'
+        c2 = '#D8D8D8'
+        c3 = '#C0C0C0'
+        c4 = '#A8A8A8'
+        c5 = '#909090'
+        c6 = '#787878'
+        c7 = '#606060'
+        c8 = '#484848'
+        c9 = '#303030'
+        c10 = '#181818'
+        c11 = '#000000'
+        
+    elif cols == 'bluescale':
+        c0 = 'white'
+        c1 = '#E6E6FF'
+        c2 = '#CCCCFF'
+        c3 = '#B2B2FF'
+        c4 = '#9999FF'
+        c5 = '#8080FF'
+        c6 = '#6666FF'
+        c7 = '#4D4DFF'
+        c8 = '#3333FF'
+        c9 = '#1919FF'
+        c10 = '#0000FF'
+        c11 = '#000099'
+        
+    elif cols == 'green':
+        c0 = 'white'
+        c1 = '#ecfeea'
+        c2 = '#ceefd4'
+        c3 = '#b1e0bf'
+        c4 = '#96d1ab'
+        c5 = '#7dc198'
+        c6 = '#66b187'
+        c7 = '#51a076'
+        c8 = '#408f67'
+        c9 = '#337e5a'
+        c10 = '#2c6d4e'
+        c11 = '#2a5c44'
+        
+    else:
+        print("invalid colour map selected")
+        sys.exit()
+        
+    cmap = colors.ListedColormap([c1,c2,c3,c4,c5,c6,c7,c8,c9,c10])
+    cmap.set_over(c11)
+    cmap.set_under(c0)
+    cmap.set_bad("white")
+    
+    return cmap
+
 #####################################################################
 
 def read_flux(data_dir,species,models,s_data,m_data,period_override=None,verbose=True):
@@ -247,7 +310,6 @@ def read_flux(data_dir,species,models,s_data,m_data,period_override=None,verbose
             Must be the same length as models, e.g. ['monthly',None,'yearly']
         verbose (logical) (optional):
             If True, print execution tracking messages.
-                                       
     Returns:
         ds_all (dictionary of datasets): 
             xarray dataset read directly from each model's flux netCDF.
@@ -270,12 +332,15 @@ def read_flux(data_dir,species,models,s_data,m_data,period_override=None,verbose
     
     ds_all = {}
 
-    for m in models:
+    for i,m in enumerate(models):
         if verbose: print(f'\nAttempting to read data from {m}')
         
         m0 = m.split('_')[0]
         
         model_dir = m_data[m]["filename"].split('_')[0]
+
+        print(os.path.join(data_dir,model_dir,species,
+                                              f'{m_data[m]["filename"]}_{s_data[species]["model_species"][m0]}_{period_all[m]}.nc'))
 
         try:
             filepath = glob.glob(os.path.join(data_dir,model_dir,species,
@@ -402,7 +467,6 @@ def read_flux_total_fgases(data_dir,species,models,s_data,m_data,regions,
         period_override (list of str) (optional):
             Inversion periods to include, to override the standards in species_info.json.
             Must be the same length as models, e.g. ['monthly',None,'yearly']
-                                       
     Returns:
         ds_all (dictionary of datasets): 
             xarray dataset read directly from each model's flux netCDF.
@@ -445,23 +509,23 @@ def read_flux_total_fgases(data_dir,species,models,s_data,m_data,regions,
         
         for s,species in enumerate(all_species):
 
-            
             #dictionary containing datasets for each species, these are then summed/averaged across the time coordinate
             ds_out = {}
             
             #tries to read from standard filename
-            try:
-                model_read = f'{m0}_{s_data[species]["std_run"][m0]}'
-                if longrun: model_read = f'{model_read}_longrun'
-                
-                ds_in[model] = read_flux(data_dir,species,[model_read],s_data,m_data,period_override[s],verbose=False)[model_read]    #edit read_flux so that it searches for correct filename per gas
-                with io.capture_output() as captured:
-                    ds_in[model] = slice_flux(ds_in,start_date[m],end_date[m],s_data,scale_units=False,species=None)[model]
+            #try:
+            model_read = f'{m0}_{s_data[species]["std_run"][m0]}'
+            if longrun: f'{m0}_{s_data[species]["std_run"][m0+"_longrun"]}'
+            #if longrun: model_read = f'{model_read}_longrun'
 
-            except:
-                ds_in[model] = None
-                if species not in missing_species[model]:
-                    missing_species[model].append(species)
+            ds_in[model] = read_flux(data_dir,species,[model_read],s_data,m_data,period_override[s],verbose=False)[model_read]    #edit read_flux so that it searches for correct filename per gas
+            with io.capture_output() as captured:
+                ds_in[model] = slice_flux(ds_in,start_date[m],end_date[m],s_data,scale_units=False,species=None)[model]
+
+            #except:
+            #    ds_in[model] = None
+            #    if species not in missing_species[model]:
+            #        missing_species[model].append(species)
 
             for r,region in enumerate(regions):
                 
@@ -3050,7 +3114,7 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
             If True, outputs fluxes in kg/km2/year. If False, uses mol/m2/s.
         nir_style_plot (bool, default False):
             If True, plots sites and cities using NIR-style markers (triangles for sites and red circles for cities.)
-            And simplifies plot title and colourbar title.
+            Simplifies plot title and colourbar title and converts zero-value fluxes to nans, to remove from plot.
     Returns:
         fig (figure):
             A plot of spatial flux of the variable specified in var
@@ -3105,6 +3169,9 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
                     'EUROPE':[-98,40,10,80]}
 
     month_names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    
+    if cmap in ['green','blue','greyscale']:
+        cmap = set_colormaps(cmap)
 
     # Define variable specific settings
     if var == 'posterior_prior_diff':
@@ -3231,7 +3298,26 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
                         print(f'No sites data available in {m} attrs, so using site data from {m2}')
                         sites_info[m] = sites_info[m2]
                     break
-
+    
+    if nir_style_plot == True:
+        if 'fc' in species:
+            threshold_scale = 1.0e-8
+        elif species == 'ch4':
+            threshold_scale = 1.0e-4
+        elif species == 'n2o':
+            threshold_scale = 1.0e-3
+            
+        for m in ds_all.keys():
+            try:
+                threshold = threshold_scale * np.max(ds_all[m]['flux_total_posterior_inversion_grid'].values)
+                ds_all[m]['flux_total_posterior_inversion_grid'].values[np.where(ds_all[m]['flux_total_posterior_inversion_grid'].values == 0.)] = np.nan
+                ds_all[m]['flux_total_posterior_inversion_grid'].values[np.where(ds_all[m]['flux_total_posterior_inversion_grid'].values < threshold)] = np.nan
+            except:
+                print(f'Cannot find inversion_grid variables for {m} so using standard flux output.')
+            threshold = threshold_scale * np.max(ds_all[m]['flux_total_posterior'].values)
+            ds_all[m]['flux_total_posterior'].values[np.where(ds_all[m]['flux_total_posterior'].values == 0.)] = np.nan
+            ds_all[m]['flux_total_posterior'].values[np.where(ds_all[m]['flux_total_posterior'].values < threshold)] = np.nan
+            
     # Create figure
     fig,ax = plt.subplots(n_lines,n_cols,figsize=(n_cols*4,n_lines*3), #3.25
                    subplot_kw={'projection':cartopy.crs.PlateCarree()})
@@ -3386,7 +3472,7 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
             #    print(f'Skipping plotting {m}.')
             
             if nir_style_plot == True:
-                ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=False,linewidth=1, color='gray', alpha=0.5, linestyle='-')
+                ax_var.gridlines(crs=ccrs.PlateCarree(), draw_labels=False,linewidth=1, color='gray', alpha=0.5, linestyle='-')
 
     #flux colorbar
     cbar = plt.cm.ScalarMappable(cmap=cmap)
@@ -3401,7 +3487,7 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
     f_left = 0.95         #0.94
 
     if n_cols == 1 and n_lines == 1:
-        cbar_ax = fig.add_axes([1, f_bottom, f_width, f_height])
+        cbar_ax = fig.add_axes([0.98, f_bottom, f_width, f_height])
         color_bar = fig.colorbar(cbar,cax=cbar_ax,orientation='vertical',cmap=cmap,extend=extend)
     elif n_lines == 1:
         cbar_ax = fig.add_axes([f_left, f_bottom, f_width, f_height])
@@ -3414,6 +3500,18 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
 
         cbar_ax = fig.add_axes([f_left, f_bottom, f_width, f_height])
         color_bar = fig.colorbar(cbar,cax=cbar_ax,orientation='vertical',cmap=cmap,extend=extend)
+        
+    if nir_style_plot == True:
+        
+        nbins = np.ceil(np.max(levels)-np.min(levels)).astype(int)
+        if nbins > 11:
+            nbins = 11
+        if nbins < 5 :
+            nbins = 5
+        
+        tick_locator = ticker.MaxNLocator(nbins=nbins)
+        color_bar.locator = tick_locator
+        color_bar.update_ticks()
 
     if nir_style_plot == True:
         color_bar.set_label(f'{cb_units}')

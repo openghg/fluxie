@@ -46,7 +46,8 @@
         "difflim_kgkm2yr":[-50,50],
         "gwp":1300,
         "mwt":102.0,
-        "std_run":{"intem":"name_edgar",
+        "std_run":{"intem":"name_edgar_2008_1yr",
+                    "intem_longrun":"name_edgar_longrun",
                    "rhime":"name_edgar",
                    "elris":"name_edgar"}
         },
@@ -72,7 +73,8 @@
         "difflim_kgkm2yr":[-10,10],
         "gwp":4800,
         "mwt":84.0,
-        "std_run":{"intem":"name_edgar",
+        "std_run":{"intem":"name_edgar_2008_1yr",
+                   "intem_longrun":"name_edgar_longrun",
                    "rhime":"name_edgar",
                    "elris":"name_edgar"}
         },
@@ -98,7 +100,8 @@
         "difflim_kgkm2yr":[-20,20],
         "gwp":3170,
         "mwt":120.0,
-        "std_run":{"intem":"name_edgar",
+        "std_run":{"intem":"name_edgar_2008_1yr",
+                    "intem_longrun":"name_edgar_longrun",
                    "rhime":"name_edgar",
                    "elris":"name_edgar"}
         },     
@@ -124,7 +127,8 @@
         "difflim_kgkm2yr":[-2.5,2.5],
         "gwp":138,
         "mwt":66.0,
-        "std_run":{"intem":"name_flat",
+        "std_run":{"intem":"name_flat_2008_1yr",
+                    "intem_longrun":"name_flat_longrun",
                    "rhime":"name_flat",
                    "elris":"name_flat"}
         },
@@ -150,7 +154,8 @@
         "difflim_kgkm2yr":[-10,10],
         "gwp":677,
         "mwt":52.0,
-        "std_run":{"intem":"name_edgar",
+        "std_run":{"intem":"name_edgar_2008_1yr",
+                    "intem_longrun":"name_edgar_longrun",
                    "rhime":"name_edgar",
                    "elris":"name_edgar"}
         },    
@@ -176,7 +181,8 @@
         "difflim_kgkm2yr":[-1,1],
         "gwp":3350,
         "mwt":170.03,
-        "std_run":{"intem":"name_flat",
+        "std_run":{"intem":"name_flat_2008_1yr",
+                    "intem_longrun":"name_flat_longrun",
                    "rhime":"name_flat",
                    "elris":"name_flat"}
         }, 
@@ -202,7 +208,8 @@
         "difflim_kgkm2yr":[-0.3,0.3],
         "gwp":12400,
         "mwt":70.0,
-        "std_run":{"intem":"name_flat",
+        "std_run":{"intem":"name_flat_2008_1yr",
+                    "intem_longrun":"name_flat_longrun",
                    "rhime":"name_flat",
                    "elris":"name_edgar"}
     },
@@ -228,7 +235,8 @@
         "difflim_kgkm2yr":[-1.5,1.5],
         "gwp":858,
         "mwt":134.05,
-        "std_run":{"intem":"name_flat",
+        "std_run":{"intem":"name_flat_2008_1yr",
+                    "intem_longrun":"name_flat_longrun",
                    "rhime":"name_flat",
                    "elris":"name_flat"}
         },   
@@ -254,8 +262,8 @@
         "difflim_kgkm2yr":[-2,2],
         "gwp":804,
         "mwt":148.0,
-        "std_run":{"intem":"name_flat",
-                   "rhime":"name_flat",
+        "std_run":{"intem":"name_flat_2008_1yr",
+                    "intem_longrun":"name_flat_longrun",
                    "elris":"name_flat"}
         },
 
@@ -280,8 +288,8 @@
         "difflim_kgkm2yr":[-0.15,0.15],
         "gwp":1650,
         "mwt":252.05,
-        "std_run":{"intem":"name_flat",
-                   "rhime":"name_flat",
+        "std_run":{"intem":"name_flat_2008_1yr",
+                    "intem_longrun":"name_flat_longrun",
                    "elris":"name_flat"}
         },   
 
@@ -306,7 +314,8 @@
         "difflim_kgkm2yr":[-0.5,0.5],
         "gwp":8900,
         "mwt":188.0,
-        "std_run":{"intem":"name_flat",
+        "std_run":{"intem":"name_flat_2008_1yr",
+                    "intem_longrun":"name_flat_longrun",
                    "rhime":"name_flat",
                    "elris":"name_flat"}
         },  
@@ -332,7 +341,8 @@
             "difflim_kgkm2yr":[-0.3,0.3],
             "gwp":9540,
             "mwt":200.0,
-            "std_run":{"intem":"name_flat",
+            "std_run":{"intem":"name_flat_2008_1yr",
+                        "intem_longrun":"name_flat_longrun",
                        "rhime":"name_flat",
                        "elris":"name_flat"}
             },   
@@ -357,7 +367,8 @@
             "difflim_kgkm2yr":[-0.3,0.3],
             "gwp":11100,
             "mwt":138.0,
-            "std_run":{"intem":"name_edgarminval",
+            "std_run":{"intem":"name_edgarminval_2008_1yr",
+                        "intem_longrun":"name_edgarminval_longrun",
                        "rhime":"name_edgarminval",
                        "elris":"name_edgarminval"}
             },   
@@ -382,7 +393,8 @@
             "difflim_kgkm2yr":[-1.5,1.5],
             "gwp":6630,
             "mwt":88.0,
-            "std_run":{"intem":"name_edgarminval",
+            "std_run":{"intem":"name_edgarminval_2008_1yr",
+                        "intem_longrun":"name_edgarminval_longrun",
                        "rhime":"name_edgarminval",
                        "elris":"name_edgarminval"}
             },   
@@ -408,7 +420,8 @@
         "difflim_kgkm2yr":[-0.5,0.5],
         "gwp":23500,
         "mwt":146.06,
-        "std_run":{"intem":"name_flat",
+        "std_run":{"intem":"name_flat_2008_1yr",
+                    "intem_longrun":"name_flat_longrun",
                    "rhime":"name_flat",
                    "elris":"name_flat"}
         },    

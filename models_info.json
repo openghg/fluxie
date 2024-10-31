@@ -14,6 +14,21 @@
         "label":"InTEM NAME EDGAR all obs"
         },
 
+    "intem_name_edgar_2008_1yr":{
+        "filename":"InTEM_NAME_EUROPE_EDGAR_2008_1yr_inv_longrun",
+        "label":"InTEM 1yr"
+        },
+
+    "intem_name_edgarminval_2008_1yr":{
+        "filename":"InTEM_NAME_EUROPE_EDGARMINVAL_2008_1yr_inv_longrun",
+        "label":"InTEM 1yr"
+        },
+
+    "intem_name_flat_2008_1yr":{
+        "filename":"InTEM_NAME_EUROPE_FLAT_2008_1yr_inv_longrun",
+        "label":"InTEM 1yr"
+        },
+
     "intem_name_flat":{
         "filename":"InTEM_NAME_EUROPE_FLAT_intem_obs_intem_baseline_optimized",
         "label":"InTEM NAME Flat"
