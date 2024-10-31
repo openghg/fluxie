@@ -331,6 +331,8 @@ def read_flux(data_dir,species,models,s_data,m_data,period_override=None,verbose
             period_all[m] = s_data[species]["period"]
     
     ds_all = {}
+    
+    print(models)
 
     for i,m in enumerate(models):
         if verbose: print(f'\nAttempting to read data from {m}')
@@ -340,7 +342,7 @@ def read_flux(data_dir,species,models,s_data,m_data,period_override=None,verbose
         model_dir = m_data[m]["filename"].split('_')[0]
 
         print(os.path.join(data_dir,model_dir,species,
-                                              f'{m_data[m]["filename"]}_{s_data[species]["model_species"][m0]}_{period_all[m]}.nc'))
+                           f'{m_data[m]["filename"]}_{s_data[species]["model_species"][m0]}_{period_all[m]}.nc'))
 
         try:
             filepath = glob.glob(os.path.join(data_dir,model_dir,species,
@@ -515,7 +517,7 @@ def read_flux_total_fgases(data_dir,species,models,s_data,m_data,regions,
             #tries to read from standard filename
             #try:
             model_read = f'{m0}_{s_data[species]["std_run"][m0]}'
-            if longrun: f'{m0}_{s_data[species]["std_run"][m0+"_longrun"]}'
+            if longrun: model_read = f'{m0}_{s_data[species]["std_run"][m0+"_longrun"]}'
             #if longrun: model_read = f'{model_read}_longrun'
 
             ds_in[model] = read_flux(data_dir,species,[model_read],s_data,m_data,period_override[s],verbose=False)[model_read]    #edit read_flux so that it searches for correct filename per gas
