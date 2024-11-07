@@ -426,6 +426,33 @@
                    "elris":"name_flat"}
         },    
 
+    "nf3":{
+            "species_print":"NF$_3$",
+            "period":"yearly",
+            "units_scaling":{"intem":1e6,
+                            "rhime":1e6,
+                            "elris":1e6},
+            "model_species":{"intem":"nf3",
+                            "rhime":"nf3",
+                            "elris":"NF3"},
+            "units_print":"G",
+            "dt_units":{"intem":"datetime64[Y]",
+                        "rhime":"datetime64[Y]",
+                        "elris":"datetime64[Y]"},
+            "mf_units_scaling":1e-12,
+            "mf_units_print":"ppt",
+            "fluxlim":[0,2e-13],
+            "fluxlim_kgkm2yr":[0,0.5],
+            "difflim":[-5e-13,5e-13],
+            "difflim_kgkm2yr":[-0.5,0.5],
+            "gwp":16100,
+            "mwt":71.0,
+            "std_run":{"intem":"name_flat_2008_1yr",
+                        "intem_longrun":"name_flat_longrun",
+                       "rhime":"name_flat",
+                       "elris":"name_flat"}
+            }, 
+
     "n2o":{
         "species_print":"N$_2$O",
         "period":"monthly",
@@ -447,9 +474,9 @@
         "difflim_kgkm2yr":[-800,800],
         "gwp":265,
         "mwt":44.0,
-        "std_run":{"intem":"name_edgar_26sites",
-                   "rhime":"name_edgar_26sites",
-                   "elris":"name_edgar_26sites"}
+        "std_run":{"intem":"1yr_nisc_meeting",
+                   "rhime":"None",
+                   "elris":"None"}
         },
 
     "hfc1234yf":{

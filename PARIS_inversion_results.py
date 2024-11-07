@@ -3345,7 +3345,7 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
                     break
     
     if nir_style_plot == True:
-        if 'fc' in species or 'cf' in species:
+        if 'fc' in species or 'cf' in species or 'nf' in species:
             threshold_scale = 1.0e-8
         elif species == 'ch4':
             threshold_scale = 1.0e-4
