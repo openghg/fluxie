@@ -1095,7 +1095,7 @@ def plot_obs_modelled_separate(ds_all,species,site,
                     
                     ax.scatter(ds_all[m].time.values,
                                 ds_all[m]['Yobs'].values,
-                                color='black',label=f'Obs ({m_data[m]["label"]})',s=8,alpha=0.8,
+                                color='grey',label=f'Obs ({m_data[m]["label"]})',s=8,alpha=0.8,
                                 marker='s')
                     
                     if add_unc:
@@ -1217,7 +1217,7 @@ def plot_obs_modelled_separate(ds_all,species,site,
         except:
             for l in leg.legendHandles:
                 l.set_linewidth(5.0)
-        
+                
         if int(ds_all[m].time.values[-1].astype('datetime64[M]')-ds_all[m].time.values[0].astype('datetime64[M]')) > 12:
             ax.xaxis.set_minor_locator(MonthLocator())
             ax.xaxis.set_minor_formatter(NullFormatter())
@@ -3195,13 +3195,14 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
                  'hfc152a':[0,2.5],
                  'hfc365mfc':[0,2.],
                  'hfc4310mee':[0,0.15],
-                 'pfc218':[0,0.5],
+                 'pfc218':[0,1.0],
+                 #'pfc218':[0,0.5],
                  'pfc116':[0,0.5],
                  'pfc318':[0,0.3],
                  'hfc227ea':[0,1.0],
                  'hfc23':[0,1.0],
                  'hfc245fa':[0,1.5],
-                 'cf4':[0,1.5],
+                 'cf4':[0,1.],  #was 1.5
                  'nf3':[0,0.1],
                  'ch4':[0,20.],
                  'n2o':[0,800.],
@@ -3325,7 +3326,7 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
 
         if n_cols == 0:
             print('ERROR: dt is greater than the number of timestamps for at least one of the models.')
-
+            
     # Get sites info
     sites_info = {}
     if plot_site_locations == True:
@@ -3347,6 +3348,12 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
     if nir_style_plot == True:
         if 'fc' in species or 'cf' in species or 'nf' in species:
             threshold_scale = 1.0e-8
+        if 'cf4' in species:
+            threshold_scale = 1.0e-4 #e-2
+        elif 'pfc116' in species:
+            threshold_scale = 1.0e-3
+        elif 'pfc318' in species:
+            threshold_scale = 5.0e-4
         elif species == 'ch4':
             threshold_scale = 1.0e-4
         elif species == 'n2o':
@@ -3357,13 +3364,14 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
         for m in ds_all.keys():
             try:
                 threshold = threshold_scale * np.max(ds_all[m]['flux_total_posterior_inversion_grid'].values)
+                print(threshold)
                 ds_all[m]['flux_total_posterior_inversion_grid'].values[np.where(ds_all[m]['flux_total_posterior_inversion_grid'].values == 0.)] = np.nan
                 ds_all[m]['flux_total_posterior_inversion_grid'].values[np.where(ds_all[m]['flux_total_posterior_inversion_grid'].values < threshold)] = np.nan
             except:
                 print(f'Cannot find inversion_grid variables for {m} so using standard flux output.')
-            threshold = threshold_scale * np.max(ds_all[m]['flux_total_posterior'].values)
-            ds_all[m]['flux_total_posterior'].values[np.where(ds_all[m]['flux_total_posterior'].values == 0.)] = np.nan
-            ds_all[m]['flux_total_posterior'].values[np.where(ds_all[m]['flux_total_posterior'].values < threshold)] = np.nan
+                threshold = threshold_scale * np.max(ds_all[m]['flux_total_posterior'].values)
+                ds_all[m]['flux_total_posterior'].values[np.where(ds_all[m]['flux_total_posterior'].values == 0.)] = np.nan
+                ds_all[m]['flux_total_posterior'].values[np.where(ds_all[m]['flux_total_posterior'].values < threshold)] = np.nan
             
     # Create figure
     fig,ax = plt.subplots(n_lines,n_cols,figsize=(n_cols*4,n_lines*3), #3.25
@@ -3466,8 +3474,8 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
                     ax_var = ax[j,i]
 
                 ax_var.pcolormesh(lon,lat,var_plot*flux_units_scaling,cmap=cmap,vmin=lim[0],vmax=lim[1],shading='nearest')
-                if nir_style_plot == False:
-                    ax_var.set_title(f'{time_out}')
+                #if nir_style_plot == False:
+                ax_var.set_title(f'{time_out}')
                 if i == 0:
                     if '\n' in m_data[m]["label"]:
                         ax_var.text(-0.14, 0.25, f'{m_data[m]["label"]}', transform=ax_var.transAxes, rotation=90)
@@ -3567,7 +3575,10 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
     else:
         color_bar.set_label(f'{var_labels[var]} {s_data[species]["species_print"]} ({cb_units})')
     
-    fig.subplots_adjust(left=0.05, right=0.98, top=0.95, bottom=0.05, wspace=0.04, hspace=0.12)
+    if n_cols == 1 and n_lines == 1:
+        fig.subplots_adjust(left=0.05, right=0.98, top=0.95, bottom=0.05, wspace=0.04, hspace=0.12)
+    else:
+        fig.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05, wspace=0.04, hspace=0.12)
 
     return fig
 
