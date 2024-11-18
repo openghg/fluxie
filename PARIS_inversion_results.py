@@ -2206,10 +2206,13 @@ def plot_country_flux(ds_all,species,plot_regions,
         
         if plot_inventory == True:
             
-            inv_colours = ['grey','black']
+            inv_colours = ['firebrick','black']
+            
             if nir_style_plot == True:
-                inv_fill = ['None','gainsboro']
+                inv_linestyle = ['dashed',None]
+                inv_fill = ['None','None']#'gainsboro']
             else:
+                inv_linestyle = [None,None]
                 inv_fill = ['None','None']
             
             if inventory_years == None:
@@ -2231,12 +2234,13 @@ def plot_country_flux(ds_all,species,plot_regions,
                     if np.any(inventory_std > 0.) == True and i_year == max(inventory_years):
                         ax.bar(inventory_time,inventory_flux,
                                np.timedelta64(280, 'D'),color=inv_fill[y],edgecolor=inv_colours[y],align='edge',
-                               label=f'Inventory {i_year}',zorder=0,linewidth=1.,
-                               yerr=inventory_std,capsize=2)
+                               label=f'Inventory {i_year}',zorder=0,linewidth=1.2,
+                               yerr=inventory_std,capsize=2,linestyle=inv_linestyle[y])
                     else:
                         ax.bar(inventory_time,inventory_flux,
                                     np.timedelta64(280, 'D'),color=inv_fill[y],edgecolor=inv_colours[y],align='edge',
-                                    label=f'Inventory {i_year}',zorder=0,linewidth=1.1)
+                                    label=f'Inventory {i_year}',zorder=0,linewidth=1.2,
+                                    linestyle=inv_linestyle[y])
                                 
                 if i == 0:
                     region_time_years = inventory_time.astype('datetime64[Y]')
@@ -2414,7 +2418,7 @@ def plot_country_flux(ds_all,species,plot_regions,
         
         ncol = 2
         if set_global_leg == False:
-            leg = ax.legend(ncol=ncol,borderpad=.4,columnspacing=1.0)#,loc='upper left')
+            leg = ax.legend(ncol=ncol,borderpad=.4,columnspacing=1.0)#,loc='upper right')
             if plot_inventory == True:
                 for l in leg.legendHandles[:-len(inventory_years)]:
                     l.set_linewidth(3.0)
@@ -3079,7 +3083,8 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
                                     chop_by='year',dt=1,period_override=None,
                                     plot_site_locations=False,plot_point_markers=False,
                                    plot_inversion_grid_flux=False,
-                                   scale_to_kgkm2yr=False,nir_style_plot=False):
+                                   scale_to_kgkm2yr=False,nir_style_plot=False,
+                                   mask_sea_areas=False):
     """
     Plots posterior fluxes, prior fluxes or difference between these
     for all models and specific time intervals.
@@ -3134,6 +3139,8 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
         nir_style_plot (bool, default False):
             If True, plots sites and cities using NIR-style markers (triangles for sites and red circles for cities.)
             Simplifies plot title and colourbar title and converts zero-value fluxes to nans, to remove from plot.
+        mask_sea_areas (bool, default False):
+            If True, sets fluxes in grid cells labelled as 'Sea' to zero.
     Returns:
         fig (figure):
             A plot of spatial flux of the variable specified in var
@@ -3364,7 +3371,6 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
         for m in ds_all.keys():
             try:
                 threshold = threshold_scale * np.max(ds_all[m]['flux_total_posterior_inversion_grid'].values)
-                print(threshold)
                 ds_all[m]['flux_total_posterior_inversion_grid'].values[np.where(ds_all[m]['flux_total_posterior_inversion_grid'].values == 0.)] = np.nan
                 ds_all[m]['flux_total_posterior_inversion_grid'].values[np.where(ds_all[m]['flux_total_posterior_inversion_grid'].values < threshold)] = np.nan
             except:
@@ -3457,7 +3463,25 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
                     time_out = (f'{start_print[m][i]}')
                 else:
                     time_out = (f'{start_print[m][i]} - {end_print[m][i]}')
-
+                                        
+            if mask_sea_areas == True:
+                print(f'Masking sea areas...')
+                
+                mask_path = '/project/InTEM_GHG/inversion/region_files/regions_EUextN_land_June2024_as_netcdf.nc'
+                with xr.open_dataset(mask_path) as f:
+                    sea_code = f['region_code'].values[np.where(f['region_name'].values == 'Sea')][0]
+                    mask = f['region'].values
+                    mask_lat = f.lat.values
+                    mask_lon = f.lon.values
+                
+                for i,la in enumerate(lat):
+                    for j,lo in enumerate(lon):
+                        if la in mask_lat and lo in mask_lon:
+                            lat_id = np.where(mask_lat == la)[0]
+                            lon_id = np.where(mask_lon == lo)[0]
+                            if mask[lat_id,lon_id] == sea_code:
+                                var_plot[i,j] = np.nan
+                                
             # Make plot
 
             if n_cols == 1 and n_lines == 1:
