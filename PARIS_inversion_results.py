@@ -3223,19 +3223,13 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
     # Define variable specific settings
     if var == 'posterior_prior_diff':
         if scale_to_kgkm2yr == True:
-            if nir_style_plot == True:
-                lim = [-scale_lim[species][1],scale_lim[species][1]]
-            else:
-                lim = s_data[species]['difflim_kgkm2yr']
+            lim = s_data[species]['difflim_kgkm2yr']
         else:
             lim = s_data[species]['difflim']
         extend ='both'
     else:
         if scale_to_kgkm2yr == True:
-            if nir_style_plot == True:
-                lim = scale_lim[species]
-            else:
-                lim = s_data[species]['fluxlim_kgkm2yr']
+            lim = s_data[species]['fluxlim_kgkm2yr']
         else:
             lim = s_data[species]['fluxlim']
         extend = 'max'
