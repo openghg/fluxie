@@ -3193,27 +3193,6 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
                     'NWEU':[-11,11,45,62],
                     'CWEU':[-12,27,37,66],
                     'EUROPE':[-98,40,10,80]}
-    
-    # spatial plot limits for NIR-style plots
-    scale_lim = {'hfc134a':[0,50.],
-                 'hfc125':[0,20.],
-                 'hfc143a':[0,10.],
-                 'hfc32':[0,10.],
-                 'hfc152a':[0,2.5],
-                 'hfc365mfc':[0,2.],
-                 'hfc4310mee':[0,0.15],
-                 'pfc218':[0,1.0],
-                 #'pfc218':[0,0.5],
-                 'pfc116':[0,0.5],
-                 'pfc318':[0,0.3],
-                 'hfc227ea':[0,1.0],
-                 'hfc23':[0,1.0],
-                 'hfc245fa':[0,1.5],
-                 'cf4':[0,1.],  #was 1.5
-                 'nf3':[0,0.1],
-                 'ch4':[0,20.],
-                 'n2o':[0,800.],
-                 'sf6':[0,0.5]}
 
     month_names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
     
