@@ -3084,7 +3084,7 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
                                     plot_site_locations=False,plot_point_markers=False,
                                    plot_inversion_grid_flux=False,
                                    scale_to_kgkm2yr=False,nir_style_plot=False,
-                                   mask_sea_areas=False):
+                                   mask_sea_areas=False,threshold_scale=None):
     """
     Plots posterior fluxes, prior fluxes or difference between these
     for all models and specific time intervals.
@@ -3141,6 +3141,9 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
             Simplifies plot title and colourbar title and converts zero-value fluxes to nans, to remove from plot.
         mask_sea_areas (bool, default False):
             If True, sets fluxes in grid cells labelled as 'Sea' to zero.
+        threshold_scale (float, default None):
+            All values below threshold_scale * max(flux) are set to zero in the plotting. 
+            This is now applied after averaging.
     Returns:
         fig (figure):
             A plot of spatial flux of the variable specified in var
@@ -3325,33 +3328,6 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
                         sites_info[m] = sites_info[m2]
                     break
     
-    if nir_style_plot == True:
-        if 'fc' in species or 'cf' in species or 'nf' in species:
-            threshold_scale = 1.0e-8
-        if 'cf4' in species:
-            threshold_scale = 1.0e-4 #e-2
-        elif 'pfc116' in species:
-            threshold_scale = 1.0e-3
-        elif 'pfc318' in species:
-            threshold_scale = 5.0e-4
-        elif species == 'ch4':
-            threshold_scale = 1.0e-4
-        elif species == 'n2o':
-            threshold_scale = 1.0e-3
-        elif species == 'sf6':
-            threshold_scale = 1.0e-6
-            
-        for m in ds_all.keys():
-            try:
-                threshold = threshold_scale * np.max(ds_all[m]['flux_total_posterior_inversion_grid'].values)
-                ds_all[m]['flux_total_posterior_inversion_grid'].values[np.where(ds_all[m]['flux_total_posterior_inversion_grid'].values == 0.)] = np.nan
-                ds_all[m]['flux_total_posterior_inversion_grid'].values[np.where(ds_all[m]['flux_total_posterior_inversion_grid'].values < threshold)] = np.nan
-            except:
-                print(f'Cannot find inversion_grid variables for {m} so using standard flux output.')
-                threshold = threshold_scale * np.max(ds_all[m]['flux_total_posterior'].values)
-                ds_all[m]['flux_total_posterior'].values[np.where(ds_all[m]['flux_total_posterior'].values == 0.)] = np.nan
-                ds_all[m]['flux_total_posterior'].values[np.where(ds_all[m]['flux_total_posterior'].values < threshold)] = np.nan
-            
     # Create figure
     fig,ax = plt.subplots(n_lines,n_cols,figsize=(n_cols*4,n_lines*3), #3.25
                    subplot_kw={'projection':cartopy.crs.PlateCarree()})
@@ -3437,6 +3413,13 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
                 else:
                     time_out = (f'{start_print[m][i]} - {end_print[m][i]}')
                                         
+            
+            if nir_style_plot == True and threshold_scale is not None:
+                for m in ds_all.keys():
+                    threshold = threshold_scale * np.max(var_plot.values)
+                    var_plot.values[np.where(var_plot.values == 0.)] = np.nan
+                    var_plot.values[np.where(var_plot.values < threshold)] = np.nan
+
             if mask_sea_areas == True:
                 print(f'Masking sea areas...')
                 
