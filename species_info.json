@@ -64,6 +64,27 @@
             "fluxlim":[0,5e-8],
             "difflim":[-2e-8,2e-8]
             },
+        "dch4d":{
+                "species_print":"$\\delta^{2}$H-CH$_4$",
+                "period":"monthly",
+                "units_scaling":{"intem":1e9,
+                                "rhime":1e9,
+                                "elris":1e9,
+                                "mcmc":1},
+                "model_species":{"intem":"ch4",
+                                "rhime":"ch4",
+                                "elris":"CH4",
+                                "mcmc":"ch4"},
+                "units_print":"T",
+                "dt_units":{"intem":"datetime64[M]",
+                            "rhime":"datetime64[M]",
+                            "elris":"datetime64[M]",
+                            "mcmc":"datetime64[M]"},
+                "mf_units_scaling":1,
+                "mf_units_print":"permil",
+                "fluxlim":[0,5e-8],
+                "difflim":[-2e-8,2e-8]
+                },
 
     "hfc134a":{
         "species_print":"HFC-134a",
