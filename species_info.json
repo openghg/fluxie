@@ -60,7 +60,7 @@
                         "elris":"datetime64[M]",
                         "mcmc":"datetime64[M]"},
             "mf_units_scaling":1,
-            "mf_units_print":"permil",
+            "mf_units_print":"$^o/_{oo}$",
             "fluxlim":[0,5e-8],
             "difflim":[-2e-8,2e-8]
             },
@@ -81,7 +81,7 @@
                             "elris":"datetime64[M]",
                             "mcmc":"datetime64[M]"},
                 "mf_units_scaling":1,
-                "mf_units_print":"permil",
+                "mf_units_print":"$^o/_{oo}$",
                 "fluxlim":[0,5e-8],
                 "difflim":[-2e-8,2e-8]
                 },

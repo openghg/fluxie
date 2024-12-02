@@ -314,7 +314,7 @@ def read_mf(data_dir,species,models,model_filenames,period_override=None):
 def slice_mf(ds_all,start_date=None,end_date=None,site=None,
              baseline_site=None,data_dir=None,
              scale_units=False,
-             species=None):
+             species=None,remove_missing_timestamps=False):
     """
     Slices down the mole fraction timeseries data, to within the
     given time limits, and/or for the chosen site.
@@ -338,6 +338,8 @@ def slice_mf(ds_all,start_date=None,end_date=None,site=None,
             If True, scales country fluxes to Tg or Gy per year.
         species (str):
             Gas species, used to choose scaling units, e.g. 'ch4'.
+        remove_missing_timestamps (bool, default False):
+            If True, drops timestamps without data, so mf plots do not contain gaps.
     Returns:
         ds_all (dictionary of datasets):
             xarray datasets, scaled and sliced between chosen dates and for 
@@ -428,6 +430,23 @@ def slice_mf(ds_all,start_date=None,end_date=None,site=None,
     for m in check_keys:
         if ds_all[m] is None:
             ds_all.pop(m)
+    '''  
+    for m in ds_all.keys():
+        time_diff = np.min([ds_all[m][f'time_{species}'].values[i+1] - ds_all[m][f'time_{species}'].values[i] for i in range(ds_all[m][f'time_{species}'].values.shape[0]-1)])
+        time_all = np.arange(np.datetime64(ds_all[m][f'time_{species}'].values[0]),
+                             np.datetime64(ds_all[m][f'time_{species}'].values[-1])+time_diff,
+                             time_diff)
+        time_all_ds = xr.Dataset({f'time_{species}':([f'time_{species}'],time_all)})
+        
+        print(ds_all[m][f'time_{species}'].values)
+        print(time_all_ds)
+    ''' 
+    if remove_missing_timestamps == True:
+        for m in ds_all.keys():
+            try:
+                ds_all[m] = ds_all[m].dropna(dim=f'time_{species}')
+            except:
+                ds_all[m] = ds_all[m].dropna(dim=f'time')
                 
     return ds_all
 
@@ -545,7 +564,7 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
                              include=['Yobs','Yapriori','Yapost'],
                              diff_include=['Yapriori','Yapost'],
                              add_unc=True,
-                             y_lim=None):
+                             y_lim=None,line_plot_with_scatter=False):
     """
     Timeseries plots of observations and modelled mole fractions or 
     baselines from each model.
@@ -573,24 +592,27 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
             same options as above.
         add_unc (bool):
             if True, plot uncertainty bar on Yobs and Yapost timeseries.
+        line_plot_with_scatter (bool, default False):
+            If True, plots data as a line with no gaps and uncert as shaded areas.
+            If False, only plots lines between present data and plots uncerts as error bars.
     Returns:
         fig (figure): 
             A timeseries and histogram plot for each model included.
     """
         
-    var_labels = {'Yapriori':'prior mf',
-                  'Yapost':'posterior mean mf',
-                  'YaprioriBC':'prior baseline',
-                  'YapostBC':'posterior mean baseline',
-                  'Yapriori_bias':'prior bias',
-                  'Yapost_bias':'posterior bias',
-                  'YaprioriOUTER':'prior outer region mf',
-                  'YapostOUTER':'posterior outer region mf',
-                  'Yobs':'observed mf',
-                  'uYobs_repeatability':'obs repeatability mf uncertainty',
-                  'uYobs_variability':'obs variability mf uncertainty',
-                  'uYmod':'model uncertainty',
-                  'uYtotal':'total uncertainty'}
+    var_labels = {'Yapriori':'Prior mf',
+                  'Yapost':'Posterior mean mf',
+                  'YaprioriBC':'Prior baseline',
+                  'YapostBC':'Posterior mean baseline',
+                  'Yapriori_bias':'Prior bias',
+                  'Yapost_bias':'Posterior bias',
+                  'YaprioriOUTER':'Prior outer region mf',
+                  'YapostOUTER':'Posterior outer region mf',
+                  'Yobs':'Observed mf',
+                  'uYobs_repeatability':'Obs repeatability mf uncertainty',
+                  'uYobs_variability':'Obs variability mf uncertainty',
+                  'uYmod':'Model uncertainty',
+                  'uYtotal':'Total uncertainty'}
     var_colors = {'Yapriori':1,
                   'Yapost':0,
                   'YaprioriBC':1,
@@ -608,6 +630,7 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
     models = ds_all.keys()
     min_mf = []
     max_mf = []
+    min_x,max_x = [],[]
     ax_all = []
     ax2_all = []
     
@@ -632,42 +655,78 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
 
             if var == 'Yobs':
                 if len(include) == 1:
+                    if line_plot_with_scatter == True:
+                        ax.plot(ds_all[m][f'time{s}'].values,
+                                ds_all[m][f'Yobs{s}'].values,
+                                color=model_colors[m][var_colors[var]],
+                                alpha=0.8)
+                        
                     ax.scatter(ds_all[m][f'time{s}'].values,
                                ds_all[m][f'Yobs{s}'].values,
                                color=model_colors[m][var_colors[var]],
-                               label=f'Obs ({model_labels[m]})',s=8,alpha=0.8,marker='s')
+                               label=f'Obs',s=8,alpha=0.8,marker='s')
                     
                     if add_unc:
                         try:
-                            ax.errorbar(ds_all[m][f'time{s}'].values,
-                                        ds_all[m][f'Yobs{s}'].values,
-                                        ds_all[m][f'uYobs_repeatability{s}'].values,
-                                        color=model_colors[m][var_colors[var]],alpha=0.4,fmt='none')
+                            if line_plot_with_scatter == True:
+                                ax.fill_between(ds_all[m][f'time{s}'].values,
+                                            ds_all[m][f'Yobs{s}'].values-ds_all[m][f'uYobs_repeatability{s}'].values,
+                                            ds_all[m][f'Yobs{s}'].values+ds_all[m][f'uYobs_repeatability{s}'].values,
+                                            color=model_colors[m][var_colors[var]],alpha=0.2)
+                            else:
+                                ax.errorbar(ds_all[m][f'time{s}'].values,
+                                            ds_all[m][f'Yobs{s}'].values,
+                                            ds_all[m][f'uYobs_repeatability{s}'].values,
+                                            color=model_colors[m][var_colors[var]],alpha=0.4,fmt='none')
                         except:
-                            ax.errorbar(ds_all[m][f'time{s}'].values,
-                                        ds_all[m][f'Yobs{s}'].values,
-                                        ds_all[m][f'uYobs{s}'].values,
-                                        color=model_colors[m][var_colors[var]],alpha=0.4,fmt='none')
+                            if line_plot_with_scatter == True:
+                                ax.fill_between(ds_all[m][f'time{s}'].values,
+                                            ds_all[m][f'Yobs{s}'].values-ds_all[m][f'uYobs{s}'].values,
+                                            ds_all[m][f'Yobs{s}'].values+ds_all[m][f'uYobs{s}'].values,
+                                            color=model_colors[m][var_colors[var]],alpha=0.2)
+                            else:
+                                ax.errorbar(ds_all[m][f'time{s}'].values,
+                                            ds_all[m][f'Yobs{s}'].values,
+                                            ds_all[m][f'uYobs{s}'].values,
+                                            color=model_colors[m][var_colors[var]],alpha=0.4,fmt='none')
                             print(f'WARNING: uYobs_repeatability is not present in {m}. uYobs is being plotted instead as error bars.')
                             
                 else:
-                    
+                    if line_plot_with_scatter == True:
+                        ax.plot(ds_all[m][f'time{s}'].values,
+                                ds_all[m][f'Yobs{s}'].values,
+                                color='black',
+                                alpha=0.8,linewidth=0.8)
+                        
                     ax.scatter(ds_all[m][f'time{s}'].values,
                                 ds_all[m][f'Yobs{s}'].values,
-                                color='black',label=f'Obs ({model_labels[m]})',s=8,alpha=0.8,
+                                color='black',label=f'Obs',s=8,alpha=0.8,
                                 marker='s')
+                    
                     
                     if add_unc:
                         try:
-                            ax.errorbar(ds_all[m][f'time{s}'].values,
-                                        ds_all[m][f'Yobs{s}'].values,
-                                        ds_all[m][f'uYobs_repeatability{s}'].values,
-                                            color='black',alpha=0.4,fmt='none')
+                            if line_plot_with_scatter == True:
+                                ax.fill_between(ds_all[m][f'time{s}'].values,
+                                            ds_all[m][f'Yobs{s}'].values-ds_all[m][f'uYobs_repeatability{s}'].values,
+                                            ds_all[m][f'Yobs{s}'].values+ds_all[m][f'uYobs_repeatability{s}'].values,
+                                                color='black',alpha=0.2)
+                            else:
+                                ax.errorbar(ds_all[m][f'time{s}'].values,
+                                            ds_all[m][f'Yobs{s}'].values,
+                                            ds_all[m][f'uYobs_repeatability{s}'].values,
+                                                color='black',alpha=0.4,fmt='none')
                         except:
-                            ax.errorbar(ds_all[m][f'time{s}'].values,
-                                        ds_all[m][f'Yobs{s}'].values,
-                                        ds_all[m][f'uYobs{s}'].values,
-                                            color='black',alpha=0.4,fmt='none')
+                            if line_plot_with_scatter == True:
+                                ax.fill_between(ds_all[m][f'time{s}'].values,
+                                            ds_all[m][f'Yobs{s}'].values-ds_all[m][f'uYobs{s}'].values,
+                                            ds_all[m][f'Yobs{s}'].values+ds_all[m][f'uYobs{s}'].values,
+                                                color='black',alpha=0.2)
+                            else:
+                                ax.errorbar(ds_all[m][f'time{s}'].values,
+                                            ds_all[m][f'Yobs{s}'].values,
+                                            ds_all[m][f'uYobs{s}'].values,
+                                                color='black',alpha=0.4,fmt='none')
                             print(f'WARNING: uYobs_repeatability is not present in {m}. uYobs is being plotted instead as error bars.')
 
             else:
@@ -675,8 +734,12 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
                     ax.plot(ds_all[m][f'time{s}'].values,
                             ds_all[m][f'{var}{s}'].values,
                             color=model_colors[m][var_colors[var]],alpha=0.8,
-                            linewidth=2.,
-                            label=f'{model_labels[m]} {var_labels[var]}')
+                            linewidth=0.8)
+                    ax.scatter(ds_all[m][f'time{s}'].values,
+                            ds_all[m][f'{var}{s}'].values,
+                            color=model_colors[m][var_colors[var]],alpha=0.8,
+                            s=8,
+                            label=f'{var_labels[var]}')
                 
                 except:
                     #handle old ncdf files
@@ -686,7 +749,7 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
                                 uYmod,
                                 color=model_colors[m][var_colors[var]],alpha=0.8,
                                 linewidth=2.,
-                                label=f'{model_labels[m]} {var_labels[var]}')
+                                label=f'{var_labels[var]}')
                         print(f'WARNING: uYmod is not present in {m}. This quantity is being computed from qYmod.')
 
                     elif var == 'uYobs_repeatability':
@@ -694,7 +757,7 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
                                 ds_all[m][f'uYobs{s}'].values,
                                 color=model_colors[m][var_colors[var]],alpha=0.8,
                                 linewidth=2.,
-                                label=f'{model_labels[m]} {var_labels[var]}')
+                                label=f'{var_labels[var]}')
                         print(f'WARNING: uYobs_repeatability is not present in {m}. uYobs is being plotted instead.')
 
                     else:
@@ -756,10 +819,12 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
     
         min_mf.append(ax.get_ylim()[0])
         max_mf.append(ax.get_ylim()[1])
+        min_x.append(np.min(ds_all[m][f'time{s}'].values))
+        max_x.append(np.max(ds_all[m][f'time{s}'].values))
         
         ax.set_title(model_labels[m])
         ax.set_ylabel(f'{s_data[species]["species_print"]} {site} ({s_data[species]["mf_units_print"]})')
-        leg = ax.legend(ncol=2,borderpad=.2,columnspacing=1.0,fontsize=10)
+        leg = ax.legend(ncol=3,borderpad=.2,columnspacing=1.0,fontsize=10)
         try:
             for l in leg.legend_handles:
                 l.set_linewidth(5.0)
@@ -782,7 +847,6 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
         ax.xaxis.set_minor_locator(MonthLocator())
         ax.xaxis.set_minor_formatter(NullFormatter())
         
-                    
     if y_lim == None:    
         for i in range(len(models)):
             ax_all[i].set_ylim([min(min_mf)-(0.02*min(min_mf)),
@@ -790,6 +854,9 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
     else:
         for i in range(len(models)):
             ax_all[i].set_ylim(y_lim)
+            
+    for i in range(len(models)):
+        ax_all[i].set_xlim([np.min(min_x),np.max(max_x)])
             
     print('NOTE: If all the data is not within axis limits, adjust the set_ylim')
     print('NOTE: If annotations in the histograms are not displaying correctly, adjust annotate_coords.')
@@ -803,7 +870,7 @@ def plot_obs_modelled_together(ds_all,species,site,model_labels,
                                include=['Yapost'],
                                diff_include=['Yapost'],
                                add_unc=True,
-                               y_lim=None):
+                               y_lim=None,line_plot_with_scatter=False):
     """
     Timeseries plots of observations and modelled mole fractions or 
     baselines from each model, all on one plot.
@@ -888,6 +955,12 @@ def plot_obs_modelled_together(ds_all,species,site,model_labels,
 
             if var == 'Yobs' and i == 0:
                 if len(include) == 1:
+                    if line_plot_with_scatter == True:
+                        ax.plot(ds_all[m][f'time{s}'].values,
+                                ds_all[m][f'Yobs{s}'].values,
+                                color=model_colors[m][var_colors[var]],
+                                label=f'Obs ({model_labels[m]})',linewidth=0.5,alpha=0.5)
+                        
                     ax.scatter(ds_all[m][f'time{s}'].values,
                                 ds_all[m][f'Yobs{s}'].values,
                                 color=model_colors[m][var_colors[var]],
@@ -909,27 +982,27 @@ def plot_obs_modelled_together(ds_all,species,site,model_labels,
                             print(f'WARNING: uYobs_repeatability is not present in {m}. uYobs is being plotted instead as error bars.')
 
                 else:
+                    if line_plot_with_scatter == True:
+                        ax.plot(ds_all[m][f'time{s}'].values,
+                                ds_all[m][f'Yobs{s}'].values,
+                                color='black',
+                                linewidth=0.5,alpha=0.5)
                     ax.scatter(ds_all[m][f'time{s}'].values,
                                 ds_all[m][f'Yobs{s}'].values,
-                                #color='dimgrey',label=f'Obs ({model_labels[m]})',s=5,alpha=0.5)
                                 color='black',label=f'Obs',s=15,alpha=0.8)
-                    
-                    #ax.plot(ds_all[m][f'time{s}'].values,
-                    #            ds_all[m][f'Yobs{s}'].values,
-                    #            color='dimgrey',label=f'Obs ({model_labels[m]})')
 
             elif var != 'Yobs':
                 try:
+                    if line_plot_with_scatter == True:
+                        ax.plot(ds_all[m][f'time{s}'].values,
+                                ds_all[m][f'{var}{s}'].values,
+                                color=model_colors[m][var_colors[var]],
+                                linewidth=0.5,alpha=0.8)
                     ax.scatter(ds_all[m][f'time{s}'].values,
                             ds_all[m][f'{var}{s}'].values,
                             color=model_colors[m][var_colors[var]],alpha=0.8,
                             label=f'{model_labels[m]} {var_labels[var]}',
                             linewidth=2,s=15)
-                    #ax.plot(ds_all[m][f'time{s}'].values,
-                    #        ds_all[m][f'{var}{s}'].values,
-                    #        color=model_colors[m][var_colors[var]],
-                    #        label=f'{model_labels[m]} {var_labels[var]}',
-                    #        linewidth=2)
 
                 except:
                     # handle old ncdf files
@@ -2159,9 +2232,9 @@ def plot_country_flux_sectors(ds_all,species,sectors,plot_region,model_labels,
                 l.set_linewidth(3.0)
     '''
     ncol = len(list(ds_all.keys()))+1
-    ncol = 3
+    ncol = 4
     handles, labels = ax[-1].get_legend_handles_labels()
-    leg = ax[0].legend(handles, labels, loc='upper right',ncol=ncol,borderpad=.4,columnspacing=1.0,bbox_to_anchor=(1.0,1.3))
+    leg = ax[-1].legend(handles, labels, loc='lower right',ncol=ncol,borderpad=.4,columnspacing=1.0)
     
     for l in leg.legend_handles:
             l.set_linewidth(5.0)
