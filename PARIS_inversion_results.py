@@ -846,6 +846,7 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
         ax.xaxis.set_major_formatter(formatter)
         ax.xaxis.set_minor_locator(MonthLocator())
         ax.xaxis.set_minor_formatter(NullFormatter())
+        ax.xaxis.set_minor_locator(DayLocator())
         
     if y_lim == None:    
         for i in range(len(models)):
