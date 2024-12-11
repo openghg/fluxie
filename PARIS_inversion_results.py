@@ -1984,8 +1984,8 @@ def plot_country_flux(ds_all,species,plot_regions,
                       start_date,end_date,ppt_mode=False,annex_mode=False,
                       scale_co2eq=False,
                       plot_inventory=True,inventory_years=None,
-                      data_dir=None,fix_y_axes=False,add_prior=True,
-                      add_prior_unc=False, set_global_leg=False,
+                      data_dir=None,fix_y_axes=False,fix_x_axes=None,
+                      add_prior=True,add_prior_unc=False, set_global_leg=False,
                       country_codes_as_titles=None,plot_separate=True,
                       plot_combined=False,resample=None,
                       resample_uncert_correlation=False,
@@ -2030,6 +2030,8 @@ def plot_country_flux(ds_all,species,plot_regions,
             Path to top data directory, used to read inventory data files.
         fix_y_axes (bool):
             If True, uses a consistent y axis for all plots.
+        fix_x_axes (list, optional):
+            Option to specify start and end years (e.g. fix_x_axes = ['2014','2024']).
         add_prior (bool):
             If True, plots prior as dashed lines.
         add_prior_unc (bool):
@@ -2321,8 +2323,12 @@ def plot_country_flux(ds_all,species,plot_regions,
 
                     y0 = ((region_time[0]).astype('datetime64[Y]')).astype(int)+1970
                     y1 = ((region_time[-1]).astype('datetime64[Y]')).astype(int)+1970
-                    start_year[i] = min(start_year[i],y0)
-                    end_year[i] = max(end_year[i],y1)
+                    if (type(fix_x_axes) == list) == True:
+                        start_year[i] = min(start_year[i],y0,int(fix_x_axes[0]))
+                        end_year[i] = max(end_year[i],y1,int(fix_x_axes[1]))
+                    else:
+                        start_year[i] = min(start_year[i],y0)
+                        end_year[i] = max(end_year[i],y1)
 
             if sum(plot_combined) != 0:
                 
@@ -2419,12 +2425,15 @@ def plot_country_flux(ds_all,species,plot_regions,
         
         ax.set_ylabel(f'{s_data[species]["species_print"]} ({units_print}g{y_label_append} yr$^{{-1}}$)')
         
-        if period_all[list(ds.keys())[0]] == 'monthly' and resample != 'year':
+        if (type(fix_x_axes) == list) == True:
+            ax.set_xlim([np.datetime64(fix_x_axes[0])-np.timedelta64(1,'M'),
+                            np.datetime64(fix_x_axes[1])+np.timedelta64(1,'M')])
+        elif period_all[list(ds.keys())[0]] == 'monthly' and resample != 'year':
             ax.set_xlim([np.min(min_x)-np.timedelta64(1,'M'),
                             np.max(max_x)+np.timedelta64(1,'M')])
         else: #period_all[list(ds.keys())[0]] == 'yearly':
             ax.set_xlim([np.min(min_x)-np.timedelta64(7,'M'),
-                            np.max(max_x)+np.timedelta64(7,'M')])        
+                            np.max(max_x)+np.timedelta64(7,'M')])
         
         ncol = 2
         if annex_mode: ncol = 3
@@ -2507,7 +2516,7 @@ def plot_country_flux(ds_all,species,plot_regions,
         elif (type(fix_y_axes) == list) == True:
             fig.axes[i].set_ylim(fix_y_axes)
         elif fix_y_axes == False:
-            fig.axes[i].set_ylim([0,max_cf[i]*fac])  
+            fig.axes[i].set_ylim([0,max_cf[i]*fac])
     
     print('NOTE: If all the data is not within axis limits, adjust the set_ylim parameter')
     
