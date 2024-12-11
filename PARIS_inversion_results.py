@@ -1760,9 +1760,16 @@ def plot_country_flux(ds_all,species,plot_regions,model_labels,
         
         post_pdfs = {}
         
+        model_count = {}
+        
         for j,m in enumerate(ds_all.keys()):
             
             m0 = m.split('_')[0]
+            
+            if m0 not in model_count:
+                model_count[m0] = 1
+            else:
+                model_count[m0] += 1
 
             # Get inversion period
             if period_override is not None:
@@ -1804,15 +1811,21 @@ def plot_country_flux(ds_all,species,plot_regions,model_labels,
                                                                             size=1000) for t in range(region_time.shape[0])])
                             
                 if plot_separate == True:
+                                        
                     ax[a,b].plot(region_time,
                                 region_flux_total_posterior,
                                 label=model_labels[m],color=model_colors[m][0])
                     
-                    ax[a,b].plot(region_time,
-                                region_flux_total_prior,
-                                label=f'{model_labels[m]} prior',color=model_colors[m][0],linestyle='dashed')
+                    if model_count[m0] == 1:
                     
-                    
+                        ax[a,b].plot(region_time,
+                                    region_flux_total_prior,
+                                    label=f'{model_labels[m]} prior',color=model_colors[m][0],linestyle='dashed')
+                        
+                    else:
+                        ax[a,b].plot(region_time,
+                                region_flux_total_prior,color=model_colors[m][0],linestyle='dashed')
+                                                        
                     ax[a,b].fill_between(region_time,
                                         region_flux_total_posterior_lower,
                                         region_flux_total_posterior_upper,
@@ -1900,8 +1913,8 @@ def plot_country_flux(ds_all,species,plot_regions,model_labels,
         else:        
             ax[a,b].set_title(f'{country}')
         ax[a,b].grid(visible=True,which='major',alpha=0.4)
-        ax[a,b].xaxis.set_minor_locator(MonthLocator())
-        ax[a,b].xaxis.set_minor_formatter(NullFormatter())
+        #ax[a,b].xaxis.set_minor_locator(MonthLocator())
+        #ax[a,b].xaxis.set_minor_formatter(NullFormatter())
         ax[a,b].xaxis.set_major_locator(YearLocator())
         
         #increase row and column counts
@@ -1921,7 +1934,8 @@ def plot_country_flux(ds_all,species,plot_regions,model_labels,
             ncol=ncol+3
         if plot_inventory == True:
             ncol=ncol+1
-        leg = fig.legend(handles, labels, loc='upper center',ncol=ncol,borderpad=.4,columnspacing=1.0,fontsize=10,bbox_to_anchor=(0.5, 1.07))
+        leg = fig.legend(handles, labels, loc='upper center',ncol=ncol,borderpad=.4,columnspacing=1.0,
+                         fontsize=10,bbox_to_anchor=(0.5, 1.10))
         if plot_inventory == True:
             for l in leg.legendHandles:
                 l.set_linewidth(3.0)
@@ -2121,7 +2135,7 @@ def plot_country_flux_sectors(ds_all,species,sectors,plot_region,model_labels,
                         ax[i].plot(region_time,
                                     region_flux_sector_prior,
                                     label=f'Prior mean',color=model_colors[m][0],linestyle='dashed')
-                        #prior_plotted = True
+                        prior_plotted = True
                     
                     ax[i].plot(region_time,
                                 region_flux_sector_posterior,
@@ -2232,9 +2246,10 @@ def plot_country_flux_sectors(ds_all,species,sectors,plot_region,model_labels,
                 l.set_linewidth(3.0)
     '''
     ncol = len(list(ds_all.keys()))+1
-    ncol = 4
+    ncol = 2
     handles, labels = ax[-1].get_legend_handles_labels()
-    leg = ax[-1].legend(handles, labels, loc='lower right',ncol=ncol,borderpad=.4,columnspacing=1.0)
+    leg = ax[-1].legend(handles, labels, loc='lower right',ncol=ncol,borderpad=.4,columnspacing=1.0,
+                        fontsize=11)
     
     for l in leg.legend_handles:
             l.set_linewidth(5.0)
@@ -2318,10 +2333,12 @@ def plot_country_flux_sectors_bar(ds_all,species,sectors,plot_region,model_label
     min_x = []
     max_x = []
     period_all = {}
+    
+    width = 4
 
     n_rows = len(sectors)
         
-    fig,ax = plt.subplots(n_rows,1,figsize=(12,n_rows*3),constrained_layout=True)
+    fig,ax = plt.subplots(n_rows,1,figsize=(20,n_rows*3),constrained_layout=True)
 
     for i,sector in enumerate(sectors):
         '''
@@ -2347,12 +2364,16 @@ def plot_country_flux_sectors_bar(ds_all,species,sectors,plot_region,model_label
         post_pdfs = {}
         prior_plotted = False
         
-        time_diffs = [-np.timedelta64(24,'D'),-np.timedelta64(18,'D'),-np.timedelta64(12,'D'),
-                      -np.timedelta64(6,'D')]
+        #time_diffs = [-np.timedelta64(24,'D'),-np.timedelta64(18,'D'),-np.timedelta64(12,'D'),
+        #              -np.timedelta64(6,'D')]
         
-        time_diffs = [-np.timedelta64(24,'D'),-np.timedelta64(18,'D'),-np.timedelta64(12,'D'),
-                      -np.timedelta64(6,'D'),+np.timedelta64(1,'D')]
-        
+        if len(ds_all) == 4:
+            time_diffs = [-np.timedelta64(width*2,'D')*1.25,-np.timedelta64(width*1,'D')*1.25,-np.timedelta64(width*0,'D'),
+                        +np.timedelta64(width*1,'D')*1.25,+np.timedelta64(width*2,'D')*1.25]
+        elif len(ds_all) == 3:
+            time_diffs = [-np.timedelta64(width*2,'D')*0.75,-np.timedelta64(width*1,'D')*0.75,
+                        +np.timedelta64(width*1,'D')*0.75,+np.timedelta64(width*2,'D')*0.75]
+                    
         for j,m in enumerate(ds_all.keys()):
             
             m0 = m.split('_')[0]
@@ -2383,7 +2404,7 @@ def plot_country_flux_sectors_bar(ds_all,species,sectors,plot_region,model_label
                         #            label=f'Prior mean',color='grey',linestyle='dashed')
                         ax[i].bar(region_time+time_diffs[0],
                                     region_flux_sector_prior,
-                                    width=np.timedelta64(5,'D'),
+                                    width=np.timedelta64(width,'D'),
                                     label=f'Prior mean',color='grey',linestyle='dashed',
                                     zorder=3)
                         prior_plotted = True
@@ -2396,17 +2417,20 @@ def plot_country_flux_sectors_bar(ds_all,species,sectors,plot_region,model_label
                     err_total = np.array(region_flux_sector_posterior_upper) - np.array(region_flux_sector_posterior_lower)
                     ax[i].bar(region_time+time_diffs[j+1],
                               region_flux_sector_posterior,
-                              width=np.timedelta64(5,'D'),
+                              width=np.timedelta64(width,'D'),
                               yerr=err,
                               label=model_labels[m],color=model_colors[m][0],
                                                     capsize=5,zorder=3)
+                    
                     for e in range(err.shape[1]):
                         if j == 0:
                             y_shift = -np.timedelta64(5,'D')
                         elif j == 1:
+                            y_shift = -np.timedelta64(4,'D')
+                        elif j == 2:
                             y_shift = -np.timedelta64(3,'D')
                         else:
-                            y_shift = -np.timedelta64(1,'D')
+                            y_shift = -np.timedelta64(2,'D')
                             
                         if i == 0:
                             ann_y_scale = 0.02
@@ -2473,9 +2497,10 @@ def plot_country_flux_sectors_bar(ds_all,species,sectors,plot_region,model_label
             for l in leg.legendHandles:
                 l.set_linewidth(3.0)
     '''
-    ncol = len(list(ds_all.keys()))+1
+    ncol = 3 #len(list(ds_all.keys()))+1
     handles, labels = ax[-1].get_legend_handles_labels()
-    leg = ax[0].legend(handles, labels, loc='upper right',ncol=ncol,borderpad=.4,columnspacing=1.0,bbox_to_anchor=(1.0,1.3))
+    leg = fig.legend(handles, labels, loc='upper center',ncol=ncol,borderpad=.4,
+                     columnspacing=1.0,bbox_to_anchor=(0.5, 1.1))
     
     for l in leg.legend_handles:
             l.set_linewidth(5.0)
@@ -2483,8 +2508,10 @@ def plot_country_flux_sectors_bar(ds_all,species,sectors,plot_region,model_label
     for i,sector in enumerate(sectors):
         
         ax[i].set_ylabel(f'{plot_region} {sector}\n{s_data[species]["species_print"]} ({s_data[species]["units_print"]}g y$^{{-1}}$)')
-        ax[i].set_xlim([np.min(min_x-np.timedelta64(20,'D')),
-                        np.max(max_x)+np.timedelta64(15,'D')])
+        ax[i].set_xlim([np.min(min_x)-np.timedelta64(width*4,'D'),
+                        np.max(max_x)+np.timedelta64(width*10,'D')])
+        
+        ax[i].set_xticks(region_time,labels=region_time.astype('datetime64[M]'))
         
         if fix_y_axes == True:
             ax[i].set_ylim([0,(np.max(max_cf)+(0.15*np.max(max_cf)))])  
@@ -2492,8 +2519,14 @@ def plot_country_flux_sectors_bar(ds_all,species,sectors,plot_region,model_label
             ax[i].set_ylim(fix_y_axes)
         
         elif fix_y_axes == False:
-            ax[0].set_ylim(bottom=0,top=0.55)  
-            ax[1].set_ylim(bottom=0,top=3.)  
+            # UK
+            #ax[0].set_ylim(bottom=0,top=0.55)  
+            #ax[1].set_ylim(bottom=0,top=3.2)  
+            #ax[2].set_ylim(bottom=0,top=3.5)
+            # SE-ENGLAND
+            ax[0].set_ylim(bottom=0,top=0.2)  
+            ax[1].set_ylim(bottom=0,top=0.9)  
+            ax[2].set_ylim(bottom=0,top=1.)
             
 
     print('NOTE: If all the data is not within axis limits, adjust the set_ylim parameter')
