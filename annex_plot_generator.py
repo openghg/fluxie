@@ -24,7 +24,10 @@ point_markers = {'UK': ['london','edinburgh','cardiff','belfast'],
                 'NETHERLANDS': ['amsterdam','rotterdam','hague','utrecht','eindhoven'],
                 'IRELAND': ['dublin','cork','limerick','galway','waterford'],
                 'HUNGARY': ['budapest','debrecen','miskolc','szeged','pecs'],
-                'NORWAY': ['oslo','bergen','sandnes','stavanger','drammen']}
+                'NORWAY': ['oslo','bergen','sandnes','stavanger','drammen'],
+                'BELGIUM': ['brussels','antwerp','ghent','charleroi','liege']}
+
+point_markers['BENELUX'] = point_markers['NETHERLANDS'] + point_markers['BELGIUM'] + ['luxembourg']
 
 # Path to results directory 
 data_dir = '/project/paris/inverse_modelling/'
@@ -42,6 +45,8 @@ start_date_fgases = {
     'GERMANY': '2013-01-01',
     'ITALY': '2008-01-01',
     'NETHERLANDS': '2013-01-01',
+    'BELGIUM': '2013-01-01',
+    'BENELUX': '2013-01-01',
     'IRELAND': '2008-01-01',
     'HUNGARY': '2018-01-01',
     'NORWAY': '2018-01-01'
@@ -68,6 +73,14 @@ fluxlim_percentiles = {
     'NETHERLANDS': {
         'ch4': 0.96, 'n2o': 0.97, 'hfc32': 0.97, 'hfc125': 0.97, 'hfc134a': 0.97, 'hfc143a': 0.96,
         'cf4': 0.99, 'pfc116': 0.99, 'pfc218': 0.97, 'pfc318': 0.99, 'sf6': 0.99
+    },
+    'BELGIUM': {
+        'ch4': 0.95, 'n2o': 0.97, 'hfc32': 0.95, 'hfc125': 0.95, 'hfc134a': 0.94, 'hfc143a': 0.94,
+        'cf4': 0.99, 'pfc116': 0.99, 'pfc218': 0.94, 'pfc318': 0.99, 'sf6': 0.98
+    },
+    'BENELUX': {
+        'ch4': 0.96, 'n2o': 0.97, 'hfc32': 0.98, 'hfc125': 0.97, 'hfc134a': 0.97, 'hfc143a': 0.97,
+        'cf4': 0.9925, 'pfc116': 0.99, 'pfc218': 0.97, 'pfc318': 0.99, 'sf6': 0.99
     },
     'IRELAND': {
         'ch4': 0.95, 'n2o': 0.95, 'hfc32': 0.95, 'hfc125': 0.95, 'hfc134a': 0.95, 'hfc143a': 0.95,
@@ -289,12 +302,17 @@ def produce_plots(regions, output_path, inventory_years):
             inv = {'time':comb['time'],
                    'value':np.array([np.NaN,]*len(comb['time']))}
             
+        if "pfc" in species:
+            n_digits = 2
+        else:
+            n_digits = 1
+
         tmp = {'species':[species,]*2,'source':['NIR '+inventory_years[0],'PARIS mean']}
         for it,time in enumerate(comb['time'].astype('datetime64[Y]')):
-            paris_val = f"{comb['mean'][it]:.1f} \\pm {(comb['max'][it]-comb['min'][it])/2:.1f}"
+            paris_val = f"{comb['mean'][it]:.{n_digits}f} \\pm {(comb['max'][it]-comb['min'][it])/2:.{n_digits}f}"
             inv_val = inv['value'][inv['time'].astype('datetime64[Y]')==time]
             if len(inv_val)==1:
-                tmp[str(time)] = [f'{inv_val[0]:.1f}',paris_val]                            
+                tmp[str(time)] = [f'{inv_val[0]:.{n_digits}f}',paris_val]
             else:
                  tmp[str(time)] = [None,paris_val]      
         annual_res_list.append(pd.DataFrame(tmp))
@@ -362,10 +380,10 @@ def produce_plots(regions, output_path, inventory_years):
             
         tmp = {'species':[species,]*2,'source':['NIR '+inventory_years[0],'PARIS mean']}
 
-        if species == 'sf6':
-            n_digits = 1
-        else:
+        if species in ['hfc23','hfc32','hfc125','hfc134a','hfc143a','sf6']:
             n_digits = 2
+        else:
+            n_digits = 3
 
         for it,time in enumerate(comb['time'].astype('datetime64[Y]')):
             paris_val = f"{comb['mean'][it]:.{n_digits}f} \\pm {(comb['max'][it]-comb['min'][it])/2:.{n_digits}f}"

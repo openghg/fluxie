@@ -62,6 +62,12 @@ point_source_dict = {
                     'sandnes': [58.8514, 58.8500],
                     'stavanger': [5.7382, 58.9690],
                     'drammen': [10.2045, 59.7438],
+                    'brussels':[4.3525, 50.8466],
+                    'antwerp':[4.4002, 51.2177],
+                    'ghent':[3.7252, 51.0536],
+                    'charleroi':[4.4444, 50.4113],
+                    'liege':[5.5674, 50.6337],
+                    'luxembourg':[6.1319, 49.6116]
                     }
 
 countrycodes_dict = {'IRELAND':'IRL',
@@ -403,7 +409,7 @@ def slice_flux(ds_all,start_date,end_date,s_data,
 #####################################################################
 
 def read_flux_total_fgases(data_dir,species,models,s_data,m_data,regions,
-                           start_date,end_date,period_override=None):
+                           start_date,end_date,period_override=None,apply_pop_scale=True):
     """
     Reads in fluxes from a list of gases and sums/averages totals and uncertainties,
     to produce one dataset which can be used with plotting functions in the rest 
@@ -494,7 +500,7 @@ def read_flux_total_fgases(data_dir,species,models,s_data,m_data,regions,
                 try:
                     region_time,region_flux_total_posterior,region_flux_total_prior,\
                     region_flux_total_posterior_lower,region_flux_total_posterior_upper,\
-                    region_flux_total_prior_lower,region_flux_total_prior_upper = extract_region_flux(ds_in,model,m0,region,verbose=False)
+                    region_flux_total_prior_lower,region_flux_total_prior_upper = extract_region_flux(ds_in,model,m0,region,apply_pop_scale,verbose=False)
                     
                     #for percentiles, first convert to upper and lower standard deviations (difference from mean)
                     region_flux_total_posterior_lower = (region_flux_total_posterior-region_flux_total_posterior_lower) * 1e3 * s_data[species]['gwp'] * 1e-12
@@ -868,6 +874,8 @@ def stats_mf(ds_all):
             Pearson correlation coeffiecient, for each site and for each model.
         nrmse (dictionary of dictionaries):
             Normalised root mean square error, for each site and for each model.
+        rmse (dictionary of dictionaries):
+            Root mean square error, for each site and for each model (not normalized).
     """
     
     sites_all = np.array([])
@@ -880,11 +888,13 @@ def stats_mf(ds_all):
     
     pearson = {}
     nrmse = {}
+    rmse = {}
     #std = {}
 
     for site in sites_all:
         pearson[site] = {}
         nrmse[site] = {}
+        rmse[site] = {}
         #std[site] = {}
         for i,m in enumerate(ds_all.keys()):
             if site in ds_all[m]['sitenames'].values.astype('str'):
@@ -892,6 +902,8 @@ def stats_mf(ds_all):
                 if ds_all[m]['Yobs'].values[:,s][~np.isnan(ds_all[m]['Yobs'].values[:,s])].shape[0] != 0:
                     pearson[site][m] = np.round(np.corrcoef(ds_all[m]['Yobs'].values[:,s][~np.isnan(ds_all[m]['Yobs'].values[:,s])],
                                                             ds_all[m]['Yapost'].values[:,s][~np.isnan(ds_all[m]['Yobs'].values[:,s])])[0,1],3)
+                    rmse[site][m] = np.round(np.sqrt(np.mean((ds_all[m]['Yapost'].values[:,s][~np.isnan(ds_all[m]['Yobs'].values[:,s])]-
+                                                    ds_all[m]['Yobs'].values[:,s][~np.isnan(ds_all[m]['Yobs'].values[:,s])])**2)),3)
                     nrmse[site][m] = np.round(np.sqrt(np.mean((ds_all[m]['Yapost'].values[:,s][~np.isnan(ds_all[m]['Yobs'].values[:,s])]-
                                                     ds_all[m]['Yobs'].values[:,s][~np.isnan(ds_all[m]['Yobs'].values[:,s])])**2))/np.mean(ds_all[m]['Yobs'].values[:,s][~np.isnan(ds_all[m]['Yobs'].values[:,s])]),3)
                     #std[site][m] = np.std(ds_all[m]['Yapost'].values[:,s][~np.isnan(ds_all[m]['Yobs'].values[:,s])]-
@@ -900,16 +912,19 @@ def stats_mf(ds_all):
                 else:
                     pearson[site][m] = np.nan
                     nrmse[site][m] = np.nan
+                    rmse[site][m] = np.nan
                     #std[site][m] = np.nan
             else:
                 pearson[site][m] = np.nan
                 nrmse[site][m] = np.nan
+                rmse[site][m] = np.nan
                 #std[site][m] = np.nan
                 
     for site in sites_all:
         if all([np.isnan(v) for v in pearson[site].values()]) == True:
             del pearson[site]
             del nrmse[site]
+            del rmse[site]
             #del std[site]
             
     print('\nPearson correlation coefficient:')
@@ -917,8 +932,11 @@ def stats_mf(ds_all):
     
     print('\nNormalised RMSE')
     pprint.pprint(nrmse,sort_dicts=False)
+
+    print('\nRMSE')
+    pprint.pprint(rmse,sort_dicts=False)
     
-    return pearson,nrmse
+    return pearson,nrmse,rmse
 
 #####################################################################
 
@@ -1668,7 +1686,7 @@ def plot_obs_diff(ds_all,species,site,
 
 #####################################################################
 
-def plot_stats_mf(pearson,nrmse,species,
+def plot_stats_mf(pearson,nrmse,rmse,species,
                   model_colors,s_data,m_data,
                   start_date=None,end_date=None):
     """
@@ -1679,6 +1697,8 @@ def plot_stats_mf(pearson,nrmse,species,
             Pearson correlation coeffiecient, for each site and for each model.
         nrmse (dictionary of dictionaries):
             Normalised root mean square error, for each site and for each model.
+        rmse (dictionary of dictionaries):
+            Root mean square error, for each site and for each model (not normalized).
         species (str): 
             Gas species, e.g. 'ch4'.
         model_colors (dict of str):
@@ -1691,7 +1711,7 @@ def plot_stats_mf(pearson,nrmse,species,
             Dates used to title the plot. 
     Returns:
         fig (figure): 
-            Two plots showing each model's fit statistics, for each site.
+            Three plots showing each model's fit statistics, for each site.
     """
     
     x_val = []
@@ -1700,7 +1720,7 @@ def plot_stats_mf(pearson,nrmse,species,
     model_colors_stats = {'intem':'dodgerblue',
                         'elris_name':'purple'}
 
-    fig,ax = plt.subplots(2,1,figsize=(10,6),tight_layout=True)
+    fig,ax = plt.subplots(3,1,figsize=(10,9),tight_layout=True)
     
     for i,site in enumerate(pearson.keys()):
         for m,model in enumerate(pearson[site]):
@@ -1708,11 +1728,13 @@ def plot_stats_mf(pearson,nrmse,species,
             if i == 0:
                 ax[0].scatter(i+m*0.2,pearson[site][model],color=model_colors[model][0],marker='x',s=150,label=m_data[model]["label"])
                 ax[1].scatter(i+m*0.2,nrmse[site][model],color=model_colors[model][0],marker='x',s=150,label=m_data[model]["label"])
+                ax[2].scatter(i+m*0.2,rmse[site][model],color=model_colors[model][0],marker='x',s=150,label=m_data[model]["label"])
                 #ax[2].scatter(i+m*0.2,std[site][model],color=model_colors_stats[model],marker='x',s=150,label=m_data[model]["label"])
                 
             else:
                 ax[0].scatter(i+m*0.2,pearson[site][model],color=model_colors[model][0],marker='x',s=150)
                 ax[1].scatter(i+m*0.2,nrmse[site][model],color=model_colors[model][0],marker='x',s=150)
+                ax[2].scatter(i+m*0.2,rmse[site][model],color=model_colors[model][0],marker='x',s=150)
                 #ax[2].scatter(i+m*0.2,std[site][model],color=model_colors_stats[model],marker='x',s=150)
                 
         x_val.append(i)
@@ -1721,7 +1743,7 @@ def plot_stats_mf(pearson,nrmse,species,
     #y_lim0 = [ax[0].get_ylim()[0],ax[0].get_ylim()[1]]
     #y_lim1 = [ax[0].get_ylim()[0],ax[0].get_ylim()[1]]
     
-    for i in range(2):
+    for i in range(3):
         ax[i].set_xticks(x_val);
         ax[i].set_xticklabels(x_label,rotation=45);
         ax[i].set_xlim(x_val[0]-0.2,x_val[-1]+0.4)
@@ -1731,9 +1753,11 @@ def plot_stats_mf(pearson,nrmse,species,
     ax[0].invert_yaxis()
     ax[0].hlines(1,x_val[0]-0.2,x_val[-1]+0.4,linestyle='dotted',color='grey')        
     ax[1].hlines(0,x_val[0]-0.2,x_val[-1]+0.4,linestyle='dotted',color='grey')        
+    ax[2].hlines(0,x_val[0]-0.2,x_val[-1]+0.4,linestyle='dotted',color='grey')
     
     ax[0].set_ylabel('Pearson\n correlation coefficient')
     ax[1].set_ylabel('Normalised RMSE')
+    ax[2].set_ylabel('RMSE')
     #ax[2].set_ylabel('Standard\ndeviation')
 
     leg = ax[0].legend(ncol=2,borderpad=.2,columnspacing=1.0)
@@ -1752,7 +1776,7 @@ def plot_stats_mf(pearson,nrmse,species,
 
 #####################################################################
 
-def extract_region_flux(ds_all,m,m0,country,verbose=True):
+def extract_region_flux(ds_all,m,m0,country,apply_pop_scale,verbose=True):
     """
     Finds the index of a chosen region name and extracts the country flux
     variables for this region.
@@ -1774,7 +1798,7 @@ def extract_region_flux(ds_all,m,m0,country,verbose=True):
     try:
         try:
             try:
-                if m0 == 'intem' and country == 'BELGIUM':
+                if m0 == 'intem' and country == 'BELGIUM' and apply_pop_scale:
                     country_search = 'BEL-LUX'
                     if verbose: print(f'\nNOTE: InTEM does not estimate separate BELGIUM emissions.')
                     if verbose: print(f'So a population ratio of {bel_pop_r} is being used to scale InTEM\'s total BELGIUM+LUXEMBOURG estimate.\n')
@@ -1992,7 +2016,8 @@ def plot_country_flux(ds_all,species,plot_regions,
                       plot_resample_and_original=False,
                       period_override=None,
                       return_res=False,
-                      rolling_mean=None
+                      rolling_mean=False,
+                      apply_pop_scale=True
                      ):
     """
     Timeseries plot of prior and posterior country fluxes, from list of 
@@ -2065,9 +2090,10 @@ def plot_country_flux(ds_all,species,plot_regions,
             Must be the same length as models, e.g. ['monthly',None,'yearly']
         return_res (bool, optional):
             Wheter or not including a dictionnary with the results as output
-        rolling_mean (int, optional):
-            If not None, calculate a rolling mean of the combined data using the input integer 
-            to define the period.
+        rolling_mean (list of bool or bool, optional):
+            If True, calculates a rolling mean of the data.
+            List must be of same size as models, e.g. [False, True, True].
+            If a single boolean is provided, the same flag is assumed for all models.
     Returns:
         fig (figure): 
             A plot per country/region.
@@ -2090,6 +2116,13 @@ def plot_country_flux(ds_all,species,plot_regions,
             return None
     else:
         plot_combined = [plot_combined]*len(ds_all.keys())
+
+    if type(rolling_mean) == list:
+        if len(rolling_mean) != len(ds_all.keys()):
+            print('ERROR: rolling_mean must be a boolean or a list of booleans of the same length as models.')
+            return None
+    else:
+        rolling_mean = [rolling_mean]*len(ds_all.keys())
 
     # Create annual mean xarrays if needed
     if resample is not None:
@@ -2168,6 +2201,15 @@ def plot_country_flux(ds_all,species,plot_regions,
     max_x = []
     period_all = {}
     
+    if annex_mode:
+        lw = 1
+        alpha = 0.7
+    else:
+        lw = 1.5
+        alpha = 1
+
+    if 'all' in species: apply_pop_scale = False
+
     # Create figure
     if len(plot_regions) == 4:
         n_cols = 2
@@ -2243,7 +2285,7 @@ def plot_country_flux(ds_all,species,plot_regions,
                     
                 region_time,region_flux_total_posterior,region_flux_total_prior,\
                 region_flux_total_posterior_lower,region_flux_total_posterior_upper,\
-                region_flux_total_prior_lower,region_flux_total_prior_upper = extract_region_flux(ds,m,m0,country)
+                region_flux_total_prior_lower,region_flux_total_prior_upper = extract_region_flux(ds,m,m0,country,apply_pop_scale)
                 
                 if region_time is not None:
             
@@ -2277,44 +2319,58 @@ def plot_country_flux(ds_all,species,plot_regions,
                             if annex_mode:
                                 include_label = m_data[m]["label"].split()[0]
                                 include_label_prior = f'{include_label} prior'
-                                lw = 1
-                                alpha = 0.7
                             else:
                                 include_label = m_data[m]["label"]
                                 include_label_prior = f'{m_data[m]["label"]} prior'
-                                lw = 1.5
-                                alpha = 1
                         else:
                             include_label = None
                             include_label_prior = None
                             
+                        # Average variable to plot
+                        if rolling_mean[j]:
+                            var_flux_total_posterior = calc_rolling_mean([region_flux_total_posterior])[0]
+                            var_flux_total_posterior_lower = calc_rolling_mean([region_flux_total_posterior_lower])[0]
+                            var_flux_total_posterior_upper = calc_rolling_mean([region_flux_total_posterior_upper])[0]
+
+                            var_flux_total_prior = calc_rolling_mean([region_flux_total_prior])[0]
+                            var_flux_total_prior_lower = calc_rolling_mean([region_flux_total_prior_lower])[0]
+                            var_flux_total_prior_upper = calc_rolling_mean([region_flux_total_prior_upper])[0]
+                        else:
+                            var_flux_total_posterior = region_flux_total_posterior
+                            var_flux_total_posterior_lower = region_flux_total_posterior_lower
+                            var_flux_total_posterior_upper = region_flux_total_posterior_upper
+
+                            var_flux_total_prior = region_flux_total_prior
+                            var_flux_total_prior_lower = region_flux_total_prior_lower
+                            var_flux_total_prior_upper = region_flux_total_prior_upper
+
                         ax.plot(region_time,
-                                    region_flux_total_posterior,
+                                    var_flux_total_posterior,
                                     label=include_label,color=model_colors[m][0])
                         
                         if not(plot_combined[j]):
                             ax.fill_between(region_time,
-                                                region_flux_total_posterior_lower,
-                                                region_flux_total_posterior_upper,
+                                                var_flux_total_posterior_lower,
+                                                var_flux_total_posterior_upper,
                                                 alpha=0.3,color=model_colors[m][0])
 
                             if add_prior:
                                 ax.plot(region_time,
-                                            region_flux_total_prior,
+                                            var_flux_total_prior,
                                             label=include_label_prior,color=model_colors[m][0],linestyle='dashed',linewidth=lw,alpha=alpha)
-                                max_cf[i] = np.max((max_cf[i],np.nanmax(region_flux_total_prior)))
+                                max_cf[i] = np.max((max_cf[i],np.nanmax(var_flux_total_prior)))
 
                                 if add_prior_unc:
                                     ax.fill_between(region_time,
-                                                        region_flux_total_prior_lower,
-                                                        region_flux_total_prior_upper,
+                                                        var_flux_total_prior_lower,
+                                                        var_flux_total_prior_upper,
                                                         alpha=0.1,color=model_colors[m][0])
-                                    max_cf[i] = np.max((max_cf[i],np.nanmax(region_flux_total_prior_upper)))
+                                    max_cf[i] = np.max((max_cf[i],np.nanmax(var_flux_total_prior_upper)))
 
                     
                     min_x.append(np.min(region_time).astype('datetime64[M]'))
                     max_x.append(np.max(region_time).astype('datetime64[M]'))
-                    max_cf[i] = np.max((max_cf[i],np.nanmax(region_flux_total_posterior_upper)))
+                    max_cf[i] = np.max((max_cf[i],np.nanmax(var_flux_total_posterior_upper)))
 
                     if plot_inventory == True:
                         if inventory_flux is not None:
@@ -2345,7 +2401,7 @@ def plot_country_flux(ds_all,species,plot_regions,
                                       'posterior':'Mean posterior',
                                       'unc':'Min/max of post uncertainty'}
                 
-                if rolling_mean:
+                if sum(rolling_mean) != 0:
                     mean_country_flux_total_posterior = np.mean(calc_rolling_mean(all_region_flux_total_posterior),axis=0)
                     mean_country_flux_total_prior = np.mean(calc_rolling_mean(all_region_flux_total_prior),axis=0)
                     mean_country_flux_total_lower = np.mean(calc_rolling_mean(all_region_flux_total_lower),axis=0)
@@ -2480,31 +2536,36 @@ def plot_country_flux(ds_all,species,plot_regions,
         
         count += 1
         
-        if set_global_leg:
-            if n_rows > 1:
-                if (ppt_mode):
-                    legend_loc = (0.5, 1.1)
-                else:
-                    legend_loc = (0.5, 1.07)
+        handles, labels = ax.get_legend_handles_labels()
+        if any('Inventory' in l for l in labels) == True:
+            handles_all = handles.copy()
+            labels_all = labels.copy()
+        
+    if set_global_leg:
+        if n_rows > 1:
+            if (ppt_mode):
+                legend_loc = (0.5, 1.1)
             else:
-                legend_loc = (0.5, 1.15)
-            handles, labels = ax.get_legend_handles_labels()
-            ncol=0   
-            if (plot_separate or resample):
-                ncol=len(ds_all.keys())
-            if (plot_combined and plot_separate):
-                ncol=math.floor(len(ds_all.keys())/2)+2
-            elif plot_combined:
-                ncol=3
-            if plot_inventory:
-                ncol=ncol+1
-            leg = fig.legend(handles, labels, loc='upper center',ncol=ncol,borderpad=.4,columnspacing=1.0,bbox_to_anchor=legend_loc)
-            if plot_inventory == True:
-                for l in leg.legendHandles:
-                    l.set_linewidth(3.0)
-            else:
-                for l in leg.legendHandles:
-                    l.set_linewidth(3.0)
+                legend_loc = (0.5, 1.07)
+        else:
+            legend_loc = (0.5, 1.15)
+        handles, labels = ax.get_legend_handles_labels()
+        ncol=0   
+        if (plot_separate or resample):
+            ncol=len(ds_all.keys())
+        if (plot_combined and plot_separate):
+            ncol=math.floor(len(ds_all.keys())/2)+2
+        elif plot_combined:
+            ncol=3
+        if plot_inventory:
+            ncol=ncol+1
+        leg = fig.legend(handles_all, labels_all, loc='upper center',ncol=ncol,borderpad=.4,columnspacing=1.0,bbox_to_anchor=legend_loc)
+        if plot_inventory == True:
+            for l in leg.legendHandles:
+                l.set_linewidth(3.0)
+        else:
+            for l in leg.legendHandles:
+                l.set_linewidth(3.0)
 
     # loop through plots again to fix min/max axis values
     
@@ -3229,6 +3290,7 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
                     'HUNGARY':[15.5,23.5,44.5,50],
                     'NORWAY':[1,32,52,76],
                     'BENELUX':[1,9,48,55],
+                    'BELGIUM':[2,7,49,52.5],
                     'NWEU':[-11,11,45,62],
                     'CWEU':[-12,27,37,66],
                     'EUROPE':[-98,40,10,80]}
@@ -3444,7 +3506,7 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
                 if var == 'posterior_prior_diff':
                     try:
                         slice_apost   = ds_all[m][f'flux_total_posterior{var_append}'].sel(time=slice(t0_date[m][i],t1_date[m][i]))
-                        slice_apriori = ds_all[m][flux_total_prior].sel(time=slice(t0_date[m][i],t1_date[m][i]))
+                        slice_apriori = ds_all[m]['flux_total_prior'].sel(time=slice(t0_date[m][i],t1_date[m][i]))
                     except:
                         print(f'Cannot find inversion_grid variables for {m} so using standard flux output.')
                         slice_apost   = ds_all[m]['flux_total_posterior'].sel(time=slice(t0_date[m][i],t1_date[m][i]))
