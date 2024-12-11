@@ -38,6 +38,12 @@
         "filename":"InTEM_NAME_EUROPE_POPULATION_inert_intem_obs_intem_baseline_optimized",
         "label":"InTEM NAME Population Inert"
         },
+
+    "intem_name_pop_noTAC":{
+        "filename":"InTEM_NAME_EUROPE_POPULATION_noTAC_intem_obs_intem_baseline_optimized",
+        "label":"InTEM NAME Population no TAC"
+        },
+
     "intem_name_edgarminval":{
             "filename":"InTEM_NAME_EUROPE_EDGARMINVAL_intem_obs_intem_baseline_optimized",
             "label":"InTEM NAME EDGAR with min value"
@@ -159,6 +165,11 @@
         "label":"ELRIS NAME Population Inert"
         },
 
+    "elris_name_pop_noTAC":{
+        "filename":"ELRIS_NAME_EUROPE_POPULATION_noTAC_elris_obs_elris_baseline_optimized",
+        "label":"ELRIS NAME Population no TAC"
+        },
+
     "elris_flex_pop":{
         "filename":"ELRIS_FLEXPART_EUROPE_POPULATION_elris_obs_elris_baseline_optimized",
         "label":"ELRIS FLEXPART Population"
@@ -248,6 +259,11 @@
     "rhime_name_pop_inert":{
         "filename":"RHIME_NAME_EUROPE_POPULATION_inert_rhime_obs_rhime_baseline_optimized",
         "label":"RHIME NAME Population Inert"
+        },
+
+    "rhime_name_pop_noTAC":{
+        "filename":"RHIME_NAME_EUROPE_POPULATION_noTAC_rhime_obs_rhime_baseline_optimized",
+        "label":"RHIME NAME Population no TAC"
         },
 
     "rhime_flex_edgar":{
