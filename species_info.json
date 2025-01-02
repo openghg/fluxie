@@ -497,15 +497,15 @@
                    "elris":"None"}
         },
 
-    "hfc1234yf":{
+    "hfo1234yf":{
         "species_print":"HFO-1234yf",
         "period":"yearly",
         "units_scaling":{"intem":1e6,
                         "rhime":1e6,
                         "elris":1e6},
-        "model_species":{"intem":"hfc1234yf",
-                        "rhime":"hfc1234yf",
-                        "elris":"hfc1234yf"},
+        "model_species":{"intem":"hfo1234yf",
+                        "rhime":"hfo1234yf",
+                        "elris":"hfo1234yf"},
         "units_print":"G",
         "dt_units":{"intem":"datetime64[Y]",
                     "rhime":"datetime64[Y]",
@@ -521,15 +521,15 @@
         "mwt":114.0
         },  
 
-    "hfc1234zee":{
+    "hfo1234zee":{
         "species_print":"HFO-1234zee",
         "period":"yearly",
         "units_scaling":{"intem":1e6,
                         "rhime":1e6,
                         "elris":1e6},
-        "model_species":{"intem":"hfc1234zee",
-                        "rhime":"hfc1234zee",
-                        "elris":"hfc1234zee"},
+        "model_species":{"intem":"hfo1234zee",
+                        "rhime":"hfo1234zee",
+                        "elris":"hfo1234zee"},
         "units_print":"G",
         "dt_units":{"intem":"datetime64[Y]",
                     "rhime":"datetime64[Y]",

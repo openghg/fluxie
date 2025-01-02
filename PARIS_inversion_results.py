@@ -2242,10 +2242,10 @@ def plot_country_flux(ds_all,species,plot_regions,
                                     label=f'Inventory {i_year}',zorder=0,linewidth=1.2,
                                     linestyle=inv_linestyle[y])
                                 
-                if i == 0:
-                    region_time_years = inventory_time.astype('datetime64[Y]')
-                else:
-                    region_time_years = np.hstack((region_time_years,inventory_time.astype('datetime64[Y]')))
+                    if i == 0:
+                        region_time_years = inventory_time.astype('datetime64[Y]')
+                    else:
+                        region_time_years = np.hstack((region_time_years,inventory_time.astype('datetime64[Y]')))
 
         ds_count = 0
         
@@ -2277,7 +2277,7 @@ def plot_country_flux(ds_all,species,plot_regions,
                 region_flux_total_posterior_lower,region_flux_total_posterior_upper,\
                 region_flux_total_prior_lower,region_flux_total_prior_upper = extract_region_flux(ds,m,m0,country)
                 
-                if d == 0 and j == 0 and plot_inventory == False:
+                if d == 0 and j == 0 and ('region_time_years' in locals()) == False:
                     region_time_years = region_time.astype('datetime64[Y]')
                 else:
                     region_time_years = np.hstack((region_time_years,region_time.astype('datetime64[Y]')))
@@ -2337,8 +2337,9 @@ def plot_country_flux(ds_all,species,plot_regions,
                     
                     min_x.append(np.min(region_time).astype('datetime64[M]'))
                     max_x.append(np.max(region_time).astype('datetime64[M]'))
-                    min_x.append(np.min(inventory_time).astype('datetime64[M]'))
-                    max_x.append(np.max(inventory_time).astype('datetime64[M]'))
+                    if inventory_time is not None:
+                        min_x.append(np.min(inventory_time).astype('datetime64[M]'))
+                        max_x.append(np.max(inventory_time).astype('datetime64[M]'))
                     max_cf[i] = np.max((max_cf[i],np.nanmax(region_flux_total_posterior_upper)))
                     if plot_inventory == True:
                         if inventory_flux is not None:
