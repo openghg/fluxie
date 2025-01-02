@@ -70,10 +70,15 @@ countrycodes_dict.update(regions_dict)
 #                   2:[0.65,0.40],
 #                   3:[0.65,0.20],}
 
-annotate_coords = {0:[0.65,0.75],
-                   1:[0.65,0.5],
-                   2:[0.65,0.25],
-                   3:[0.65,0.1],}
+#annotate_coords = {0:[0.65,0.75],
+#                   1:[0.65,0.5],
+#                   2:[0.65,0.25],
+#                  3:[0.65,0.1],}
+
+annotate_coords = {0:[0.15,0.75],
+                   1:[0.15,0.5],
+                   2:[0.15,0.25],
+                   3:[0.15,0.1],}
 
 # population from 2018 to 2023 (at Jan 1 each year)
 bel_pop = np.array([11.399,11.455,11.522,11.555,11.618,11.723])
@@ -1914,8 +1919,8 @@ def plot_country_flux(ds_all,species,plot_regions,model_labels,
         else:        
             ax[a,b].set_title(f'{country}')
         ax[a,b].grid(visible=True,which='major',alpha=0.4)
-        #ax[a,b].xaxis.set_minor_locator(MonthLocator())
-        #ax[a,b].xaxis.set_minor_formatter(NullFormatter())
+        ax[a,b].xaxis.set_minor_locator(MonthLocator())
+        ax[a,b].xaxis.set_minor_formatter(NullFormatter())
         ax[a,b].xaxis.set_major_locator(YearLocator())
         
         #increase row and column counts
@@ -1939,10 +1944,10 @@ def plot_country_flux(ds_all,species,plot_regions,model_labels,
                          fontsize=10,bbox_to_anchor=(0.5, 1.10))
         if plot_inventory == True:
             for l in leg.legendHandles:
-                l.set_linewidth(3.0)
+                l.set_linewidth(5.0)
         else:
             for l in leg.legendHandles:
-                l.set_linewidth(3.0)
+                l.set_linewidth(5.0)
 
     for a in range(2):
         for b in range(n_cols):
@@ -2247,7 +2252,7 @@ def plot_country_flux_sectors(ds_all,species,sectors,plot_region,model_labels,
                 l.set_linewidth(3.0)
     '''
     ncol = len(list(ds_all.keys()))+1
-    ncol = 2
+    ncol = 3
     handles, labels = ax[-1].get_legend_handles_labels()
     leg = ax[-1].legend(handles, labels, loc='lower right',ncol=ncol,borderpad=.4,columnspacing=1.0,
                         fontsize=11)
@@ -2539,7 +2544,7 @@ def plot_country_flux_sectors_bar(ds_all,species,sectors,plot_region,model_label
 def plot_spatial_flux(ds_all,species,plot_area,model_labels,cmap=None,
                       cmap_diff=None,c_border=None,period_override=None,
                       plot_site_locations=False,plot_point_markers=None,
-                      season=None,sectors=None):
+                      season=None,sectors=None,plot_scaling_factors=False):
     """
     Plots posterior and prior fluxes and the difference between these
     for all models.
@@ -2580,7 +2585,8 @@ def plot_spatial_flux(ds_all,species,plot_area,model_labels,cmap=None,
             Options are 'DJF', 'MAM', 'JJA', 'SON'.
         sectors (list of list of str):
             Sectors to sum for each model, e.g. [['FF','nonFF'],['FF','nonFF]]
-            
+        plot_scaling_factors (bool, default False):
+            If True, plots x scaling factors. If False, plots post-prior.
     Returns:
         fig (figure): 
             A plot of spatial flux posterior and prior mean/mode and a plot 
@@ -2699,27 +2705,36 @@ def plot_spatial_flux(ds_all,species,plot_area,model_labels,cmap=None,
             
             for s,sector_name in enumerate(sectors[i]):
                 if s == 0:
-                    flux_total_prior = np.mean(ds_all[m][f'flux_{sector_name}_prior'].values,axis=0)
-                    flux_total_posterior = np.mean(ds_all[m][f'flux_{sector_name}_posterior'].values,axis=0)
+                    flux_total_prior = np.nanmean(ds_all[m][f'flux_{sector_name}_prior'].values,axis=0)
+                    flux_total_posterior = np.nanmean(ds_all[m][f'flux_{sector_name}_posterior'].values,axis=0)
                     
                 else:
-                    flux_total_prior += np.mean(ds_all[m][f'flux_{sector_name}_prior'].values,axis=0)
-                    flux_total_posterior += np.mean(ds_all[m][f'flux_{sector_name}_posterior'].values,axis=0)
+                    flux_total_prior += np.nanmean(ds_all[m][f'flux_{sector_name}_prior'].values,axis=0)
+                    flux_total_posterior += np.nanmean(ds_all[m][f'flux_{sector_name}_posterior'].values,axis=0)
                     
         else:
             
             for s,sector_name in enumerate(sectors[i]):
                 if s == 0:
-                    flux_total_prior = ds_all[m]['flux_total_prior'].groupby("time.season").mean().sel(season=season)
-                    flux_total_posterior = ds_all[m]['flux_total_posterior'].groupby("time.season").mean().sel(season=season).values
+                    flux_total_prior = ds_all[m][f'flux_total_{sector_name}_prior'].groupby("time.season").mean().sel(season=season)
+                    flux_total_posterior = ds_all[m][f'flux_total_{sector_name}_posterior'].groupby("time.season").mean().sel(season=season).values
                     
                 else:
-                    flux_total_prior += ds_all[m]['flux_total_prior'].groupby("time.season").mean().sel(season=season)
-                    flux_total_posterior += ds_all[m]['flux_total_posterior'].groupby("time.season").mean().sel(season=season).values
+                    flux_total_prior += ds_all[m][f'flux_total_{sector_name}_prior'].groupby("time.season").mean().sel(season=season)
+                    flux_total_posterior += ds_all[m][f'flux_total_{sector_name}_posterior'].groupby("time.season").mean().sel(season=season).values
                     
             time_out = f'{season} of {time_out}'
                     
-        flux_diff = flux_total_posterior - flux_total_prior
+        if plot_scaling_factors == True:
+            flux_diff = flux_total_posterior/flux_total_prior
+            diff_vmin = 0
+            diff_vmax = 2
+            print(f'Max scaling factor = {np.nanmax(flux_diff)}')
+        else:   
+            flux_diff = flux_total_posterior - flux_total_prior
+            diff_vmin = s_data[species]['difflim'][0]
+            diff_vmax = s_data[species]['difflim'][1]
+            
         flux_diff[np.where(flux_diff) == np.nan] = 0.
         
         ax0.pcolormesh(lon,lat,flux_total_prior,
@@ -2728,13 +2743,13 @@ def plot_spatial_flux(ds_all,species,plot_area,model_labels,cmap=None,
         ax1.pcolormesh(lon,lat,flux_total_posterior,
                         cmap=cmap,vmin=s_data[species]['fluxlim'][0],vmax=s_data[species]['fluxlim'][1],shading='nearest')
             
-        ax0.set_title(f'{model_labels[m]}: prior')
-        ax1.set_title(f'{model_labels[m]}: posterior')
+        ax0.set_title(f'{model_labels[m]}\nprior')
+        ax1.set_title(f'{model_labels[m]}\nposterior')
 
         ax2.pcolormesh(lon,lat,flux_diff,
-                        cmap=cmap_diff,vmin=s_data[species]['difflim'][0],vmax=s_data[species]['difflim'][1],shading='nearest')
+                        cmap=cmap_diff,vmin=diff_vmin,vmax=diff_vmax,shading='nearest')
 
-        ax2.set_title(f'{model_labels[m]}: posterior - prior')
+        ax2.set_title(f'{model_labels[m]}\nposterior - prior')
 
         if plot_site_locations == True:
             if sites_info[m] is not None:
@@ -2787,10 +2802,10 @@ def plot_spatial_flux(ds_all,species,plot_area,model_labels,cmap=None,
     color_bar2.set_label(f'Posterior mean {s_data[species]["species_print"]}\n{time_out}\n(mol m$^{{-2}}$ s$^{{-1}}$)')
 
     #difference colorbar
-    levels_diff = np.linspace(s_data[species]['difflim'][0],s_data[species]['difflim'][1])
+    levels_diff = np.linspace(diff_vmin,diff_vmax)
     cbar_diff = plt.cm.ScalarMappable(cmap=cmap_diff)
     cbar_diff.set_array(levels_diff)
-    cbar_diff.set_clim(s_data[species]['difflim'])
+    cbar_diff.set_clim([diff_vmin,diff_vmax])
 
     color_bar3 = fig.colorbar(cbar_diff,orientation='vertical',extend='both',ax=ax[2,...],shrink=0.9,pad=0.005)
     color_bar3.set_label(f'Posterior - prior {s_data[species]["species_print"]}\n{time_out}\n(mol m$^{{-2}}$ s$^{{-1}}$)')
@@ -3071,6 +3086,9 @@ def plot_spatial_flux_comparison_sectors(ds_all,species,plot_area,model_labels,
             of the absolute difference between these.
     """
     
+    font = {'size':12}
+    plt.rc('font', **font)
+    
     if sectors == None:
         sectors = ['total' for i in range(len(models))]
     
@@ -3154,9 +3172,9 @@ def plot_spatial_flux_comparison_sectors(ds_all,species,plot_area,model_labels,
             if i == 0:
                 
                 if len(ds_all[m].time.values) == 1:
-                    time_out = to_datetime(ds_all[m].time.values[0].astype(period_all[m])).strftime('%d/%m/%Y')
+                    time_out = to_datetime(ds_all[m].time.values[0].astype(period_all[m])).strftime('%m/%Y')
                 else:
-                    start_print = to_datetime(ds_all[m].time.values[0].astype(period_all[m])).strftime("%d/%m/%Y")
+                    start_print = to_datetime(ds_all[m].time.values[0].astype(period_all[m])).strftime("%m/%Y")
                     if period_all[m] == 'datetime64[Y]':
                         end_period = ds_all[m].time.values[-1].astype(period_all[m]) + np.timedelta64(1,'Y') - np.timedelta64(1,'D')                    
                     elif period_all[m] == 'datetime64[M]':
@@ -3164,21 +3182,21 @@ def plot_spatial_flux_comparison_sectors(ds_all,species,plot_area,model_labels,
                     else:
                         print('This currently only works for monthly or yearly inversion periods. Update the plotting code to print out '+
                             'correct dates for higher frequency inversions.')
-                    end_print = to_datetime(end_period).strftime("%d/%m/%Y")
+                    end_print = to_datetime(end_period).strftime("%m/%Y")
                     time_out = (f'{start_print} - {end_print}')
             
                 ax[s,0].pcolormesh(lon,lat,np.mean(ds_all[m][f'flux_{sector}_posterior'].values,axis=0),cmap=cmap,
                                 vmin=s_data[species]['fluxlim'][0],vmax=s_data[species]['fluxlim'][1],shading='nearest',
                                 )
 
-                ax[s,0].set_title(f'{model_labels[m]}\n{sector}')
+                ax[s,0].set_title(f'{model_labels[m]}\n{sector}',fontsize=12)
                 
             elif i == 1:
                 
                 ax[s,1].pcolormesh(lon,lat,np.mean(ds_all[m][f'flux_{sector}_posterior'].values,axis=0),
                                 vmin=s_data[species]['fluxlim'][0],vmax=s_data[species]['fluxlim'][1],shading='nearest')
 
-                ax[s,1].set_title(f'{model_labels[m]}\n{sector}')
+                ax[s,1].set_title(f'{model_labels[m]}\n{sector}',fontsize=12)
                 
             if plot_site_locations == True:
                 if sites_info[m] is not None:
@@ -3202,7 +3220,7 @@ def plot_spatial_flux_comparison_sectors(ds_all,species,plot_area,model_labels,
         ax[s,2].pcolormesh(lon,lat,flux_diff,
                         cmap=cmap_diff,vmin=s_data[species]['difflim'][0],vmax=s_data[species]['difflim'][1],shading='nearest')
 
-        ax[s,2].set_title(f'{model_labels[all_keys[1]]} - {model_labels[all_keys[0]]}\n{sector}')
+        ax[s,2].set_title(f'{model_labels[all_keys[1]]}\n- {model_labels[all_keys[0]]}\n{sector}',fontsize=12)
 
         if plot_point_markers is not None:
             print(f'\nPlotting markers for: {plot_point_markers}')
