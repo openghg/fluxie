@@ -2811,15 +2811,14 @@ def plot_spatial_flux_one_variable(ds_all,species,plot_area,s_data,m_data,var,
                                     plot_site_locations=False,plot_point_markers=None,
                                     season=None,plot_inversion_grid_flux=False,
                                     scale_to_kgkm2yr=False,nir_style_plot=False,
-                                    mask_sea_areas=False,threshold_scale=None):
+                                    mask_sea_areas=False,include_threshold=False):
     """
     Plots either posterior or prior fluxes, one plot per model.
     Function created just for the NISC_plots version of the notebook.
-    This function plots only plots results from one time period, 
-    and produces plots with NIR-style formatting.
-    
+    This function only plots one set of results across one time period.
     If ds_all contains mulitple time periods for each model, the average 
     across all times will be plotted.
+    Plots are formatted in the style of the NIR annex.
     
     Args:
         ds_all (dictionary of datasets):
@@ -2867,9 +2866,10 @@ def plot_spatial_flux_one_variable(ds_all,species,plot_area,s_data,m_data,var,
             Simplifies plot title and colourbar title and converts zero-value fluxes to nans, to remove from plot.
         mask_sea_areas (bool, default False):
             If True, sets fluxes in grid cells labelled as 'Sea' to zero.
-        threshold_scale (float, default None):
-            All values below threshold_scale * max(flux) are set to zero in the plotting. 
-            This is now applied after averaging.
+        include_threshold (bool, default None):
+            If True, all values below threshold_scale * max(flux) are set to zero in the plotting. 
+            threshold_scale is set in species_info.json.
+            This scaling step is now applied after averaging.
     Returns:
         fig (figure): 
             A plot of spatial flux posterior and prior mean/mode and a plot 
@@ -3013,9 +3013,9 @@ def plot_spatial_flux_one_variable(ds_all,species,plot_area,s_data,m_data,var,
                 var_plot = ds_all[m][f'{var}'].groupby("time.season").mean().sel(season=season).values
             time_out = f'{season} of {time_out}'
             
-        if nir_style_plot == True and threshold_scale is not None:
+        if nir_style_plot == True and include_threshold is True:
             for m in ds_all.keys():
-                threshold = threshold_scale * np.max(var_plot.values)
+                threshold = s_data[species]['threshold_scale'] * np.max(var_plot.values)
                 var_plot.values[np.where(var_plot.values == 0.)] = np.nan
                 var_plot.values[np.where(var_plot.values < threshold)] = np.nan
 
@@ -3394,7 +3394,7 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
                                     plot_site_locations=False,plot_point_markers=False,
                                    plot_inversion_grid_flux=False,
                                    scale_to_kgkm2yr=False,nir_style_plot=False,
-                                   mask_sea_areas=False,threshold_scale=None):
+                                   mask_sea_areas=False,include_threshold=None):
     """
     Plots posterior fluxes, prior fluxes or difference between these
     for all models and specific time intervals.
@@ -3451,8 +3451,9 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
             Simplifies plot title and colourbar title and converts zero-value fluxes to nans, to remove from plot.
         mask_sea_areas (bool, default False):
             If True, sets fluxes in grid cells labelled as 'Sea' to zero.
-        threshold_scale (float, default None):
-            All values below threshold_scale * max(flux) are set to zero in the plotting. 
+        include_threshold (float, default False):
+            If True, all values below threshold_scale * max(flux) are set to zero in the plotting. 
+            threshold_scale is set in species_info.json.
             This is now applied after averaging.
     Returns:
         fig (figure):
@@ -3724,9 +3725,9 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
                     time_out = (f'{start_print[m][i]} - {end_print[m][i]}')
                                         
             
-            if nir_style_plot == True and threshold_scale is not None:
+            if nir_style_plot == True and include_threshold == True:
                 for m in ds_all.keys():
-                    threshold = threshold_scale * np.max(var_plot.values)
+                    threshold = s_data[species]['threshold_scale'] * np.max(var_plot.values)
                     var_plot.values[np.where(var_plot.values == 0.)] = np.nan
                     var_plot.values[np.where(var_plot.values < threshold)] = np.nan
 
