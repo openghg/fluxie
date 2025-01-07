@@ -2026,7 +2026,8 @@ def plot_country_flux(ds_all,species,plot_regions,
                       resample_uncert_correlation=False,
                       plot_resample_and_original=False,
                       period_override=None,plot_grid=True,
-                      inventory_start_date=None,nir_style_plot=False):
+                      inventory_start_date=None,nir_style_plot=False,
+                      rolling_mean=False):
     """
     Timeseries plot of prior and posterior country fluxes, from list of 
     areas in plot_regions.
@@ -2095,6 +2096,10 @@ def plot_country_flux(ds_all,species,plot_regions,
         nir_style_plot (bool) (default False):
             If True, adjusts plot formatting slightly for use in NIR/NISC reports,
             e.g. uses different colours/format for inventory bars.
+        rolling_mean (int or list of int) (optional):
+            If not None, calculates a rolling mean over this number of periods.
+            e.g. if set to 3, will calculate the mean for each timestamp from values
+            between timestamp-1 and timestamp+1.
     Returns:
         fig (figure): 
             A plot per country/region.
@@ -2104,6 +2109,18 @@ def plot_country_flux(ds_all,species,plot_regions,
         start_date = str(min(start_date))
         end_date = str(max(end_date))
         
+    if type(rolling_mean) == int:
+        print(f'\nApplying rolling mean: {rolling_mean} to all models.\n')
+        rolling_mean = [rolling_mean] * len(ds_all.keys())
+    elif type(rolling_mean) == list:
+        if len(rolling_mean) != len(ds_all.keys()):
+            print('ERROR: rolling_mean must be a None, a single int or a list of int and None, the same length as models.')
+            return None
+        else:
+            print(f'\nApplying rolling means {dict(zip(ds_all.keys(),rolling_mean))}.\n')
+    elif rolling_mean == None:
+        rolling_mean = [None] * len(ds_all.keys())
+    
     if inventory_start_date is None:
         inventory_start_date = start_date
     
@@ -2306,6 +2323,23 @@ def plot_country_flux(ds_all,species,plot_regions,
                                                                                                         region_flux_total_posterior_upper[t]-region_flux_total_posterior[t]])),
                                                                                 size=1000) for t in range(region_time.shape[0])])
                                 
+                    if rolling_mean[j]:
+                            var_flux_total_posterior = calc_rolling_mean(region_flux_total_posterior,rolling_mean[j])
+                            var_flux_total_posterior_lower = calc_rolling_mean(region_flux_total_posterior_lower,rolling_mean[j])
+                            var_flux_total_posterior_upper = calc_rolling_mean(region_flux_total_posterior_upper,rolling_mean[j])
+
+                            var_flux_total_prior = calc_rolling_mean(region_flux_total_prior,rolling_mean[j])
+                            var_flux_total_prior_lower = calc_rolling_mean(region_flux_total_prior_lower,rolling_mean[j])
+                            var_flux_total_prior_upper = calc_rolling_mean(region_flux_total_prior_upper,rolling_mean[j])
+                    else:
+                        var_flux_total_posterior = region_flux_total_posterior
+                        var_flux_total_posterior_lower = region_flux_total_posterior_lower
+                        var_flux_total_posterior_upper = region_flux_total_posterior_upper
+
+                        var_flux_total_prior = region_flux_total_prior
+                        var_flux_total_prior_lower = region_flux_total_prior_lower
+                        var_flux_total_prior_upper = region_flux_total_prior_upper
+                                
                     if plot_separate == True:
                         if ds_count == 0:
                             include_label = m_data[m]["label"]
@@ -2315,7 +2349,7 @@ def plot_country_flux(ds_all,species,plot_regions,
                             include_label_prior = None
                             
                         ax.plot(region_time,
-                                    region_flux_total_posterior,
+                                    var_flux_total_posterior,
                                     label=include_label,color=model_colors[m][0])
                         
                         if not(plot_combined):
@@ -2324,16 +2358,16 @@ def plot_country_flux(ds_all,species,plot_regions,
                             #            label=include_label_prior,color=model_colors[m][0],linestyle='dashed')
                         
                             ax.fill_between(region_time,
-                                                region_flux_total_posterior_lower,
-                                                region_flux_total_posterior_upper,
+                                                var_flux_total_posterior_lower,
+                                                var_flux_total_posterior_upper,
                                                 alpha=0.3,color=model_colors[m][0])
 
                             if add_prior_unc == True:
                                 ax.fill_between(region_time,
-                                                    region_flux_total_prior_lower,
-                                                    region_flux_total_prior_upper,
+                                                    var_flux_total_prior_lower,
+                                                    var_flux_total_prior_upper,
                                                     alpha=0.1,color=model_colors[m][0])
-                                max_cf[i] = np.max((max_cf[i],np.nanmax(region_flux_total_prior_upper)))
+                                max_cf[i] = np.max((max_cf[i],np.nanmax(var_flux_total_prior_upper)))
                     
                     min_x.append(np.min(region_time).astype('datetime64[M]'))
                     max_x.append(np.max(region_time).astype('datetime64[M]'))
@@ -3939,3 +3973,39 @@ def plot_sites_timeseries(ds_all,var,start_date,end_date,model_colors,m_data):
     plt.legend(loc='upper right')
     
     return fig
+
+#####################################################################
+
+def calc_rolling_mean(data,n_periods):
+    """
+    Calculates a rolling mean using the equation:
+        mean[i] = sum(flux[i-a]:flux[i+a])/n_periods
+        where a = (n_periods - 1) / 2
+        
+    The start and end values (which are not surrounded by the complete number
+    of n_periods required for a full average) are calculated using the maximum
+    number of surrounding periods available.
+    """
+    
+    if n_periods%2 != 1:
+        print('ERROR: rolling_mean is the total number of periods include in the average. So it must be an odd number.')
+        sys.exit()
+
+    a = int((n_periods - 1) / 2)    #number of periods either size of central period to include in average
+
+    rolling_mean = np.zeros(data.shape)
+
+    all_indices = np.arange(0,data.shape[0],1).astype(int)
+
+    for i,v in enumerate(all_indices):
+        if (i-a) in all_indices and (i+a) in all_indices:
+            rolling_mean[i] = np.sum(data[i-a:i+a+1])/n_periods
+        #start of timeseries
+        elif (i+a) in all_indices:  
+            rolling_mean[i] = np.sum(data[:i+a+1])/data[:i+a+1].shape[0]
+        #end of timeseries
+        elif (i-a) in all_indices:  
+            rolling_mean[i] = np.sum(data[i-a:])/data[i-a:].shape[0]
+        
+    return rolling_mean
+        
