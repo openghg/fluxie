@@ -70,15 +70,15 @@ countrycodes_dict.update(regions_dict)
 #                   2:[0.65,0.40],
 #                   3:[0.65,0.20],}
 
-#annotate_coords = {0:[0.65,0.75],
-#                   1:[0.65,0.5],
-#                   2:[0.65,0.25],
-#                  3:[0.65,0.1],}
+annotate_coords = {0:[0.65,0.75],
+                   1:[0.65,0.5],
+                   2:[0.65,0.25],
+                  3:[0.65,0.1],}
 
-annotate_coords = {0:[0.15,0.75],
-                   1:[0.15,0.5],
-                   2:[0.15,0.25],
-                   3:[0.15,0.1],}
+#annotate_coords = {0:[0.15,0.75],
+#                   1:[0.15,0.5],
+#                   2:[0.15,0.25],
+#                   3:[0.15,0.1],}
 
 # population from 2018 to 2023 (at Jan 1 each year)
 bel_pop = np.array([11.399,11.455,11.522,11.555,11.618,11.723])
@@ -381,9 +381,10 @@ def slice_mf(ds_all,start_date=None,end_date=None,site=None,
 
         if site is not None:
             try:
+                ds_all[m] = ds_all[m].drop_duplicates(dim=f'time{s}')   #added to deal with minor errors introduced in test files
                 site_index = np.where(ds_all[m][f'sitenames{s}'].astype(str) == site)[0][0]
                 ds_all[m] = ds_all[m].sel(**{f'time{s}':slice(start_date,end_date),
-                                            f'nsite{s}':site_index})
+                                        f'nsite{s}':site_index})
             except:
                 ds_all[m] = None
                 print(f'No {m} obs found for {site} between {start_date} and {end_date}')
@@ -800,12 +801,12 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
                     else:
                         continue
 
-            if np.abs(np.nanmean(var_plot)) <= 0.01:
-                var_mean = np.round(np.nanmean(var_plot),5)
-                var_sd = np.round(np.nanstd(var_plot),5)
-            else:
-                var_mean = np.round(np.nanmean(var_plot),2)
-                var_sd = np.round(np.nanstd(var_plot),2)
+            #if np.abs(np.nanmean(var_plot)) <= 0.01:
+            #    var_mean = np.round(np.nanmean(var_plot),5)
+            #    var_sd = np.round(np.nanstd(var_plot),5)
+            #else:
+            var_mean = np.round(np.nanmean(var_plot),2)
+            var_sd = np.round(np.nanstd(var_plot),2)
 
             a,b,c = ax2.hist(var_plot,bins=30,color=model_colors[m][var_colors[var]],density=1)
             if make_diff:
