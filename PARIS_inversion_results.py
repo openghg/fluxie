@@ -2126,7 +2126,12 @@ def plot_country_flux(ds_all,species,plot_regions,
     
     # Create annual mean xarrays if needed
     if resample is not None:
-
+        
+        if species not in ['ch4','sf6']:
+            print('ERROR: resample is set, but this option only works for monthly ch4 and sf6 runs.')
+            print('Unless you are plotting monthly ch4 or sf6, set resample = None')
+            return None
+        
         # Check resample option
         if (resample == 'year'):
             rtime = 'YS'
@@ -2455,11 +2460,19 @@ def plot_country_flux(ds_all,species,plot_regions,
         if set_global_leg == False:
             leg = ax.legend(ncol=ncol,borderpad=.4,columnspacing=1.0)#,loc='upper right')
             if plot_inventory == True:
-                for l in leg.legendHandles[:-len(inventory_years)]:
-                    l.set_linewidth(3.0)
+                try:
+                    for l in leg.legend_handles[:-len(inventory_years)]:
+                        l.set_linewidth(3.0)
+                except:
+                    for l in leg.legendHandles[:-len(inventory_years)]:
+                        l.set_linewidth(3.0)
             else:
-                for l in leg.legendHandles:
-                    l.set_linewidth(3.0)
+                try:
+                    for l in leg.legend_handles:
+                        l.set_linewidth(3.0)
+                except:
+                    for l in leg.legendHandles:
+                        l.set_linewidth(3.0)
         
         if country == 'NW_EU2':
             print_country = 'NW EUROPE'
@@ -2517,11 +2530,19 @@ def plot_country_flux(ds_all,species,plot_regions,
                 ncol=ncol+1
             leg = fig.legend(handles, labels, loc='upper center',ncol=ncol,borderpad=.4,columnspacing=1.0,bbox_to_anchor=legend_loc)
             if plot_inventory == True:
-                for l in leg.legendHandles:
-                    l.set_linewidth(3.0)
+                try:
+                    for l in leg.legend_handles:
+                        l.set_linewidth(3.0)
+                except:
+                    for l in leg.legendHandles:
+                        l.set_linewidth(3.0)
             else:
-                for l in leg.legendHandles:
-                    l.set_linewidth(3.0)
+                try:
+                    for l in leg.legend_handles:
+                        l.set_linewidth(3.0)
+                except:
+                    for l in leg.legendHandles:
+                        l.set_linewidth(3.0)
 
     # loop through plots again to fix min/max axis values
     
