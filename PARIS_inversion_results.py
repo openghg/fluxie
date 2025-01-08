@@ -1192,7 +1192,7 @@ def plot_obs_modelled_separate(ds_all,species,site,
             
             with np.printoptions(precision=2, suppress=True):
 
-                ax2.annotate('$\mu$: '+str(var_mean)+'\n$\sigma$: '+str(var_sd),xy=annotate_coords[i],
+                ax2.annotate(f'$\mu$: {str(var_mean)} \n$\sigma$: {str(var_sd)}',xy=annotate_coords[i],
                                 xycoords='axes fraction',color=model_colors[m][var_colors[var]])
 
         # Write number of obs to plot
