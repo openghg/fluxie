@@ -3085,8 +3085,9 @@ def plot_spatial_flux_one_variable(ds_all,species,plot_area,s_data,m_data,var,
                 mask_lat = f.lat.values
                 mask_lon = f.lon.values
             
-            for a,la in enumerate(lat):
-                for b,lo in enumerate(lon):
+            # round used to fix rounding issues in emissions netcdf lat/lons
+            for a,la in enumerate(np.round(lat,3)):
+                for b,lo in enumerate(np.round(lon,3)):
                     if la in mask_lat and lo in mask_lon:
                         lat_id = np.where(mask_lat == la)[0]
                         lon_id = np.where(mask_lon == lo)[0]
