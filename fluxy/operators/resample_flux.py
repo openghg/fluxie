@@ -28,7 +28,7 @@ def calculate_resample_flux(ds_all: dict[xr.Dataset],
             ds_all_p[m]['country'] = ds_all_p[m]['country'].isel(time=0).drop('time')
             ds_all_p[m]['country_fraction'] = ds_all_p[m]['country_fraction'].isel(time=0).drop('time')
             ds_all_p[m] = ds_all_p[m].assign({'covariance_country_flux_total_posterior':
-                                                ds_all[m]['covariance_country_flux_total_posterior'].resample(time=rtime).mean(dim="time")})
+                                                ds_all[m]['covariance_country_flux_total_posterior'].resample(time=rtime[i]).mean(dim="time")})
     return ds_all_p
 
 

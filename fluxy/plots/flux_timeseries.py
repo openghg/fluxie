@@ -88,6 +88,7 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
         res_dict : If return_res, return also a dictionnary containaing the plotted results
 
     """
+    ds_region_all = dict()
     if return_res:
         res_dict = {country:dict() for country in plot_regions}
         print('WARNING : Only return the annual combined results for now, so work only if plot_combined=True')
@@ -97,7 +98,7 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
         = update_list_params([plot_separate, plot_combined, rolling_mean, resample], 
                              expected_size = len(ds_all.keys()))
 
-    # Create resampled xarrays if needed
+    # Resample xarrays if needed
     if resample is not None:
         ds_all_p = resample_flux(ds_all, resample, resample_uncert_correlation)
     else:
@@ -134,16 +135,18 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
         n_cols = 3
         n_rows = 2
         
-    fig = plt.figure(constrained_layout=True,figsize=(n_cols*6,n_rows*4))
-    gs = fig.add_gridspec(n_rows,n_cols)
+    fig,axL = plt.subplots(n_rows,n_cols,
+                           sharex=True,
+                           constrained_layout=True,
+                           figsize=(n_cols*6,n_rows*4))
     
     # used to iterate through subplots
     count = 0
 
     for i,country in enumerate(plot_regions):
-        
-        ax = fig.add_subplot(gs[count])
-        
+
+        ax = axL.flatten()[i]
+
         if plot_inventory == True:
             
             inv_colours = ['grey','black']
@@ -179,202 +182,147 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
             k = 0
             
             for j,m in enumerate(ds.keys()):
-                
-                m0 = m.split('_')[0]
-
-                # Get inversion period
-                if period_override is not None:
-                    if period_override[j] == 'monthly':
-                        period_all[m] = 'monthly'
-                    elif period_override[j] == 'yearly':
-                        period_all[m] = 'yearly'
-                    else:
-                        period_all[m] = s_data[species]["period"]
-                else:
-                    period_all[m] = s_data[species]["period"]
                     
-                region_time,region_flux_total_posterior,region_flux_total_prior,\
-                region_flux_total_posterior_lower,region_flux_total_posterior_upper,\
-                region_flux_total_prior_lower,region_flux_total_prior_upper = extract_region_flux(ds,m,m0,country,apply_pop_scale)
+                ds_region = extract_region_flux(ds[m],m,country,apply_pop_scale)
                 
-                if region_time is not None:
-            
-                    if plot_combined[j] == True:
-                
-                        if k == 0:
-                            all_region_flux_total_posterior = region_flux_total_posterior
-                            all_region_flux_total_prior = region_flux_total_prior
-                            all_region_flux_total_lower = region_flux_total_posterior_lower
-                            all_region_flux_total_upper = region_flux_total_posterior_upper
-                            k+=1
+                if ds_region is not None and plot_separate[j] == True:            
+                          
+                    if ds_count == 0:
+                        if annex_mode:
+                            include_label = m_data[m]["label"].split()[0]
+                            include_label_prior = f'{include_label} prior'
                         else:
-                            all_region_flux_total_posterior = np.vstack((all_region_flux_total_posterior,
-                                                                        region_flux_total_posterior))
-                            all_region_flux_total_prior = np.vstack((all_region_flux_total_prior,
-                                                                    region_flux_total_prior))
-                            all_region_flux_total_lower = np.vstack((all_region_flux_total_lower,
-                                                                    region_flux_total_posterior_lower))
-                            all_region_flux_total_upper = np.vstack((all_region_flux_total_upper,
-                                                                    region_flux_total_posterior_upper))
-                            
-                        post_pdfs[m] = np.array([np.random.default_rng().normal(loc=region_flux_total_posterior[t],
-                                                                                scale=np.mean(np.array([region_flux_total_posterior[t]-region_flux_total_posterior_lower[t],
-                                                                                                        region_flux_total_posterior_upper[t]-region_flux_total_posterior[t]])),
-                                                                                size=1000) for t in range(region_time.shape[0])])
+                            include_label = m_data[m]["label"]
+                            include_label_prior = f'{m_data[m]["label"]} prior'
                     else:
-                        post_pdfs[m] = None
-                                
-                    if plot_separate[j] == True:
-                        if ds_count == 0:
-                            if annex_mode:
-                                include_label = m_data[m]["label"].split()[0]
-                                include_label_prior = f'{include_label} prior'
-                            else:
-                                include_label = m_data[m]["label"]
-                                include_label_prior = f'{m_data[m]["label"]} prior'
-                        else:
-                            include_label = None
-                            include_label_prior = None
-                            
-                        # Average variable to plot
-                        if rolling_mean[j]:
-                            var_flux_total_posterior = calc_rolling_mean([region_flux_total_posterior])[0]
-                            var_flux_total_posterior_lower = calc_rolling_mean([region_flux_total_posterior_lower])[0]
-                            var_flux_total_posterior_upper = calc_rolling_mean([region_flux_total_posterior_upper])[0]
+                        include_label = None
+                        include_label_prior = None
 
-                            var_flux_total_prior = calc_rolling_mean([region_flux_total_prior])[0]
-                            var_flux_total_prior_lower = calc_rolling_mean([region_flux_total_prior_lower])[0]
-                            var_flux_total_prior_upper = calc_rolling_mean([region_flux_total_prior_upper])[0]
-                        else:
-                            var_flux_total_posterior = region_flux_total_posterior
-                            var_flux_total_posterior_lower = region_flux_total_posterior_lower
-                            var_flux_total_posterior_upper = region_flux_total_posterior_upper
+                if rolling_mean[j]:
+                    ds_region = calc_rolling_mean(ds_region)
 
-                            var_flux_total_prior = region_flux_total_prior
-                            var_flux_total_prior_lower = region_flux_total_prior_lower
-                            var_flux_total_prior_upper = region_flux_total_prior_upper
+                ax.plot(ds_region.time,
+                        ds_region.region_flux_total_posterior,
+                        label=include_label,
+                        color=model_colors[m][0])
+                
+                if not plot_combined[j]:
+                    ax.fill_between(ds_region.time,
+                                    ds_region.region_flux_total_posterior_lower,
+                                    ds_region.region_flux_total_posterior_upper,
+                                    alpha=0.3,
+                                    color=model_colors[m][0])
 
-                        ax.plot(region_time,
-                                    var_flux_total_posterior,
-                                    label=include_label,color=model_colors[m][0])
-                        
-                        if not(plot_combined[j]):
-                            ax.fill_between(region_time,
-                                                var_flux_total_posterior_lower,
-                                                var_flux_total_posterior_upper,
-                                                alpha=0.3,color=model_colors[m][0])
+                    if add_prior:
+                        ax.plot(ds_region.time,
+                                ds_region.region_flux_total_prior,
+                                label=include_label_prior,
+                                color=model_colors[m][0],
+                                linestyle='dashed',
+                                linewidth=lw,
+                                alpha=alpha)
+                        max_cf[i] = np.max((max_cf[i],np.nanmax(ds_region.region_flux_total_prior)))
 
-                            if add_prior:
-                                ax.plot(region_time,
-                                            var_flux_total_prior,
-                                            label=include_label_prior,color=model_colors[m][0],linestyle='dashed',linewidth=lw,alpha=alpha)
-                                max_cf[i] = np.max((max_cf[i],np.nanmax(var_flux_total_prior)))
-
-                                if add_prior_unc:
-                                    ax.fill_between(region_time,
-                                                        var_flux_total_prior_lower,
-                                                        var_flux_total_prior_upper,
-                                                        alpha=0.1,color=model_colors[m][0])
-                                    max_cf[i] = np.max((max_cf[i],np.nanmax(var_flux_total_prior_upper)))
+                        if add_prior_unc:
+                            ax.fill_between(ds_region.time,
+                                            ds_region.region_flux_total_prior_lower,
+                                            ds_region.region_flux_total_prior_upper,
+                                            alpha=0.1,
+                                            color=model_colors[m][0])
+                            max_cf[i] = np.max((max_cf[i],np.nanmax(ds_region.region_flux_total_prior_upper)))
 
                     
-                    min_x.append(np.min(region_time).astype('datetime64[M]'))
-                    max_x.append(np.max(region_time).astype('datetime64[M]'))
-                    max_cf[i] = np.max((max_cf[i],np.nanmax(var_flux_total_posterior_upper)))
+                    min_x.append(ds_region.time.min())
+                    max_x.append(ds_region.time.max())
+                    max_cf[i] = np.max((max_cf[i],np.nanmax(ds_region.region_flux_total_prior_upper)))
 
                     if plot_inventory == True:
                         if inventory_flux is not None:
-                            max_cf[i] = np.nanmax((max_cf[i],np.nanmax(inventory_flux[np.logical_and(inventory_time >= np.min(region_time),
-                                                                                        inventory_time <= np.max(region_time))])))
-
-                    y0 = ((region_time[0]).astype('datetime64[Y]')).astype(int)+1970
-                    y1 = ((region_time[-1]).astype('datetime64[Y]')).astype(int)+1970
-                    start_year[i] = min(start_year[i],y0)
-                    end_year[i] = max(end_year[i],y1)
-
-            if sum(plot_combined) != 0:
-                
-                #if i == 0:
-                    #print('\nNOTE: This currently assumes that posterior PDFs are Gaussian. The average percentile is used '+
-                    #    'to estimate an approximate standard deviation.\n')
-                # Define labels
-                if (annex_mode):
-                    labels_combined = {'prior':'PARIS prior',
-                                      'posterior':'PARIS mean',
-                                      'unc':'_nolegend_'}
-                else:
-                    labels_combined = {'prior':'Mean prior',
-                                      'posterior':'Mean posterior',
-                                      'unc':'Min/max of post uncertainty'}
-                
-                if sum(rolling_mean) != 0:
-                    mean_country_flux_total_posterior = np.mean(calc_rolling_mean(all_region_flux_total_posterior),axis=0)
-                    mean_country_flux_total_prior = np.mean(calc_rolling_mean(all_region_flux_total_prior),axis=0)
-                    mean_country_flux_total_lower = np.mean(calc_rolling_mean(all_region_flux_total_lower),axis=0)
-                    mean_country_flux_total_upper = np.mean(calc_rolling_mean(all_region_flux_total_upper),axis=0)
-                    min_country_flux_total_lower = np.min(calc_rolling_mean(all_region_flux_total_lower),axis=0)
-                    max_country_flux_total_upper = np.max(calc_rolling_mean(all_region_flux_total_upper),axis=0)
-                else:
-                    mean_country_flux_total_posterior = np.mean(all_region_flux_total_posterior,axis=0)
-                    mean_country_flux_total_prior = np.mean(all_region_flux_total_prior,axis=0)
-                    mean_country_flux_total_lower = np.mean(all_region_flux_total_lower,axis=0)
-                    mean_country_flux_total_upper = np.mean(all_region_flux_total_upper,axis=0)
-                    min_country_flux_total_lower = np.min(all_region_flux_total_lower,axis=0)
-                    max_country_flux_total_upper = np.max(all_region_flux_total_upper,axis=0)
-                
-                #print(return_res,region_time.astype('datetime64[Y]'))
-                if return_res :#and ((region_time.astype('datetime64[Y]')[1:]-region_time.astype('datetime64[Y]')[:-1]).astype(int)>=1).all():
-                    res_dict[country]['combined']= {'time':region_time.astype('datetime64[ns]'),
-                                                    'mean':mean_country_flux_total_posterior,
-                                                    'min':min_country_flux_total_lower,
-                                                    'max':max_country_flux_total_upper}
-                '''
-                # NOTE: This section of code is not prepared for type(plot_combined) == list
-                #       When plot_combined[j] == False, post_pdfs[m] = None
-                #       Plese revise the implementation before uncommenting.
-
-                for j,m in enumerate(ds.keys()):
-                    if j == 0:
-                        pdf_all = np.array([np.random.choice(post_pdfs[m][t,:],500) for t in range(post_pdfs[m].shape[0])])
-                    else:
-                        pdf_all = np.hstack((pdf_all,
-                                            np.array([np.random.choice(post_pdfs[m][t,:],500) for t in range(post_pdfs[m].shape[0])])))
-                
-                pdf_mean = np.mean(pdf_all,axis=1)
-                pdf_std = np.std(pdf_all,axis=1)
-                '''     
-                
-                ax.plot(region_time.astype('datetime64[ns]'),
-                        mean_country_flux_total_posterior,
-                        label=labels_combined['posterior'],color='black',linewidth=3.5)
-                
-                if add_prior:
-                    ax.plot(region_time.astype('datetime64[ns]'),
-                            mean_country_flux_total_prior,
-                            label=labels_combined['prior'],color='black',linestyle='dashed',linewidth=lw,alpha=alpha)
-                
-                ax.fill_between(region_time.astype('datetime64[ns]'),
-                                min_country_flux_total_lower,
-                                max_country_flux_total_upper,
-                                alpha=0.3,color='grey',label=labels_combined['unc'])
-                '''
-                ax.plot(region_time.astype('datetime64[ns]'),
-                                    pdf_mean,
-                                    label='Mean of sampled post PDFs',color='dodgerblue')
-                
-                ax.fill_between(region_time.astype('datetime64[ns]'),
-                                                pdf_mean-pdf_std,
-                                                pdf_mean+pdf_std,
-                                                alpha=0.3,color='dodgerblue',label='Std dev of sampled post PDFs')
-                
-                ax.fill_between(region_time.astype('datetime64[ns]'),
-                                                mean_country_flux_total_lower,
-                                                mean_country_flux_total_upper,
-                                                alpha=0.3,color='yellow',label='Mean of post uncertainty')
-                '''                            
+                            max_cf[i] = np.nanmax((max_cf[i],np.nanmax(inventory_flux[np.logical_and(inventory_time >= ds_region.time.min(),
+                                                                                        inventory_time <= ds_region.time.max())])))
             
             ds_count += 1
-            
+        
+            # if plot_combined is not None and sum(plot_combined)!=0:
+            #     ds_to_combined = [ds_region_all[m] for im,m in enumerate(ds_region_all.keys()) if plot_combined[im]]
+
+            #     if sum(rolling_mean) != 0:
+            #         ds_to_combined = [calc_rolling_mean(ds) for ds in ds_to_combined]
+
+            #     mean_country_flux_total_posterior = np.mean(all_region_flux_total_posterior,axis=0)
+            #     mean_country_flux_total_prior = np.mean(all_region_flux_total_prior,axis=0)
+            #     mean_country_flux_total_lower = np.mean(all_region_flux_total_lower,axis=0)
+            #     mean_country_flux_total_upper = np.mean(all_region_flux_total_upper,axis=0)
+            #     min_country_flux_total_lower = np.min(all_region_flux_total_lower,axis=0)
+            #     max_country_flux_total_upper = np.max(all_region_flux_total_upper,axis=0)
+            #     """
+            #     post_pdfs[m] = np.array([np.random.default_rng().normal(loc=region_flux_total_posterior[t],
+            #                                                             scale=np.mean(np.array([region_flux_total_posterior[t]-region_flux_total_posterior_lower[t],
+            #                                                                                     region_flux_total_posterior_upper[t]-region_flux_total_posterior[t]])),
+            #                                                             size=1000) for t in range(region_time.shape[0])])
+            #     if i == 0:
+            #         print('\nNOTE: This currently assumes that posterior PDFs are Gaussian. The average percentile is used '+
+            #            'to estimate an approximate standard deviation.\n')
+            #     """
+            #     # Define labels
+            #     if annex_mode:
+            #         labels_combined = {'prior':'PARIS prior',
+            #                           'posterior':'PARIS mean',
+            #                           'unc':'_nolegend_'}
+            #     else:
+            #         labels_combined = {'prior':'Mean prior',
+            #                           'posterior':'Mean posterior',
+            #                           'unc':'Min/max of post uncertainty'}
+                
+            #     if return_res :
+            #         res_dict[country]['combined']= {'time':region_time.astype('datetime64[ns]'),
+            #                                         'mean':mean_country_flux_total_posterior,
+            #                                         'min':min_country_flux_total_lower,
+            #                                         'max':max_country_flux_total_upper}
+            #     '''
+            #     # NOTE: This section of code is not prepared for type(plot_combined) == list
+            #     #       When plot_combined[j] == False, post_pdfs[m] = None
+            #     #       Plese revise the implementation before uncommenting.
+
+            #     for j,m in enumerate(ds.keys()):
+            #         if j == 0:
+            #             pdf_all = np.array([np.random.choice(post_pdfs[m][t,:],500) for t in range(post_pdfs[m].shape[0])])
+            #         else:
+            #             pdf_all = np.hstack((pdf_all,
+            #                                 np.array([np.random.choice(post_pdfs[m][t,:],500) for t in range(post_pdfs[m].shape[0])])))
+                
+            #     pdf_mean = np.mean(pdf_all,axis=1)
+            #     pdf_std = np.std(pdf_all,axis=1)
+            #     '''     
+                
+            #     ax.plot(region_time.astype('datetime64[ns]'),
+            #             mean_country_flux_total_posterior,
+            #             label=labels_combined['posterior'],color='black',linewidth=3.5)
+                
+            #     if add_prior:
+            #         ax.plot(region_time.astype('datetime64[ns]'),
+            #                 mean_country_flux_total_prior,
+            #                 label=labels_combined['prior'],color='black',linestyle='dashed',linewidth=lw,alpha=alpha)
+                
+            #     ax.fill_between(region_time.astype('datetime64[ns]'),
+            #                     min_country_flux_total_lower,
+            #                     max_country_flux_total_upper,
+            #                     alpha=0.3,color='grey',label=labels_combined['unc'])
+            #     '''
+            #     ax.plot(region_time.astype('datetime64[ns]'),
+            #                         pdf_mean,
+            #                         label='Mean of sampled post PDFs',color='dodgerblue')
+                
+            #     ax.fill_between(region_time.astype('datetime64[ns]'),
+            #                                     pdf_mean-pdf_std,
+            #                                     pdf_mean+pdf_std,
+            #                                     alpha=0.3,color='dodgerblue',label='Std dev of sampled post PDFs')
+                
+            #     ax.fill_between(region_time.astype('datetime64[ns]'),
+            #                                     mean_country_flux_total_lower,
+            #                                     mean_country_flux_total_upper,
+            #                                     alpha=0.3,color='yellow',label='Mean of post uncertainty')
+            #     '''                            
         #format each subplot
         units_print = s_data[species]["units_print"]
         if 'all' in species:
@@ -387,12 +335,12 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
         
         ax.set_ylabel(f'{s_data[species]["species_print"]} ({units_print}g{y_label_append} yr$^{{-1}}$)')
         
-        if period_all[list(ds.keys())[0]] == 'monthly' and resample != 'year':
-            ax.set_xlim([np.min(min_x)-np.timedelta64(1,'M'),
-                            np.max(max_x)+np.timedelta64(1,'M')])
-        else: #period_all[list(ds.keys())[0]] == 'yearly':
-            ax.set_xlim([np.min(min_x)-np.timedelta64(7,'M'),
-                            np.max(max_x)+np.timedelta64(7,'M')])        
+        # if period_all[list(ds.keys())[0]] == 'monthly' and resample != 'year':
+        #     ax.set_xlim([np.min(min_x)-np.timedelta64(1,'M'),
+        #                     np.max(max_x)+np.timedelta64(1,'M')])
+        # else: #period_all[list(ds.keys())[0]] == 'yearly':
+        #     ax.set_xlim([np.min(min_x)-np.timedelta64(7,'M'),
+        #                     np.max(max_x)+np.timedelta64(7,'M')])        
         
         ncol = 2
         if annex_mode: ncol = 3
@@ -420,17 +368,17 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
             
         ax.grid(visible=True,which='major',alpha=0.4)
 
-        if (end_year[i]-start_year[i]) > 8:
-            years_list = list(range(start_year[i],end_year[i]+2))
-            region_time = np.array([np.datetime64(str(year), 'Y') for year in years_list])
-            ax.set_xticks(region_time[::2])
-            ax.set_xticklabels(region_time[::2].astype('datetime64[Y]'))
-            ax.xaxis.set_minor_formatter(NullFormatter())
+        # if (end_year[i]-start_year[i]) > 8:
+        #     years_list = list(range(start_year[i],end_year[i]+2))
+        #     region_time = np.array([np.datetime64(str(year), 'Y') for year in years_list])
+        #     ax.set_xticks(region_time[::2])
+        #     ax.set_xticklabels(region_time[::2].astype('datetime64[Y]'))
+        #     ax.xaxis.set_minor_formatter(NullFormatter())
 
-        else:
-            ax.xaxis.set_minor_locator(MonthLocator())
-            ax.xaxis.set_minor_formatter(NullFormatter())
-            ax.xaxis.set_major_locator(YearLocator())
+        # else:
+        #     ax.xaxis.set_minor_locator(MonthLocator())
+        #     ax.xaxis.set_minor_formatter(NullFormatter())
+        #     ax.xaxis.set_major_locator(YearLocator())
         
         count += 1
         
