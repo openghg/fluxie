@@ -6,12 +6,12 @@ import numpy as np
 import xarray as xr
 from matplotlib.ticker import NullFormatter
 from matplotlib.dates import YearLocator, MonthLocator
-import collections
 import matplotlib.pyplot as plt
 
 from fluxy.operators.regions import extract_region_flux, extract_region_inventory_flux
 from fluxy.operators.rolling_mean import calc_rolling_mean
 from fluxy.operators.resample_flux import resample_flux
+from fluxy.plots.utils import update_list_params
 
 
 
@@ -92,32 +92,10 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
         res_dict = {country:dict() for country in plot_regions}
         print('WARNING : Only return the annual combined results for now, so work only if plot_combined=True')
     
-    # Convert some inputs to list
-
-    if type(plot_separate) is not list :
-        plot_separate = [plot_separate]*len(ds_all.keys())
-
-    if type(plot_combined) is not list :
-        plot_combined = [plot_combined]*len(ds_all.keys())
-
-    if type(rolling_mean) is not list :
-        rolling_mean = [rolling_mean]*len(ds_all.keys())
-
-    if resample is not None and type(resample) is not list :
-        resample = [resample]*len(ds_all.keys())
-
-    # Check consistency of list sizes
-    if len(plot_separate) != len(ds_all.keys()):
-        raise ValueError('plot_separate must be a boolean or a list of booleans of the same length as models.')        
-
-    if len(plot_combined) != len(ds_all.keys()):
-        raise ValueError('plot_combined must be a boolean or a list of booleans of the same length as models.')
-
-    if len(rolling_mean) != len(ds_all.keys()):
-        raise ValueError('rolling_mean must be a boolean or a list of booleans of the same length as models.')
-
-    if resample is not None and len(resample) != len(ds_all.keys()):
-        raise ValueError('resample must be a boolean or a list of booleans of the same length as models.')
+    # Convert some inputs to list and check there size
+    plot_separate, plot_combined, rolling_mean, resample \
+        = update_list_params([plot_separate, plot_combined, rolling_mean, resample], 
+                             expected_size = len(ds_all.keys()))
 
     # Create resampled xarrays if needed
     if resample is not None:
