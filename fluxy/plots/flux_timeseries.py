@@ -4,6 +4,7 @@ import glob
 import math
 import numpy as np
 import xarray as xr
+import pandas as pd
 from matplotlib.ticker import NullFormatter
 from matplotlib.dates import YearLocator, MonthLocator
 import matplotlib.pyplot as plt
@@ -387,25 +388,31 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
             ax.set_title(f'{print_country}')
             
         ax.grid(visible=True,which='major',alpha=0.4)
-
-        # if (end_year[i]-start_year[i]) > 8:
-        #     years_list = list(range(start_year[i],end_year[i]+2))
-        #     region_time = np.array([np.datetime64(str(year), 'Y') for year in years_list])
-        #     ax.set_xticks(region_time[::2])
-        #     ax.set_xticklabels(region_time[::2].astype('datetime64[Y]'))
-        #     ax.xaxis.set_minor_formatter(NullFormatter())
-
-        # else:
-        #     ax.xaxis.set_minor_locator(MonthLocator())
-        #     ax.xaxis.set_minor_formatter(NullFormatter())
-        #     ax.xaxis.set_major_locator(YearLocator())
         
         count += 1
         
+        # save legend
         handles, labels = ax.get_legend_handles_labels()
         if any('Inventory' in l for l in labels) == True:
             handles_all = handles.copy()
             labels_all = labels.copy()
+    
+    # set xticks
+    print('WARNING : need to come back on that part.')
+    xlim = pd.to_datetime(ax.get_xlim(), unit='D', origin=pd.Timestamp('1970-01-01'))
+    ax.set_xlim(np.datetime64(str(xlim.year[0]), 'Y'),
+                np.datetime64(str(xlim.year[1]), 'Y')+1)
+
+    if (xlim.year[1]-xlim.year[0])>10:
+        xticks = np.array([np.datetime64(str(year), 'Y') for year in range(xlim.year[0],xlim.year[1],2)])
+        ax.set_xticks(xticks)
+        ax.set_xticklabels(xticks.astype('datetime64[Y]'))
+        ax.xaxis.set_minor_formatter(NullFormatter())
+
+    else:
+        ax.xaxis.set_minor_locator(MonthLocator())
+        ax.xaxis.set_minor_formatter(NullFormatter())
+        ax.xaxis.set_major_locator(YearLocator())
         
     if set_global_leg:
         if n_rows > 1:
