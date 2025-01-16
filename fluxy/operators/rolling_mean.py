@@ -1,8 +1,10 @@
 import numpy as np
+import xarray as xr
 
 def calc_rolling_mean(ds):
     """
-    Calculate rolling mean of a list of numpy array using numpy.convolv
+    DEPRECEATED
+    Calculate rolling mean (using 3 values : the value, the one before and the one after) of for a list of numpy array using numpy.convolv
     (see https://stackoverflow.com/questions/14313510/how-to-calculate-rolling-moving-average-using-python-numpy-scipy).
     
     Args:
@@ -23,4 +25,8 @@ def calc_rolling_mean(ds):
             tmp = np.concatenate([[np.mean(data[:2]),],tmp,[np.mean(data[-2:]),]])
         averaged_data.append(tmp)
     return averaged_data
+
+def calc_rolling_mean(ds):
+    return ds.rolling(time=3,center=True).mean()
+
  

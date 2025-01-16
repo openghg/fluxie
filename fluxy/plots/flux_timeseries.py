@@ -11,8 +11,31 @@ import matplotlib.pyplot as plt
 from fluxy.operators.regions import extract_region_flux, extract_region_inventory_flux
 from fluxy.operators.rolling_mean import calc_rolling_mean
 from fluxy.operators.resample_flux import resample_flux
+from fluxy.operators.align_dataset import align_dataset
 from fluxy.plots.utils import update_list_params
 
+def determine_subplots_arrangement(subplot_number: int
+                                   )->list[int]:
+    """
+    Determine number of columns and rows for the figure given the number of subplots to make.
+    Args: 
+        subplot_number: number of subplots to make.
+    Returns: 
+        n_cols,n_rows: number of columns and rows for the figure.
+    """
+    if subplot_number < 4:
+        n_cols = subplot_number
+        n_rows = 1
+    elif subplot_number == 4:
+        n_cols = 2
+        n_rows = 2
+    elif subplot_number > 4:
+        n_cols = 4
+        n_rows = math.ceil(subplot_number)/4
+    elif subplot_number == 6:
+        n_cols = 3
+        n_rows = 2
+    return n_cols,n_rows
 
 
 def plot_country_flux(ds_all: dict[str,xr.Dataset],
@@ -88,7 +111,6 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
         res_dict : If return_res, return also a dictionnary containaing the plotted results
 
     """
-    ds_region_all = dict()
     if return_res:
         res_dict = {country:dict() for country in plot_regions}
         print('WARNING : Only return the annual combined results for now, so work only if plot_combined=True')
@@ -98,11 +120,15 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
         = update_list_params([plot_separate, plot_combined, rolling_mean, resample], 
                              expected_size = len(ds_all.keys()))
 
-    # Resample xarrays if needed
+    # Resample xarrays and set list of dataet that will be plotted
     if resample is not None:
-        ds_all_p = resample_flux(ds_all, resample, resample_uncert_correlation)
+        ds_all_resampled = resample_flux(ds_all, resample, resample_uncert_correlation)
+        if plot_resample_and_original :
+            all_datasets = [ds_all_resampled,ds_all]
+        else :
+            all_datasets = [ds_all_resampled]
     else:
-        ds_all_p = ds_all.copy()
+        all_datasets = [ds_all]
 
     # Initialize variables
     max_cf = np.zeros(len(plot_regions))
@@ -122,18 +148,7 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
     if 'all' in species: apply_pop_scale = False
 
     # Create figure
-    if len(plot_regions) < 4:
-        n_cols = len(plot_regions)
-        n_rows = 1
-    elif len(plot_regions) == 4:
-        n_cols = 2
-        n_rows = 2
-    elif len(plot_regions) > 4:
-        n_cols = 4
-        n_rows = math.ceil(len(plot_regions)/4)
-    elif len(plot_regions) == 6:
-        n_cols = 3
-        n_rows = 2
+    n_cols, n_rows = determine_subplots_arrangement(len(plot_regions))
         
     fig,axL = plt.subplots(n_rows,n_cols,
                            sharex=True,
@@ -147,11 +162,11 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
 
         ax = axL.flatten()[i]
 
-        if plot_inventory == True:
+        if plot_inventory :
             
             inv_colours = ['grey','black']
             
-            if inventory_years == None:
+            if inventory_years is None:
                 search_years = sorted(glob.glob(os.path.join(data_dir,'inventory',f'UNFCCC_inventory_{species}_*.nc')))
                 inventory_years = [search_years[-1][-7:-3]]
             
@@ -171,15 +186,12 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
         
         ds_count = 0
         
-        if plot_resample_and_original == True:
-            all_datasets = [ds_all_p,ds_all]
-        else:
-            all_datasets = [ds_all_p]
-        
         for ds in all_datasets:
         
             post_pdfs = {}
             k = 0
+
+            ds_to_combined = []
             
             for j,m in enumerate(ds.keys()):
                     
@@ -206,7 +218,9 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
                         label=include_label,
                         color=model_colors[m][0])
                 
-                if not plot_combined[j]:
+                if plot_combined[j]:
+                    ds_to_combined.append(ds_region)
+                else:
                     ax.fill_between(ds_region.time,
                                     ds_region.region_flux_total_posterior_lower,
                                     ds_region.region_flux_total_posterior_upper,
@@ -243,86 +257,92 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
             
             ds_count += 1
         
-            # if plot_combined is not None and sum(plot_combined)!=0:
-            #     ds_to_combined = [ds_region_all[m] for im,m in enumerate(ds_region_all.keys()) if plot_combined[im]]
+            if plot_combined is not None and sum(plot_combined)!=0:
 
-            #     if sum(rolling_mean) != 0:
-            #         ds_to_combined = [calc_rolling_mean(ds) for ds in ds_to_combined]
+                ds_combined = align_dataset(ds_to_combined)
+                
+                ds_combined = xr.concat(ds_to_combined,'model')
+                ds_combined['mean_country_flux_total_posterior'] = ds_combined['region_flux_total_posterior'].mean(dim='model')
+                ds_combined['mean_country_flux_total_prior'] = ds_combined['region_flux_total_prior'].mean(dim='model')
+                
+                ds_combined['min_country_flux_total_lower'] = ds_combined['region_flux_total_posterior_lower'].min(dim='model')
+                ds_combined['max_country_flux_total_upper'] = ds_combined['region_flux_total_posterior_upper'].max(dim='model')
 
-            #     mean_country_flux_total_posterior = np.mean(all_region_flux_total_posterior,axis=0)
-            #     mean_country_flux_total_prior = np.mean(all_region_flux_total_prior,axis=0)
-            #     mean_country_flux_total_lower = np.mean(all_region_flux_total_lower,axis=0)
-            #     mean_country_flux_total_upper = np.mean(all_region_flux_total_upper,axis=0)
-            #     min_country_flux_total_lower = np.min(all_region_flux_total_lower,axis=0)
-            #     max_country_flux_total_upper = np.max(all_region_flux_total_upper,axis=0)
-            #     """
-            #     post_pdfs[m] = np.array([np.random.default_rng().normal(loc=region_flux_total_posterior[t],
-            #                                                             scale=np.mean(np.array([region_flux_total_posterior[t]-region_flux_total_posterior_lower[t],
-            #                                                                                     region_flux_total_posterior_upper[t]-region_flux_total_posterior[t]])),
-            #                                                             size=1000) for t in range(region_time.shape[0])])
-            #     if i == 0:
-            #         print('\nNOTE: This currently assumes that posterior PDFs are Gaussian. The average percentile is used '+
-            #            'to estimate an approximate standard deviation.\n')
-            #     """
-            #     # Define labels
-            #     if annex_mode:
-            #         labels_combined = {'prior':'PARIS prior',
-            #                           'posterior':'PARIS mean',
-            #                           'unc':'_nolegend_'}
-            #     else:
-            #         labels_combined = {'prior':'Mean prior',
-            #                           'posterior':'Mean posterior',
-            #                           'unc':'Min/max of post uncertainty'}
+                """
+                post_pdfs[m] = np.array([np.random.default_rng().normal(loc=region_flux_total_posterior[t],
+                                                                        scale=np.mean(np.array([region_flux_total_posterior[t]-region_flux_total_posterior_lower[t],
+                                                                                                region_flux_total_posterior_upper[t]-region_flux_total_posterior[t]])),
+                                                                        size=1000) for t in range(region_time.shape[0])])
+                if i == 0:
+                    print('\nNOTE: This currently assumes that posterior PDFs are Gaussian. The average percentile is used '+
+                       'to estimate an approximate standard deviation.\n')
+                """
+                # Define labels
+                if annex_mode:
+                    labels_combined = {'prior':'PARIS prior',
+                                      'posterior':'PARIS mean',
+                                      'unc':'_nolegend_'}
+                else:
+                    labels_combined = {'prior':'Mean prior',
+                                      'posterior':'Mean posterior',
+                                      'unc':'Min/max of post uncertainty'}
                 
-            #     if return_res :
-            #         res_dict[country]['combined']= {'time':region_time.astype('datetime64[ns]'),
-            #                                         'mean':mean_country_flux_total_posterior,
-            #                                         'min':min_country_flux_total_lower,
-            #                                         'max':max_country_flux_total_upper}
-            #     '''
-            #     # NOTE: This section of code is not prepared for type(plot_combined) == list
-            #     #       When plot_combined[j] == False, post_pdfs[m] = None
-            #     #       Plese revise the implementation before uncommenting.
+                if return_res :
+                    res_dict[country]['combined']= {'time':ds_combined.time,
+                                                    'mean':ds_combined.region_flux_total_posterior,
+                                                    'min':ds_combined.min_country_flux_total_lower,
+                                                    'max':ds_combined.max_country_flux_total_upper}
+                '''
+                # NOTE: This section of code is not prepared for type(plot_combined) == list
+                #       When plot_combined[j] == False, post_pdfs[m] = None
+                #       Plese revise the implementation before uncommenting.
 
-            #     for j,m in enumerate(ds.keys()):
-            #         if j == 0:
-            #             pdf_all = np.array([np.random.choice(post_pdfs[m][t,:],500) for t in range(post_pdfs[m].shape[0])])
-            #         else:
-            #             pdf_all = np.hstack((pdf_all,
-            #                                 np.array([np.random.choice(post_pdfs[m][t,:],500) for t in range(post_pdfs[m].shape[0])])))
+                for j,m in enumerate(ds.keys()):
+                    if j == 0:
+                        pdf_all = np.array([np.random.choice(post_pdfs[m][t,:],500) for t in range(post_pdfs[m].shape[0])])
+                    else:
+                        pdf_all = np.hstack((pdf_all,
+                                            np.array([np.random.choice(post_pdfs[m][t,:],500) for t in range(post_pdfs[m].shape[0])])))
                 
-            #     pdf_mean = np.mean(pdf_all,axis=1)
-            #     pdf_std = np.std(pdf_all,axis=1)
-            #     '''     
+                pdf_mean = np.mean(pdf_all,axis=1)
+                pdf_std = np.std(pdf_all,axis=1)
+                '''     
+                ax.plot(ds_combined.time,
+                        ds_combined.mean_country_flux_total_posterior,
+                        label=labels_combined['posterior'],
+                        color='black',
+                        linewidth=3.5)
                 
-            #     ax.plot(region_time.astype('datetime64[ns]'),
-            #             mean_country_flux_total_posterior,
-            #             label=labels_combined['posterior'],color='black',linewidth=3.5)
+                if add_prior:
+                    ax.plot(ds_combined.time,
+                            ds_combined.mean_country_flux_total_prior,
+                            label=labels_combined['prior'],
+                            color='black',
+                            linestyle='dashed',
+                            linewidth=lw,
+                            alpha=alpha)
                 
-            #     if add_prior:
-            #         ax.plot(region_time.astype('datetime64[ns]'),
-            #                 mean_country_flux_total_prior,
-            #                 label=labels_combined['prior'],color='black',linestyle='dashed',linewidth=lw,alpha=alpha)
+                ax.fill_between(ds_combined.time,
+                                ds_combined.min_country_flux_total_lower,
+                                ds_combined.max_country_flux_total_upper,
+                                alpha=0.3,
+                                color='grey',
+                                label=labels_combined['unc'])
+                '''
+                ax.plot(region_time.astype('datetime64[ns]'),
+                                    pdf_mean,
+                                    label='Mean of sampled post PDFs',color='dodgerblue')
                 
-            #     ax.fill_between(region_time.astype('datetime64[ns]'),
-            #                     min_country_flux_total_lower,
-            #                     max_country_flux_total_upper,
-            #                     alpha=0.3,color='grey',label=labels_combined['unc'])
-            #     '''
-            #     ax.plot(region_time.astype('datetime64[ns]'),
-            #                         pdf_mean,
-            #                         label='Mean of sampled post PDFs',color='dodgerblue')
+                ax.fill_between(region_time.astype('datetime64[ns]'),
+                                                pdf_mean-pdf_std,
+                                                pdf_mean+pdf_std,
+                                                alpha=0.3,color='dodgerblue',label='Std dev of sampled post PDFs')
                 
-            #     ax.fill_between(region_time.astype('datetime64[ns]'),
-            #                                     pdf_mean-pdf_std,
-            #                                     pdf_mean+pdf_std,
-            #                                     alpha=0.3,color='dodgerblue',label='Std dev of sampled post PDFs')
-                
-            #     ax.fill_between(region_time.astype('datetime64[ns]'),
-            #                                     mean_country_flux_total_lower,
-            #                                     mean_country_flux_total_upper,
-            #                                     alpha=0.3,color='yellow',label='Mean of post uncertainty')
-            #     '''                            
+                ax.fill_between(region_time.astype('datetime64[ns]'),
+                                                mean_country_flux_total_lower,
+                                                mean_country_flux_total_upper,
+                                                alpha=0.3,color='yellow',label='Mean of post uncertainty')
+                '''                            
         #format each subplot
         units_print = s_data[species]["units_print"]
         if 'all' in species:
@@ -415,15 +435,15 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
 
     # loop through plots again to fix min/max axis values
     
-    fac = 1.1
-    if not(set_global_leg): fac = 1.2
-    for i,country in enumerate(plot_regions):
-        if fix_y_axes == True:
-            fig.axes[i].set_ylim([0,np.nanmax(max_cf)*fac])  
-        elif (type(fix_y_axes) == list) == True:
-            fig.axes[i].set_ylim(fix_y_axes)
-        elif fix_y_axes == False:
-            fig.axes[i].set_ylim([0,max_cf[i]*fac])  
+    # fac = 1.1
+    # if not(set_global_leg): fac = 1.2
+    # for i,country in enumerate(plot_regions):
+    #     if fix_y_axes == True:
+    #         fig.axes[i].set_ylim([0,np.nanmax(max_cf)*fac])  
+    #     elif (type(fix_y_axes) == list) == True:
+    #         fig.axes[i].set_ylim(fix_y_axes)
+    #     elif fix_y_axes == False:
+    #         fig.axes[i].set_ylim([0,max_cf[i]*fac])  
     
     print('NOTE: If all the data is not within axis limits, adjust the set_ylim parameter')
     
