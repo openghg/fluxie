@@ -2365,19 +2365,19 @@ def plot_country_flux(ds_all,species,plot_regions,
                                 ax.plot(region_time,
                                             region_flux_total_prior,
                                             label=include_label_prior,color=model_colors[m][0],linestyle='dashed')
-                            
+                        
+                                if add_prior_unc == True:
+                                    ax.fill_between(region_time,
+                                                        var_flux_total_prior_lower,
+                                                        var_flux_total_prior_upper,
+                                                        alpha=0.1,color=model_colors[m][0])
+                                    max_cf[i] = np.max((max_cf[i],np.nanmax(var_flux_total_prior_upper)))
+                    
                             ax.fill_between(region_time,
                                                 var_flux_total_posterior_lower,
                                                 var_flux_total_posterior_upper,
                                                 alpha=0.3,color=model_colors[m][0])
 
-                            if add_prior_unc == True:
-                                ax.fill_between(region_time,
-                                                    var_flux_total_prior_lower,
-                                                    var_flux_total_prior_upper,
-                                                    alpha=0.1,color=model_colors[m][0])
-                                max_cf[i] = np.max((max_cf[i],np.nanmax(var_flux_total_prior_upper)))
-                    
                     min_x.append(np.min(region_time).astype('datetime64[M]'))
                     max_x.append(np.max(region_time).astype('datetime64[M]'))
                     if inventory_time is not None:
