@@ -808,7 +808,8 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
             var_mean = np.round(np.nanmean(var_plot),2)
             var_sd = np.round(np.nanstd(var_plot),2)
 
-            a,b,c = ax2.hist(var_plot,bins=30,color=model_colors[m][var_colors[var]],density=1)
+            a,b,c = ax2.hist(var_plot,bins=30,color=model_colors[m][var_colors[var]],density=1,alpha=0.7)
+            
             if make_diff:
                 ax2.vlines(0,0,np.max(a),color='dimgrey',linewidth=3.)
             
@@ -2258,7 +2259,7 @@ def plot_country_flux_sectors(ds_all,species,sectors,plot_region,model_labels,
     leg = ax[-1].legend(handles, labels, loc='lower right',ncol=ncol,borderpad=.4,columnspacing=1.0,
                         fontsize=11)
     
-    for l in leg.legend_handles:
+    for l in leg.legend_handles[1:]:
             l.set_linewidth(5.0)
             
     for i,sector in enumerate(sectors):
@@ -2270,7 +2271,7 @@ def plot_country_flux_sectors(ds_all,species,sectors,plot_region,model_labels,
         if fix_y_axes == True:
             ax[i].set_ylim([0,(np.max(max_cf)+(0.1*np.max(max_cf)))])  
         elif type(fix_y_axes) == list:
-            ax[i].set_ylim(fix_y_axes)
+            ax[i].set_ylim(fix_y_axes[i])
         
         elif fix_y_axes == False:
             ax[i].set_ylim(bottom=0)  
