@@ -2018,7 +2018,7 @@ def plot_country_flux(ds_all,species,plot_regions,
                       start_date,end_date,ppt_mode=False,
                       scale_co2eq=False,
                       plot_inventory=True,inventory_years=None,
-                      data_dir=None,fix_y_axes=False,
+                      data_dir=None,fix_y_axes=False,plot_prior=False,
                       add_prior_unc=False, set_global_leg=False,
                       country_codes_as_titles=None,
                       skip_country_title=False,plot_separate=True,
@@ -2123,6 +2123,9 @@ def plot_country_flux(ds_all,species,plot_regions,
     
     if inventory_start_date is None:
         inventory_start_date = start_date
+        
+    if type(plot_prior) == bool:
+        plot_prior = [plot_prior] * len(models)
     
     # Create annual mean xarrays if needed
     if resample is not None:
@@ -2358,10 +2361,11 @@ def plot_country_flux(ds_all,species,plot_regions,
                                     label=include_label,color=model_colors[m][0])
                         
                         if not(plot_combined):
-                            #ax.plot(region_time,
-                            #            region_flux_total_prior,
-                            #            label=include_label_prior,color=model_colors[m][0],linestyle='dashed')
-                        
+                            if plot_prior[j] == True:
+                                ax.plot(region_time,
+                                            region_flux_total_prior,
+                                            label=include_label_prior,color=model_colors[m][0],linestyle='dashed')
+                            
                             ax.fill_between(region_time,
                                                 var_flux_total_posterior_lower,
                                                 var_flux_total_posterior_upper,
