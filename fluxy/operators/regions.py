@@ -5,13 +5,31 @@ import pandas as pd
 import xarray as xr
 from fluxy import config
 
-def extract_region_flux(ds_all,country,verbose=True):
+def extract_region_flux(ds_all: dict[str, xr.Dataset],
+                        country: str, 
+                        verbose: bool =True
+                        )-> dict[str, xr.Dataset]:
     """
     Finds the index of a chosen region name and extracts the country flux
     variables for this region.
     Either extracts values directly from the dataset (if this region definition
     exists in the file) or calculates values by taking the sum of smaller regions
     (if this region definition does not exist in the file).
+    
+    Args:
+        ds_all: xarray datasets of fluxes, scaled and sliced between 
+            chosen dates.
+        country: name of the country to extract.
+        verbose: if you s=want lots of message
+    
+    Returns:
+        ds_output: dictionnary of datasets. The dataset variables are :
+            - 'region_flux_total_posterior',
+            - 'region_flux_total_prior',
+            - 'region_flux_total_posterior_lower',
+            - 'region_flux_total_posterior_upper',
+            - 'region_flux_total_prior_lower',
+            - 'region_flux_total_prior_upper'
     """
     ds_output = dict()
 
@@ -144,12 +162,25 @@ def extract_region_flux(ds_all,country,verbose=True):
     return ds_output
 
 
-def extract_region_inventory_flux(country,data_dir,species,
-                                  s_data,scale_co2eq,
-                                  inventory_year=None):
+def extract_region_inventory_flux(data_dir: str,
+                                  country: str,
+                                  species: str,
+                                  s_data: dict[str,dict],
+                                  scale_co2eq: bool = False
+                                  )->xr.Dataset:
     """
     Extracts inventory flux values for regions that exists,
     or calculates total inventory flux values for aggregated regions.
+    
+    Args:
+        data_dir: directory which contains the data (should have inside a directory named 'inventory').
+        species: Gas species, e.g. 'ch4'.
+        s_data: Dictionary of species with information for plotting (read from json file).
+        scale_co2eq: If True, adapt y-axis label to CO2-eq.
+        
+    Returns:
+        dataset with country selected
+
     """
     
     gwp = 1

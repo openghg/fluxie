@@ -1,11 +1,8 @@
 from fluxy import config
-import os
-import glob
 import math
 import numpy as np
 import xarray as xr
 import pandas as pd
-from matplotlib.cm import get_cmap
 from matplotlib.ticker import NullFormatter
 from matplotlib.dates import YearLocator, MonthLocator
 import matplotlib.pyplot as plt
@@ -40,8 +37,35 @@ def determine_subplots_arrangement(subplot_number: int
         n_rows = 2
     return n_cols,n_rows
 
-def prepare_data_to_plot(ds_region,plot_separate, plot_combined, resample, rolling_mean, plot_resample_and_original,resample_uncert_correlation):
-            
+def prepare_data_to_plot(ds_region: dict[str, xr.Dataset],
+                         plot_separate: bool | list[bool] = True,
+                         plot_combined: bool | list[bool] = False,
+                         resample: str | list[str] | None = None,
+                         rolling_mean: bool = False, 
+                         resample_uncert_correlation: bool = False,
+                         plot_resample_and_original: bool = False
+                         )->dict[str, xr.Dataset]:
+    """
+    Create a single xarray dataset for each set of data to be plotted.
+
+    Args:
+        ds_all: xarray datasets of fluxes, scaled and sliced between 
+            chosen dates.
+        plot_separate: If True, plots model result as separate line. List must be of same size as models, e.g. [True, False, False].
+            If a single boolean is provided, the same flag is assumed for all models.
+        plot_combined: If True, the model is included in combined average result to be plotted. List must be of same size as models, e.g. [False, True, True].
+            If a single boolean is provided, the same flag is assumed for all models.
+        resample: Option to be passed to resample built-in function of xarray Dataset. For yearly average, 'YS' option should be used; 'QS-DEC' for seasonaly average.
+            See http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
+        rolling_mean : If True, calculates a rolling mean (xx years) for each of the data to plot.
+        resample_uncert_correlation: If True, calculates the resampled uncertainty as the mean from all averaged periods. 
+            If False, recalculates uncertainty assuming no correlation between all averaged periods, by taking the square root of the summed variances, divided by the number of averaging periods.
+        plot_resample_and_original: If True, plots both the resampled data and the data as its original frequency. If False, only plots the resampled data.
+
+    Returns:
+        ds_to_plot : dictionnary of datasets to plot
+    """
+
     # Convert some inputs to list and check there size
     plot_separate, plot_combined, resample \
         = update_list_params([plot_separate, plot_combined, resample], 

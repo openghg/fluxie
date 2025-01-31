@@ -1,9 +1,20 @@
 import numpy as np
 
-def align_dataset(ds_list) : 
+def align_dataset(ds_list: list[xr.Dataset]
+                  )->list[xr.Dataset]: 
+    """
+    Check time coord and align the time coord of a list of xarray datasets on the time coord of the first of the list if not equals.
+
+    Args:
+        ds_list: list of xarray datasets to be temporarily aligned
+    Returns:
+        ds_ouput: list of xarray datasets temporarily aligned
+    """
     time_dim_equal = [ds_list[0].time.equals(x.time) for x in ds_list[1:]]
 
-    if not all(time_dim_equal):
+    if all(time_dim_equal):
+        ds_ouput = ds_list
+    else :
         # Infer period of first dataset 
         dtime = ds_list[0].time.values[1:] - ds_list[0].time.values[:-1]
         if any(abs(dtime-np.median(dtime))>0.1*np.median(dtime)):
@@ -24,5 +35,6 @@ def align_dataset(ds_list) :
             ds_aligned = ds_p  
             ds_aligned['time'] = ds_list[0].time
             aligned_ds_list.append(ds_p)
-        ds_list = aligned_ds_list
-    return ds_list
+        ds_ouput = aligned_ds_list
+
+    return ds_ouput
