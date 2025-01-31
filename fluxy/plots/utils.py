@@ -12,6 +12,30 @@ from fluxy.io import load_countries_shape
 
 logger = logging.getLogger(__name__)
 
+def update_list_params(params_to_check: list | None,
+                       expected_size: int
+                       )-> list:
+    """
+    Check if parameters are list of the expected lenght. If they are not list, convert them to list (except is it is None), raise an erro if it is a list but not of the expected size.
+    Args:
+        params_to_check : parameters to be checked
+        expected_size : expected size for the list (should be the number of models used in the plots)
+    Returns
+        updated_params: the updated list of lists
+    """
+    updated_params = list()
+    for param in params_to_check:
+        if param is None:
+            updated_params.append([False]*expected_size)
+        elif type(param) is list :
+            if len(param) == expected_size:
+                updated_params.append(param)
+            else:
+                raise ValueError(f'{param} must be a boolean or a list of booleans of the same length as models.')        
+        else:
+            updated_params.append([param]*expected_size)
+    return updated_params
+
 def add_colorbar(fig, ax, mappable, cmap, extend, label):
     """Add a colorbar to the plot."""
     color_bar = fig.colorbar(

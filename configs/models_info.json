@@ -290,6 +290,16 @@
         "label":"RHIME NAME 31 sites (e+w)"
         }, 
 
+    "rhime_name_wetcharts_31sites_longrun":{
+        "filename":"RHIME_NAME_EUROPE_EDGAR-WetCHARTs_longrun_31sites",
+        "label":"RHIME NAME 31 sites (e+w)"
+        }, 
+
+    "rhime_test":{
+        "filename":"RHIME_NAME_EUROPE_EDGAR-WetCHARTs_test",
+        "label":"RHIME test"
+        }, 
+
     "rhime_flex_wetcharts_31sites":{
         "filename":"RHIME_FLEXPART_EUROPE_EDGAR-WetCHARTs_std_31sites",
         "label":"RHIME FLEXPART 31 sites (e+w)"
