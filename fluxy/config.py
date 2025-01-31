@@ -1,12 +1,18 @@
-from fluxy.io import read_json, configs_dir
-import os
 import numpy as np
 import matplotlib.pyplot as plt
-from json import load
-from pathlib import Path
+import logging
 
+logger = logging.getLogger(__name__)
 
-# config = read_json(...)
+color_palette = {0:[['blue','dodgerblue'],
+                    ['dodgerblue','skyblue'],
+                    ['deepskyblue','cyan']],
+                 1:[['purple','mediumpurple'],
+                    ['deeppink','pink'],
+                    ['darkorange','red']],
+                 2:[['darkgreen','green'],
+                    ['limegreen','palegreen'],
+                    ['olive','lightgreen']]}
 
 model_q_indices = {'intem':[0,1],
                    'rhime':[0,1],
@@ -98,7 +104,6 @@ regions_dict = {'BELUX':'BEL-LUX',
 
 regions_dict_old = {'CW_EU':'AUT-BEL-CHE-CZE-DEU-ESP-FRA-GBR-HRV-HUN-IRL-ITA-LUX-NLD-POL-PRT-SVK-SVK'}
 
-
 countrycodes_dict.update(regions_dict)
 
 # population from 2018 to 2023 (at Jan 1 each year)
@@ -106,63 +111,79 @@ bel_pop = np.array([11.399,11.455,11.522,11.555,11.618,11.723])
 lux_pop = np.array([0.602,0.614,0.626,0.635,0.645,0.661])
 bel_pop_r = np.round(np.mean(bel_pop/(bel_pop+lux_pop)),3)
 
+mf_labels = {'Yapriori':'prior mf',
+             'Yapost':'posterior mean mf',
+             'YaprioriBC':'prior baseline',
+             'YapostBC':'posterior mean baseline',
+             'Yapost_bias':'posterior bias',
+             'YaprioriOUTER':'prior outer region mf',
+             'YapostOUTER':'posterior outer region mf',
+             'Yobs':'observed mf',
+             'uYobs_repeatability':'obs repeatability mf uncertainty',
+             'uYobs_variability':'obs variability mf uncertainty',
+             'uYmod':'model uncertainty',
+             'uYtotal':'total uncertainty'
+             }
 
-def initialize_settings(ppt_mode=False):
+mf_color_index = {'Yapriori':1,
+                  'Yapost':0,
+                  'YaprioriBC':1,
+                  'YapostBC':0,
+                  'Yapriori_bias':1,
+                  'Yapost_bias':0,
+                  'YaprioriOUTER':1,
+                  'YapostOUTER':0,
+                  'Yobs':1,
+                  'uYobs_repeatability':0,
+                  'uYobs_variability':0,
+                  'uYmod':1,
+                  'uYtotal':1
+                  }
+
+stat_labels = {'pearson': 'Pearson correlation coefficient',
+               'rmse'   : 'RMSE',
+               'nrmse'  : 'Normalised RMSE',
+               'std'    : 'Standard deviation'
+               }
+
+# Acceptable units and conversion factor to base unit
+units_scale = {'mf': {'mol mol-1' : 1, # mf base unit
+                      'ppm' : 1e-6,
+                      'ppb' : 1e-9,
+                      'ppt' : 1e-12
+                      },
+               'amount': {'kmol' : 1e3,
+                          'mol' : 1 # amount of substance base unit
+                          },
+               'mass': {'Tg' : 1e12,
+                        'Gg' : 1e9,
+                        'Mg' : 1e6,
+                        'kg' : 1e3,
+                        'g'  : 1  # mass base unit
+                        },
+                'time':{'yr': 60*60*24*365,
+                        's' : 1  # time base unit
+                        },
+                'length':{'km': 1e3,
+                          'm' : 1 # length base unit
+                          }
+              }
+
+def set_print_settings(presentation_mode: bool = False) -> dict[int, list]:
     """
-    Extracts species and models info from json files.
-    Defines standard colors for plotting.
+    Sets font size and annotation coordinates.
 
     Args:
         ppt_mode (logical) (optional):
             If True, use bigger fonts (ideal for presentation slides)
 
     Returns:
-        s_data (dict of dict):
-            Dictionary of species with information for plotting (read from json file).
-        m_data (dict of dict):
-            Dictionary of inversion runs with filename and plot label (read from json file).
-        model_colors (dict of lists):
-            Default lists of colors to be used by each model.
         annotate_coords (dict of lists):
             Coordinates to annotate histogram.
     """
 
-    ### read in species info file
-
-    filepath = configs_dir / 'species_info.json'
-
-    if not filepath.is_file():
-        print(f'ERROR: Cannot find {filepath} file. Check that this exists in the same directory as your notebook.')
-
-    with open(filepath, "r") as f:
-        s_data = load(f)
-
-    ### read in models info file
-
-    filepath =  configs_dir / 'models_info.json'
-
-    if os.path.exists(filepath) == False:
-        print('ERROR: Cannot find models_info.json file. Check that this exists in the same directory as your notebook.')
-
-    with open(filepath, "r") as f:
-        m_data = load(f)
-
-    print('NOTE: If plotting units or scales look odd, edit species_info.json to fix this.')
-
-    ### define colors
-
-    model_colors = {'intem':[['blue','dodgerblue'],
-                             ['dodgerblue','skyblue']],
-                    'elris':[['purple','mediumpurple'],
-                             ['deeppink','pink'],
-                             ['darkorange','red']],
-                    'rhime':[['darkgreen','green'],
-                             ['limegreen','palegreen'],
-                             ['olive','lightgreen']]}
-
-    ### font settings & annotate_coords
-
-    if (ppt_mode):
+    if (presentation_mode):
+        # Set big font size (ideal for presentation slides)
         plt.rc('font', size=15)
         plt.rc('axes', titlesize=18)
         plt.rc('axes', labelsize=16)
@@ -174,8 +195,10 @@ def initialize_settings(ppt_mode=False):
                            1:[0.58,0.40],
                            2:[0.58,0.15]}
 
-        print('WARNING: Using big fonts. You might need to shrink the labels.')
+        logger.warning('Using big fonts when plotting. You might need to define shorter labels.')
+    
     else:
+        # Set small font size (ideal for text documents)
         plt.rc('font', size=11)
         plt.rc('axes', titlesize=11)
         plt.rc('axes', labelsize=10)
@@ -187,59 +210,62 @@ def initialize_settings(ppt_mode=False):
                            1:[0.6,0.60],
                            2:[0.6,0.40]}
 
-    return s_data,m_data,model_colors,annotate_coords
+    return annotate_coords
 
-
-
-def set_model_colors(models,model_colors):
+def set_model_colors(models: list[str]) -> dict[str, list]:
     """
-    Sets plotting colors for each model (updates model_colors).
+    Sets plotting colors for each model.
 
     Args:
         models (list of str):
             Keys specifying model names, e.g. ['intem','elris']
-        model_colors (dict of lists):
-            Default lists of colors to be used by each model.
 
     Returns:
-        mc (dict of lists):
+        model_colors (dict of lists):
             List of colors to be used by each model.
     """
 
-    mc = dict()
-    m0_list = np.unique([m.split('_')[0] for m in models])
+    model_colors = dict()
+    max_color_groups = len(color_palette)
 
-    # If the different models result from a single inversion system
-    if len(m0_list) == 1:
-        inv_models = list(model_colors.keys())
-        i = 0
-        j = 0
-        # Use model_colors in order
-        for m in models:
-            if j == len(model_colors[inv_models[i]]):
+    # Get unique inversion systems
+    # dict.fromkeys() is used because it conserves the order of the models
+    unique_models = list(dict.fromkeys(m.split('_')[0] for m in models))
+    n_unique_models = len(unique_models)
+
+    if n_unique_models == 1:
+        # The results to plot are from a single inversion system
+        i = 0; index_colors = 0
+
+        # Use color_palette in order
+        for m in models:            
+            if index_colors == len(color_palette[i]):
                 i = i+1
-                j = 0
+                index_colors = 0
 
-            try:
-                mc[m] = model_colors[inv_models[i]][j]
-                j = j+1
-            except:
-                print('ERROR: Number of models is greater than number of colors in model_colors.')
+            if i == max_color_groups:
+                raise ValueError(f'Number of models to plot is greater than number of pre-defined colors. Add more colors to color_palette.')
 
-    # If results from multiple inversion systems will be plotted together
+            model_colors[m] = color_palette[i][index_colors]
+            index_colors = index_colors+1
+
     else:
-        tmp_m0 = models[0].split('_')[0]
-        j = 0
+        # The results to plot are from multiple inversion systems
+        index_colors = [0]*n_unique_models
+        index_colors_max = [len(color_palette[i]) for i in color_palette]
+
         for m in models:
-            m0 = m.split('_')[0]
-            if m0 != tmp_m0:
-                tmp_m0 = m0
-                j = 0
+            model_name = m.split('_')[0]
+            i = unique_models.index(model_name)
 
-            try:
-                mc[m] = model_colors[m0][j]
-                j = j+1
-            except:
-                print(f'ERROR: Trying to use color number {j+1}, but there are only {j} colors defined for {m0}.')
+            if i == max_color_groups:
+                raise KeyError(f'color_palette has only {i} keys. Add more keys to plot results from more than {i} distinct inversion models.')
+            
+            if index_colors[i] == index_colors_max[i]:
+                raise KeyError(f'There are more than {index_colors[i]} results from {model_name} but only {index_colors[i]} elements in color_palette[{i}]. Add more pairs of colors to the list.')
 
-    return mc
+            # For each inversion system, get plotting colors from a single color_palette key
+            model_colors[m] = color_palette[i][index_colors[i]]
+            index_colors[i] = index_colors[i]+1
+
+    return model_colors
