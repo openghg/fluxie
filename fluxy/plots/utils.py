@@ -36,14 +36,6 @@ def update_list_params(params_to_check: list | None,
             updated_params.append([param]*expected_size)
     return updated_params
 
-from shapely.geometry import MultiPolygon, Polygon
-from typing import Literal
-
-from fluxy import config
-from fluxy.io import load_countries_shape
-
-logger = logging.getLogger(__name__)
-
 def add_colorbar(fig, ax, mappable, cmap, extend, label):
     """Add a colorbar to the plot."""
     color_bar = fig.colorbar(
