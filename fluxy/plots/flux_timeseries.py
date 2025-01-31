@@ -154,13 +154,13 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
     # Create figure
     n_cols, n_rows = determine_subplots_arrangement(len(plot_regions))
         
-    fig,axL = plt.subplots(n_rows,n_cols,
+    fig,axes = plt.subplots(n_rows,n_cols,
                            sharex=True,
                            constrained_layout=True,
                            figsize=(n_cols*6,n_rows*4))
     for i,country in enumerate(plot_regions):
 
-        ax = axL.flatten()[i]
+        ax = axes.flatten()[i]
 
         if plot_inventory :
             inventories_to_plot = derive_inventories(data_dir,country,species,start_date,end_date,s_data,scale_co2eq,inventory_years)
