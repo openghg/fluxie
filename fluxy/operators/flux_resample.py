@@ -2,15 +2,15 @@ import numpy as np
 import xarray as xr
 import pandas as pd
 
-def calculate_resampled_flux(ds_all: dict[xr.Dataset],
+def calculate_resampled_flux(ds_all: dict[str,xr.Dataset],
                             rtime: list[str]
-                            )-> dict[xr.Dataset] :
+                            )-> dict[str,xr.Dataset] :
     """
     Resample the datasets.
     
     Args:
         ds_all: xarray datasets of fluxes, scaled and sliced between 
-            chosen dates.
+            chosen dates.dict[str, xr.Dataset]
         resample: Option to be passed to resample built-in function of xarray Dataset. For yearly average, 'YS' option should be used; 'QS-DEC' for seasonaly average.
             See http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
         resample_uncert_correlation: If True, calculates the resampled uncertainty as the mean from all averaged periods. 
@@ -18,19 +18,20 @@ def calculate_resampled_flux(ds_all: dict[xr.Dataset],
     Returns:
         ds_all_p: resampled datasets
     """
-    ds_all_original = {m:ds_all[m].copy() for m in ds_all.keys()} 
-    ds_all_p = {m:ds_all_original[m].resample(time=rtime[i]).mean(dim="time") 
-                if rtime[i] is not None 
-                else ds_all_original[m] 
-                for i,m in enumerate(ds_all.keys())}
+    ds_all_output = dict()
+    for i, (m,ds) in enumerate(ds_all.items()) : 
+        if rtime[i] is not None :
+            ds_all_output[m] = ds.resample(time=rtime[i]).mean(dim="time")
+        else :
+            ds_all_output[m] = ds.copy()
 
-    return ds_all_p
+    return ds_all_output
 
 
-def calculate_resampled_uncertainty(ds_all_original: dict[xr.Dataset],
-                                   ds_all_p: dict[xr.Dataset],
+def calculate_resampled_uncertainty(ds_all_original: dict[str, xr.Dataset],
+                                   ds_all_p: dict[str, xr.Dataset],
                                    rtime: list[str]
-                                   )-> dict[xr.Dataset]:
+                                   )-> dict[str, xr.Dataset]:
     """
     Recalculates resampled flux uncertainty, using the assumption
     that all periods in the resampled flux average are uncorrelated.
@@ -101,7 +102,7 @@ def resample_flux(ds_all: dict[str,xr.Dataset],
             rtime.append(None)
 
         else:
-            raise ValueError('\'{resample_val}\' is not available for resample. Try \'year\' or \'season\' or None.')
+            raise ValueError(f"'{resample_val}' is not available for resample. Try 'year' or 'season' or None.")
         
     ds_all_original = {m:ds_all[m].copy() for m in ds_all.keys()}
             

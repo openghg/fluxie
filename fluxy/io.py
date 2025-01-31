@@ -74,8 +74,6 @@ def read_flux(data_dir,species,models,s_data,m_data,period_override=None,verbose
         model_dir = m_data[m]["filename"].split('_')[0]
 
         try:
-            print(os.path.join(data_dir,model_dir,species,
-                                              f'{m_data[m]["filename"]}_{s_data[species]["model_species"][m0]}_{period_all[m]}.nc'))
             filepath = glob.glob(os.path.join(data_dir,model_dir,species,
                                               f'{m_data[m]["filename"]}_{s_data[species]["model_species"][m0]}_{period_all[m]}.nc'))
             if verbose: print(f'Reading data from: {filepath[0]}')

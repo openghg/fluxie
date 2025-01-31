@@ -19,6 +19,8 @@ def extract_region_flux(ds_all,country,verbose=True):
         #########################################################################################
         # To be move to read_flux
         m0 = m.split('_')[0]
+        min_percentile_index = config.model_q_indices[m0][0]
+        max_percentile_index = config.model_q_indices[m0][1]
         
         if m0 == 'elris':
 
@@ -94,7 +96,7 @@ def extract_region_flux(ds_all,country,verbose=True):
             ds_tmp['region_flux_total_prior'] = ds_tmp.country_flux_total_prior.sum(dim='country')
 
             ds_tmp['sigma_region_flux_total_prior'] = np.sqrt(((ds.country_flux_total_prior-
-                                                                ds.percentile_country_flux_total_prior.isel(percentile=config.model_q_indices[m0][0])
+                                                                ds.percentile_country_flux_total_prior.isel(percentile=min_percentile_index)
                                                                 )**2
                                                             ).sum(dim='country')
                                                             )
@@ -125,16 +127,16 @@ def extract_region_flux(ds_all,country,verbose=True):
             ds_tmp['region_flux_total_posterior'] = ds_tmp['country_flux_total_posterior']
             ds_tmp['region_flux_total_prior'] = ds_tmp['country_flux_total_prior']
             
-            ds_tmp['region_flux_total_posterior_lower'] = ds_tmp['percentile_country_flux_total_posterior'].isel(percentile=config.model_q_indices[m0][0])
-            ds_tmp['region_flux_total_posterior_upper'] = ds_tmp['percentile_country_flux_total_posterior'].isel(percentile=config.model_q_indices[m0][1])
-            ds_tmp['region_flux_total_prior_lower'] = ds_tmp['percentile_country_flux_total_prior'].isel(percentile=config.model_q_indices[m0][0])
-            ds_tmp['region_flux_total_prior_upper'] = ds_tmp['percentile_country_flux_total_prior'].isel(percentile=config.model_q_indices[m0][1])
+            ds_tmp['region_flux_total_posterior_lower'] = ds_tmp['percentile_country_flux_total_posterior'].isel(percentile=min_percentile_index)
+            ds_tmp['region_flux_total_posterior_upper'] = ds_tmp['percentile_country_flux_total_posterior'].isel(percentile=max_percentile_index)
+            ds_tmp['region_flux_total_prior_lower'] = ds_tmp['percentile_country_flux_total_prior'].isel(percentile=min_percentile_index)
+            ds_tmp['region_flux_total_prior_upper'] = ds_tmp['percentile_country_flux_total_prior'].isel(percentile=max_percentile_index)
 
         else:
             raise ValueError(f'{country_search} ({country}) is not available for {m}')
                 
-        ds_tmp['region_flux_total_posterior_lower'] = ds_tmp['region_flux_total_posterior_lower'].where(ds_tmp['region_flux_total_posterior_lower'] >= 0, 0)
-        ds_tmp['region_flux_total_prior_lower'] = ds_tmp['region_flux_total_prior_lower'].where(ds_tmp['region_flux_total_prior_lower'] >= 0, 0)
+        ds_tmp['region_flux_total_posterior_lower'] = ds_tmp['region_flux_total_posterior_lower'].clip(min = 0)
+        ds_tmp['region_flux_total_prior_lower'] = ds_tmp['region_flux_total_prior_lower'].clip(min = 0)
 
         ds_output[m] = ds_tmp[['region_flux_total_posterior','region_flux_total_prior',
                                'region_flux_total_posterior_lower','region_flux_total_posterior_upper',
