@@ -13,8 +13,8 @@ def update_list_params(params_to_check: list | None,
     """
     updated_params = list()
     for param in params_to_check:
-        if param is None :
-            updated_params.append(None)
+        if param is None:
+            updated_params.append([False]*expected_size)
         elif type(param) is list :
             if len(param) == expected_size:
                 updated_params.append(param)

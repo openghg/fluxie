@@ -19,25 +19,11 @@ def calculate_resampled_flux(ds_all: dict[xr.Dataset],
         ds_all_p: resampled datasets
     """
     ds_all_original = {m:ds_all[m].copy() for m in ds_all.keys()} 
+    ds_all_p = {m:ds_all_original[m].resample(time=rtime[i]).mean(dim="time") 
+                if rtime[i] is not None 
+                else ds_all_original[m] 
+                for i,m in enumerate(ds_all.keys())}
 
-    for i,m in enumerate(ds_all_original.keys()):
-
-        if 'elris' in m:
-
-            del ds_all_original[m]['covariance_country_flux_total_posterior']
-
-    ds_all_p = {m:ds_all_original[m].resample(time=rtime[i]).mean(dim="time") if rtime[i] is not None else ds_all_original[m] for i,m in enumerate(ds_all.keys())}
-
-    for i,m in enumerate(ds_all.keys()):
-
-        if 'elris' in m and rtime[i] is not None:
-            # Check if variable exists rather than elris (or rather check that country appeaars 2 times in index)
-
-            ds_all_p[m]['country'] = ds_all_p[m]['country'].isel(time=0).drop('time')
-            ds_all_p[m]['country_fraction'] = ds_all_p[m]['country_fraction'].isel(time=0).drop('time')
-            ds_all_p[m] = ds_all_p[m].assign({'covariance_country_flux_total_posterior':
-                                                ds_all[m]['covariance_country_flux_total_posterior'].resample(time=rtime[i]).mean(dim="time")})
-            
     return ds_all_p
 
 
@@ -138,4 +124,4 @@ def resample_flux(ds_all: dict[str,xr.Dataset],
             offset = (date_list_for_offset[1:]-date_list_for_offset[:-1]).mean()/2
             ds_all_p[m]['time'] = ds_all_p[m]['time'].values + offset
 
-    return ds_all_p
+    return {m+'_resample': ds for m,ds in ds_all_p.items()}
