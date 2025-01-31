@@ -109,8 +109,7 @@ def resample_flux(ds_all: dict[str,xr.Dataset],
     ds_all_p = calculate_resampled_flux(ds_all,rtime)
     
     if not resample_uncert_correlation:
-        ds_all_p = calculate_resampled_uncertainty(ds_all_original,ds_all_p,rtime,
-                                                resample_uncert_correlation)
+        ds_all_p = calculate_resampled_uncertainty(ds_all_original,ds_all_p,rtime)
     
     # shift timestamps of averaged data forwards to centre of inversion period
     for im,m in enumerate(ds_all.keys()):

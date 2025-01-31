@@ -166,7 +166,8 @@ def extract_region_inventory_flux(data_dir: str,
                                   country: str,
                                   species: str,
                                   s_data: dict[str,dict],
-                                  scale_co2eq: bool = False
+                                  scale_co2eq: bool = False,
+                                  inventory_year: int | str | None = None
                                   )->xr.Dataset:
     """
     Extracts inventory flux values for regions that exists,
@@ -177,6 +178,7 @@ def extract_region_inventory_flux(data_dir: str,
         species: Gas species, e.g. 'ch4'.
         s_data: Dictionary of species with information for plotting (read from json file).
         scale_co2eq: If True, adapt y-axis label to CO2-eq.
+        inventory_year: year of inventory to get.
         
     Returns:
         dataset with country selected
