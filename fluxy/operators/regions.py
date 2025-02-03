@@ -124,16 +124,7 @@ def extract_region_flux(ds_all: dict[str, xr.Dataset],
                                                             ).sum(dim='country')
                                                             )
             if 'covariance_country_flux_total_posterior' in ds.variables:
-                """
-                sigma2 = np.zeros(np.shape(ds['covariance_country_flux_total_posterior'])[0])
-
-                for i in range(len(sigma2)):
-                    sigma2[i] = country_index_vec.dot(ds['covariance_country_flux_total_posterior'].values[i,:,:].dot(country_index_vec))
-
-                sigma_region_flux_total_posterior = np.sqrt(sigma2)
-                """
-                logger.warning(f"Stuff need to be implemented here to use 'covariance_country_flux_total_posterior' to caculate 'sigma_region_flux_total_posterior'.")
-                ds_tmp['sigma_region_flux_total_posterior'] = np.nan * ds_tmp['region_flux_total_posterior']
+                ds_tmp['sigma_region_flux_total_posterior'] = np.sqrt(ds_tmp['covariance_country_flux_total_posterior'].sum(dim='country').sum(dim='country'))
                 
             else:
                 logger.warning(f'Covariance matrix is not available for {m}. A posteriori uncertainty of {country} emissions will not be plotted.')
