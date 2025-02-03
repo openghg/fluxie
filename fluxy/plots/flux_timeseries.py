@@ -1,18 +1,22 @@
-from fluxy import config
 import math
+import logging
 import numpy as np
 import xarray as xr
 import pandas as pd
-from matplotlib.ticker import NullFormatter
-from matplotlib.dates import YearLocator, MonthLocator
 import matplotlib.pyplot as plt
 
+from matplotlib.ticker import NullFormatter
+from matplotlib.dates import YearLocator, MonthLocator
+
+from fluxy import config
 from fluxy.operators.regions import extract_region_flux
 from fluxy.operators.rolling_mean import calc_rolling_mean
 from fluxy.operators.flux_resample import resample_flux
 from fluxy.operators.flux_combine import combine_dataset
 from fluxy.operators.flux_prepare_inventory import derive_inventories
 from fluxy.plots.utils import update_list_params
+
+logger = logging.getLogger(__name__)
 
 def determine_subplots_arrangement(subplot_number: int
                                    )->list[int]:
@@ -333,7 +337,6 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
                    columnspacing=1.0,
                    bbox_to_anchor=legend_loc
                    )
-        # leg = fig.legend(handles_all, labels_all, loc='upper center',ncol=ncol,borderpad=.4,columnspacing=1.0,bbox_to_anchor=legend_loc)
 
     fac = 1.1 if set_global_leg else 1.2
     
@@ -346,7 +349,7 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
         elif fix_y_axes == False:
             fig.axes[i].set_ylim([0,max_cf[i]*fac])  
     
-    print('NOTE: If all the data is not within axis limits, adjust the set_ylim parameter')
+    logger.info('NOTE: If all the data is not within axis limits, adjust the set_ylim parameter')
     plt.show()
     if return_res:
         return fig,res_dict

@@ -1,9 +1,13 @@
 import glob
 import os
+import logging
 import numpy as np
 import pandas as pd
 import xarray as xr
+
 from fluxy import config
+
+logger = logging.getLogger(__name__)
 
 def extract_region_flux(ds_all: dict[str, xr.Dataset],
                         country: str, 
@@ -50,8 +54,8 @@ def extract_region_flux(ds_all: dict[str, xr.Dataset],
             ds = ds.rename({'countrynumber':'country'})
 
             if 'BEL' not in ds.country and 'LUX'  not in ds.country:
-                if verbose: print(f'\nNOTE: InTEM does not estimate separate BELGIUM emissions.')
-                if verbose: print(f'So a population ratio of {config.bel_pop_r} is being used to scale InTEM\'s total BELGIUM+LUXEMBOURG estimate.\n')
+                if verbose: 
+                    logger.warning(f"InTEM does not estimate separate BELGIUM emissions.\n A population ratio of {config.bel_pop_r} is being used to scale InTEM's total BELGIUM+LUXEMBOURG estimate.")
 
                 r = config.bel_pop_r
 
@@ -105,7 +109,8 @@ def extract_region_flux(ds_all: dict[str, xr.Dataset],
         if country_search not in available_countries and country in config.regions_dict.keys() :
             region_search = config.regions_dict[country]
 
-            if verbose: print(f'{country} emissions are not present in {m}. Considering covariance matrix and sum of individual countries: {region_search}.')
+            if verbose: 
+                logger.warning(f'{country} emissions are not present in {m}. Considering covariance matrix and sum of individual countries: {region_search}.')
 
             country_list = region_search.split('-')
             ds_tmp = ds.sel({'country':country_list})
@@ -127,11 +132,11 @@ def extract_region_flux(ds_all: dict[str, xr.Dataset],
 
                 sigma_region_flux_total_posterior = np.sqrt(sigma2)
                 """
-                print(f'WARNING: stuff need to be implemented here (operators/regions.py)')
+                logger.warning(f"Stuff need to be implemented here to use 'covariance_country_flux_total_posterior' to caculate 'sigma_region_flux_total_posterior'.")
                 ds_tmp['sigma_region_flux_total_posterior'] = np.nan * ds_tmp['region_flux_total_posterior']
                 
             else:
-                print(f'WARNING: Covariance matrix is not available for {m}. A posteriori uncertainty of {country} emissions will not be plotted.')
+                logger.warning(f'Covariance matrix is not available for {m}. A posteriori uncertainty of {country} emissions will not be plotted.')
                 ds_tmp['sigma_region_flux_total_posterior'] = np.nan * ds_tmp['region_flux_total_posterior']
                 
             ds_tmp['region_flux_total_posterior_lower'] = ds_tmp['region_flux_total_posterior'] - ds_tmp['sigma_region_flux_total_posterior']
@@ -214,7 +219,7 @@ def extract_region_inventory_flux(data_dir: str,
     else:
         region_search = config.regions_dict[country]
         country_list = region_search.split('-')
-        print(f'No inventory data available for {country}. Considering sum of individual countries: {region_search}')
+        logger.info(f'No inventory data available for {country}. Considering sum of individual countries: {region_search}')
 
         country_list_update = [country if country in inv_ds['country'] 
                                else dict(map(reversed, config.countrycodes_dict.items()))[country] 
