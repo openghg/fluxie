@@ -157,7 +157,6 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
         period_override: Inversion periods to include, to override the standards in species_info.json. Must be the same length as models, e.g. ['monthly',None,'yearly']
         return_res: Wheter or not including a dictionnary with the results as output
         rolling_mean : If True, calculates a rolling mean (xx years) for each of the data to plot.
-        apply_pop_scale : 
     Returns:
         fig: A plot per country/region.
         res_dict : If return_res, return also a dictionnary containaing the plotted results
@@ -165,7 +164,6 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
     """
     if return_res:
         res_dict = {country:dict() for country in plot_regions}
-        print('WARNING : Only return the annual combined results for now, so work only if plot_combined=True')
     
     max_cf = np.zeros(len(plot_regions))
     linewidth, alpha = (1.0, 0.7) if annex_mode else (1.5, 1.0)
@@ -190,6 +188,9 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
                        align='edge',fill=False,
                        label=f'Inventory {inventory.year}',
                        zorder=0)
+                if return_res:
+                    res_dict[country][f'inventory_{inventory.year}']= {'time':inventory.time.values,
+                                                                       'value':inventory.values}
         
         ds_all_region = extract_region_flux(ds_all,country)
         
@@ -231,6 +232,11 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
                                    ds_region.region_flux_total_posterior_upper.max(skipna=True),
                                    ds_region.region_flux_total_posterior.max(skipna=True)
                                    ))
+            if return_res:
+                res_dict[country][m] = {'time':ds_region.time.values.astype('datetime64[ns]'),
+                                        'mean':ds_region.region_flux_total_posterior.values,
+                                        'min':ds_region.region_flux_total_posterior_lower.values,
+                                        'max':ds_region.region_flux_total_posterior_upper.values}
             
             if add_prior:
                 ax.plot(ds_region.time,
