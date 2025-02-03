@@ -97,10 +97,11 @@ def prepare_data_to_plot(ds_region: dict[str, xr.Dataset],
 def plot_country_flux(ds_all: dict[str,xr.Dataset],
                       species: str, 
                       plot_regions: list[str],
+                      s_data: dict[str,str],
+                      m_data: dict[str,str],
                       model_colors: dict[str,str],
                       start_date: str,
                       end_date: str,
-                      ppt_mode: bool = False,
                       annex_mode: bool = False,
                       scale_co2eq: bool = False,
                       plot_inventory: bool = True,
@@ -116,11 +117,9 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
                       resample: str | list[str] | None = None,
                       resample_uncert_correlation: bool = False,
                       plot_resample_and_original: bool = False,
-                      period_override: list[str] | None = None,
                       return_res: bool = False,
                       rolling_mean: bool = False,
-                      apply_pop_scale: bool = True
-                     ):#-> plt.figure | list : # DOn't know how to handle this 
+                     ):#-> plt.figure | list : # Don't know how to handle this 
     """
     Timeseries plot of prior and posterior country fluxes, from list of 
     areas in plot_regions.
@@ -169,9 +168,7 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
         print('WARNING : Only return the annual combined results for now, so work only if plot_combined=True')
     
     max_cf = np.zeros(len(plot_regions))
-    min_x = []
-    max_x = []
-    lw, alpha = (1.0, 0.7) if annex_mode else (1.5, 1.0)
+    linewidth, alpha = (1.0, 0.7) if annex_mode else (1.5, 1.0)
 
     # Create figure
     n_cols, n_rows = determine_subplots_arrangement(len(plot_regions))
@@ -195,11 +192,14 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
                        zorder=0)
         
         ds_all_region = extract_region_flux(ds_all,country)
-
-        ds_to_plot = prepare_data_to_plot(ds_all_region, plot_separate, plot_combined, 
-                                            resample, rolling_mean, 
-                                            plot_resample_and_original,
-                                            resample_uncert_correlation)
+        
+        ds_to_plot = prepare_data_to_plot(ds_all_region, 
+                                          plot_separate = plot_separate, 
+                                          plot_combined = plot_combined, 
+                                          resample = resample, 
+                                          rolling_mean = rolling_mean, 
+                                          plot_resample_and_original = plot_resample_and_original,
+                                          resample_uncert_correlation = resample_uncert_correlation)
 
         for m, ds_region in ds_to_plot.items():
 
@@ -227,6 +227,10 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
                             ds_region.region_flux_total_posterior_upper,
                             alpha=0.3,
                             color=model_colors[m_org][0])   
+            max_cf[i] = np.nanmax((max_cf[i],
+                                   ds_region.region_flux_total_posterior_upper.max(skipna=True),
+                                   ds_region.region_flux_total_posterior.max(skipna=True)
+                                   ))
             
             if add_prior:
                 ax.plot(ds_region.time,
@@ -234,9 +238,9 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
                         label=include_label_prior,
                         color=model_colors[m_org][0],
                         linestyle='dashed',
-                        linewidth=lw,
+                        linewidth=linewidth,
                         alpha=alpha)
-                max_cf[i] = np.max((max_cf[i],np.nanmax(ds_region.region_flux_total_prior)))
+                max_cf[i] = np.nanmax((max_cf[i],ds_region.region_flux_total_prior.max(skipna=True)))
     
             
             if add_prior_unc:
@@ -245,7 +249,7 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
                                 ds_region.region_flux_total_prior_upper,
                                 alpha=0.1,
                                 color=model_colors[m][0])
-                max_cf[i] = np.max((max_cf[i],np.nanmax(ds_region.region_flux_total_prior_upper)))
+                max_cf[i] = np.nanmax((max_cf[i],ds_region.region_flux_total_prior_upper.max(skipna=True)))
                                            
         #format each subplot
         units_print = s_data[species]["units_print"]
@@ -312,10 +316,7 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
             ncol=ncol+1
             
         if n_rows > 1:
-            if (ppt_mode):
-                legend_loc = (0.5, 1.1)
-            else:
-                legend_loc = (0.5, 1.07)
+            legend_loc = (0.5, 1.1)
         else:
             legend_loc = (0.5, 1.15)
         handles, labels = ax.get_legend_handles_labels()
@@ -324,18 +325,20 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
                    ncol=ncol,
                    borderpad=.4,
                    columnspacing=1.0,
+                   bbox_to_anchor=legend_loc
                    )
+        # leg = fig.legend(handles_all, labels_all, loc='upper center',ncol=ncol,borderpad=.4,columnspacing=1.0,bbox_to_anchor=legend_loc)
 
-    # fac = 1.1 if set_global_leg else 1.2
+    fac = 1.1 if set_global_leg else 1.2
     
     # loop through plots again to fix min/max y-axis values
-    # for i,country in enumerate(plot_regions):
-    #     if fix_y_axes == True:
-    #         fig.axes[i].set_ylim([0,np.nanmax(max_cf)*fac])  
-    #     elif type(fix_y_axes) == list:
-    #         fig.axes[i].set_ylim(fix_y_axes)
-    #     elif fix_y_axes == False:
-    #         fig.axes[i].set_ylim([0,max_cf[i]*fac])  
+    for i,country in enumerate(plot_regions):
+        if fix_y_axes == True:
+            fig.axes[i].set_ylim([0,np.nanmax(max_cf)*fac])  
+        elif type(fix_y_axes) == list:
+            fig.axes[i].set_ylim(fix_y_axes)
+        elif fix_y_axes == False:
+            fig.axes[i].set_ylim([0,max_cf[i]*fac])  
     
     print('NOTE: If all the data is not within axis limits, adjust the set_ylim parameter')
     plt.show()
