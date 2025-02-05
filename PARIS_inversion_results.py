@@ -2567,7 +2567,7 @@ def plot_country_flux(ds_all,species,plot_regions,
 def plot_spatial_flux(ds_all,species,plot_area,s_data,m_data,cmap=None,
                       cmap_diff=None,c_border=None,period_override=None,
                       plot_site_locations=False,plot_point_markers=None,
-                      season=None,plot_inversion_grid_flux=False):
+                      season=None,plot_inversion_grid_flux=False,sites_available=None):
     """
     Plots posterior and prior fluxes and the difference between these
     for all models.
@@ -2611,6 +2611,9 @@ def plot_spatial_flux(ds_all,species,plot_area,s_data,m_data,cmap=None,
             If True, plots fluxes at the spatial resolution of the inversion (using the 
             inversion_grid variable). If False, plots fluxes at the spatial resolution
             of the prior.
+        sites_available (dict of list of str, default None):
+            List of 3-letter site codes with data between start_date and end_date, for each model.
+            If None, site location will be plotting for all sites used across whole inversion period.
     Returns:
         fig (figure): 
             A plot of spatial flux posterior and prior mean/mode and a plot 
@@ -2657,20 +2660,25 @@ def plot_spatial_flux(ds_all,species,plot_area,s_data,m_data,cmap=None,
     # data available
     sites_info = {}
     if plot_site_locations == True:
-        for i,m in enumerate(ds_all.keys()):
-            try:
-                sites_test = ds_all[m].sites.replace("'","").replace(']','').replace('[','').replace(' ','').split(',')
-                sites_info[m] = extract_site_info(sites_test)
-            except:
-                sites_info[m] = None
-                
-        for i,m in enumerate(ds_all.keys()):
-            if sites_info[m] == None:
-                for j,m2 in enumerate(sites_info.keys()):
-                    if sites_info[m2] != None:
-                        print(f'No sites data available in {m} attrs, so using site data from {m2}')
-                        sites_info[m] = sites_info[m2]
+        if sites_available == None:
+            print('WARNING: sites_available not supplied, so plotting all sites listed in flux file attrs.')
+            for i,m in enumerate(ds_all.keys()):
+                try:
+                    sites_test = ds_all[m].sites.replace("'","").replace(']','').replace('[','').replace(' ','').split(',')
+                    sites_info[m] = extract_site_info(sites_test)
+                except:
+                    sites_info[m] = None
+                    
+            for i,m in enumerate(ds_all.keys()):
+                if sites_info[m] == None:
+                    for j,m2 in enumerate(sites_info.keys()):
+                        if sites_info[m2] != None:
+                            print(f'No sites data available in {m} attrs, so using site data from {m2}')
+                            sites_info[m] = sites_info[m2]
                     break
+        else:
+            for i,m in enumerate(sites_available.keys()):
+                sites_info[m] = extract_site_info(sites_available[m])
 
     fig,ax = plt.subplots(3,n_cols,constrained_layout=True,figsize=(n_cols*5,9),
                    subplot_kw={'projection':cartopy.crs.PlateCarree()})
@@ -2871,7 +2879,7 @@ def plot_spatial_flux_one_variable(ds_all,species,plot_area,s_data,m_data,var,
                                     plot_site_locations=False,plot_point_markers=None,
                                     season=None,plot_inversion_grid_flux=False,
                                     scale_to_kgkm2yr=False,nir_style_plot=False,
-                                    mask_sea_areas=False,include_threshold=False):
+                                    mask_sea_areas=False,include_threshold=False,sites_available=None):
     """
     Plots either posterior or prior fluxes, one plot per model.
     Function created just for the NISC_plots version of the notebook.
@@ -2930,6 +2938,9 @@ def plot_spatial_flux_one_variable(ds_all,species,plot_area,s_data,m_data,var,
             If True, all values below threshold_scale * max(flux) are set to zero in the plotting. 
             threshold_scale is set in species_info.json.
             This scaling step is now applied after averaging.
+        sites_available (dict of list of str, default None):
+            List of 3-letter site codes with data between start_date and end_date, for each model.
+            If None, site location will be plotting for all sites used across whole inversion period.
     Returns:
         fig (figure): 
             A plot of spatial flux posterior and prior mean/mode and a plot 
@@ -2993,20 +3004,25 @@ def plot_spatial_flux_one_variable(ds_all,species,plot_area,s_data,m_data,var,
     # data available
     sites_info = {}
     if plot_site_locations == True:
-        for i,m in enumerate(ds_all.keys()):
-            try:
-                sites_test = ds_all[m].sites.replace("'","").replace(']','').replace('[','').replace(' ','').split(',')
-                sites_info[m] = extract_site_info(sites_test)
-            except:
-                sites_info[m] = None
-                
-        for i,m in enumerate(ds_all.keys()):
-            if sites_info[m] == None:
-                for j,m2 in enumerate(sites_info.keys()):
-                    if sites_info[m2] != None:
-                        print(f'No sites data available in {m} attrs, so using site data from {m2}')
-                        sites_info[m] = sites_info[m2]
+        if sites_available == None:
+            print('WARNING: sites_available not supplied, so plotting all sites listed in flux file attrs.')
+            for i,m in enumerate(ds_all.keys()):
+                try:
+                    sites_test = ds_all[m].sites.replace("'","").replace(']','').replace('[','').replace(' ','').split(',')
+                    sites_info[m] = extract_site_info(sites_test)
+                except:
+                    sites_info[m] = None
+                    
+            for i,m in enumerate(ds_all.keys()):
+                if sites_info[m] == None:
+                    for j,m2 in enumerate(sites_info.keys()):
+                        if sites_info[m2] != None:
+                            print(f'No sites data available in {m} attrs, so using site data from {m2}')
+                            sites_info[m] = sites_info[m2]
                     break
+        else:
+            for i,m in enumerate(sites_available.keys()):
+                sites_info[m] = extract_site_info(sites_available[m])
 
     fig,ax = plt.subplots(1,n_cols,figsize=(n_cols*4,3),
                    subplot_kw={'projection':cartopy.crs.PlateCarree()})
