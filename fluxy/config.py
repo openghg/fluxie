@@ -272,7 +272,8 @@ def set_model_colors(models: list[str]) -> dict[str, list]:
 
     return model_colors
 
-def set_model_labels(models, config_data,get_labels_from_file):
+def set_model_labels(models: list[str], config_data: dict[str, dict], get_labels_from_file: bool
+) -> dict[str, str]:
 
     model_labels = {}
 

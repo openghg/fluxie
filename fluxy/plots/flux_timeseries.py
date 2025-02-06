@@ -40,9 +40,12 @@ def determine_subplots_arrangement(subplot_number: int) -> tuple[int, int]:
         n_rows = 2
     return n_cols,n_rows
 
+# def add_attr_model_label(ds_all: )
 
 def prepare_data_to_plot(
-    ds_region: dict[str, xr.Dataset],
+    ds_all_region: dict[str, xr.Dataset],
+    model_labels: dict[str, str],
+    model_colors: dict[str, list],
     plot_separate: bool | list[bool] = True,
     plot_combined: bool | list[bool] = False,
     resample: str | list[str] | None = None,
@@ -54,7 +57,7 @@ def prepare_data_to_plot(
     Create a single xarray dataset for each set of data to be plotted.
 
     Args:
-        ds_all: xarray datasets of fluxes, scaled and sliced between 
+        ds_region: xarray datasets of fluxes, scaled and sliced between 
             chosen dates.
         plot_separate: If True, plots model result as separate line. List must be of same size as models, e.g. [True, False, False].
             If a single boolean is provided, the same flag is assumed for all models.
@@ -74,29 +77,58 @@ def prepare_data_to_plot(
     # Convert some inputs to list and check there size
     plot_separate, plot_combined, resample \
         = update_list_params([plot_separate, plot_combined, resample], 
-                            expected_size = len(ds_region.keys()))
+                            expected_size = len(ds_all_region.keys()))
+    
+    # Assign default color list and label to input dataset
+    for m in ds_all_region.keys():
+        ds_all_region[m].attrs['model_label'] = model_labels[m]
+        ds_all_region[m].attrs['model_colors'] = model_colors[m]
+    map_model_colors = {f'c{i}' : m for i, m in enumerate(model_colors.values())}
+
+    # Prepare list of dataset to plot
     ds_to_plot = dict()
 
     if not any(resample) or plot_resample_and_original:
-        ds_original_flux = {m: v for (i, (m, v)) in enumerate(ds_region.items()) 
+        ds_original_flux = {m: v for (i, (m, v)) in enumerate(ds_all_region.items()) 
                             if plot_separate[i]}
         ds_to_plot.update(ds_original_flux)
 
     if any(resample) : 
-        ds_resampled = resample_flux(ds_region, resample, resample_uncert_correlation)
+        ds_resampled = resample_flux(ds_all_region, resample, resample_uncert_correlation)
         ds_to_plot.update({m: v for (i, (m, v)) in enumerate(ds_resampled.items()) 
                            if plot_separate[i]})        
     
     if any(plot_combined):
         if all([resamp for comb, resamp in zip(plot_combined,resample) if comb]):
             ds_combined = combine_dataset(ds_resampled, plot_combined)
+            ds_combined.attrs['model_label'] = 'PARIS mean (from resampled data)'
         else:
-            ds_combined = combine_dataset(ds_region, plot_combined)
+            ds_combined = combine_dataset(ds_all_region, plot_combined)
+            ds_combined.attrs['model_label'] = 'PARIS mean'
         ds_to_plot.update(ds_combined)
 
     if rolling_mean:
         ds_to_plot = {m: calc_rolling_mean(ds) for m, ds in ds_to_plot.items()}
-    
+
+    # Determine plot color and label of each dataset
+    color_usage = {k: 0 for k in map_model_colors.keys()}
+    for m in ds_to_plot.keys():
+        if m == 'combined': 
+            include_label = 'PARIS mean'
+            model_color = 'black'
+        else: 
+            include_label = ds_to_plot[m].attrs.get('model_label', None)
+            key_mc = [k for k in map_model_colors.keys() if map_model_colors[k] == ds_to_plot[m].attrs['model_colors']][0]
+            nb = color_usage[key_mc]
+            model_color = map_model_colors[key_mc][nb % len (map_model_colors[key_mc])]
+            color_usage[key_mc] = color_usage[key_mc]+1           
+            
+        if '_resample' in m :
+            include_label += ' (resampled)'
+
+        ds_to_plot[m].attrs['model_label'] = include_label
+        ds_to_plot[m].attrs['model_color'] = model_color
+
     return ds_to_plot
 
 
@@ -107,10 +139,10 @@ def plot_country_flux(
     s_data: dict[str, str],
     m_data: dict[str, str],
     model_colors: dict[str, str],
+    model_labels: list[str] | None,
     start_date: str,
     end_date: str,
     annex_mode: bool = False,
-    scale_co2eq: bool = False,
     plot_inventory: bool = True,
     inventory_years: list[str] | None = None,
     data_dir: str | None = None,
@@ -177,6 +209,13 @@ def plot_country_flux(
 
     # Create figure
     n_cols, n_rows = determine_subplots_arrangement(len(plot_regions))
+    
+
+    units = {ds.country_flux_total_posterior.units for ds in ds_all.values()} 
+    if len(units) == 1:
+        units_print = list(units)[0].replace('-1','$^{{-1}}$')
+    else:
+        raise ValueError(f"In concistency in the units from the different datasets : {units} are present. Only one is expected.")
         
     fig, axes = plt.subplots(
         n_rows, n_cols, sharex=True,
@@ -187,7 +226,7 @@ def plot_country_flux(
         ax = axes.flatten()[i]
 
         if plot_inventory :
-            inventories_to_plot = retrieve_inventories(data_dir,country,specie,start_date,end_date,s_data,scale_co2eq,inventory_years)
+            inventories_to_plot = retrieve_inventories(data_dir,country,specie,start_date,end_date,s_data,inventory_years)
             for i_inv, inventory in enumerate(inventories_to_plot) :
                 ax.bar(inventory.time,inventory,
                        np.timedelta64(340-i_inv*20, 'D'),
@@ -202,6 +241,8 @@ def plot_country_flux(
         ds_all_region = extract_region_flux(ds_all, country)
         ds_to_plot = prepare_data_to_plot(
             ds_all_region,
+            model_labels,
+            model_colors,
             plot_separate=plot_separate,
             plot_combined=plot_combined,
             resample=resample,
@@ -211,30 +252,16 @@ def plot_country_flux(
         )
 
         for m, ds_region in ds_to_plot.items():
-            if m in m_data:
-                m_org, add_label = m, ''
-            elif m == 'combined':
-                m_org, add_label = m, ''
-                m_data[m_org] = {"label" : 'PARIS mean'}
-                model_colors[m_org] = ['black','gray']
-            elif m.replace('_resample','') in m_data:
-                m_org, add_label = m.replace('_resample',''), ' (resampled)'
 
-            if annex_mode:
-                include_label = m_data[m_org]["label"].split()[0] + add_label
-            else:
-                include_label = m_data[m_org]["label"] + add_label
-            include_label_prior = f'{include_label} prior'
-                
             ax.plot(ds_region.time,
                     ds_region.posterior,
-                    label=include_label,
-                    color=model_colors[m_org][0]) 
+                    label = ds_region.attrs['model_label'],
+                    color = ds_region.attrs['model_color']) 
             ax.fill_between(ds_region.time,
                             ds_region.posterior_lower,
                             ds_region.posterior_upper,
-                            alpha=0.3,
-                            color=model_colors[m_org][0])   
+                            alpha = 0.3,
+                            color = ds_region.attrs['model_color'])   
             max_cf[i] = np.nanmax((max_cf[i],
                                    ds_region.posterior_upper.max(skipna=True),
                                    ds_region.posterior.max(skipna=True)
@@ -248,11 +275,11 @@ def plot_country_flux(
             if add_prior:
                 ax.plot(ds_region.time,
                         ds_region.prior,
-                        label=include_label_prior,
-                        color=model_colors[m_org][0],
-                        linestyle='dashed',
-                        linewidth=linewidth,
-                        alpha=alpha)
+                        label = ds_region.attrs['model_label'] + ' prior',
+                        color = ds_region.attrs['model_color'],
+                        linestyle = 'dashed',
+                        linewidth = linewidth,
+                        alpha = alpha)
                 max_cf[i] = np.nanmax((max_cf[i], ds_region.prior.max(skipna=True)))
     
             
@@ -260,21 +287,11 @@ def plot_country_flux(
                 ax.fill_between(ds_region.time,
                                 ds_region.prior_lower,
                                 ds_region.prior_upper,
-                                alpha=0.1,
-                                color=model_colors[m][0])
+                                alpha = 0.1,
+                                color = ds_region.attrs['model_color'])
                 max_cf[i] = np.nanmax((max_cf[i], ds_region.prior_upper.max(skipna=True)))
                                            
-        #format each subplot
-        units_print = s_data[specie]["units_print"]
-        if 'all' in specie:
-            y_label_append = ' CO$_2$-eq'
-        elif scale_co2eq:
-            y_label_append = ' CO$_2$-eq'
-            units_print = "T"
-        else:
-            y_label_append = ''
-        
-        ax.set_ylabel(f'{s_data[specie]["species_print"]} ({units_print}g{y_label_append} yr$^{{-1}}$)')     
+        ax.set_ylabel(f'{s_data[specie]["species_print"]} ({units_print})')     
         
         # set legend if needed
         if not set_global_leg:
@@ -287,7 +304,7 @@ def plot_country_flux(
         country_equivalent = {'NW_EU2':'NW EUROPE',
                               'CW_EU':'CENTRAL W EUROPE',
                               'NW_EU_CONTINENT':'NW CONTINENTAL EUROPE'}
-        print_country = country_equivalent[country] if country in country_equivalent.keys() else country
+        print_country = country_equivalent.get(country, country)
 
         if country_codes_as_titles and country in config.regions_dict.keys():
             ax.set_title(f'{print_country}\n{config.regions_dict[country]}')

@@ -129,4 +129,4 @@ def resample_flux(
             offset = (date_list_for_offset[1:] - date_list_for_offset[:-1]).mean() / 2
             ds_all_resampled[m]['time'] = ds_all_resampled[m]['time'].values + offset
 
-    return {m + '_resample': ds for m, ds in ds_all_resampled.items()}
+    return {m + '_resample': ds.dropna(dim='time',how='all') for m, ds in ds_all_resampled.items()}

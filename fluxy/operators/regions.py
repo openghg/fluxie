@@ -40,9 +40,9 @@ def extract_region_flux(
     for m, ds in ds_all.items():
         #########################################################################################
         # To be move to read_flux
-        m0 = m.split("_")[0]
-        min_percentile_index = config.model_q_indices[m0][0]
-        max_percentile_index = config.model_q_indices[m0][1]
+        m0 = m.split("_")[0].lower()
+        min_percentile_index = 0
+        max_percentile_index = 1
         
         if m0 == 'elris':
             ds['country'] = ds['country'].astype('str')
