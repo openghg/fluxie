@@ -128,12 +128,8 @@ def extract_region_flux(
                 ds_region['sigma_posterior'] = np.nan * ds_region['posterior']
                 
             for v in ["posterior", "prior"]:
-                ds_region[f"region_flux_{v}_lower"] = (
-                    ds_region[f"region_flux_{v}"] - ds_region[f"sigma_region_flux_{v}"]
-                )
-                ds_region[f"region_flux_{v}_upper"] = (
-                    ds_region[f"region_flux_{v}"] + ds_region[f"sigma_region_flux_{v}"]
-                )
+                ds_region[f"{v}_lower"] = ds_region[v] - ds_region[f"sigma_{v}"]
+                ds_region[f"{v}_upper"] = ds_region[v] + ds_region[f"sigma_{v}"]
 
         elif country_search in available_countries:
             ds_region = ds.sel({"country": country_search})
@@ -150,7 +146,7 @@ def extract_region_flux(
             raise ValueError(f'{country_search} ({country}) is not available for {m}')
 
         for v in ["posterior", "prior"]:
-            ds_region[f"region_flux_{v}_lower"] = ds_region[f"region_flux_{v}_lower"].clip(min=0)
+            ds_region[f"{v}_lower"] = ds_region[f"{v}_lower"].clip(min=0)
 
         ds_output[m] = ds_region[
             ["posterior","posterior_lower","posterior_upper",

@@ -18,7 +18,7 @@ from fluxy.plots.utils import update_list_params
 
 logger = logging.getLogger(__name__)
 
-def def determine_subplots_arrangement(subplot_number: int) -> tuple[int, int]:
+def determine_subplots_arrangement(subplot_number: int) -> tuple[int, int]:
     """
     Determine number of columns and rows for the figure given the number of subplots to make.
     Args: 
@@ -188,7 +188,7 @@ def plot_country_flux(
 
         if plot_inventory :
             inventories_to_plot = retrieve_inventories(data_dir,country,specie,start_date,end_date,s_data,scale_co2eq,inventory_years)
-            for i_inv,inventory in enumerate(inventories_to_plot) :
+            for i_inv, inventory in enumerate(inventories_to_plot) :
                 ax.bar(inventory.time,inventory,
                        np.timedelta64(340-i_inv*20, 'D'),
                        edgecolor=inventory.plot_color,
