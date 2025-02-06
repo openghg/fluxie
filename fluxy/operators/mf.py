@@ -1,7 +1,7 @@
 import numpy as np
 import xarray as xr
 import logging
-from fluxy.operators.select import get_unique_sites, get_site_index, get_mf_variables
+from fluxy.operators.select import get_unique_sites, get_site_index, get_variables
 
 logger = logging.getLogger(__name__)
 
@@ -44,13 +44,16 @@ def compute_mf_difference(ds_all: dict[str, xr.Dataset],
     ds_diff[key_name] = ds0
 
     # Compute difference between the two datasets (mole fraction variables only)
-    var_names, x = get_mf_variables(ds0)
+    var_names, x = get_variables(ds0,'mf')
     for v in var_names:
-        if ds0[v].attrs['units'] != ds1[v].attrs['units']:
+        units_0 = ds0[v].attrs['units']
+        units_1 = ds1[v].attrs['units']
+        if units_0 != units_1:
             logger.warning(f'{v} in {models_to_subtract[0]} and {models_to_subtract[1]} have different units. {v} will not be included in the diff dataset.')
             continue
         
         ds_diff[key_name][v] = ds0[v] - ds1[v]
+        ds_diff[key_name][v].attrs["units"] = units_0
 
     return ds_diff
 

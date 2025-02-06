@@ -14,11 +14,6 @@ color_palette = {0:[['blue','dodgerblue'],
                     ['limegreen','palegreen'],
                     ['olive','lightgreen']]}
 
-model_q_indices = {'intem':[0,1],
-                   'rhime':[0,1],
-                   'elris':[0,1],
-                   'flexinvert':[0,1]}
-
 point_source_dict = {
                     'paris':[2.3404,48.8600],
                     'nw_england':[-2.7969,53.7748],
@@ -140,6 +135,11 @@ mf_color_index = {'Yapriori':1,
                   'uYtotal':1
                   }
 
+flux_labels = {'flux_total_prior':'Prior',
+               'flux_total_posterior_inversion_grid':'Posterior',
+               'flux_total_posterior':'Posterior',
+              }
+
 stat_labels = {'pearson': 'Pearson correlation coefficient',
                'rmse'   : 'RMSE',
                'nrmse'  : 'Normalised RMSE',
@@ -162,11 +162,13 @@ units_scale = {'mf': {'mol mol-1' : 1, # mf base unit
                         'g'  : 1  # mass base unit
                         },
                 'time':{'yr': 60*60*24*365,
+                        'a': 60*60*24*365,
                         's' : 1  # time base unit
                         },
                 'length':{'km': 1e3,
                           'm' : 1 # length base unit
-                          }
+                          },
+                'nd':{'1': 1} # non-dimensional
               }
 
 def set_print_settings(presentation_mode: bool = False) -> dict[int, list]:
@@ -269,3 +271,23 @@ def set_model_colors(models: list[str]) -> dict[str, list]:
             index_colors[i] = index_colors[i]+1
 
     return model_colors
+
+def set_model_labels(models, config_data,get_labels_from_file):
+
+    model_labels = {}
+
+    for m in models:
+        # Get model name components
+        name_tags = m.split('_')
+
+        # Get labels
+        label = None
+        if get_labels_from_file and "model_labels" in config_data["models_info"]:
+            label = config_data["models_info"]["model_labels"].get(m, None)
+
+        if label is None:
+            label = " ".join(name_tags)
+
+        model_labels[m] = label
+
+    return model_labels

@@ -1,205 +1,56 @@
 {
     "ch4": {
         "species_print": "CH$_4$",
-        "period": "monthly",
-        "units_scaling": {
-            "intem": 1000000000.0,
-            "rhime": 1000000000.0,
-            "elris": 1000000000.0
-        },
-        "model_species": {
-            "intem": "ch4",
-            "rhime": "ch4",
-            "elris": "CH4"
-        },
-        "units_print": "T",
         "dt_units": {
             "intem": "datetime64[M]",
             "rhime": "datetime64[M]",
             "elris": "datetime64[M]"
         },
-        "mf_units_scaling": 1e-09,
-        "mf_units_print": "ppb",
-        "fluxlim": [
-            0,
-            5e-08
-        ],
-        "difflim": [
-            -2e-08,
-            2e-08
-        ],
         "gwp": 28,
-        "std_run": {
-            "intem": "name_wetcharts_31sites",
-            "rhime": "name_wetcharts_31sites",
-            "elris": "name_wetcharts_31sites"
-        },
         "molar_mass": 16.04
     },
     "hfc134a": {
         "species_print": "HFC-134a",
-        "period": "yearly",
-        "units_scaling": {
-            "intem": 1000000.0,
-            "rhime": 1000000.0,
-            "elris": 1000000.0
-        },
-        "model_species": {
-            "intem": "hfc134a",
-            "rhime": "hfc134a",
-            "elris": "HFC_134a"
-        },
-        "units_print": "G",
         "dt_units": {
             "intem": "datetime64[Y]",
             "rhime": "datetime64[Y]",
             "elris": "datetime64[Y]"
         },
-        "mf_units_scaling": 1e-12,
-        "mf_units_print": "ppt",
-        "fluxlim": [
-            0,
-            1e-11
-        ],
-        "difflim": [
-            -1e-11,
-            1e-11
-        ],
         "gwp": 1300,
-        "std_run": {
-            "intem": "name_edgar",
-            "rhime": "name_edgar",
-            "elris": "name_edgar"
-        },
         "molar_mass": 102.03
     },
     "hfo1234yf": {
         "species_print":"HFO-1234yf",
-        "period": "yearly",
-        "units_scaling": {
-            "intem": 1000000.0,
-            "rhime": 1000000.0,
-            "elris": 1000000.0
-        },
-        "model_species": {
-            "intem": "hfo1234yf",
-            "rhime": "hfo1234yf",
-            "elris": "hfo1234yf"
-        },
-        "units_print": "G",
         "dt_units": {
             "intem": "datetime64[Y]",
             "rhime": "datetime64[Y]",
             "elris": "datetime64[Y]"
         },
-        "mf_units_scaling": 1e-12,
-        "mf_units_print": "ppt",
-        "fluxlim":[
-            0,
-            1e-12
-        ],
-        "difflim":[
-            -1e-12,
-            1e-12
-        ],
         "gwp":1,
-        "std_run": {
-            "intem": "name_pop",
-            "rhime": "name_pop",
-            "elris": "name_pop"
-        },
         "molar_mass": 114.04
     },
     "hfo1234zee": {
         "species_print":"HFO-1234ze(E)",
-        "period": "yearly",
-        "units_scaling": {
-            "intem": 1000000.0,
-            "rhime": 1000000.0,
-            "elris": 1000000.0
-        },
-        "model_species": {
-            "intem": "hfo1234zee",
-            "rhime": "hfo1234zee",
-            "elris": "hfo1234zee"
-        },
-        "units_print": "G",
         "dt_units": {
             "intem": "datetime64[Y]",
             "rhime": "datetime64[Y]",
             "elris": "datetime64[Y]"
         },
-        "mf_units_scaling": 1e-12,
-        "mf_units_print": "ppt",
-        "fluxlim":[
-            0,
-            1e-12
-        ],
-        "difflim":[
-            -1e-12,
-            1e-12
-        ],
         "gwp":1,
-        "std_run": {
-            "intem": "name_pop",
-            "rhime": "name_pop",
-            "elris": "name_pop"
-        },
         "molar_mass": 114.04
     },
     "hcfo1233zde": {
         "species_print":"HCFO-1233zd(E)",
-        "period": "yearly",
-        "units_scaling": {
-            "intem": 1000000.0,
-            "rhime": 1000000.0,
-            "elris": 1000000.0
-        },
-        "model_species": {
-            "intem": "hcfo1233zde",
-            "rhime": "hcfo1233zde",
-            "elris": "hcfo1233zde"
-        },
-        "units_print": "G",
         "dt_units": {
             "intem": "datetime64[Y]",
             "rhime": "datetime64[Y]",
             "elris": "datetime64[Y]"
         },
-        "mf_units_scaling": 1e-12,
-        "mf_units_print": "ppt",
-        "fluxlim":[
-            0,
-            1e-12
-        ],
-        "difflim":[
-            -1e-12,
-            1e-12
-        ],
         "gwp":4,
-        "std_run": {
-            "intem": "name_pop",
-            "rhime": "name_pop",
-            "elris": "name_pop"
-        },
         "molar_mass": 130.49
     },
     "clch2ch2cl":{
         "species_print":"DCA",
-        "period":"yearly",
-        "units_scaling": {
-            "intem": 1000000.0,
-            "rhime": 1000000.0,
-            "elris": 1000000.0,
-            "flexinvert":1000000.0
-        },
-        "model_species": {
-            "intem":"clch2ch2cl",
-            "rhime":"clch2ch2cl",
-            "elris":"ClCH2CH2Cl",
-            "flexinvert":"clch2ch2cl"
-        },
-        "units_print":"G",
         "dt_units": {
             "intem":"datetime64[Y]",
             "rhime":"datetime64[Y]",
@@ -207,699 +58,191 @@
             "flexinvert":"int64"
         },
         "mf_units_scaling": 1e-12,
-        "mf_units_print": "ppt",
-        "fluxlim":[
-            0,
-            2e-12
-        ],
-        "difflim":[
-            -2e-12,
-            2e-12
-        ],
         "gwp":1,
-        "std_run": {
-            "intem": "name_pop",
-            "rhime": "name_pop",
-            "elris": "name_pop",
-            "flexinvert":"flex_pop"
-        },
         "molar_mass": 98.959
     },
     "hfc143a": {
         "species_print": "HFC-143a",
-        "period": "yearly",
-        "units_scaling": {
-            "intem": 1000000.0,
-            "rhime": 1000000.0,
-            "elris": 1000000.0
-        },
-        "model_species": {
-            "intem": "hfc143a",
-            "rhime": "hfc143a",
-            "elris": "HFC_143a"
-        },
-        "units_print": "G",
         "dt_units": {
             "intem": "datetime64[Y]",
             "rhime": "datetime64[Y]",
             "elris": "datetime64[Y]"
         },
-        "mf_units_scaling": 1e-12,
-        "mf_units_print": "ppt",
-        "fluxlim": [
-            0,
-            5e-12
-        ],
-        "difflim": [
-            -5e-12,
-            5e-12
-        ],
         "gwp": 4800,
-        "std_run": {
-            "intem": "name_edgar",
-            "rhime": "name_edgar",
-            "elris": "name_edgar"
-        },
         "molar_mass": 84.04
     },
     "hfc125": {
         "species_print": "HFC-125",
-        "period": "yearly",
-        "units_scaling": {
-            "intem": 1000000.0,
-            "rhime": 1000000.0,
-            "elris": 1000000.0
-        },
-        "model_species": {
-            "intem": "hfc125",
-            "rhime": "hfc125",
-            "elris": "HFC_125"
-        },
-        "units_print": "G",
         "dt_units": {
             "intem": "datetime64[Y]",
             "rhime": "datetime64[Y]",
             "elris": "datetime64[Y]"
         },
-        "mf_units_scaling": 1e-12,
-        "mf_units_print": "ppt",
-        "fluxlim": [
-            0,
-            1e-11
-        ],
-        "difflim": [
-            -1e-11,
-            1e-11
-        ],
         "gwp": 3170,
-        "std_run": {
-            "intem": "name_edgar",
-            "rhime": "name_edgar",
-            "elris": "name_edgar"
-        },
         "molar_mass": 120.02
     },
     "hfc152a": {
         "species_print": "HFC-152a",
-        "period": "yearly",
-        "units_scaling": {
-            "intem": 1000000.0,
-            "rhime": 1000000.0,
-            "elris": 1000000.0
-        },
-        "model_species": {
-            "intem": "hfc152a",
-            "rhime": "hfc152a",
-            "elris": "HFC_152a"
-        },
-        "units_print": "G",
         "dt_units": {
             "intem": "datetime64[Y]",
             "rhime": "datetime64[Y]",
             "elris": "datetime64[Y]"
         },
-        "mf_units_scaling": 1e-12,
-        "mf_units_print": "ppt",
-        "fluxlim": [
-            0,
-            1e-12
-        ],
-        "difflim": [
-            -1e-12,
-            1e-12
-        ],
         "gwp": 138,
-        "std_run": {
-            "intem": "name_flat",
-            "rhime": "name_flat",
-            "elris": "name_flat"
-        },
         "molar_mass": 66.05
     },
     "hfc32": {
         "species_print": "HFC-32",
-        "period": "yearly",
-        "units_scaling": {
-            "intem": 1000000.0,
-            "rhime": 1000000.0,
-            "elris": 1000000.0
-        },
-        "model_species": {
-            "intem": "hfc32",
-            "rhime": "hfc32",
-            "elris": "HFC_32"
-        },
-        "units_print": "G",
         "dt_units": {
             "intem": "datetime64[Y]",
             "rhime": "datetime64[Y]",
             "elris": "datetime64[Y]"
         },
-        "mf_units_scaling": 1e-12,
-        "mf_units_print": "ppt",
-        "fluxlim": [
-            0,
-            1e-11
-        ],
-        "difflim": [
-            -1e-11,
-            1e-11
-        ],
         "gwp": 677,
-        "std_run": {
-            "intem": "name_edgar",
-            "rhime": "name_edgar",
-            "elris": "name_edgar"
-        },
         "molar_mass": 52.02
     },
     "hfc227ea": {
         "species_print": "HFC-227ea",
-        "period": "yearly",
-        "units_scaling": {
-            "intem": 1000000.0,
-            "rhime": 1000000.0,
-            "elris": 1000000.0
-        },
-        "model_species": {
-            "intem": "hfc227ea",
-            "rhime": "hfc227ea",
-            "elris": "HFC_227ea"
-        },
-        "units_print": "G",
         "dt_units": {
             "intem": "datetime64[Y]",
             "rhime": "datetime64[Y]",
             "elris": "datetime64[Y]"
         },
-        "mf_units_scaling": 1e-12,
-        "mf_units_print": "ppt",
-        "fluxlim": [
-            0,
-            1e-12
-        ],
-        "difflim": [
-            -1e-12,
-            1e-12
-        ],
         "gwp": 3350,
-        "std_run": {
-            "intem": "name_flat",
-            "rhime": "name_flat",
-            "elris": "name_flat"
-        },
         "molar_mass": 170.03
     },
     "hfc23": {
         "species_print": "HFC-23",
-        "period": "yearly",
-        "units_scaling": {
-            "intem": 1000000.0,
-            "rhime": 1000000.0,
-            "elris": 1000000.0
-        },
-        "model_species": {
-            "intem": "hfc23",
-            "rhime": "hfc23",
-            "elris": "HFC_23"
-        },
-        "units_print": "G",
         "dt_units": {
             "intem": "datetime64[Y]",
             "rhime": "datetime64[Y]",
             "elris": "datetime64[Y]"
         },
-        "mf_units_scaling": 1e-12,
-        "mf_units_print": "ppt",
-        "fluxlim": [
-            0,
-            1e-12
-        ],
-        "difflim": [
-            -1e-12,
-            1e-12
-        ],
         "gwp": 12400,
-        "std_run": {
-            "intem": "name_flat",
-            "rhime": "name_flat",
-            "elris": "name_flat"
-        },
         "molar_mass": 70.01
     },
     "hfc245fa": {
         "species_print": "HFC-245fa",
-        "period": "yearly",
-        "units_scaling": {
-            "intem": 1000000.0,
-            "rhime": 1000000.0,
-            "elris": 1000000.0
-        },
-        "model_species": {
-            "intem": "hfc245fa",
-            "rhime": "hfc245fa",
-            "elris": "HFC_245fa"
-        },
-        "units_print": "G",
         "dt_units": {
             "intem": "datetime64[Y]",
             "rhime": "datetime64[Y]",
             "elris": "datetime64[Y]"
         },
-        "mf_units_scaling": 1e-12,
-        "mf_units_print": "ppt",
-        "fluxlim": [
-            0,
-            1e-12
-        ],
-        "difflim": [
-            -1e-12,
-            1e-12
-        ],
         "gwp": 858,
-        "std_run": {
-            "intem": "name_flat",
-            "rhime": "name_flat",
-            "elris": "name_flat"
-        },
         "molar_mass": 134.05
     },
     "hfc365mfc": {
         "species_print": "HFC-365mfc",
-        "period": "yearly",
-        "units_scaling": {
-            "intem": 1000000.0,
-            "rhime": 1000000.0,
-            "elris": 1000000.0
-        },
-        "model_species": {
-            "intem": "hfc365mfc",
-            "rhime": "hfc365mfc",
-            "elris": "HFC_365mfc"
-        },
-        "units_print": "G",
         "dt_units": {
             "intem": "datetime64[Y]",
             "rhime": "datetime64[Y]",
             "elris": "datetime64[Y]"
         },
-        "mf_units_scaling": 1e-12,
-        "mf_units_print": "ppt",
-        "fluxlim": [
-            0,
-            1e-12
-        ],
-        "difflim": [
-            -1e-12,
-            1e-12
-        ],
         "gwp": 804,
-        "std_run": {
-            "intem": "name_flat",
-            "rhime": "name_flat",
-            "elris": "name_flat"
-        },
         "molar_mass": 148.07
     },
     "hfc4310mee": {
         "species_print": "HFC-4310mee",
-        "period": "yearly",
-        "units_scaling": {
-            "intem": 1000000.0,
-            "rhime": 1000000.0,
-            "elris": 1000000.0
-        },
-        "model_species": {
-            "intem": "hfc4310mee",
-            "rhime": "hfc4310mee",
-            "elris": "HFC_4310mee"
-        },
-        "units_print": "G",
         "dt_units": {
             "intem": "datetime64[Y]",
             "rhime": "datetime64[Y]",
             "elris": "datetime64[Y]"
         },
-        "mf_units_scaling": 1e-12,
-        "mf_units_print": "ppt",
-        "fluxlim": [
-            0,
-            1e-14
-        ],
-        "difflim": [
-            -1e-14,
-            1e-14
-        ],
         "gwp": 1650,
-        "std_run": {
-            "intem": "name_flat",
-            "rhime": "name_flat",
-            "elris": "name_flat"
-        },
         "molar_mass": 252.04
     },
     "pfc218": {
         "species_print": "PFC-218",
-        "period": "yearly",
-        "units_scaling": {
-            "intem": 1000000.0,
-            "rhime": 1000000.0,
-            "elris": 1000000.0
-        },
-        "model_species": {
-            "intem": "pfc218",
-            "rhime": "pfc218",
-            "elris": "PFC_218"
-        },
-        "units_print": "G",
         "dt_units": {
             "intem": "datetime64[Y]",
             "rhime": "datetime64[Y]",
             "elris": "datetime64[Y]"
         },
-        "mf_units_scaling": 1e-12,
-        "mf_units_print": "ppt",
-        "fluxlim": [
-            0,
-            5e-14
-        ],
-        "difflim": [
-            -5e-14,
-            5e-14
-        ],
         "gwp": 8900,
-        "std_run": {
-            "intem": "name_flat",
-            "rhime": "name_flat",
-            "elris": "name_flat"
-        },
         "molar_mass": 188.02
     },
     "pfc318": {
         "species_print": "PFC-318",
-        "period": "yearly",
-        "units_scaling": {
-            "intem": 1000000.0,
-            "rhime": 1000000.0,
-            "elris": 1000000.0
-        },
-        "model_species": {
-            "intem": "pfc318",
-            "rhime": "pfc318",
-            "elris": "PFC_318"
-        },
-        "units_print": "G",
         "dt_units": {
             "intem": "datetime64[Y]",
             "rhime": "datetime64[Y]",
             "elris": "datetime64[Y]"
         },
-        "mf_units_scaling": 1e-12,
-        "mf_units_print": "ppt",
-        "fluxlim": [
-            0,
-            5e-14
-        ],
-        "difflim": [
-            -5e-14,
-            5e-14
-        ],
         "gwp": 9540,
-        "std_run": {
-            "intem": "name_flat",
-            "rhime": "name_flat",
-            "elris": "name_flat"
-        },
         "molar_mass": 200.03
     },
     "pfc116": {
         "species_print": "PFC-116",
-        "period": "yearly",
-        "units_scaling": {
-            "intem": 1000000.0,
-            "rhime": 1000000.0,
-            "elris": 1000000.0
-        },
-        "model_species": {
-            "intem": "pfc116",
-            "rhime": "pfc116",
-            "elris": "PFC_116"
-        },
-        "units_print": "G",
         "dt_units": {
             "intem": "datetime64[Y]",
             "rhime": "datetime64[Y]",
             "elris": "datetime64[Y]"
         },
-        "mf_units_scaling": 1e-12,
-        "mf_units_print": "ppt",
-        "fluxlim": [
-            0,
-            5e-14
-        ],
-        "difflim": [
-            -5e-14,
-            5e-14
-        ],
         "gwp": 11100,
-        "std_run": {
-            "intem": "name_edgarminval",
-            "rhime": "name_edgarminval",
-            "elris": "name_edgarminval"
-        },
         "molar_mass": 138.01
     },
     "cf4": {
         "species_print": "PFC-14",
-        "period": "yearly",
-        "units_scaling": {
-            "intem": 1000000.0,
-            "rhime": 1000000.0,
-            "elris": 1000000.0
-        },
-        "model_species": {
-            "intem": "cf4",
-            "rhime": "cf4",
-            "elris": "CF4"
-        },
-        "units_print": "G",
         "dt_units": {
             "intem": "datetime64[Y]",
             "rhime": "datetime64[Y]",
             "elris": "datetime64[Y]"
         },
-        "mf_units_scaling": 1e-12,
-        "mf_units_print": "ppt",
-        "fluxlim": [
-            0,
-            5e-14
-        ],
-        "difflim": [
-            -5e-14,
-            5e-14
-        ],
         "gwp": 6630,
-        "std_run": {
-            "intem": "name_edgarminval",
-            "rhime": "name_edgarminval",
-            "elris": "name_edgarminval"
-        },
         "molar_mass": 88.0
     },
     "sf6": {
         "species_print": "SF$_6$",
-        "period": "yearly",
-        "units_scaling": {
-            "intem": 1000000.0,
-            "rhime": 1000000.0,
-            "elris": 1000000.0
-        },
-        "model_species": {
-            "intem": "sf6",
-            "rhime": "sf6",
-            "elris": "SF6"
-        },
-        "units_print": "G",
         "dt_units": {
             "intem": "datetime64[M]",
             "rhime": "datetime64[M]",
             "elris": "datetime64[M]"
         },
-        "mf_units_scaling": 1e-12,
-        "mf_units_print": "ppt",
-        "fluxlim": [
-            0,
-            2e-13
-        ],
-        "difflim": [
-            -5e-13,
-            5e-13
-        ],
         "gwp": 23500,
-        "std_run": {
-            "intem": "name_flat",
-            "rhime": "name_flat",
-            "elris": "name_flat"
-        },
         "molar_mass": 146.06
     },
     "n2o": {
         "species_print": "N$_2$O",
-        "period": "monthly",
-        "units_scaling": {
-            "intem": 1000000.0,
-            "rhime": 1000000.0,
-            "elris": 1000000.0
-        },
-        "model_species": {
-            "intem": "n2o",
-            "rhime": "n2o",
-            "elris": "N2O"
-        },
-        "units_print": "G",
         "dt_units": {
             "intem": "datetime64[M]",
             "rhime": "datetime64[M]",
             "elris": "datetime64[M]"
         },
-        "mf_units_scaling": 1e-09,
-        "mf_units_print": "ppb",
-        "fluxlim": [
-            0,
-            1e-09
-        ],
-        "difflim": [
-            -1e-09,
-            1e-09
-        ],
         "gwp": 265,
-        "std_run": {
-            "intem": "name_edgar_26sites",
-            "rhime": "name_edgar_26sites",
-            "elris": "name_edgar_28sites"
-        },
         "molar_mass": 44.01
     },
     "ch3br": {
         "species_print": "CH$_3$Br",
-        "period": "yearly",
-        "units_scaling": {
-            "intem": 1000000.0,
-            "rhime": 1000000.0,
-            "elris": 1000000.0
-        },
-        "model_species": {
-            "intem": "ch3br",
-            "rhime": "ch3br",
-            "elris": "ch3br"
-        },
-        "units_print": "G",
         "dt_units": {
             "intem": "datetime64[Y]",
             "rhime": "datetime64[Y]",
             "elris": "datetime64[Y]"
         },
-        "mf_units_scaling": 1e-12,
-        "mf_units_print": "ppt",
-        "fluxlim": [
-            0,
-            1e-12
-        ],
-        "difflim": [
-            -1e-12,
-            1e-12
-        ],
         "molar_mass": 94.94
     },
     "so2f2": {
         "species_print": "SO$_2$F$_2$",
-        "period": "yearly",
-        "units_scaling": {
-            "intem": 1000000.0,
-            "rhime": 1000000.0,
-            "elris": 1000000.0
-        },
-        "model_species": {
-            "intem": "so2f2",
-            "rhime": "so2f2",
-            "elris": "so2f2"
-        },
-        "units_print": "G",
         "dt_units": {
             "intem": "datetime64[Y]",
             "rhime": "datetime64[Y]",
             "elris": "datetime64[Y]"
         },
-        "mf_units_scaling": 1e-12,
-        "mf_units_print": "ppt",
-        "fluxlim": [
-            0,
-            1e-12
-        ],
-        "difflim": [
-            -1e-12,
-            1e-12
-        ],
         "molar_mass": 102.06
     },
     "all_hfc": {
         "species_print": "Total HFC",
-        "period": "yearly",
-        "units_scaling": {
-            "intem": 1,
-            "rhime": 1,
-            "elris": 1
-        },
-        "model_species": {
-            "intem": "HFC",
-            "rhime": "HFC",
-            "elris": "HFC"
-        },
-        "units_print": "T",
         "dt_units": {
             "intem": "datetime64[Y]",
             "rhime": "datetime64[Y]",
             "elris": "datetime64[Y]"
-        },
-        "mf_units_scaling": 1e-12,
-        "mf_units_print": "ppt",
-        "fluxlim": [
-            0,
-            1e-12
-        ],
-        "difflim": [
-            -1e-12,
-            1e-12
-        ]
+        }
     },
     "all_pfc": {
         "species_print": "Total PFC",
-        "period": "yearly",
-        "units_scaling": {
-            "intem": 1,
-            "rhime": 1,
-            "elris": 1
-        },
-        "model_species": {
-            "intem": "PFC",
-            "rhime": "PFC",
-            "elris": "PFC"
-        },
-        "units_print": "T",
         "dt_units": {
             "intem": "datetime64[Y]",
             "rhime": "datetime64[Y]",
             "elris": "datetime64[Y]"
-        },
-        "mf_units_scaling": 1e-12,
-        "mf_units_print": "ppt",
-        "fluxlim": [
-            0,
-            1e-12
-        ],
-        "difflim": [
-            -1e-12,
-            1e-12
-        ]
+        }
     }
 }

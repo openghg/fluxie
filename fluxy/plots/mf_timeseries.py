@@ -16,6 +16,7 @@ def plot_mf_timeseries(
         specie: str,
         site: str,
         model_colors: dict[str, str],
+        model_labels: dict[str, dict],
         config_data: dict[str, dict],
         annotate_coords: dict[int, list],
         ppt_mode: bool = False,
@@ -64,6 +65,7 @@ def plot_mf_timeseries(
     models = ds_all.keys()
     specie_info = config_data["species_info"][specie]
     vars_to_plot = include.keys()
+    plot_units = []
 
     min_mf = np.inf
     max_mf = -np.inf
@@ -84,22 +86,20 @@ def plot_mf_timeseries(
 
     # Loop over all models
     for i,m in enumerate(models):
-        
-        m0 = m.split('_')[0]
 
         # Define plot_type specific settings
         if plot_type == 'separate':
             iax = i #axis index
-            model_label = config_data["models_info"][m]["label"]
+            model_label = model_labels[m]
             model_color = model_colors[m]
         elif plot_type == 'together':
             iax = 0
-            model_label = config_data["models_info"][m]["label"]
+            model_label = model_labels[m]
             model_color = model_colors[m]
         elif plot_type == 'diff':
             iax = 0
             mdiff0, mdiff1 = m.split('-')
-            model_label = f'{config_data["models_info"][mdiff0]["label"]} - {config_data["models_info"][mdiff1]["label"]}'
+            model_label = f'{model_labels[mdiff0]} - {model_labels[mdiff1]}'
             model_color = model_colors[mdiff0]
         
         # Loop over all variables to plot
@@ -107,6 +107,9 @@ def plot_mf_timeseries(
 
             if var not in ds_all[m].keys():
                 raise KeyError(f'Variable {var} not found in {m}.')
+            
+            # Get var unit
+            plot_units.append(ds_all[m][var].attrs["units"])
             
             # Define plotting color
             plot_color = model_color[config.mf_color_index[var]]
@@ -135,7 +138,7 @@ def plot_mf_timeseries(
 
             if unc_var:
                 if plot_type == 'diff':
-                    raise ValueError(f'Option plot_type=\'diff\' does not accept uncertainties. Replace \'{unc_var}\' by None.')
+                    raise ValueError(f"Option plot_type='diff' does not accept uncertainties. Replace '{unc_var}' by None.")
 
                 if unc_var not in ds_all[m].keys():
                     raise KeyError(f'Variable {unc_var} not found in {m}.')
@@ -143,8 +146,8 @@ def plot_mf_timeseries(
                 if unc_var[0] == 'q':
                     # Add uncertainty band
                     ax[iax,0].fill_between(ds_all[m].time,
-                                           ds_all[m][unc_var][:,config.model_q_indices[m0][0]],
-                                           ds_all[m][unc_var][:,config.model_q_indices[m0][1]],
+                                           ds_all[m][unc_var][:,0],
+                                           ds_all[m][unc_var][:,1],
                                            color=plot_color,
                                            alpha=0.2)
                     
@@ -180,8 +183,13 @@ def plot_mf_timeseries(
             plot_title = 'All models'
         ax[iax,0].set_title(plot_title)
 
+        # Set print units
+        plot_units = list(set(plot_units))
+        if len(plot_units) != 1:
+            raise ValueError(f"{vars_to_plot} in {models} do not have the same units. So far, the following were found: {plot_units}.")
+
         # Set timeseries y-axis label and legend
-        ax[iax,0].set_ylabel(f'{specie_info["species_print"]} {site} ({specie_info["mf_units_print"]})')
+        ax[iax,0].set_ylabel(f'{specie_info["species_print"]} {site} ({plot_units[0]})')
         leg = ax[iax,0].legend(ncol=2,borderpad=.2,columnspacing=1.0)
         try:
             for l in leg.legend_handles:
@@ -212,7 +220,7 @@ def plot_mf_timeseries(
     
     return fig
 
-def plot_sites_timeseries(ds_all,var,start_date,end_date,model_colors,config_data):
+def plot_sites_timeseries(ds_all,var,start_date,end_date,model_colors,model_labels):
     """
     Plot the timeseries of data available for each site and model.
     
@@ -228,9 +236,8 @@ def plot_sites_timeseries(ds_all,var,start_date,end_date,model_colors,config_dat
             data up to 2021-12-31.
         model_colors (dict of str):
             Models and corresponding colours used to plot the model.
-        config_data (dict of dict):
-            Dictionary with settings read from json file.
-            Use json filenames as keys.
+        model_labels (dict of dict):
+            Dictionary with model lables.
     """
     
     models = ds_all.keys()
@@ -253,7 +260,7 @@ def plot_sites_timeseries(ds_all,var,start_date,end_date,model_colors,config_dat
         for i,m in enumerate(models):
             # Define label
             if iSite == 0:
-                label = config_data['models_info'][m]['label']
+                label = model_labels[m]
             else:
                 label = None
        

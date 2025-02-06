@@ -35,12 +35,14 @@ def update_list_params(params_to_check: list, expected_size: int) -> list:
             updated_params.append([param] * expected_size)
     return updated_params
 
-def add_colorbar(fig, ax, mappable, cmap, extend, label):
+def add_colorbar(fig, ax, mappable, cmap, extend, label, presentation_mode=False, orientation="vertical"):
     """Add a colorbar to the plot."""
+    labelpad_v = 20 if presentation_mode else 5
+
     color_bar = fig.colorbar(
-        mappable, orientation="vertical", extend=extend, ax=ax, shrink=1, pad=0.005
+        mappable, orientation=orientation, extend=extend, ax=ax, shrink=1, pad=0.01
     )
-    color_bar.set_label(label)
+    color_bar.set_label(label, labelpad=labelpad_v)
 
 def print_cbar_label(
     ds: xr.Dataset, 
@@ -349,40 +351,37 @@ def get_region_coordinates(
             The bounding coordinates of the region (min_lon, max_lon, min_lat, and max_lat), after zooming.
     """
     world = load_countries_shape()
+    region_code = config.countrycodes_dict
 
-    # Handle special cases
-    if region_name.upper() == 'UK':
-        # Special case for United Kingdom
-        region = world[world['NAME'] == 'United Kingdom'].copy()
+    region_name_title = region_name.title()
 
-    elif region_name.upper() == 'BENELUX':
-        # Special case for Benelux countries
-        benelux_countries = ['Belgium', 'Netherlands', 'Luxembourg']
-        region = world[world['NAME'].isin(benelux_countries)].copy()
-
-    elif region_name.upper() == 'NWEU': #TODO Remove PARIS specific code
-        region_coordinates = (-11, 11, 45, 62)
-        return region_coordinates
-
-    elif region_name.upper() == 'CWEU': #TODO Remove PARIS specific code
-        region_coordinates = (-12, 27, 37, 66)
-        return region_coordinates
-
+    if region_name_title in world['NAME'].values:
+        region = world[world['NAME'] == region_name_title].copy()
+    elif region_name_title in world['CONTINENT'].values:
+        region = world[world['CONTINENT'] == region_name_title].copy()
+        # Exclude Russia from Europe
+        if region_name_title == "Europe":
+            region = region[region['NAME'] != 'Russia']
+    elif region_name_title in world['SUBREGION'].values:
+        region = world[world['SUBREGION'] == region_name_title].copy()
     else:
-        # Standard handling for countries, continents, or subregions
-        region_name = region_name.title()
+        region_name_upper = region_name.upper()
 
-        if region_name in world['NAME'].values:
-            region = world[world['NAME'] == region_name].copy()
-        elif region_name in world['CONTINENT'].values:
-            region = world[world['CONTINENT'] == region_name].copy()
-            # Exclude Russia from Europe
-            if region_name == "Europe":
-                region = region[region['NAME'] != 'Russia']
-        elif region_name in world['SUBREGION'].values:
-            region = world[world['SUBREGION'] == region_name].copy()
+        if region_name_upper in world['ISO_A3'].values:
+            region = world[world['ISO_A3'] == region_name_upper].copy()
+        # If region_name_upper is in the region_code dictionary, get its corresponding ISO_A3 code(s)
+        elif region_name_upper in region_code:
+            iso_codes = region_code[region_name_upper]  # Could be a single ISO_A3 or a list
+            # If it's a group (contains '-'), split into a list
+            if '-' in iso_codes:
+                iso_codes = iso_codes.split('-')
+                region = world[world['ISO_A3'].isin(iso_codes)].copy()
+            else:
+                region = world[world['ISO_A3'] == iso_codes].copy()
         else:
-            raise ValueError(f"Region '{region_name}' not found.")
+            raise ValueError(f"Region '{region_name}' not found. Please ensure the region is correctly specified as a country, continent, subregion, or ISO_A3 code.\n"
+                             f"You can also try using a predefined region from the list: {list(config.regions_dict.keys())}.\n"
+                             "If you're still having trouble, check and update the config.countrycodes_dict if necessary.")
 
     # Handle empty region case
     if region.empty:

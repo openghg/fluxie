@@ -39,6 +39,7 @@ def plot_stats_mf(
         stats_to_plot: list[str],
         species: str,
         model_colors,
+        model_labels,
         config_data,
         start_date=None,
         end_date=None
@@ -84,7 +85,7 @@ def plot_stats_mf(
         for i,site in enumerate(stats_all[stat].keys()):
             for m,model in enumerate(stats_all[stat][site]):
                 if i == 0:
-                    label = config_data['models_info'][model]["label"]
+                    label = model_labels[model]
                 else:
                     label = None
 

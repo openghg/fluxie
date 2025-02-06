@@ -66,13 +66,49 @@ def read_config_files() -> dict[str, dict]:
 
     return data_dict
 
+def get_filename(model, specie, period, file_pattern, config_data, data_dir):
+
+    # Get file name tags
+    name_tags = model.split('_')
+    model_name = name_tags[0]
+    param_tags = name_tags[3:]
+
+    # Replace parameter tags by dict values in config
+    filename_tags = config_data["models_info"].get("filename_tags", None)
+    if filename_tags is not None:
+        for i,param in enumerate(param_tags):
+            string_in_file = filename_tags.get(param, None)
+
+            if string_in_file is not None:
+                string_in_file = string_in_file.replace("<model>", model_name.lower())
+                name_tags[i+3] = string_in_file
+                
+    # Add domain to filename tags
+    name_tags.insert(2, config_data["models_info"]["domain"])
+
+    # Build filename
+    model_filename = "_".join(name_tags)
+
+    # Get species name
+    specie_print = specie
+    if (species_names := config_data["models_info"].get("species_name")) and \
+       (model_species := species_names.get(model_name)) and \
+       (species_tag   := model_species.get(specie)):
+        specie_print = species_tag
+            
+    # Define filepath
+    data_dir = Path(data_dir)
+    filepath = data_dir / model_name / specie / f'{model_filename}_{specie_print}_{period}{file_pattern}'
+    
+    return filepath
+
 def read_model_output(
     data_dir: os.PathLike,
     file_type: Literal["concentration","flux"],
     specie: str,
     models: list[str],
     config_data: dict[str, dict],
-    period_override: str | list[str] = None
+    period: str | list[str] = 'yearly',
 ) -> dict[str, xr.Dataset]:
     """
     Extracts mole fraction or flux timeseries data from each model.
@@ -87,30 +123,20 @@ def read_model_output(
         config_data (dict of dict):
             Dictionary with settings read from json file.
             Use json filenames as keys.
-        period_override (list of str) (optional):
-            Inversion periods to include, to override the standards in species_info.json.
-            Must be the same length as models, e.g. ['monthly',None,'yearly']
+        period (str or list of str):
+            Inversion period as specified in the model filename.
+            If it is a string, the same period is considered for all models.
+            If it is a list, one value per model must be specified, e.g. ['monthly','yearly']
     Returns:
         ds_all (dictionary of datasets): 
             xarray dataset read directly from each model's mole fraction netCDF.
     """
-
-    specie_info = config_data['species_info'][specie]
-
-    # Set inversion period to default or user defined value
-    period_all = {}
     
-    if period_override != None and len(period_override) != len(models):
-        raise ValueError(f'If using period_override, this list must be of the same length as models.')
+    if isinstance(period, str):
+        period = [period]*len(models)
     
-    for i,m in enumerate(models):
-        if period_override is not None:
-            if period_override[i] is not None:
-                period_all[m] = period_override[i]
-            else:
-                period_all[m] = specie_info["period"]
-        else:
-            period_all[m] = specie_info["period"]
+    if len(period) != len(models):
+        raise ValueError(f'period must be a string or a list of the same length as models.')
 
     # Define file pattern
     if file_type == 'flux':
@@ -122,16 +148,8 @@ def read_model_output(
 
     ds_all = {}
 
-    for m in models:
-        
-        # Get model tag and name
-        m0 = m.split('_')[0]
-        model_filename = config_data["models_info"][m]["filename"]
-        model_dir = model_filename.split('_')[0]
-               
-        # Define filepath
-        data_dir = Path(data_dir) 
-        filepath = data_dir / model_dir / specie / f'{model_filename}_{specie_info["model_species"][m0]}_{period_all[m]}{file_pattern}'
+    for i,m in enumerate(models):
+        filepath = get_filename(m, specie, period[i], file_pattern, config_data, data_dir)
 
         # Check if files exists
         if not filepath.is_file():
@@ -142,10 +160,19 @@ def read_model_output(
         logger.info(f'Reading {file_type} file: {filepath}')
         ds_all[m] = xr.open_dataset(filepath)
 
+        # Easy fix for InTEM ("units" attribute is wrongly set to "unit")
+        vars_to_check = ['country_flux_total_prior', 'country_flux_total_posterior',
+                         'percentile_country_flux_total_prior','percentile_country_flux_total_posterior']
+        
+        if file_type == 'flux':
+            for var in vars_to_check:
+                if 'units' not in ds_all[m][var].attrs.keys() and 'unit' in ds_all[m][var].attrs.keys():
+                    ds_all[m][var].attrs['units'] = ds_all[m][var].attrs['unit']
+
     return ds_all
 
 def read_flux_total_fgases(data_dir,species,models,config_data,regions,
-                           start_date,end_date,period_override=None,apply_pop_scale=True):
+                           start_date,end_date,period='yearly',apply_pop_scale=True):
     """
     Reads in fluxes from a list of gases and sums/averages totals and uncertainties,
     to produce one dataset which can be used with plotting functions in the rest 
@@ -168,10 +195,11 @@ def read_flux_total_fgases(data_dir,species,models,config_data,regions,
         end_date (str):
             Date to slice data to, e.g. '2022-01-01' would include all
             data up to 2021-12-31.
-        period_override (list of str) (optional):
-            Inversion periods to include, to override the standards in species_info.json.
-            Must be the same length as models, e.g. ['monthly',None,'yearly']
-                                       
+        period (str or list of str):
+            Inversion period as specified in the model filename.
+            If it is a string, the same period is considered for all models.
+            If it is a list, one value per model must be specified, e.g. ['monthly','yearly']
+                 
     Returns:
         ds_all (dictionary of datasets): 
             xarray dataset read directly from each model's flux netCDF.
@@ -194,8 +222,11 @@ def read_flux_total_fgases(data_dir,species,models,config_data,regions,
         start_date = [start_date]*len(models)
         end_date = [end_date]*len(models)
 
-    if period_override == None:
-        period_override = [None]*len(all_species)
+    if isinstance(period, str):
+        period = [period]*len(models)
+    
+    if len(period) != len(models):
+        raise ValueError(f'period must be a string or a list of the same length as models.')
         
     ds_all = {}
     ds_in = {}
@@ -222,11 +253,17 @@ def read_flux_total_fgases(data_dir,species,models,config_data,regions,
             
             #tries to read from standard filename
             try:
-                model_read = f'{m0}_{species_info["std_run"][m0]}'
+                # Get standard run name tag
+                std_run_all = config_data["models_info"]["standard_run"]
+                std_run = std_run_all["default"][species]
+                if (model_std_run := std_run_all.get(m0)) and (run_name := model_std_run.get(species)):
+                    std_run = run_name
+                
+                model_read = f'{m0}_{std_run}'
                 if 'longrun' in model: model_read = f'{model_read}_longrun'
                 
-                ds_in[model] = read_model_output(data_dir,"flux",species,[model_read],config_data,period_override[s])[model_read]
-                ds_in[model] = slice_flux(ds_in,start_date[m],end_date[m],config_data,scale_units=False)[model]
+                ds_in[model] = read_model_output(data_dir,"flux",species,[model_read],config_data,period[m])[model_read]
+                ds_in[model] = slice_flux({model:ds_in[model]},config_data,start_date[m],end_date[m])[model]
 
             except:
                 ds_in[model] = None
@@ -340,7 +377,7 @@ def read_flux_total_fgases(data_dir,species,models,config_data,regions,
                 
             #print(f"Total = {ds_out_species_total['region_flux_total_posterior_lower_out'].values}")
                 
-            if m0 == 'intem':
+            if m0 == 'InTEM':
                 country_coord_name = 'countrynumber'
             else:
                 country_coord_name = 'country'
@@ -409,6 +446,17 @@ def load_countries_shape(
         zipfile.extractall(path_to_save)
 
     gdf = gpd.read_file(shpfile)
+
+    # Update the missing ISO_A3 values in the data
+    name_to_iso_a3_mapping = {
+        'Norway': 'NOR',
+        'Kosovo': 'KOS',
+        'France': 'FRA',
+        'Indian Ocean Ter.': 'IOT',
+    }
+
+    for name, iso_a3 in name_to_iso_a3_mapping.items():
+        gdf.loc[gdf['NAME'] == name, 'ISO_A3'] = iso_a3
 
     # If a region is specified, filter the GeoDataFrame
     if region_bounds:

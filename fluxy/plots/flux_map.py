@@ -70,21 +70,23 @@ def plot_flux_map(
             If True, plots fluxes at the spatial resolution of the inversion (using the 
             inversion_grid variable). If False, plots fluxes at the spatial resolution
             of the prior.
+        zoom_degree (float, default 1):
+            Value added to the latitude and longitude bounds of the plot.  
+            Positive values expand the plot area, while negative values zoom in by reducing the bounds.  
+            Example: `zoom_degree=1` adds 1 degree to the bounds, while `zoom_degree=-1` subtracts 1 degree.
             
     Returns:
         fig (figure): 
-            A plot of spatial flux posterior and prior mean/mode and a plot 
-            of the absolute difference between these, for each model.
+            Three maps, for each model, of the flux prior, the flux posterior and the difference between both.
     """
 
     # Determine geographical boundaries
-    map_bounds = (
-        get_region_coordinates(region, zoom_degree=zoom_degree)
-        if isinstance(region, str)
-        else tuple(region)
-        if isinstance(region, list) and all(isinstance(coord, (int, float)) for coord in region)
-        else ValueError("Invalid input: 'region' must be a string or a list of numbers.")
-    )
+    if isinstance(region, str):
+        map_bounds = get_region_coordinates(region, zoom_degree=zoom_degree)
+    elif isinstance(region, list) and all(isinstance(coord, (int, float)) for coord in region):
+        map_bounds = tuple(region)
+    else:
+        raise ValueError("Invalid input: 'region' must be a string or a list of numbers.")
 
     # Get species and models info
     species_info = config_data['species_info'][species]
@@ -94,9 +96,13 @@ def plot_flux_map(
     gdf = load_countries_shape(map_bounds)
     sites_info = get_sites_coordinates(ds_all, config_data) if add_sites else "" #TODO move in the for loop once the info comes from the concentration files
 
-    # Set flux limits #TODO Based on 'flux_total_posterior', is this the right way to do?
+    # Define variables
+    var_prior = "flux_total_prior"
+    var_posterior = "flux_total_posterior_inversion_grid" if plot_inversion_grid_flux else "flux_total_posterior"
+
+    # Set flux limits #TODO Based on posterior, is this the right way to do?
     fluxlim = set_flux_limits(
-        ds_all, "flux_total_posterior", map_bounds, species_info, option=set_fluxlim, custom_percentile=set_fluxlim_percentile
+        ds_all, var_posterior, map_bounds, species_info, option=set_fluxlim, custom_percentile=set_fluxlim_percentile
     )
     difflim = (-fluxlim[1], fluxlim[1])
 
@@ -108,10 +114,7 @@ def plot_flux_map(
         # Extract longitude and latitude
         lon, lat = ds.longitude, ds.latitude
 
-        # Define and compute variables
-        var_prior = "flux_total_prior"
-        var_posterior = "flux_total_posterior_inversion_grid" if plot_inversion_grid_flux else "flux_total_posterior"
-
+        # Compute variables
         prior = get_flux_mean(ds[var_prior], season)
         posterior = get_flux_mean(ds[var_posterior], season)
         diff = np.nan_to_num(posterior - prior)
@@ -125,7 +128,7 @@ def plot_flux_map(
 
         # Plot each variable (prior, posterior, and diff)
         vars_to_plot = [prior, posterior, diff]
-        var_names = ["Prior", "Posterior", "Posterior - Prior"]
+        var_names = [config.flux_labels[var_prior], config.flux_labels[var_posterior], f"{config.flux_labels[var_posterior]} - {config.flux_labels[var_prior]}"]
         
         for j, var in enumerate(vars_to_plot):
             ax_ji = ax[j] if n_cols == 1 else ax[j, i]
@@ -160,281 +163,175 @@ def plot_flux_map(
 
     return fig
 
-def plot_spatial_flux_comparison(ds_all,species,plot_area,s_data,m_data,ppt_mode=False,
-                                 cmap=None,cmap_diff=None,c_border=None,period_override=None,
-                                 plot_site_locations=False,plot_point_markers=None,set_fluxlim='default',
-                                 set_fluxlim_percentile=None,plot_inversion_grid_flux=False):
+def plot_flux_map_model_comparison(
+    ds_all: dict[xr.Dataset], 
+    var: str,
+    model_1: str,
+    model_2: str,
+    species: str, 
+    region: str | list[float], 
+    config_data: dict, 
+    presentation_mode: bool = False,
+    cmap: str = 'viridis',
+    cmap_diff: str = 'coolwarm', 
+    c_border: str = 'floralwhite', 
+    period_override: list = None,
+    add_sites: bool = False, 
+    add_markers: list[str] | list[list[float]] = None,
+    season: str = None, 
+    set_fluxlim: str | tuple = 'default', 
+    set_fluxlim_percentile: float = None,
+    zoom_degree: float = 1,
+    ) -> plt.Figure:
     """
-    Plots posterior fluxes and the difference between these
-    for two models.
-    
-    If ds_all contains more than two models, only the first two will
-    be plotted.
+    Plot a given flux variable for two models and the difference between these.
     
     Args:
         ds_all (dictionary of datasets):
             xarray datasets of fluxes, scaled and sliced between 
             chosen dates.
+        var (str):
+            The name of the flux variable to be plotted and compared across models.
+            Example: 'flux_total_posterior'.
+        model_1 (str):
+            The name of the first model to be compared. This should correspond to a key in `ds_all`.
+            Example: 'intem_name_edgar'.
+        model_2 (str):
+            The name of the second model to be compared. This should correspond to a key in `ds_all`.
+            Example: 'elris_name_edgar'.
         species (str): 
             Gas species, e.g. 'ch4'.
-        plot_area (str):
+        region (str or list):
             Lat/lon region to plot, options for 'UK', 'FRANCE', 'GERMANY',
-            'NWEU','CWEU'.
-        s_data (dict of dict):
-            Dictionary of species with information for plotting (read from json file).
-        m_data (dict of dict):
-            Dictionary of inversion runs with filename and plot label (read from json file).
-        ppt_mode (logical) (optional):
+            'NWEU','CWEU','EUROPE'.
+            A list with [min_lon, max_lon, min_lat, max_lat] can also be provided.
+        config_data (dict of dict):
+            Dictionary of models and species with information for plotting (read from json file).
+        presentation_mode (bool, optional):
             If True, adjust label position to accomodate bigger fonts.
-        cmap (str):
+        cmap (str, optional):
             Colour map for flux plots.
-        cmap_diff (str):
+        cmap_diff (str, optional):
             Colour map for difference plots.
-        c_border (str):
+        c_border (str, optional):
             Colour for flux plot country borders.
         period_override (list of str, optional):
             Inversion periods to include, to override the standards in species_info.json.
             Must be the same length as models, e.g. ['monthly',None,'yearly']
-        plot_site_locations (bool):
+        add_sites (bool, optional):
             If True, adds triangles with site locations to spatial plot.
-        plot_point_markers (list of str or list of lat/lon):
+        add_markers (list of str or list of lat/lon, optional):
             List of names of points to plot over larger point sources or lat/lon locations.
             See point_markers_dict for a list of options.
             e.g. ['paris','nw_england',[50.,5.]]
-        plot_inversion_grid_flux (bool, default False):
-            If True, plots fluxes at the spatial resolution of the inversion (using the 
-            inversion_grid variable). If False, plots fluxes at the spatial resolution
-            of the prior.
+        season (string, default None):
+            If specified, plot the seasonal mean (only valable for monthly data). 
+            Options are 'DJF', 'MAM', 'JJA', 'SON'.
         set_fluxlim (str or list/tuple, optional): 
             If provided, set the colorbar limits based on the selected options.
             Options are 'default', 'auto', a list or tuple with two elements (min, max).
             The default option is 'default', which is based on species_info values.
         set_fluxlim_percentile (float, optional):
             If provided, set the percentile to use when setting the colorbar limits with 'auto' option.
+        zoom_degree (float, default 1):
+            Value added to the latitude and longitude bounds of the plot.  
+            Positive values expand the plot area, while negative values zoom in by reducing the bounds.  
+            Example: `zoom_degree=1` adds 1 degree to the bounds, while `zoom_degree=-1` subtracts 1 degree.
     Returns:
         fig (figure): 
-            A plot of spatial flux posterior from two models a plot 
-            of the absolute difference between these.
+            Three maps of a target flux variable of the first and second models and the diffence between both.
     """
-    
-    period_all = {}
-    
-    for i,m in enumerate(ds_all.keys()):
-        m0 = m.split('_')[0]
-        if period_override is not None:
-            if period_override[i] == 'monthly':
-                period_all[m] = 'datetime64[M]'
-            elif period_override[i] == 'yearly':
-                period_all[m] = 'datetime64[Y]'
-            else:
-                period_all[m] = s_data[species]["dt_units"][m0]
-        else:
-            period_all[m] = s_data[species]["dt_units"][m0]
-    
-    if cmap == None:
-        cmap = 'viridis' #'Blues'
-    if cmap_diff == None:
-        cmap_diff = 'coolwarm'
-    if c_border == None:
-        c_border = 'floralwhite'
-    
-    n_cols = len(ds_all.keys())
 
-    region_limits = {'UK':[-12,4,49,62],   #min_lon, max_lon, min_lat, max_lat
-                    'FRANCE':[-6,9,42,52],
-                    'GERMANY':[2,18,45,60],
-                    'ITALY':[6,19,36,48],
-                    'SWITZERLAND':[5.5,11,45,49],
-                    'NETHERLANDS':[2.5,8,50,55],
-                    'IRELAND':[-12,-4,51,56],
-                    'HUNGARY':[15.5,23.5,44.5,50],
-                    'NORWAY':[1,32,52,76],
-                    'BENELUX':[1,9,48,55],
-                    'NWEU':[-11,11,45,62],
-                    'CWEU':[-12,27,37,66],
-                    'EUROPE':[-98,40,10,80]}
-    
-    sites_info = {}
-    if plot_site_locations == True:
-        for i,m in enumerate(ds_all.keys()):
-            try:
-                sites_test = ds_all[m].sites.replace("'","").replace(']','').replace('[','').replace(' ','').split(',')
-                sites_info[m] = extract_site_info(sites_test)
-            except:
-                sites_info[m] = None
-                
-        for i,m in enumerate(ds_all.keys()):
-            if sites_info[m] == None:
-                for j,m2 in enumerate(sites_info.keys()):
-                    if sites_info[m2] != None:
-                        print(f'No sites data available in {m} attrs, so using site data from {m2}')
-                        sites_info[m] = sites_info[m2]
-                    break
-                    
-    # Determine flux limits based on 'flux_total_posterior'
-    fluxlim = set_flux_limits(ds_all, 'flux_total_posterior', region_limits[plot_area], s_data[species], option=set_fluxlim, custom_percentile=set_fluxlim_percentile)
-    difflim = tuple([-fluxlim[1],fluxlim[1]])
-        
-    # Find units info in netcdf attrs
-    first_key = list(ds_all.keys())[0]
-    flux_units = ds_all[first_key]['flux_total_posterior'].attrs.get('units')
-    flux_units = flux_units.replace("-2", "$^{-2}$").replace("-1", "$^{-1}$")
+    # Check for missing models in the dataset
+    model_names = list(ds_all.keys())
+    missing_models = [m for m in [model_1, model_2] if m not in model_names]
 
-    fig,ax = plt.subplots(1,3,constrained_layout=True,figsize=(n_cols*5,9),
-                   #subplot_kw={'projection':cartopy.crs.PlateCarree()}
-                   )
+    if missing_models:
+        raise ValueError(f"Model(s) {', '.join(missing_models)} not found in the dataset.")
 
-    for i in range(3):
-        if i == 2:
-            border_color = 'dimgrey'
-        else:
-            border_color = c_border
-        #ax[i].add_feature(cartopy.feature.BORDERS,edgecolor=border_color,linewidth=1.)
-        # ax[i].coastlines(resolution='50m',color=border_color,linewidth=1.)
-        # ax[i].set_extent(region_limits[plot_area])
+    # Retrieve the datasets for each model
+    ds_1 = ds_all[model_1]
+    ds_2 = ds_all[model_2]
 
-    all_keys = []
+    # Check that longitudes and latitudes are the same for the two models 
+    # TODO Move this check in read_flux
+    if not (np.allclose(ds_1.longitude.values, ds_2.longitude.values) and np.allclose(ds_1.latitude.values, ds_2.latitude.values)):
+        raise ValueError(f"Longitude and/or latitude do not match between {model_1} and {model_2}.")
 
-    for i,m in enumerate(ds_all.keys()):
-        
-        lon = ds_all[m].longitude.values + (ds_all[m].longitude.values[1]-ds_all[m].longitude.values[1])/2
-        lat = ds_all[m].latitude.values + (ds_all[m].latitude.values[1]-ds_all[m].latitude.values[1])/2
-        
-        all_keys.append(m)
-        m0 = m.split('_')[0]
-        
-        if i == 0:
-            if len(ds_all[m].time.values) == 1:
-                time_out = to_datetime(ds_all[m].time.values[0].astype(period_all[m])).strftime('%d/%m/%Y')
-            else:
-                start_print = to_datetime(ds_all[m].time.values[0].astype(period_all[m])).strftime("%d/%m/%Y")
-                if period_all[m] == 'datetime64[Y]':
-                    end_period = ds_all[m].time.values[-1].astype(period_all[m]) + np.timedelta64(1,'Y') - np.timedelta64(1,'D')                    
-                elif period_all[m] == 'datetime64[M]':
-                    end_period = ds_all[m].time.values[-1].astype(period_all[m]) + np.timedelta64(1,'M') - np.timedelta64(1,'D')                    
-                else:
-                    print('This currently only works for monthly or yearly inversion periods. Update the plotting code to print out '+
-                          'correct dates for higher frequency inversions.')
-                end_print = to_datetime(end_period).strftime("%d/%m/%Y")
-                time_out = (f'{start_print} - {end_print}')
-        
-            if plot_inversion_grid_flux == True:
-                plot_original = False
-                try:
-                    ax[0].pcolormesh(lon,lat,
-                                    np.mean(ds_all[m]['flux_total_posterior_inversion_grid'][:,:,:],axis=0),cmap=cmap,
-                                    vmin=s_data[species]['fluxlim'][0],vmax=s_data[species]['fluxlim'][1],shading='nearest',
-                                    )
-                except:
-                    print(f'Cannot find inversion_grid variables for {m} so using standard flux output.')
-                    plot_original = True
-            else:
-                plot_original = True        
-            
-            if plot_original == True:
-                ax[0].pcolormesh(lon,lat,
-                                    np.mean(ds_all[m]['flux_total_posterior'][:,:,:],axis=0),cmap=cmap,
-                                    vmin=s_data[species]['fluxlim'][0],vmax=s_data[species]['fluxlim'][1],shading='nearest',
-                                    )
+    # Check for the variable in each dataset
+    missing_var = [name for name, ds in [(model_1, ds_1), (model_2, ds_2)] if var not in ds]
 
-            ax[0].set_title(f'{m_data[m]["label"]}\nPosterior mean')
-            
-        elif i == 1:
-            if plot_inversion_grid_flux == True:
-                plot_original = False
-                try:
-                    ax[1].pcolormesh(lon,lat,
-                                    np.mean(ds_all[m]['flux_total_posterior_inversion_grid'][:,:,:],axis=0),cmap=cmap,
-                                    vmin=s_data[species]['fluxlim'][0],vmax=s_data[species]['fluxlim'][1],shading='nearest')
-                except:
-                    print(f'Cannot find inversion_grid variables for {m} so using standard flux output.')
-                    plot_original = True
-            else:
-                plot_original = True
-                    
-            if plot_original == True:
-                ax[1].pcolormesh(lon,lat,
-                                    np.mean(ds_all[m]['flux_total_posterior'][:,:,:],axis=0),cmap=cmap,
-                                    vmin=s_data[species]['fluxlim'][0],vmax=s_data[species]['fluxlim'][1],shading='nearest')  
-            
-            ax[1].set_title(f'{m_data[m]["label"]}\nPosterior mean')
-            
-        if plot_site_locations == True:
-            if sites_info[m] is not None:
-                for s in sites_info[m]:
-                    ax[0].scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],facecolor='none',
-                                edgecolor='red',marker='o',s=30,zorder=2)
-                    ax[1].scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],facecolor='none',
-                                edgecolor='red',marker='o',s=30,zorder=2)
-                    ax[2].scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],facecolor='none',
-                                edgecolor='black',marker='o',s=30,zorder=2)
-        
-    if plot_inversion_grid_flux == True:
-        plot_original = False
-        try:
-            flux_diff = (np.mean(ds_all[all_keys[1]]['flux_total_posterior_inversion_grid'].values[:,:,:],axis=0)-
-                        np.mean(ds_all[all_keys[0]]['flux_total_posterior_inversion_grid'].values[:,:,:],axis=0))
-        except:
-            plot_original = True
+    if missing_var:
+        raise ValueError(f"'{var}' not found in dataset(s): {', '.join(missing_var)}")
+
+    # Compute model variables to plot
+    var_model_1 = get_flux_mean(ds_1[var], season)
+    var_model_2 = get_flux_mean(ds_2[var], season)
+    diff = np.nan_to_num(var_model_2.values - var_model_1.values)
+
+    # Determine geographical boundaries
+    if isinstance(region, str):
+        map_bounds = get_region_coordinates(region, zoom_degree=zoom_degree)
+    elif isinstance(region, list) and all(isinstance(coord, (int, float)) for coord in region):
+        map_bounds = tuple(region)
     else:
-        plot_original = True
+        raise ValueError("Invalid input: 'region' must be a string or a list of numbers.")
+
+    # Get species and models info
+    species_info = config_data['species_info'][species]
+    models_info = config_data['models_info']
+
+    # Load geographical data and sites information
+    gdf = load_countries_shape(map_bounds)
+    sites_info = get_sites_coordinates(ds_all, config_data) if add_sites else "" #TODO move in the for loop once the info comes from the concentration files
+    sites_mapping = {
+        0: sites_info[model_1],
+        1: sites_info[model_2],
+        2: {**sites_info[model_1], **sites_info[model_2]}  # Merging dictionaries
+    } #TODO remove once the info comes from the concentration files
+                    
+    # Set flux limits
+    fluxlim = set_flux_limits({model_1: ds_1, model_2: ds_2}, var, map_bounds, species_info, option=set_fluxlim, custom_percentile=set_fluxlim_percentile)
+    difflim = (-fluxlim[1],fluxlim[1])
+
+    # Plot each model variable
+    vars_to_plot = [var_model_1, var_model_2, diff]
+    model_labels = [f"{models_info[model_1]['label']}", f"{models_info[model_2]['label']}", f"{models_info[model_2]['label']} - {models_info[model_1]['label']}"]
+    var_label = config.flux_labels[var]
+    cbar_label = print_cbar_label(ds_1, species_info, var, season, period_override[0] if period_override else None) #TODO is it correct to use period_override[0]?
+
+    # Extract longitude and latitude
+    lon, lat = ds_1.longitude, ds_1.latitude
         
-    if plot_original == True:
-        flux_diff = (np.mean(ds_all[all_keys[1]]['flux_total_posterior'].values[:,:,:],axis=0)-
-                        np.mean(ds_all[all_keys[0]]['flux_total_posterior'].values[:,:,:],axis=0))
-        
-    flux_diff[np.where(flux_diff) == np.nan] = 0.
-    
-    ax[2].pcolormesh(lon,lat,
-                    flux_diff,
-                    cmap=cmap_diff,vmin=difflim[0],vmax=difflim[1],shading='nearest')
+    # Initialize figure
+    fig, ax = plt.subplots(1, 3, constrained_layout=True, figsize=(3*5,9)) #TODO revise figsize
 
-    ax[2].set_title(f'{m_data[all_keys[1]]["label"]} - {m_data[all_keys[0]]["label"]}\nAbsolute difference')
+    for i, var_i in enumerate(vars_to_plot):
+            ax_i = ax[i]
+            # Determine plot settings
+            is_diff = (i == 2)
+            cmap_i = cmap_diff if is_diff else cmap
+            vlim_i = difflim if is_diff else fluxlim
+            marker_color = "black" if is_diff else "red"
+            border_color = "dimgrey" if is_diff else c_border
+            extend_i = "both" if is_diff else "max"
 
-    if plot_point_markers is not None:
-        print(f'\nPlotting markers for: {plot_point_markers}')
-        for p in plot_point_markers:
-            if type(p) == list:
-                ax[0].scatter(p[0],p[1],facecolor='none',edgecolor='red',marker='^',s=30,zorder=2)
-                ax[1].scatter(p[0],p[1],facecolor='none',edgecolor='red',marker='^',s=30,zorder=2)
-                ax[2].scatter(p[0],p[1],facecolor='none',edgecolor='black',marker='^',s=30,zorder=2)
-            elif type(p) == str:
-                if p not in config.point_source_dict.keys():
-                    print(f'{p} is not specified in config.point_source_dict, edit this to add a lat/lon location.')
-                else:
-                    ax[0].scatter(config.point_source_dict[p][0],config.point_source_dict[p][1],
-                                  facecolor='none',edgecolor='red',marker='^',s=30,zorder=2)
-                    ax[1].scatter(config.point_source_dict[p][0],config.point_source_dict[p][1],
-                                  facecolor='none',edgecolor='red',marker='^',s=30,zorder=2)
-                    ax[2].scatter(config.point_source_dict[p][0],config.point_source_dict[p][1],
-                                  facecolor='none',edgecolor='black',marker='^',s=30,zorder=2)
-                        
+            # Plot the data
+            im = ax_i.pcolormesh(lon, lat, var_i, cmap=cmap_i, vmin=vlim_i[0], vmax=vlim_i[1], shading="nearest")
+            gdf.boundary.plot(ax=ax_i, facecolor="none", edgecolor=border_color, linewidth=1)
+            ax_i.set_xlim(map_bounds[:2])  # Longitude limits
+            ax_i.set_ylim(map_bounds[2:])  # Latitude limits 
 
-    #flux colorbar
-    levels = np.linspace(fluxlim[0],fluxlim[1])
-    cbar = plt.cm.ScalarMappable(cmap=cmap)
-    cbar.set_array(levels)
-    cbar.set_clim(fluxlim)
+            # Add colorbar
+            add_colorbar(fig, ax_i, im, cmap_i, extend_i, cbar_label, presentation_mode, orientation='horizontal')
 
-    if (ppt_mode):
-        labelpad_v = 20
-    else:
-        labelpad_v = 5
+            # Add titles
+            ax_i.set_title(model_labels[i]) # Column titles
+            ax_i.set_ylabel(var_label) if i==0 else "" # Row titles
 
-    color_bar2 = fig.colorbar(cbar,orientation='horizontal',cmap=cmap,extend='max',ax=ax[0],shrink=0.9,pad=0.01)
-    color_bar2.set_label(f'{s_data[species]["species_print"]}\n{time_out}\n({flux_units})', labelpad=labelpad_v)
-
-    color_bar2 = fig.colorbar(cbar,orientation='horizontal',cmap=cmap,extend='max',ax=ax[1],shrink=0.9,pad=0.01)
-    color_bar2.set_label(f'{s_data[species]["species_print"]}\n{time_out}\n({flux_units})',labelpad=labelpad_v)
-
-    #difference colorbar
-    levels_diff = np.linspace(difflim[0],difflim[1])
-    cbar_diff = plt.cm.ScalarMappable(cmap=cmap_diff)
-    cbar_diff.set_array(levels_diff)
-    cbar_diff.set_clim(difflim)
-
-    color_bar3 = fig.colorbar(cbar_diff,orientation='horizontal',extend='both',ax=ax[2],shrink=0.9,pad=0.01)
-    color_bar3.set_label(f'{s_data[species]["species_print"]}\n{time_out}\n({flux_units})',labelpad=labelpad_v)
+            # Add sites and markers if specified
+            if add_sites: add_site_markers(ax_i, sites_mapping[i], marker_color)   
+            if add_markers: add_custom_markers(ax_i, add_markers, marker_color)
     
     return fig
 

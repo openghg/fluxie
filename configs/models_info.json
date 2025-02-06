@@ -1,334 +1,66 @@
 {
-    "intem_name_edgar":{
-        "filename":"InTEM_NAME_EUROPE_EDGAR_intem_obs_intem_baseline_optimized",
-        "label":"InTEM NAME EDGAR"
-        },
+    "domain": "EUROPE",
 
-    "intem_name_edgar_longrun":{
-        "filename":"InTEM_NAME_EUROPE_EDGAR_longrun_intem_obs_intem_baseline_optimized",
-        "label":"InTEM NAME EDGAR"
-        },
+    "filename_tags":{
+        "std": "<model>_obs_<model>_baseline_optimized",
+        "ibaseline": "<model>_obs_intem_baseline_fixed",
+        "iall": "intem_obs_intem_baseline_fixed_intem_unc"
+    },
 
-    "intem_name_edgar_allobs":{
-        "filename":"InTEM_NAME_EUROPE_EDGAR_all_obs_intem_baseline_optimized",
-        "label":"InTEM NAME EDGAR all obs"
-        },
+    "model_labels":{
+        "ELRIS_NAME_EDGAR_std" : "ELRIS",
+        "InTEM_NAME_EDGAR_std" : "InTEM",
+        "RHIME_NAME_EDGAR_std" : "RHIME"
+    },
 
-    "intem_name_flat":{
-        "filename":"InTEM_NAME_EUROPE_FLAT_intem_obs_intem_baseline_optimized",
-        "label":"InTEM NAME Flat"
-        },
+    "species_name":{
+        "ELRIS": {"ch4": "CH4",
+                  "n2o": "N2O",
+                  "sf6": "SF6",
+                  "hfc134a": "HFC_134a",
+                  "hfc143a": "HFC_143a",
+                  "hfc125": "HFC_125",
+                  "hfc152a": "HFC_152a",
+                  "hfc32": "HFC_32",
+                  "hfc227ea": "HFC_227ea",
+                  "hfc23": "HFC_23",
+                  "hfc245fa": "HFC_245fa",
+                  "hfc365mfc": "HFC_365mfc",
+                  "hfc4310mee": "HFC_4310mee",
+                  "pfc218": "PFC_218",
+                  "pfc318": "PFC_318",
+                  "pfc116": "PFC_116",
+                  "cf4": "CF4",
+                  "clch2ch2cl": "ClCH2CH2Cl"
+                }
+    },
 
-    "intem_name_flat_longrun":{
-        "filename":"InTEM_NAME_EUROPE_FLAT_longrun_intem_obs_intem_baseline_optimized",
-        "label":"InTEM NAME Flat"
-        },
-    
-    "intem_name_flat_inert":{
-        "filename":"InTEM_NAME_EUROPE_FLAT_inert_intem_obs_intem_baseline_optimized",
-        "label":"InTEM NAME Flat Inert"
-        },
-
-    "intem_name_pop":{
-        "filename":"InTEM_NAME_EUROPE_POPULATION_intem_obs_intem_baseline_optimized",
-        "label":"InTEM NAME Population"
-        },
-
-    "intem_name_pop_inert":{
-        "filename":"InTEM_NAME_EUROPE_POPULATION_inert_intem_obs_intem_baseline_optimized",
-        "label":"InTEM NAME Population Inert"
-        },
-    "intem_name_edgarminval":{
-            "filename":"InTEM_NAME_EUROPE_EDGARMINVAL_intem_obs_intem_baseline_optimized",
-            "label":"InTEM NAME EDGAR with min value"
-            },
-
-    "intem_name_edgarminval_longrun":{
-            "filename":"InTEM_NAME_EUROPE_EDGARMINVAL_longrun_intem_obs_intem_baseline_optimized",
-            "label":"InTEM NAME EDGAR with min value"
-            },
-
-    "intem_name_flat_allobs":{
-        "filename":"InTEM_NAME_EUROPE_FLAT_all_obs_intem_baseline_optimized",
-        "label":"InTEM NAME Flat all obs"
-        },
-
-    "intem_flex_edgar":{
-        "filename":"InTEM_FLEXPART_EUROPE_EDGAR_intem_obs_intem_baseline_optimized",
-        "label":"InTEM FLEXPART EDGAR"
-        },
-
-    "intem_flex_edgar_allobs":{
-        "filename":"InTEM_FLEXPART_EUROPE_EDGAR_all_obs_intem_baseline_optimized",
-        "label":"InTEM FLEXPART EDGAR all obs"
-        },
-
-    "intem_flex_flat":{
-        "filename":"InTEM_FLEXPART_EUROPE_FLAT_intem_obs_intem_baseline_optimized",
-        "label":"InTEM FLEXPART Flat"
-        },
-
-    "intem_flex_flat_allobs":{
-        "filename":"InTEM_FLEXPART_EUROPE_FLAT_all_obs_intem_baseline_optimized",
-        "label":"InTEM FLEXPART Flat all obs"
-        },
-
-    "intem_name_edgar_26sites":{
-        "filename":"InTEM_NAME_EUROPE_EDGAR_26sites_intem_obs_intem_baseline_optimized",
-        "label":"InTEM NAME 26 sites (e)"
-        },
-
-    "intem_name_edgar_26sites_longrun":{
-        "filename":"InTEM_NAME_EUROPE_EDGAR_longrun_26sites_intem_obs_intem_baseline_optimized",
-        "label":"InTEM NAME 26 sites (e)"
-        }, 
-
-    "intem_13sites":{
-        "filename":"InTEM_NAME_EUROPE_EDGAR_13sites_intem_obs_intem_baseline_optimized",
-        "label":"InTEM 13 sites"
-        },
-
-    "intem_33sites":{
-        "filename":"InTEM_NAME_EUROPE_EDGAR_33sites_intem_obs_intem_baseline_optimized",
-        "label":"InTEM 33 sites"
-        },
-
-    "intem_name_wetcharts_31sites":{
-        "filename":"InTEM_NAME_EUROPE_EDGARWETCHART_31sites_intem_obs_intem_baseline_optimized",
-        "label":"InTEM NAME 31 sites (e+w)"
-        },
-
-    "intem_name_wetcharts_31sites_longrun":{
-        "filename":"InTEM_NAME_EUROPE_EDGARWETCHART_longrun_33sites_intem_obs_intem_baseline",
-        "label":"InTEM NAME 33 sites (e+w)"
-        },
-
-
-    "elris_name_edgar":{
-        "filename":"ELRIS_NAME_EUROPE_EDGAR_elris_obs_elris_baseline_optimized",
-        "label":"ELRIS NAME EDGAR"
-        },
-
-    "elris_name_edgar_allobs":{
-        "filename":"ELRIS_NAME_EUROPE_EDGAR_all_obs_elris_baseline_optimized",
-        "label":"ELRIS NAME EDGAR all obs"
-        },
-
-    "elris_name_flat":{
-        "filename":"ELRIS_NAME_EUROPE_FLAT_elris_obs_elris_baseline_optimized",
-        "label":"ELRIS NAME Flat"
-        },
-
-    "elris_name_flat_allobs":{
-        "filename":"ELRIS_NAME_EUROPE_FLAT_all_obs_elris_baseline_optimized",
-        "label":"ELRIS NAME Flat all obs"
-        },
-
-    "elris_flex_edgar":{
-        "filename":"ELRIS_FLEXPART_EUROPE_EDGAR_elris_obs_elris_baseline_optimized",
-        "label":"ELRIS FLEXPART EDGAR"
-        },
-
-    "elris_flex_edgar_allobs":{
-        "filename":"ELRIS_FLEXPART_EUROPE_EDGAR_all_obs_elris_baseline_optimized",
-        "label":"ELRIS FLEXPART EDGAR all obs"
-        },
-
-    "elris_flex_flat":{
-        "filename":"ELRIS_FLEXPART_EUROPE_FLAT_elris_obs_elris_baseline_optimized",
-        "label":"ELRIS FLEXPART Flat"
-        },
-
-    "elris_flex_flat_allobs":{
-        "filename":"ELRIS_FLEXPART_EUROPE_FLAT_all_obs_elris_baseline_optimized",
-        "label":"ELRIS FLEXPART Flat all obs"
-        },
-    
-    "elris_name_flat_inert":{
-        "filename":"ELRIS_NAME_EUROPE_FLAT_inert_elris_obs_elris_baseline_optimized",
-        "label":"ELRIS NAME Flat Inert"
-        },
-
-    "elris_name_pop":{
-        "filename":"ELRIS_NAME_EUROPE_POPULATION_elris_obs_elris_baseline_optimized",
-        "label":"ELRIS NAME Population"
-        },
-
-    "elris_name_pop_inert":{
-        "filename":"ELRIS_NAME_EUROPE_POPULATION_inert_elris_obs_elris_baseline_optimized",
-        "label":"ELRIS NAME Population Inert"
-        },
-
-    "elris_flex_pop":{
-        "filename":"ELRIS_FLEXPART_EUROPE_POPULATION_elris_obs_elris_baseline_optimized",
-        "label":"ELRIS FLEXPART Population"
-        },
-
-    "elris_flex_pop_inert":{
-        "filename":"ELRIS_FLEXPART_EUROPE_POPULATION_inert_elris_obs_elris_baseline_optimized",
-        "label":"ELRIS FLEXPART Population Inert"
-        },
-
-    "elris_ibaseline":{
-        "filename":"ELRIS_NAME_EUROPE_*_elris_obs_intem_baseline_fixed",
-        "label":"ELRIS InTEM background"
-        },
-
-    "elris_iall":{
-        "filename":"ELRIS_NAME_EUROPE_*_intem_obs_intem_baseline_fixed_intem_unc",
-        "label":"ELRIS InTEM obs-background-unc"
-        },
-
-    "elris_name_edgar_28sites":{
-        "filename":"ELRIS_NAME_EUROPE_EDGAR_28sites",
-        "label":"ELRIS NAME 28 sites (e)"
-        },
-
-    "elris_name_edgar_31sites":{
-        "filename":"ELRIS_NAME_EUROPE_EDGAR_31base",
-        "label":"ELRIS NAME 31 sites (e)"
-        },
-
-    "elris_name_wetcharts_31sites":{
-        "filename":"ELRIS_NAME_EUROPE_EDGARWETCHART_31base",
-        "label":"ELRIS NAME 31 sites (e+w)"
-        },
-
-    "elris_flex_edgar_28sites":{
-        "filename":"ELRIS_FLEXPART_EUROPE_EDGAR_28sites",
-        "label":"ELRIS FLEXPART 28 sites (e)"
-        },
-
-    "elris_flex_edgar_31sites":{
-        "filename":"ELRIS_FLEXPART_EUROPE_EDGAR_31base",
-        "label":"ELRIS FLEXPART 31 sites (e)"
-        },
-
-    "elris_flex_wetcharts_31sites":{
-        "filename":"ELRIS_FLEXPART_EUROPE_EDGARWETCHART_31base",
-        "label":"ELRIS FLEXPART 31 sites (e+w)"
-        },
-
-    "elris_name_edgarminval":{
-            "filename":"ELRIS_NAME_EUROPE_EDGARMINVAL_elris_obs_elris_baseline_optimized",
-            "label":"ELRIS NAME EDGAR with min value"
-            },
-
-
-    "rhime_name_edgar":{
-        "filename":"RHIME_NAME_EUROPE_EDGAR_rhime_obs_rhime_baseline_optimized",
-        "label":"RHIME NAME EDGAR"
-        },
-
-    "rhime_name_edgar_allobs":{
-        "filename":"RHIME_NAME_EUROPE_EDGAR_all_obs_rhime_baseline_optimized",
-        "label":"RHIME NAME EDGAR all obs"
-        },
-
-    "rhime_name_flat":{
-        "filename":"RHIME_NAME_EUROPE_FLAT_rhime_obs_rhime_baseline_optimized",
-        "label":"RHIME NAME Flat"
-        },
-
-    "rhime_name_flat_allobs":{
-        "filename":"RHIME_NAME_EUROPE_FLAT_all_obs_rhime_baseline_optimized",
-        "label":"RHIME NAME Flat all obs"
-        },
-    
-    "rhime_name_flat_inert":{
-        "filename":"RHIME_NAME_EUROPE_FLAT_inert_rhime_obs_rhime_baseline_optimized",
-        "label":"RHIME NAME Flat Inert"
-        },
-
-    "rhime_name_pop":{
-        "filename":"RHIME_NAME_EUROPE_POPULATION_rhime_obs_rhime_baseline_optimized",
-        "label":"RHIME NAME Population"
-        },
-
-    "rhime_name_pop_inert":{
-        "filename":"RHIME_NAME_EUROPE_POPULATION_inert_rhime_obs_rhime_baseline_optimized",
-        "label":"RHIME NAME Population Inert"
-        },
-
-    "rhime_flex_edgar":{
-        "filename":"RHIME_FLEXPART_EUROPE_EDGAR_rhime_obs_rhime_baseline_optimized",
-        "label":"RHIME FLEXPART EDGAR"
-        },
-
-    "rhime_flex_edgar_allobs":{
-        "filename":"RHIME_FLEXPART_EUROPE_EDGAR_all_obs_rhime_baseline_optimized",
-        "label":"RHIME FLEXPART EDGAR all obs"
-        },
-
-    "rhime_flex_flat":{
-        "filename":"RHIME_FLEXPART_EUROPE_FLAT_rhime_obs_rhime_baseline_optimized",
-        "label":"RHIME FLEXPART Flat"
-        },
-
-    "rhime_flex_flat_allobs":{
-        "filename":"RHIME_FLEXPART_EUROPE_FLAT_all_obs_rhime_baseline_optimized",
-        "label":"RHIME FLEXPART Flat all obs"
-        },
-
-    "rhime_ibaseline":{
-        "filename":"RHIME_NAME_EUROPE_*_rhime_obs_intem_baseline_fixed",
-        "label":"RHIME InTEM background"
-        },
-
-    "rhime_iall":{
-        "filename":"RHIME_NAME_EUROPE_*_intem_obs_intem_baseline_fixed_intem_unc",
-        "label":"RHIME InTEM obs-background-unc"
-        },
-
-    "rhime_13sites":{
-        "filename":"RHIME_NAME_EUROPE_EDGAR_rhime_obs_baseline_optimized_13sites",
-        "label":"RHIME 13 sites (e)"
-        },
-
-    "rhime_name_wetcharts_31sites":{
-        "filename":"RHIME_NAME_EUROPE_EDGAR-WetCHARTs_std_31sites",
-        "label":"RHIME NAME 31 sites (e+w)"
-        }, 
-
-    "rhime_name_wetcharts_31sites_longrun":{
-        "filename":"RHIME_NAME_EUROPE_EDGAR-WetCHARTs_longrun_31sites",
-        "label":"RHIME NAME 31 sites (e+w)"
-        }, 
-
-    "rhime_test":{
-        "filename":"RHIME_NAME_EUROPE_EDGAR-WetCHARTs_test",
-        "label":"RHIME test"
-        }, 
-
-    "rhime_flex_wetcharts_31sites":{
-        "filename":"RHIME_FLEXPART_EUROPE_EDGAR-WetCHARTs_std_31sites",
-        "label":"RHIME FLEXPART 31 sites (e+w)"
-        },
-
-    "rhime_name_edgarminval":{
-            "filename":"RHIME_NAME_EUROPE_EDGARMINVAL_rhime_obs_rhime_baseline_optimized",
-            "label":"RHIME NAME EDGAR with min value"
-            },
-
-    "elris":{
-        "filename":"None",
-        "label":"ELRIS"
-        },
-
-    "intem":{
-            "filename":"None",
-            "label":"InTEM"
-            },
-    
-    "rhime":{
-            "filename":"None",
-            "label":"RHIME"
-            },
-
-    "intem_longrun":{
-        "filename":"None",
-        "label":"InTEM"
-        }
- }
-    
-
+    "standard_run":{
+        "default": {"ch4": "NAME_EDGARWETCHARTS_31sites",
+                    "n2o": "NAME_EDGAR_26sites",
+                    "sf6": "NAME_FLAT_std",
+                    "hfc134a": "NAME_EDGAR_std",
+                    "hfc143a": "NAME_EDGAR_std",
+                    "hfc125": "NAME_EDGAR_std",
+                    "hfc152a": "NAME_FLAT_std",
+                    "hfc32": "NAME_EDGAR_std",
+                    "hfc227ea": "NAME_FLAT_std",
+                    "hfc23": "NAME_FLAT_std",
+                    "hfc245fa": "NAME_FLAT_std",
+                    "hfc365mfc": "NAME_FLAT_std",
+                    "hfc4310mee": "NAME_FLAT_std",
+                    "pfc218": "NAME_FLAT_std",
+                    "pfc318": "NAME_FLAT_std",
+                    "pfc116": "NAME_EDGARMINVAL_std",
+                    "cf4": "NAME_EDGARMINVAL_std",
+                    "hfo1234yf": "NAME_POPULATION",
+                    "hfo1234zee": "NAME_POPULATION",
+                    "hcfo1233zde": "NAME_POPULATION",
+                    "clch2ch2cl": "NAME_POPULATION"
+    },
+        "Flexinvert": {"clch2ch2cl": "FLEXPART_POPULATION"
+    },
+        "ELRIS": {"n2o": "NAME_EDGAR_28sites"
+    }
+    }
+}
