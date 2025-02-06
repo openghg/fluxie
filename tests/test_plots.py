@@ -146,7 +146,6 @@ def test_flux_timeseries():
     resample = None
     resample_uncert_correlation = False
     plot_resample_and_original = False
-    period_override = None
     annex_mode = False
     rolling_mean = False
 
@@ -159,7 +158,6 @@ def test_flux_timeseries():
         model_colors,
         start_date,
         end_date,
-        False,
         annex_mode,
         scale_co2eq,
         plot_inventory,
@@ -175,7 +173,6 @@ def test_flux_timeseries():
         resample=resample,
         resample_uncert_correlation=resample_uncert_correlation,
         plot_resample_and_original=plot_resample_and_original,
-        period_override=period_override,
         rolling_mean=rolling_mean,
     )
 
