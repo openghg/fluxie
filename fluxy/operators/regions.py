@@ -9,48 +9,46 @@ from fluxy import config
 
 logger = logging.getLogger(__name__)
 
-def extract_region_flux(ds_all: dict[str, xr.Dataset],
-                        country: str, 
-                        verbose: bool =True
-                        )-> dict[str, xr.Dataset]:
+
+def extract_region_flux(
+    ds_all: dict[str, xr.Dataset], country: str, verbose: bool = True
+) -> dict[str, xr.Dataset]:
     """
     Finds the index of a chosen region name and extracts the country flux
     variables for this region.
     Either extracts values directly from the dataset (if this region definition
     exists in the file) or calculates values by taking the sum of smaller regions
     (if this region definition does not exist in the file).
-    
+
     Args:
         ds_all: xarray datasets of fluxes, scaled and sliced between 
             chosen dates.
         country: name of the country to extract.
         verbose: if you s=want lots of message
-    
+
     Returns:
         ds_output: dictionnary of datasets. The dataset variables are :
-            - 'region_flux_total_posterior',
-            - 'region_flux_total_prior',
-            - 'region_flux_total_posterior_lower',
-            - 'region_flux_total_posterior_upper',
-            - 'region_flux_total_prior_lower',
-            - 'region_flux_total_prior_upper'
+            - 'posterior',
+            - 'prior',
+            - 'posterior_lower',
+            - 'posterior_upper',
+            - 'prior_lower',
+            - 'prior_upper'
     """
     ds_output = dict()
 
-    for m,ds in ds_all.items():
+    for m, ds in ds_all.items():
         #########################################################################################
         # To be move to read_flux
-        m0 = m.split('_')[0]
+        m0 = m.split("_")[0]
         min_percentile_index = config.model_q_indices[m0][0]
         max_percentile_index = config.model_q_indices[m0][1]
         
         if m0 == 'elris':
-
             ds['country'] = ds['country'].astype('str')
             ds = ds.set_index(countrynumber='country').rename({'countrynumber':'country'})
 
-        elif m0 == 'intem':
-            
+        elif m0 == 'intem':            
             ds = ds.rename({'countrynumber':'country'})
 
             if 'BEL' not in ds.country and 'LUX'  not in ds.country:
@@ -59,8 +57,9 @@ def extract_region_flux(ds_all: dict[str, xr.Dataset],
 
                 r = config.bel_pop_r
 
-                variables_with_country = [var for var in ds.data_vars if 'country' in ds[var].dims]
-                numerical_vars = [var for var in variables_with_country if np.issubdtype(ds[var].dtype, np.number) and var != 'country_fraction']
+                variables_with_country = [var for var in ds.data_vars if "country" in ds[var].dims]
+                numerical_vars = [var for var in variables_with_country 
+                                  if np.issubdtype(ds[var].dtype, np.number) and var != "country_fraction"]
 
                 ds_bel = r * ds[numerical_vars].sel(country='BEL-LUX')
                 ds_lux = (1-r) * ds[numerical_vars].sel(country='BEL-LUX')
@@ -68,43 +67,41 @@ def extract_region_flux(ds_all: dict[str, xr.Dataset],
                 del ds_bel['country']
                 del ds_lux['country']
 
-                ds_bel['countryname'] = xr.DataArray(data = ['BELGIUM',]*ds_bel.time.size,
+                ds_bel['countryname'] = xr.DataArray(data = ['BELGIUM',] * ds_bel.time.size,
                                                     dims = ['time',],
-                                                    coords = {'time':ds_bel.time},
+                                                    coords = {'time': ds_bel.time},
                                                     attrs = ds.countryname.attrs)
-                ds_lux['countryname'] = xr.DataArray(data = ['LUXEMBOURG',]*ds_lux.time.size,
+                
+                ds_lux['countryname'] = xr.DataArray(data = ['LUXEMBOURG',] * ds_lux.time.size,
                                                     dims = ['time',],
-                                                    coords = {'time':ds_lux.time},
+                                                    coords = {'time': ds_lux.time},
                                                     attrs = ds.countryname.attrs)
                 
                 ds_bellux = xr.concat([ds_bel, ds_lux], pd.Index(['BEL','LUX'], name='country'))
-                ds = xr.merge([ds,ds_bellux])
+                ds = xr.merge([ds, ds_bellux])
 
         elif m0 == 'rhime':
-
-            for k,v in config.countrycodes_dict.items():
-                ds['country'] = ds['country'].str.replace(k,v)
+            for k, v in config.countrycodes_dict.items():
+                ds['country'] = ds['country'].str.replace(k, v)
 
         elif m0 == 'flexinvert':
-
-            ds['percentile_country_flux_total_posterior'] = xr.concat([ds_tmp['country_flux_total_posterior']
-                                                                    - ds_tmp['country_flux_error_posterior'],
-                                                                    ds_tmp['country_flux_total_posterior']
-                                                                    + ds_tmp['country_flux_error_posterior']],
+            ds['percentile_country_flux_total_posterior'] = xr.concat([ds['country_flux_total_posterior']
+                                                                    - ds['country_flux_error_posterior'],
+                                                                    ds['country_flux_total_posterior']
+                                                                    + ds['country_flux_error_posterior']],
                                                                     pd.Index([0,1], name = 'percentile'))
             
-            ds['percentile_country_flux_total_prior'] = xr.concat([ds_tmp['country_flux_total_prior']
-                                                                - ds_tmp['country_flux_error_prior'],
-                                                                ds_tmp['country_flux_total_prior']
-                                                                + ds_tmp['country_flux_error_prior']],
+            ds['percentile_country_flux_total_prior'] = xr.concat([ds['country_flux_total_prior']
+                                                                - ds['country_flux_error_prior'],
+                                                                ds['country_flux_total_prior']
+                                                                + ds['country_flux_error_prior']],
                                                                 pd.Index([0,1], name = 'percentile'))
         #########################################################################################
 
-        c_key = 'country'
         country_search = config.countrycodes_dict[country]
-        #search for existing region names
+        # search for existing region names
 
-        available_countries = ds[c_key].values
+        available_countries = ds["country"].values
         
         if country_search not in available_countries and country in config.regions_dict.keys() :
             region_search = config.regions_dict[country]
@@ -113,74 +110,80 @@ def extract_region_flux(ds_all: dict[str, xr.Dataset],
                 logger.warning(f'{country} emissions are not present in {m}. Considering covariance matrix and sum of individual countries: {region_search}.')
 
             country_list = region_search.split('-')
-            ds_tmp = ds.sel({'country':country_list})
+            ds_region = ds.sel({'country':country_list})
 
-            ds_tmp['region_flux_total_posterior'] = ds_tmp.country_flux_total_posterior.sum(dim='country')
-            ds_tmp['region_flux_total_prior'] = ds_tmp.country_flux_total_prior.sum(dim='country')
+            for v in ["posterior", "prior"]:
+                ds_region[v] = ds_region[f"country_flux_total_{v}"].sum(dim="country")
 
-            ds_tmp['sigma_region_flux_total_prior'] = np.sqrt(((ds.country_flux_total_prior-
-                                                                ds.percentile_country_flux_total_prior.isel(percentile=min_percentile_index)
-                                                                )**2
-                                                            ).sum(dim='country')
-                                                            )
+            ds_region['sigma_prior'] = np.sqrt(((ds.country_flux_total_prior
+                                                 - ds.percentile_country_flux_total_prior.isel(percentile=min_percentile_index)
+                                                 )** 2
+                                                ).sum(dim="country"))
+            
             if 'covariance_country_flux_total_posterior' in ds.variables:
-                ds_tmp['sigma_region_flux_total_posterior'] = np.sqrt(ds_tmp['covariance_country_flux_total_posterior'].sum(dim='country').sum(dim='country'))
+                ds_region['sigma_posterior'] = np.sqrt(ds_region['covariance_country_flux_total_posterior'].sum(dim='country').sum(dim='country'))
                 
             else:
                 logger.warning(f'Covariance matrix is not available for {m}. A posteriori uncertainty of {country} emissions will not be plotted.')
-                ds_tmp['sigma_region_flux_total_posterior'] = np.nan * ds_tmp['region_flux_total_posterior']
+                ds_region['sigma_posterior'] = np.nan * ds_region['posterior']
                 
-            ds_tmp['region_flux_total_posterior_lower'] = ds_tmp['region_flux_total_posterior'] - ds_tmp['sigma_region_flux_total_posterior']
-            ds_tmp['region_flux_total_posterior_upper'] = ds_tmp['region_flux_total_posterior'] + ds_tmp['sigma_region_flux_total_posterior']
-            ds_tmp['region_flux_total_prior_lower'] = ds_tmp['region_flux_total_prior'] - ds_tmp['sigma_region_flux_total_prior']
-            ds_tmp['region_flux_total_prior_upper'] = ds_tmp['region_flux_total_prior'] + ds_tmp['sigma_region_flux_total_prior']
-            
-        elif country_search in available_countries: 
-            ds_tmp = ds.sel({c_key:country_search})
-        
-            ds_tmp['region_flux_total_posterior'] = ds_tmp['country_flux_total_posterior']
-            ds_tmp['region_flux_total_prior'] = ds_tmp['country_flux_total_prior']
-            
-            ds_tmp['region_flux_total_posterior_lower'] = ds_tmp['percentile_country_flux_total_posterior'].isel(percentile=min_percentile_index)
-            ds_tmp['region_flux_total_posterior_upper'] = ds_tmp['percentile_country_flux_total_posterior'].isel(percentile=max_percentile_index)
-            ds_tmp['region_flux_total_prior_lower'] = ds_tmp['percentile_country_flux_total_prior'].isel(percentile=min_percentile_index)
-            ds_tmp['region_flux_total_prior_upper'] = ds_tmp['percentile_country_flux_total_prior'].isel(percentile=max_percentile_index)
+            for v in ["posterior", "prior"]:
+                ds_region[f"region_flux_{v}_lower"] = (
+                    ds_region[f"region_flux_{v}"] - ds_region[f"sigma_region_flux_{v}"]
+                )
+                ds_region[f"region_flux_{v}_upper"] = (
+                    ds_region[f"region_flux_{v}"] + ds_region[f"sigma_region_flux_{v}"]
+                )
+
+        elif country_search in available_countries:
+            ds_region = ds.sel({"country": country_search})
+
+            for v in ["posterior", "prior"]:
+                ds_region[v] = ds_region[f"country_flux_total_{v}"]
+
+                ds_region[f"{v}_lower"] = ds_region[f"percentile_country_flux_total_{v}"
+                                                    ].isel(percentile=min_percentile_index)
+                ds_region[f"{v}_upper"] = ds_region[f"percentile_country_flux_total_{v}"
+                                                    ].isel(percentile=max_percentile_index)
 
         else:
             raise ValueError(f'{country_search} ({country}) is not available for {m}')
-                
-        ds_tmp['region_flux_total_posterior_lower'] = ds_tmp['region_flux_total_posterior_lower'].clip(min = 0)
-        ds_tmp['region_flux_total_prior_lower'] = ds_tmp['region_flux_total_prior_lower'].clip(min = 0)
 
-        ds_output[m] = ds_tmp[['region_flux_total_posterior','region_flux_total_prior',
-                               'region_flux_total_posterior_lower','region_flux_total_posterior_upper',
-                               'region_flux_total_prior_lower','region_flux_total_prior_upper']]
+        for v in ["posterior", "prior"]:
+            ds_region[f"region_flux_{v}_lower"] = ds_region[f"region_flux_{v}_lower"].clip(min=0)
+
+        ds_output[m] = ds_region[
+            ["posterior","posterior_lower","posterior_upper",
+             "prior","prior_lower","prior_upper",
+            ]
+        ]
     return ds_output
 
 
-def extract_region_inventory_flux(data_dir: str,
-                                  country: str,
-                                  species: str,
-                                  s_data: dict[str,dict],
-                                  scale_co2eq: bool = False,
-                                  inventory_year: int | str | None = None
-                                  )->xr.Dataset:
+def extract_region_inventory_flux(
+    data_dir: str,
+    country: str,
+    species: str,
+    s_data: dict[str, dict],
+    scale_co2eq: bool = False,
+    inventory_year: int | str | None = None,
+) -> xr.Dataset:
     """
     Extracts inventory flux values for regions that exists,
     or calculates total inventory flux values for aggregated regions.
-    
+
     Args:
         data_dir: directory which contains the data (should have inside a directory named 'inventory').
         species: Gas species, e.g. 'ch4'.
         s_data: Dictionary of species with information for plotting (read from json file).
         scale_co2eq: If True, adapt y-axis label to CO2-eq.
         inventory_year: year of inventory to get.
-        
+
     Returns:
         dataset with country selected
 
     """
-    
+
     gwp = 1
     scale_factor = s_data[species]["units_scaling"]["intem"]
 
@@ -191,14 +194,24 @@ def extract_region_inventory_flux(data_dir: str,
             scale_factor = scale_factor * 1e3 #Convert to Tg
 
     if inventory_year is not None:
-        filepath = os.path.join(data_dir,'inventory',f'UNFCCC_inventory_{species}_{inventory_year}.nc')
-    else :
-        filelist = sorted(glob.glob(os.path.join(data_dir,'inventory',f'UNFCCC_inventory_{species}_*.nc')))
-        if filelist :
+        filepath = os.path.join(
+            data_dir,
+            "inventory",
+            f"UNFCCC_inventory_{species}_{inventory_year}.nc",
+        )
+    else:
+        filelist = sorted(
+            glob.glob(os.path.join(data_dir, "inventory", f"UNFCCC_inventory_{species}_*.nc"))
+        )
+        if filelist:
             filepath = filelist[-1]
-            inventory_year = int(filepath.split('_')[-1].split('.')[0])
-        else :
-            filepath = os.path.join(data_dir,'inventory',f'UNFCCC_inventory_{s_data[species]["model_species"]["intem"]}.nc')
+            inventory_year = int(filepath.split("_")[-1].split(".")[0])
+        else:
+            filepath = os.path.join(
+                data_dir,
+                "inventory",
+                f'UNFCCC_inventory_{s_data[species]["model_species"]["intem"]}.nc',
+            )
             inventory_year = None
 
     inv_ds = xr.open_dataset(filepath)['inventory'] / scale_factor * gwp
@@ -213,6 +226,6 @@ def extract_region_inventory_flux(data_dir: str,
         logger.info(f'No inventory data available for {country}. Considering sum of individual countries: {region_search}')
 
         country_list_update = [country if country in inv_ds['country'] 
-                               else dict(map(reversed, config.countrycodes_dict.items()))[country] 
+                               else dict(map(reversed, config.countrycodes_dict.items()))[country] # type: ignore
                                for country in country_list]
-        return inv_ds.sel(country=country_list_update).sum(dim='country',keep_attrs=True)
+        return inv_ds.sel(country=country_list_update).sum(dim='country', keep_attrs=True)
