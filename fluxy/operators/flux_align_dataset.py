@@ -1,40 +1,42 @@
 import numpy as np
 import xarray as xr
 
-def align_dataset(ds_list: list[xr.Dataset]
-                  )->list[xr.Dataset]: 
+def align_dataset(ds_list: list[xr.Dataset])->list[xr.Dataset]: 
     """
-    Check time coord and align the time coord of a list of xarray datasets on the time coord of the first of the list if not equals.
+    Check the time coordinates of a list of xarray datasets and, if they differ, align them with the time coordinate of the first dataset in the list.
 
     Args:
-        ds_list: list of xarray datasets to be temporarily aligned
+        ds_list: list of xarray datasets to be time-aligned
     Returns:
-        ds_ouput: list of xarray datasets temporarily aligned
+        ds_ouput: list of xarray datasets time-aligned
     """
     time_dim_equal = [ds_list[0].time.equals(x.time) for x in ds_list[1:]]
 
     if all(time_dim_equal):
         ds_ouput = ds_list
-    else :
+    else:
         # Infer period of first dataset 
         dtime = ds_list[0].time.values[1:] - ds_list[0].time.values[:-1]
-        if any(abs(dtime-np.median(dtime))>0.1*np.median(dtime)):
-            raise ValueError('Unable to infer period from dataset')
+        if any(abs(dtime - np.median(dtime)) > 0.1 * np.median(dtime)):
+            raise ValueError("Unable to infer period from dataset")
         period = np.median(dtime)
         
-        aligned_ds_list = [ds_list[0],]
-        for ds_p in ds_list[1:]:
+        aligned_ds_list = [ds_list[0]]
 
+        for ds_p in ds_list[1:]:
             if ds_list[0].time.equals(ds_p.time):
                 aligned_ds_list.append(ds_p)
                 continue
 
             diff_time = abs(ds_list[0].time.values - ds_p.time.values)
-            if any(diff_time>0.1*period):
-                raise ValueError(f'Time dimensions seemed to be too strong to combined (period of ref dataset: {period.astype("timedelta64[D]")}, max diff: {max(diff_time).astype("timedelta64[D]")})')
-
+            if any(diff_time > 0.1 * period):
+                raise ValueError(
+                    f"Time dimensions seem to be too different between the datasets for them to be combined "
+                    + f'(period of reference dataset: {period.astype("timedelta64[D]")}, max difference: {max(diff_time).astype("timedelta64[D]")})'
+                )
+            
             ds_aligned = ds_p  
-            ds_aligned['time'] = ds_list[0].time
+            ds_aligned["time"] = ds_list[0].time
             aligned_ds_list.append(ds_p)
         ds_ouput = aligned_ds_list
 
