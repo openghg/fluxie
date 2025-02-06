@@ -213,7 +213,7 @@ def plot_country_flux(
 
     units = {ds.country_flux_total_posterior.units for ds in ds_all.values()} 
     if len(units) == 1:
-        units_print = list(units)[0].replace('-1','$^{{-1}}$')
+        unit = list(units)[0]
     else:
         raise ValueError(f"In concistency in the units from the different datasets : {units} are present. Only one is expected.")
         
@@ -226,7 +226,7 @@ def plot_country_flux(
         ax = axes.flatten()[i]
 
         if plot_inventory :
-            inventories_to_plot = retrieve_inventories(data_dir,country,specie,start_date,end_date,s_data,inventory_years)
+            inventories_to_plot = retrieve_inventories(data_dir,country,specie,start_date,end_date,unit,s_data,inventory_years)
             for i_inv, inventory in enumerate(inventories_to_plot) :
                 ax.bar(inventory.time,inventory,
                        np.timedelta64(340-i_inv*20, 'D'),
@@ -291,7 +291,7 @@ def plot_country_flux(
                                 color = ds_region.attrs['model_color'])
                 max_cf[i] = np.nanmax((max_cf[i], ds_region.prior_upper.max(skipna=True)))
                                            
-        ax.set_ylabel(f'{s_data[specie]["species_print"]} ({units_print})')     
+        ax.set_ylabel(f"{s_data[specie]['species_print']} ({unit.replace('-1','$^{{-1}}$')})")     
         
         # set legend if needed
         if not set_global_leg:

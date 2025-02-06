@@ -6,6 +6,7 @@ import pandas as pd
 import xarray as xr
 
 from fluxy import config
+from fluxy.operators.select import get_units_conversion_factor
 
 logger = logging.getLogger(__name__)
 
@@ -158,7 +159,8 @@ def extract_region_flux(
 def extract_region_inventory_flux(
     data_dir: str,
     country: str,
-    species: str,
+    specie: str,
+    unit: str,
     s_data: dict[str, dict],
     scale_co2eq: bool = False,
     inventory_year: int | str | None = None,
@@ -169,7 +171,8 @@ def extract_region_inventory_flux(
 
     Args:
         data_dir: directory which contains the data (should have inside a directory named 'inventory').
-        species: Gas species, e.g. 'ch4'.
+        specie: Gas species, e.g. 'ch4'.
+        unit: unit in which the inventory should be converted.
         s_data: Dictionary of species with information for plotting (read from json file).
         scale_co2eq: If True, adapt y-axis label to CO2-eq.
         inventory_year: year of inventory to get.
@@ -179,24 +182,16 @@ def extract_region_inventory_flux(
 
     """
 
-    gwp = 1
-    scale_factor = s_data[species]["units_scaling"]["intem"]
-
-    # Update scaling factors
-    if scale_co2eq and ('all' not in species):
-        gwp = s_data[species]["gwp"]
-        if s_data[species]["units_print"] == "G": #units_print is expected to be either G or T
-            scale_factor = scale_factor * 1e3 #Convert to Tg
-
+    # Find filename
     if inventory_year is not None:
         filepath = os.path.join(
             data_dir,
             "inventory",
-            f"UNFCCC_inventory_{species}_{inventory_year}.nc",
+            f"UNFCCC_inventory_{specie}_{inventory_year}.nc",
         )
     else:
         filelist = sorted(
-            glob.glob(os.path.join(data_dir, "inventory", f"UNFCCC_inventory_{species}_*.nc"))
+            glob.glob(os.path.join(data_dir, "inventory", f"UNFCCC_inventory_{specie}_*.nc"))
         )
         if filelist:
             filepath = filelist[-1]
@@ -205,11 +200,19 @@ def extract_region_inventory_flux(
             filepath = os.path.join(
                 data_dir,
                 "inventory",
-                f'UNFCCC_inventory_{s_data[species]["model_species"]["intem"]}.nc',
+                f'UNFCCC_inventory_{s_data[specie]["model_species"]["intem"]}.nc',
             )
             inventory_year = None
+    inv_ds = xr.open_dataset(filepath)['inventory'] 
 
-    inv_ds = xr.open_dataset(filepath)['inventory'] / scale_factor * gwp
+    if scale_co2eq and ('all' not in specie):
+        gwp = s_data[specie]["gwp"]
+    else:
+        gwp = 1
+    scaling_factor = get_units_conversion_factor(inv_ds.units.replace('/yr',' yr-1'), unit, s_data[specie]["molar_mass"])
+
+    inv_ds = inv_ds * scaling_factor * gwp
+    inv_ds.attrs['units'] = unit
     inv_ds.attrs['year'] = inventory_year
 
     if country in inv_ds['country']:
