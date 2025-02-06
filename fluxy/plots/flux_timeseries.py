@@ -224,42 +224,42 @@ def plot_country_flux(ds_all: dict[str,xr.Dataset],
             include_label_prior = f'{include_label} prior'
                 
             ax.plot(ds_region.time,
-                    ds_region.region_flux_total_posterior,
+                    ds_region.posterior,
                     label=include_label,
                     color=model_colors[m_org][0]) 
             ax.fill_between(ds_region.time,
-                            ds_region.region_flux_total_posterior_lower,
-                            ds_region.region_flux_total_posterior_upper,
+                            ds_region.posterior_lower,
+                            ds_region.posterior_upper,
                             alpha=0.3,
                             color=model_colors[m_org][0])   
             max_cf[i] = np.nanmax((max_cf[i],
-                                   ds_region.region_flux_total_posterior_upper.max(skipna=True),
-                                   ds_region.region_flux_total_posterior.max(skipna=True)
+                                   ds_region.posterior_upper.max(skipna=True),
+                                   ds_region.posterior.max(skipna=True)
                                    ))
             if return_res:
                 res_dict[country][m] = {'time':ds_region.time.values.astype('datetime64[ns]'),
-                                        'mean':ds_region.region_flux_total_posterior.values,
-                                        'min':ds_region.region_flux_total_posterior_lower.values,
-                                        'max':ds_region.region_flux_total_posterior_upper.values}
+                                        'mean':ds_region.posterior.values,
+                                        'min':ds_region.posterior_lower.values,
+                                        'max':ds_region.posterior_upper.values}
             
             if add_prior:
                 ax.plot(ds_region.time,
-                        ds_region.region_flux_total_prior,
+                        ds_region.prior,
                         label=include_label_prior,
                         color=model_colors[m_org][0],
                         linestyle='dashed',
                         linewidth=linewidth,
                         alpha=alpha)
-                max_cf[i] = np.nanmax((max_cf[i],ds_region.region_flux_total_prior.max(skipna=True)))
+                max_cf[i] = np.nanmax((max_cf[i],ds_region.prior.max(skipna=True)))
     
             
             if add_prior_unc:
                 ax.fill_between(ds_region.time,
-                                ds_region.region_flux_total_prior_lower,
-                                ds_region.region_flux_total_prior_upper,
+                                ds_region.prior_lower,
+                                ds_region.prior_upper,
                                 alpha=0.1,
                                 color=model_colors[m][0])
-                max_cf[i] = np.nanmax((max_cf[i],ds_region.region_flux_total_prior_upper.max(skipna=True)))
+                max_cf[i] = np.nanmax((max_cf[i],ds_region.prior_upper.max(skipna=True)))
                                            
         #format each subplot
         units_print = s_data[species]["units_print"]

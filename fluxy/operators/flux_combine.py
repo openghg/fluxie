@@ -19,9 +19,9 @@ def combine_dataset(
 
     ds_combined = xr.concat(ds_to_combined_aligned, "model")
 
-    ds_output = xr.Dataset({'region_flux_total_posterior': ds_combined['region_flux_total_posterior'].mean(dim='model'),
-                            'region_flux_total_prior': ds_combined['region_flux_total_prior'].mean(dim='model'),
-                            'region_flux_total_posterior_lower': ds_combined['region_flux_total_posterior_lower'].min(dim='model'),
-                            'region_flux_total_posterior_upper': ds_combined['region_flux_total_posterior_upper'].max(dim='model'),
+    ds_output = xr.Dataset({'posterior': ds_combined['posterior'].mean(dim='model'),
+                            'prior': ds_combined['prior'].mean(dim='model'),
+                            'posterior_lower': ds_combined['posterior_lower'].min(dim='model'),
+                            'posterior_upper': ds_combined['posterior_upper'].max(dim='model'),
                             })
     return {'combined': ds_output}
