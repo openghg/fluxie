@@ -81,8 +81,7 @@ def extract_region_flux(
                 ds = xr.merge([ds, ds_bellux])
 
         elif m0 == 'rhime':
-            for k, v in config.countrycodes_dict.items():
-                ds['country'] = ds['country'].str.replace(k, v)
+            ds['country'] = [config.countrycodes_dict.get(x, x) for x in ds['country'].values]
 
         elif m0 == 'flexinvert':
             ds['percentile_country_flux_total_posterior'] = xr.concat([ds['country_flux_total_posterior']
