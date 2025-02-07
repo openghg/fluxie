@@ -47,7 +47,7 @@ def calculate_resampled_uncertainty(
         if rtime[i] is None:
             continue
 
-        for v in ["region_flux_posterior", "region_flux_prior"]:
+        for v in ["posterior", "prior"]:
             n_periods = (
                 ds_all_original[m][v].resample(time=rtime[i]).count()
             )  # count the number of sample in each period
