@@ -101,7 +101,7 @@ plot_inversion_grid_flux = False
 
 stats_to_plot = ['pearson','nrmse','rmse']
 
-def deactivate_test_flux_timeseries():
+def test_flux_timeseries():
     plot_inventory = False
     inventory_years = None
     fix_y_axes = False
@@ -122,12 +122,11 @@ def deactivate_test_flux_timeseries():
         specie,
         regions,
         config_data["species_info"],
-        config_data["models_info"],
         model_colors,
+        model_labels,
         start_date,
         end_date,
         annex_mode,
-        scale_co2eq,
         plot_inventory,
         inventory_years,
         data_dir,

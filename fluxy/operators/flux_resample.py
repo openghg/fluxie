@@ -52,18 +52,10 @@ def calculate_resampled_uncertainty(
                 ds_all_original[m][v].resample(time=rtime[i]).count()
             )  # count the number of sample in each period
 
-            lower = (
-                np.sqrt((ds_all_original[m][f"{v}_lower"] - ds_all_original[m][v]) ** 2)
-                .resample(time=rtime[i])
-                .sum(dim="time")
-                / n_periods
-            )
-            upper = (
-                np.sqrt((ds_all_original[m][f"{v}_upper"] - ds_all_original[m][v]) ** 2)
-                .resample(time=rtime[i])
-                .sum(dim="time")
-                / n_periods
-            )
+            lower = np.sqrt(((ds_all_original[m][f"{v}_lower"] - ds_all_original[m][v]) ** 2)
+                            .resample(time=rtime[i]).mean(dim="time"))
+            upper = np.sqrt(((ds_all_original[m][f"{v}_upper"] - ds_all_original[m][v]) ** 2)
+                            .resample(time=rtime[i]).mean(dim="time"))
 
             ds_all_resampled[m][f"{v}_lower"] = ds_all_resampled[m][v] - lower
             ds_all_resampled[m][f"{v}_upper"] = ds_all_resampled[m][v] + upper
@@ -89,14 +81,9 @@ def resample_flux(
         ds_all_resampled: resampled datasets
     """
 
-    # Check resample option
-    # I don't agree with this renaming, I think we should keep the same names as xarray resample function, that way we can easily use any of the many available period
-    # Besides there is a link to the xarray periods list in the description of the parameter 'resample'
     rtime = []
 
     for resample_val in resample:
-        # make it possible also to use pandas stuff
-
         if resample_val == "year":
             rtime.append("YS")
 

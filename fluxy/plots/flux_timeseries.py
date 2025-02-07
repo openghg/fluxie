@@ -5,6 +5,7 @@ import xarray as xr
 import pandas as pd
 import matplotlib.pyplot as plt
 
+from matplotlib.figure import Figure
 from matplotlib.ticker import NullFormatter
 from matplotlib.dates import YearLocator, MonthLocator
 
@@ -39,8 +40,6 @@ def determine_subplots_arrangement(subplot_number: int) -> tuple[int, int]:
         n_cols = 3
         n_rows = 2
     return n_cols,n_rows
-
-# def add_attr_model_label(ds_all: )
 
 def prepare_data_to_plot(
     ds_all_region: dict[str, xr.Dataset],
@@ -137,7 +136,6 @@ def plot_country_flux(
     specie: str,
     plot_regions: list[str],
     s_data: dict[str, str],
-    m_data: dict[str, str],
     model_colors: dict[str, str],
     model_labels: list[str] | None,
     start_date: str,
@@ -158,7 +156,7 @@ def plot_country_flux(
     plot_resample_and_original: bool = False,
     return_res: bool = False,
     rolling_mean: bool = False,
-):  # -> plt.figure | list : # Don't know how to handle this
+) -> Figure | list :
     """
     Timeseries plot of prior and posterior country fluxes, from list of 
     areas in plot_regions.
@@ -169,7 +167,6 @@ def plot_country_flux(
         specie: Gas specie, e.g. 'ch4'.
         plot_regions: Country or regions to plot, e.g. ['UNITED KINGDOM','SWITZERLAND']
         s_data: Dictionary of specie with information for plotting (read from json file).
-        m_data: Dictionary of inversion runs with filename and plot label (read from json file).
         model_colors: Models and corresponding colours used to plot the model.
         start_date: Start dates of the data to plot (used to slice inventory data).
         end_date: Start dates of the data to plot (used to slice inventory data).
@@ -215,7 +212,7 @@ def plot_country_flux(
     if len(units) == 1:
         unit = list(units)[0]
     else:
-        raise ValueError(f"In concistency in the units from the different datasets : {units} are present. Only one is expected.")
+        raise ValueError(f"Inconsistency in the units from the different datasets : {units} are present. Only one is expected.")
         
     fig, axes = plt.subplots(
         n_rows, n_cols, sharex=True,
@@ -368,7 +365,7 @@ def plot_country_flux(
             fig.axes[i].set_ylim([0, max_cf[i] * fac])  
     
     logger.info('NOTE: If all the data is not within axis limits, adjust the set_ylim parameter')
-    plt.show()
+
     if return_res:
         return fig, res_dict
     else:

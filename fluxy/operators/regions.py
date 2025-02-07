@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def extract_region_flux(
-    ds_all: dict[str, xr.Dataset], country: str, verbose: bool = True
+    ds_all: dict[str, xr.Dataset], country: str
 ) -> dict[str, xr.Dataset]:
     """
     Finds the index of a chosen region name and extracts the country flux
@@ -25,7 +25,6 @@ def extract_region_flux(
         ds_all: xarray datasets of fluxes, scaled and sliced between 
             chosen dates.
         country: name of the country to extract.
-        verbose: if you s=want lots of message
 
     Returns:
         ds_output: dictionnary of datasets. The dataset variables are :
@@ -53,8 +52,7 @@ def extract_region_flux(
             ds = ds.rename({'countrynumber':'country'})
 
             if 'BEL' not in ds.country and 'LUX'  not in ds.country:
-                if verbose: 
-                    logger.warning(f"InTEM does not estimate separate BELGIUM emissions.\n A population ratio of {config.bel_pop_r} is being used to scale InTEM's total BELGIUM+LUXEMBOURG estimate.")
+                logger.warning(f"InTEM does not estimate separate BELGIUM emissions.\n A population ratio of {config.bel_pop_r} is being used to scale InTEM's total BELGIUM+LUXEMBOURG estimate.")
 
                 r = config.bel_pop_r
 
@@ -106,8 +104,7 @@ def extract_region_flux(
         if country_search not in available_countries and country in config.regions_dict.keys() :
             region_search = config.regions_dict[country]
 
-            if verbose: 
-                logger.warning(f'{country} emissions are not present in {m}. Considering covariance matrix and sum of individual countries: {region_search}.')
+            logger.info(f'{country} emissions are not present in {m}. Considering covariance matrix and sum of individual countries: {region_search}.')
 
             country_list = region_search.split('-')
             ds_region = ds.sel({'country':country_list})
@@ -162,7 +159,6 @@ def extract_region_inventory_flux(
     specie: str,
     unit: str,
     s_data: dict[str, dict],
-    scale_co2eq: bool = False,
     inventory_year: int | str | None = None,
 ) -> xr.Dataset:
     """
@@ -174,7 +170,6 @@ def extract_region_inventory_flux(
         specie: Gas species, e.g. 'ch4'.
         unit: unit in which the inventory should be converted.
         s_data: Dictionary of species with information for plotting (read from json file).
-        scale_co2eq: If True, adapt y-axis label to CO2-eq.
         inventory_year: year of inventory to get.
 
     Returns:
@@ -205,11 +200,13 @@ def extract_region_inventory_flux(
             inventory_year = None
     inv_ds = xr.open_dataset(filepath)['inventory'] 
 
-    if scale_co2eq and ('all' not in specie):
+    gwp = 1
+    target_unit = unit
+    if "CO2-eq" in target_unit:
         gwp = s_data[specie]["gwp"]
-    else:
-        gwp = 1
-    scaling_factor = get_units_conversion_factor(inv_ds.units.replace('/yr',' yr-1'), unit, s_data[specie]["molar_mass"])
+        target_unit = unit.replace("CO2-eq","")
+        logger.info(f'Converting to mass of CO2-eq using GWP = {gwp}.')
+    scaling_factor = get_units_conversion_factor(inv_ds.units.replace('/yr',' yr-1'), target_unit, s_data[specie]["molar_mass"])
 
     inv_ds = inv_ds * scaling_factor * gwp
     inv_ds.attrs['units'] = unit
@@ -218,12 +215,11 @@ def extract_region_inventory_flux(
     if country in inv_ds['country']:
         return inv_ds.sel(country=country)
 
-    else:
-        region_search = config.regions_dict[country]
-        country_list = region_search.split('-')
-        logger.info(f'No inventory data available for {country}. Considering sum of individual countries: {region_search}')
+    region_search = config.regions_dict[country]
+    country_list = region_search.split('-')
+    logger.info(f'No inventory data available for {country}. Considering sum of individual countries: {region_search}')
 
-        country_list_update = [country if country in inv_ds['country'] 
-                               else dict(map(reversed, config.countrycodes_dict.items()))[country] # type: ignore
-                               for country in country_list]
-        return inv_ds.sel(country=country_list_update).sum(dim='country', keep_attrs=True)
+    country_list_update = [country if country in inv_ds['country'] 
+                            else dict(map(reversed, config.countrycodes_dict.items()))[country] # type: ignore
+                            for country in country_list]
+    return inv_ds.sel(country=country_list_update).sum(dim='country', keep_attrs=True)
