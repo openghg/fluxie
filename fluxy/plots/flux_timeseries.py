@@ -103,7 +103,7 @@ def prepare_data_to_plot(
             ds_combined.attrs['model_label'] = 'PARIS mean (from resampled data)'
         else:
             ds_combined = combine_dataset(ds_all_region, plot_combined)
-            ds_combined.attrs['model_label'] = 'PARIS mean'
+            ds_combined['combined'].attrs['model_label'] = 'PARIS mean'
         ds_to_plot.update(ds_combined)
 
     if rolling_mean:
@@ -202,6 +202,7 @@ def plot_country_flux(
         res_dict: dict[str, dict] = {country: dict() for country in plot_regions}
     
     max_cf = np.zeros(len(plot_regions))
+    min_x, max_x = np.datetime64("2100-01-01","D"), np.datetime64("1900-01-01","D")
     linewidth, alpha = (1.0, 0.7) if annex_mode else (1.5, 1.0)
 
     # Create figure
@@ -263,6 +264,9 @@ def plot_country_flux(
                                    ds_region.posterior_upper.max(skipna=True),
                                    ds_region.posterior.max(skipna=True)
                                    ))
+            min_x = min(ds_region.time.min(skipna=True),min_x)
+            max_x = max(ds_region.time.max(skipna=True),max_x)
+
             if return_res:
                 res_dict[country][m] = {'time': ds_region.time.values.astype('datetime64[ns]'),
                                         'mean': ds_region.posterior.values,
@@ -313,8 +317,6 @@ def plot_country_flux(
             
     # set xticks
     xlim = pd.to_datetime(ax.get_xlim(), unit='D', origin=pd.Timestamp('1970-01-01'))
-    ax.set_xlim(np.datetime64(str(xlim.year[0]), 'Y'),
-                np.datetime64(str(xlim.year[1]), 'Y') + 1)
 
     if (xlim.year[1] - xlim.year[0]) > 10:
         xticks = np.array(
@@ -328,6 +330,11 @@ def plot_country_flux(
         ax.xaxis.set_minor_locator(MonthLocator())
         ax.xaxis.set_minor_formatter(NullFormatter())
         ax.xaxis.set_major_locator(YearLocator())
+        
+    if max_x.astype("datetime64[Y]") != max_x:
+        max_x = max_x.astype("datetime64[Y]")+np.timedelta64(365,'D')
+    ax.set_xlim(min_x.astype("datetime64[Y]")-np.timedelta64(60,'D'),
+                max_x.astype("datetime64[Y]")+np.timedelta64(60,'D'))
         
     if set_global_leg:
         ncol=0   
