@@ -53,9 +53,9 @@ def calculate_resampled_uncertainty(
             )  # count the number of sample in each period
 
             lower = np.sqrt(((ds_all_original[m][f"{v}_lower"] - ds_all_original[m][v]) ** 2)
-                            .resample(time=rtime[i]).mean(dim="time"))
+                            .resample(time=rtime[i]).sum(dim="time")) / n_periods
             upper = np.sqrt(((ds_all_original[m][f"{v}_upper"] - ds_all_original[m][v]) ** 2)
-                            .resample(time=rtime[i]).mean(dim="time"))
+                            .resample(time=rtime[i]).sum(dim="time")) / n_periods
 
             ds_all_resampled[m][f"{v}_lower"] = ds_all_resampled[m][v] - lower
             ds_all_resampled[m][f"{v}_upper"] = ds_all_resampled[m][v] + upper
