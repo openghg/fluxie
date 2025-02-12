@@ -70,15 +70,15 @@ countrycodes_dict.update(regions_dict)
 #                   2:[0.65,0.40],
 #                   3:[0.65,0.20],}
 
-annotate_coords = {0:[0.65,0.75],
-                   1:[0.65,0.5],
-                   2:[0.65,0.25],
-                  3:[0.65,0.1],}
+#annotate_coords = {0:[0.65,0.75],
+#                   1:[0.65,0.5],
+#                   2:[0.65,0.25],
+#                  3:[0.65,0.1],}
 
-#annotate_coords = {0:[0.15,0.75],
-#                   1:[0.15,0.5],
-#                   2:[0.15,0.25],
-#                   3:[0.15,0.1],}
+annotate_coords = {0:[0.15,0.75],
+                   1:[0.15,0.5],
+                   2:[0.15,0.25],
+                   3:[0.15,0.1],}
 
 # population from 2018 to 2023 (at Jan 1 each year)
 bel_pop = np.array([11.399,11.455,11.522,11.555,11.618,11.723])
@@ -3187,7 +3187,7 @@ def plot_spatial_flux_comparison_sectors(ds_all,species,plot_area,model_labels,
                     end_print = to_datetime(end_period).strftime("%m/%Y")
                     time_out = (f'{start_print} - {end_print}')
             
-                ax[s,0].pcolormesh(lon,lat,np.mean(ds_all[m][f'flux_{sector}_posterior'].values,axis=0),cmap=cmap,
+                ax[s,0].pcolormesh(lon,lat,np.nanmean(ds_all[m][f'flux_{sector}_posterior'].values,axis=0),cmap=cmap,
                                 vmin=s_data[species]['fluxlim'][0],vmax=s_data[species]['fluxlim'][1],shading='nearest',
                                 )
 
@@ -3195,7 +3195,7 @@ def plot_spatial_flux_comparison_sectors(ds_all,species,plot_area,model_labels,
                 
             elif i == 1:
                 
-                ax[s,1].pcolormesh(lon,lat,np.mean(ds_all[m][f'flux_{sector}_posterior'].values,axis=0),
+                ax[s,1].pcolormesh(lon,lat,np.nanmean(ds_all[m][f'flux_{sector}_posterior'].values,axis=0),
                                 vmin=s_data[species]['fluxlim'][0],vmax=s_data[species]['fluxlim'][1],shading='nearest')
 
                 ax[s,1].set_title(f'{model_labels[m]}\n{sector}',fontsize=12)
@@ -3216,7 +3216,7 @@ def plot_spatial_flux_comparison_sectors(ds_all,species,plot_area,model_labels,
                         ax[s,2].scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],color='none',
                                     edgecolor='black',marker='o',s=30,zorder=2)
     
-        flux_diff = np.mean(ds_all[all_keys[1]][f'flux_{sector}_posterior'].values,axis=0) - np.mean(ds_all[all_keys[0]][f'flux_{sector}_posterior'].values,axis=0)
+        flux_diff = np.nanmean(ds_all[all_keys[1]][f'flux_{sector}_posterior'].values,axis=0) - np.nanmean(ds_all[all_keys[0]][f'flux_{sector}_posterior'].values,axis=0)
         flux_diff[np.where(flux_diff) == np.nan] = 0.
     
         ax[s,2].pcolormesh(lon,lat,flux_diff,
@@ -3261,6 +3261,232 @@ def plot_spatial_flux_comparison_sectors(ds_all,species,plot_area,model_labels,
 
     color_bar3 = fig.colorbar(cbar_diff,orientation='horizontal',extend='both',ax=ax[:,2],shrink=0.9,pad=0.01)
     color_bar3.set_label(f'{time_out}\nAbsolute difference {s_data[species]["species_print"]} (mol m$^{{-2}}$ s$^{{-1}}$)',
+                         fontsize=12)
+    
+    return fig
+
+#####################################################################
+
+def plot_spatial_flux_comparison_sectors_by_basis(ds_all,species,plot_area,model_labels,
+                                 cmap=None,cmap_diff=None,c_border=None,period_override=None,
+                                 plot_site_locations=False,plot_point_markers=None,
+                                 sectors=None):
+    """
+    Plots posterior fluxes and the difference between these
+    for two models.
+    Plots posterior and prior fluxes and the difference between these
+    for all models.
+    
+    If ds_all contains more than two models, only the first two will
+    be plotted.
+    
+    Args:
+        ds_all (dictionary of datasets):
+            xarray datasets of fluxes, scaled and sliced between 
+            chosen dates.
+        species (str): 
+            Gas species, e.g. 'ch4'.
+        plot_area (str):
+            Lat/lon region to plot, options for 'UK', 'FRANCE', 'GERMANY',
+            'NWEU','CWEU'.
+        model_labels (dict of str):
+            Models and corresponding strings used to describe the model in the 
+            plot legend.
+        cmap (str):
+            Colour map for flux plots.
+        cmap_diff (str):
+            Colour map for difference plots.
+        c_border (str):
+            Colour for flux plot country borders.
+        period_override (list of str, optional):
+            Inversion periods to include, to override the standards in species_info.json.
+            Must be the same length as models, e.g. ['monthly',None,'yearly']
+        plot_site_locations (bool):
+            If True, adds triangles with site locations to spatial plot.
+        plot_point_markers (list of str or list of lat/lon):
+            List of names of points to plot over larger point sources or lat/lon locations.
+            See point_markers_dict for a list of options.
+            e.g. ['paris','nw_england',[50.,5.]]
+        sectors (list of str):
+            List of sectors to separately compare fluxes for.
+    Returns:
+        fig (figure): 
+            A plot of spatial flux posterior from two models a plot 
+            of the absolute difference between these.
+    """
+    
+    font = {'size':12}
+    plt.rc('font', **font)
+    
+    if sectors == None:
+        sectors = ['total' for i in range(len(models))]
+    
+    period_all = {}
+    
+    for i,m in enumerate(ds_all.keys()):
+        m0 = m.split('_')[0]
+        if period_override is not None:
+            if period_override[i] == 'monthly':
+                period_all[m] = 'datetime64[M]'
+            elif period_override[i] == 'yearly':
+                period_all[m] = 'datetime64[Y]'
+            else:
+                period_all[m] = s_data[species]["dt_units"][m0]
+        else:
+            period_all[m] = s_data[species]["dt_units"][m0]
+    
+    if cmap == None:
+        cmap = 'viridis' #'Blues'
+    if cmap_diff == None:
+        cmap_diff = 'coolwarm'
+    if c_border == None:
+        c_border = 'floralwhite'
+    
+    n_cols = len(ds_all.keys())
+
+    region_limits = {'UK':[-12,4,49,62],   #min_lon, max_lon, min_lat, max_lat
+                    'FRANCE':[-6,9,42,52],
+                    'GERMANY':[2,18,45,60],
+                    'ITALY':[6,19,36,48],
+                    'SWITZERLAND':[5.5,11,45,49],
+                    'BENELUX':[1,9,48,55],
+                    'NWEU':[-11,11,45,62],
+                    'CWEU':[-12,27,37,66],
+                    'EUROPE':[-98,40,10,80]}
+    
+    sites_info = {}
+    if plot_site_locations == True:
+        for i,m in enumerate(ds_all.keys()):
+            try:
+                sites_test = ds_all[m].sites.replace("'","").replace(']','').replace('[','').replace(' ','').split(',')
+                sites_info[m] = extract_site_info(sites_test)
+            except:
+                sites_info[m] = None
+                
+        for i,m in enumerate(ds_all.keys()):
+            if sites_info[m] == None:
+                for j,m2 in enumerate(sites_info.keys()):
+                    if sites_info[m2] != None:
+                        print(f'No sites data available in {m} attrs, so using site data from {m2}')
+                        sites_info[m] = sites_info[m2]
+                    break
+
+    fig,ax = plt.subplots(len(sectors[0]),3,constrained_layout=True,figsize=(n_cols*5,8),
+                   subplot_kw={'projection':cartopy.crs.PlateCarree()})
+    
+    for i in range(len(sectors[0])):
+        for j in range(3):
+            if j == 2:
+                border_color = c_border
+            else:
+                border_color = c_border
+            ax[i,j].add_feature(cartopy.feature.BORDERS,edgecolor=border_color,linewidth=1.)
+            ax[i,j].coastlines(resolution='50m',color=border_color,linewidth=1.)
+            ax[i,j].set_extent(region_limits[plot_area])
+
+    all_keys = []
+    flux_total_posterior = {}
+    
+    for s,sector in enumerate(sectors[0]):
+    
+        for i,m in enumerate(ds_all.keys()):
+            
+            lon = ds_all[m].longitude.values + (ds_all[m].longitude.values[1]-ds_all[m].longitude.values[1])/2
+            lat = ds_all[m].latitude.values + (ds_all[m].latitude.values[1]-ds_all[m].latitude.values[1])/2
+            
+            if s == 0:
+                all_keys.append(m)
+            m0 = m.split('_')[0]
+
+            if i == 0:
+                
+                if len(ds_all[m].time.values) == 1:
+                    time_out = to_datetime(ds_all[m].time.values[0].astype(period_all[m])).strftime('%m/%Y')
+                else:
+                    start_print = to_datetime(ds_all[m].time.values[0].astype(period_all[m])).strftime("%m/%Y")
+                    if period_all[m] == 'datetime64[Y]':
+                        end_period = ds_all[m].time.values[-1].astype(period_all[m]) + np.timedelta64(1,'Y') - np.timedelta64(1,'D')                    
+                    elif period_all[m] == 'datetime64[M]':
+                        end_period = ds_all[m].time.values[-1].astype(period_all[m]) + np.timedelta64(1,'M') - np.timedelta64(1,'D')                    
+                    else:
+                        print('This currently only works for monthly or yearly inversion periods. Update the plotting code to print out '+
+                            'correct dates for higher frequency inversions.')
+                    end_print = to_datetime(end_period).strftime("%m/%Y")
+                    time_out = (f'{start_print} - {end_print}')
+            
+                ax[s,0].pcolormesh(lon,lat,np.nanmean(ds_all[m][f'flux_{sector}_posterior'].values/ds_all[m][f'flux_{sector}_prior'].values,axis=0),
+                                   cmap=cmap,vmin=0,vmax=2,shading='nearest')
+
+                ax[s,0].set_title(f'{model_labels[m]}\n{sector}',fontsize=12)
+                
+            elif i == 1:
+                
+                ax[s,1].pcolormesh(lon,lat,np.nanmean(ds_all[m][f'flux_{sector}_posterior'].values/ds_all[m][f'flux_{sector}_prior'].values,axis=0),
+                                vmin=0,vmax=2,shading='nearest',cmap=cmap)
+
+                ax[s,1].set_title(f'{model_labels[m]}\n{sector}',fontsize=12)
+                
+            if plot_site_locations == True:
+                if sites_info[m] is not None:
+                    for s in sites_info[m]:
+                        ax[s,0].scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],color='white',
+                                    edgecolor='none',marker='o',s=30,zorder=2,alpha=0.5)
+                        ax[s,1].scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],color='white',
+                                    edgecolor='none',marker='o',s=30,zorder=2,alpha=0.5)
+                        ax[s,2].scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],color='white',
+                                    edgecolor='none',marker='o',s=30,zorder=2,alpha=0.5)
+                        ax[s,0].scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],color='none',
+                                    edgecolor='black',marker='o',s=30,zorder=2)
+                        ax[s,1].scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],color='none',
+                                    edgecolor='black',marker='o',s=30,zorder=2)
+                        ax[s,2].scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],color='none',
+                                    edgecolor='black',marker='o',s=30,zorder=2)
+    
+        flux_diff = np.nanmean(ds_all[all_keys[1]][f'flux_{sector}_posterior'].values/ds_all[all_keys[1]][f'flux_{sector}_prior'].values,axis=0) - np.nanmean(ds_all[all_keys[0]][f'flux_{sector}_posterior'].values/ds_all[all_keys[0]][f'flux_{sector}_prior'].values,axis=0)
+        flux_diff[np.where(flux_diff) == np.nan] = 0.
+    
+        ax[s,2].pcolormesh(lon,lat,flux_diff,
+                        cmap=cmap_diff,vmin=-0.5,vmax=0.5,shading='nearest')
+
+        ax[s,2].set_title(f'{model_labels[all_keys[1]]}\n- {model_labels[all_keys[0]]}\n{sector}',fontsize=12)
+
+        if plot_point_markers is not None:
+            print(f'\nPlotting markers for: {plot_point_markers}')
+            print(f'Edit lines below line {inspect.getframeinfo(inspect.currentframe()).lineno} to change marker colour')
+            for p in plot_point_markers:
+                if type(p) == list:
+                    ax[s,0].scatter(p[0],p[1],color='black',marker='o',s=5,zorder=2)
+                    ax[s,1].scatter(p[0],p[1],color='black',marker='o',s=5,zorder=2)
+                    ax[s,2].scatter(p[0],p[1],color='black',marker='o',s=5,zorder=2)
+                elif type(p) == str:
+                    if p not in point_source_dict.keys():
+                        print(f'{p} is not specified in point_source_dict, edit this to add a lat/lon location.')
+                    else:
+                        ax[s,0].scatter(point_source_dict[p][0],point_source_dict[p][1],color='black',marker='o',s=5,zorder=2)
+                        ax[s,1].scatter(point_source_dict[p][0],point_source_dict[p][1],color='black',marker='o',s=5,zorder=2)
+                        ax[s,2].scatter(point_source_dict[p][0],point_source_dict[p][1],color='black',marker='o',s=5,zorder=2)
+                        
+
+    #flux colorbar
+    levels = np.linspace(0,2)
+    cbar = plt.cm.ScalarMappable(cmap=cmap)
+    cbar.set_array(levels)
+    cbar.set_clim([0,2])
+
+    color_bar2 = fig.colorbar(cbar,orientation='horizontal',cmap=cmap,extend='both',ax=ax[:,0],shrink=0.9,pad=0.01)
+    color_bar2.set_label(f'{time_out}\nPosterior mean scaling {s_data[species]["species_print"]}')
+
+    color_bar2 = fig.colorbar(cbar,orientation='horizontal',cmap=cmap,extend='both',ax=ax[:,1],shrink=0.9,pad=0.01)
+    color_bar2.set_label(f'{time_out}\nPosterior mean scaling {s_data[species]["species_print"]}')
+
+    #difference colorbar
+    levels_diff = np.linspace(-0.5,0.5)
+    cbar_diff = plt.cm.ScalarMappable(cmap=cmap_diff)
+    cbar_diff.set_array(levels)
+    cbar_diff.set_clim([-0.5,0.5])
+
+    color_bar3 = fig.colorbar(cbar_diff,orientation='horizontal',extend='both',ax=ax[:,2],shrink=0.9,pad=0.01)
+    color_bar3.set_label(f'{time_out}\nAbsolute difference in scaling {s_data[species]["species_print"]}',
                          fontsize=12)
     
     return fig
