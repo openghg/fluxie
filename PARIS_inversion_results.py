@@ -65,6 +65,23 @@ regions_dict_old = {'CW_EU':'AUT-BEL-CHE-CZE-DEU-ESP-FRA-GBR-HRV-HUN-IRL-ITA-LUX
 
 countrycodes_dict.update(regions_dict)
 
+site_lat = {'BSD':54.35861,
+            'CBW':51.9703,
+            'HFD':50.97675,
+            'LWK':60.1391,
+            'MHD':53.32663,
+            'RGL':51.99747,
+            'TAC':52.51882,
+            'WAO':52.95}
+site_lon = {'BSD':-1.15036,
+            'CBW':4.9264,
+            'HFD':0.23048,
+            'LWK':-1.1848,
+            'MHD':-9.90456,
+            'RGL':-2.53992,
+            'TAC':1.13870,
+            'WAO':1.121}
+
 #annotate_coords = {0:[0.65,0.80],
 #                   1:[0.65,0.60],
 #                   2:[0.65,0.40],
@@ -3495,7 +3512,8 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,model_labels,end_da
                                     cmap='viridis',c_border='floralwhite',
                                     var='flux_total_posterior',
                                     chop_by='year',dt=1,period_override=None,
-                                    plot_site_locations=False,plot_point_markers=False):
+                                    plot_site_locations=False,plot_sites=None,
+                                    plot_point_markers=False,sectors=None):
     """
     Plots posterior fluxes, prior fluxes or difference between these
     for all models and specific time intervals.
@@ -3544,11 +3562,15 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,model_labels,end_da
         fig (figure):
             A plot of spatial flux of the variable specified in var
             averaged over the number of time steps specified in dt.
-            
-    NOTE: HAS NOT BEEN EDITED TO WORK WITH MULTI-SECTOR MCMC
     """
+    
     dt_units_all = {}
     period_all = {}
+    
+    print(f'WARNING: this function only plots results from the first model in the list: {list(ds_all.keys())[0]}')
+    
+    if sectors == None:
+        sectors = ['total']
     
     for i,m in enumerate(ds_all.keys()):
         m0 = m.split('_')[0]
@@ -3568,7 +3590,8 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,model_labels,end_da
 
     var_labels = {'flux_total_prior':'Prior mean',
                   'flux_total_posterior':'Posterior mean',
-                  'posterior_prior_diff':'Posterior-prior'}
+                  'posterior_prior_diff':'Posterior-prior',
+                  'posterior_prior_scaling_diff':'Posterior mean scaling factor'}
 
     region_limits = {'UK':[-12,4,49,62],   #min_lon, max_lon, min_lat, max_lat
                     'FRANCE':[-6,9,42,52],
@@ -3586,22 +3609,28 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,model_labels,end_da
     if var == 'posterior_prior_diff':
         lim = s_data[species]['difflim']
         extend ='both'
+    elif var == 'posterior_prior_scaling_diff':
+        print('NOTE: GAPS IN SPATIAL MAPS CAN BE TIDIED UP NOW BY USING X_POST_MU_LATLON WHICH I PUT BACK IN OUTPUT .NC')
+        lim = [0,2]
+        extend = 'max'
     else:
         lim = s_data[species]['fluxlim']
         extend = 'max'
 
     # Figure size and averaging period
-    n_lines = len(ds_all.keys())
+    n_lines = len(sectors)
     t0_date = {}
     t1_date = {}
     start_print = {}
     end_print = {}
     indexes = {}
+    
+    m = list(ds_all.keys())[0]
 
     if type(chop_by) == list:
         n_cols = len(chop_by)
         dt = None
-        for m in ds_all.keys():
+        for sector in sectors:
             # Get dates of start/end time stamps
             t0_date[m] = chop_by
             t1_date[m] = chop_by[1:] + [end_date]
@@ -3613,11 +3642,12 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,model_labels,end_da
     else:
         # NOTE: It will only work properly if the data is complete between start_date and end_date
         nt = np.zeros(n_lines)
-        for i,m in enumerate(ds_all.keys()):
+        for i,sector in enumerate(sectors):
             total_times = len(ds_all[m].time)
 
             if ((period_all[m]=='yearly') and (chop_by=='year')) or ((period_all[m]=='monthly') and (chop_by=='month')):
                 nt[i] = total_times//dt
+                
                 # Get indexes of start/end time stamps
                 t0 = [k for k in range(0,total_times,dt)]
                 t1 = [k for k in range(dt,total_times,dt)]
@@ -3692,7 +3722,10 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,model_labels,end_da
                 sites_test = ds_all[m].sites.replace("'","").replace(']','').replace('[','').replace(' ','').split(',')
                 sites_info[m] = extract_site_info(sites_test)
             except:
-                sites_info[m] = None
+                sites_info[m] = {}
+                for s in plot_sites:
+                    sites_info[m][s] = {'latitude':site_lat[s],
+                                        'longitude':site_lon[s]}
                 
         for i,m in enumerate(ds_all.keys()):
             if sites_info[m] == None:
@@ -3701,7 +3734,7 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,model_labels,end_da
                         print(f'No sites data available in {m} attrs, so using site data from {m2}')
                         sites_info[m] = sites_info[m2]
                     break
-
+                
     # Create figure
     fig,ax = plt.subplots(n_lines,n_cols,figsize=(n_cols*4,n_lines*3), #3.25
                    subplot_kw={'projection':cartopy.crs.PlateCarree()})
@@ -3728,8 +3761,10 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,model_labels,end_da
                 ax_var.set_extent(region_limits[plot_area])
 
     # Plot fields
+    m = list(ds_all.keys())[0]
+    
     for i in range(n_cols):
-        for j,m in enumerate(ds_all.keys()):
+        for j,sector in enumerate(sectors):
 
             lon = ds_all[m].longitude.values
             lat = ds_all[m].latitude.values
@@ -3739,7 +3774,10 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,model_labels,end_da
             # Compute averaged quantities
             if chop_by == 'season':
                 if var == 'posterior_prior_diff':
-                    var_plot = np.mean(ds_all[m]['flux_total_posterior'][indexes[m][i],:,:],axis=0) - np.mean(ds_all[m]['flux_total_prior'][indexes[m][i],:,:],axis=0)
+                    var_plot = np.mean(ds_all[m][f'flux_{sector}_posterior'][indexes[m][i],:,:],axis=0) - np.mean(ds_all[m][f'flux_{sector}_prior'][indexes[m][i],:,:],axis=0)
+                    var_plot[np.where(var_plot) == np.nan] = 0.
+                elif var == 'posterior_prior_scaling_diff':
+                    var_plot = np.mean(ds_all[m][f'flux_{sector}_posterior'][indexes[m][i],:,:],axis=0)/np.mean(ds_all[m][f'flux_{sector}_prior'][indexes[m][i],:,:],axis=0)
                     var_plot[np.where(var_plot) == np.nan] = 0.
                 else:
                     var_plot = np.mean(ds_all[m][var][indexes[m][i],:,:],axis=0)
@@ -3752,9 +3790,14 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,model_labels,end_da
 
             else:
                 if var == 'posterior_prior_diff':
-                    slice_apost   = ds_all[m]['flux_total_posterior'].sel(time=slice(t0_date[m][i],t1_date[m][i]))
-                    slice_apriori = ds_all[m]['flux_total_prior'].sel(time=slice(t0_date[m][i],t1_date[m][i]))
+                    slice_apost   = ds_all[m][f'flux_{sector}_posterior'].sel(time=slice(t0_date[m][i],t1_date[m][i]))
+                    slice_apriori = ds_all[m][f'flux_{sector}_prior'].sel(time=slice(t0_date[m][i],t1_date[m][i]))
                     var_plot      = np.mean(slice_apost,axis=0) - np.mean(slice_apriori,axis=0)
+                    var_plot[np.where(var_plot) == np.nan] = 0.
+                elif var == 'posterior_prior_scaling_diff':
+                    slice_apost   = ds_all[m][f'flux_{sector}_posterior'].sel(time=slice(t0_date[m][i],t1_date[m][i]))
+                    slice_apriori = ds_all[m][f'flux_{sector}_prior'].sel(time=slice(t0_date[m][i],t1_date[m][i]))
+                    var_plot      = np.mean(slice_apost,axis=0)/np.mean(slice_apriori,axis=0)
                     var_plot[np.where(var_plot) == np.nan] = 0.
                 else:
                     var_plot = np.mean(ds_all[m][var].sel(time=slice(t0_date[m][i],t1_date[m][i])),axis=0)
@@ -3781,10 +3824,8 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,model_labels,end_da
                 ax_var.pcolormesh(lon,lat,var_plot,cmap=cmap,vmin=lim[0],vmax=lim[1],shading='nearest')
                 ax_var.set_title(f'{time_out}')
                 if i == 0:
-                    if '\n' in model_labels[m]:
-                        ax_var.text(-0.14, 0.25, f'{model_labels[m]}', size=14, transform=ax_var.transAxes, rotation=90)
-                    else:
-                        ax_var.text(-0.07, 0.25, f'{model_labels[m]}', size=14, transform=ax_var.transAxes, rotation=90)
+                    ax_var.text(-0.1, 0.5, f'{sector}\n{model_labels[m]}', size=14, transform=ax_var.transAxes, rotation=90,
+                                ha='center',va='center')
                 
             # Add site location
             if plot_site_locations == True:
@@ -3820,9 +3861,9 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,model_labels,end_da
     cbar.set_clim(lim)
 
     # Size of color bar
-    f_height = 0.9
+    f_height = 0.85
     f_bottom = (1-f_height)/2
-    f_width = 0.04/n_cols #0.02
+    f_width = 0.06/n_cols #0.02
     f_left = 0.95         #0.94
 
     if n_cols == 1 and n_lines == 1:
@@ -3833,14 +3874,17 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,model_labels,end_da
         color_bar = fig.colorbar(cbar,cax=cbar_ax,orientation='vertical',cmap=cmap,extend=extend)
     else:
         # Size of color bar
-        f_height = 0.95*2/n_lines
+        f_height = 0.9*2/n_lines
         f_bottom = (1-f_height)/2
         if n_cols == 1: f_left = 1
 
         cbar_ax = fig.add_axes([f_left, f_bottom, f_width, f_height])
         color_bar = fig.colorbar(cbar,cax=cbar_ax,orientation='vertical',cmap=cmap,extend=extend)
 
-    color_bar.set_label(f'{var_labels[var]} {s_data[species]["species_print"]} (mol m$^{{-2}}$ s$^{{-1}}$)')
+    if 'scaling' in var:
+        color_bar.set_label(f'{var_labels[var]} {s_data[species]["species_print"]}')
+    else:
+        color_bar.set_label(f'{var_labels[var]} {s_data[species]["species_print"]} (mol m$^{{-2}}$ s$^{{-1}}$)')
     fig.subplots_adjust(left=0.05, right=0.9, top=0.95, bottom=0.05, wspace=0.04, hspace=0.12)
 
     return fig
