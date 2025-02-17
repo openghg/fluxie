@@ -2130,7 +2130,7 @@ def plot_country_flux(ds_all,species,plot_regions,
     # Create annual mean xarrays if needed
     if resample is not None:
         
-        if species not in ['ch4','sf6']:
+        if species not in ['ch4','sf6','n2o']:
             print('ERROR: resample is set, but this option only works for monthly ch4 and sf6 runs.')
             print('Unless you are plotting monthly ch4 or sf6, set resample = None')
             return None
