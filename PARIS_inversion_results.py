@@ -2255,15 +2255,17 @@ def plot_country_flux(ds_all,species,plot_regions,
                 #inventory_flux = inventory_flux[i_mask]
                 #inventory_std = inventory_std[i_mask]
                 
+                inventory_time = inventory_time.astype('datetime64[M]') + np.timedelta64(5,'M')
+                
                 if inventory_flux is not None:
                     if np.any(inventory_std > 0.) == True and i_year == max(inventory_years):
                         ax.bar(inventory_time,inventory_flux,
-                               np.timedelta64(280, 'D'),color=inv_fill[y],edgecolor=inv_colours[y],align='edge',
+                               np.timedelta64(280, 'D'),color=inv_fill[y],edgecolor=inv_colours[y],align='center',#align='edge',
                                label=f'Inventory {i_year}',zorder=0,linewidth=1.2,
                                yerr=inventory_std,capsize=2,linestyle=inv_linestyle[y])
                     else:
                         ax.bar(inventory_time,inventory_flux,
-                                    np.timedelta64(280, 'D'),color=inv_fill[y],edgecolor=inv_colours[y],align='edge',
+                                    np.timedelta64(280, 'D'),color=inv_fill[y],edgecolor=inv_colours[y],align='center',#align='edge',
                                     label=f'Inventory {i_year}',zorder=0,linewidth=1.2,
                                     linestyle=inv_linestyle[y])
                                 
@@ -2501,9 +2503,9 @@ def plot_country_flux(ds_all,species,plot_regions,
         
         # x axis labels used for longer timeseries
         region_time_years = sorted(np.unique(region_time_years))
-
+        
         if (region_time_years[-1]-region_time_years[0]).astype('timedelta64[Y]') > 8:
-            ax.set_xticks(region_time_years[::2])
+            ax.set_xticks(region_time_years[::2]+np.timedelta64(5,'M'))
             ax.set_xticklabels(region_time_years[::2],rotation=90)
             ax.xaxis.set_minor_formatter(NullFormatter())
 
