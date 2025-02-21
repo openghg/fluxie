@@ -48,7 +48,7 @@
         "threshold_scale":1e-10,
         "gwp":1300,
         "mwt":102.0,
-        "std_run":{"intem":"name_edgar_2008_1yr",
+        "std_run":{"intem":"NID2025",
                     "intem_longrun":"name_edgar_longrun",
                    "rhime":"name_edgar",
                    "elris":"name_edgar"}
@@ -76,7 +76,7 @@
         "threshold_scale":1e-10,
         "gwp":4800,
         "mwt":84.0,
-        "std_run":{"intem":"name_edgar_2008_1yr",
+        "std_run":{"intem":"NID2025",
                    "intem_longrun":"name_edgar_longrun",
                    "rhime":"name_edgar",
                    "elris":"name_edgar"}
@@ -104,7 +104,7 @@
         "threshold_scale":1e-10,
         "gwp":3170,
         "mwt":120.0,
-        "std_run":{"intem":"name_edgar_2008_1yr",
+        "std_run":{"intem":"NID2025",
                     "intem_longrun":"name_edgar_longrun",
                    "rhime":"name_edgar",
                    "elris":"name_edgar"}
@@ -132,7 +132,7 @@
         "threshold_scale":1e-10,
         "gwp":138,
         "mwt":66.0,
-        "std_run":{"intem":"name_flat_2008_1yr",
+        "std_run":{"intem":"NID2025",
                     "intem_longrun":"name_flat_longrun",
                    "rhime":"name_flat",
                    "elris":"name_flat"}
@@ -160,7 +160,7 @@
         "threshold_scale":1e-10,
         "gwp":677,
         "mwt":52.0,
-        "std_run":{"intem":"name_edgar_2008_1yr",
+        "std_run":{"intem":"NID2025",
                     "intem_longrun":"name_edgar_longrun",
                    "rhime":"name_edgar",
                    "elris":"name_edgar"}
@@ -188,7 +188,7 @@
         "threshold_scale":1e-10,
         "gwp":3350,
         "mwt":170.03,
-        "std_run":{"intem":"name_flat_2008_1yr",
+        "std_run":{"intem":"NID2025",
                     "intem_longrun":"name_flat_longrun",
                    "rhime":"name_flat",
                    "elris":"name_flat"}
@@ -210,13 +210,13 @@
         "mf_units_scaling":1e-12,
         "mf_units_print":"ppt",
         "fluxlim":[0,1e-12],
-        "fluxlim_kgkm2yr":[0,1.0],
+        "fluxlim_kgkm2yr":[0,0.8],
         "difflim":[-1e-12,1e-12],
         "difflim_kgkm2yr":[-1.0,1.0],
         "threshold_scale":1e-10,
         "gwp":12400,
         "mwt":70.0,
-        "std_run":{"intem":"name_flat_2008_1yr",
+        "std_run":{"intem":"NID2025",
                     "intem_longrun":"name_flat_longrun",
                    "rhime":"name_flat",
                    "elris":"name_edgar"}
@@ -244,7 +244,7 @@
         "threshold_scale":1e-10,
         "gwp":858,
         "mwt":134.05,
-        "std_run":{"intem":"name_flat_2008_1yr",
+        "std_run":{"intem":"NID2025",
                     "intem_longrun":"name_flat_longrun",
                    "rhime":"name_flat",
                    "elris":"name_flat"}
@@ -272,7 +272,7 @@
         "threshold_scale":1e-10,
         "gwp":804,
         "mwt":148.0,
-        "std_run":{"intem":"name_flat_2008_1yr",
+        "std_run":{"intem":"NID2025",
                     "intem_longrun":"name_flat_longrun",
                    "elris":"name_flat"}
         },
@@ -299,7 +299,7 @@
         "threshold_scale":1e-10,
         "gwp":1650,
         "mwt":252.05,
-        "std_run":{"intem":"name_flat_2008_1yr",
+        "std_run":{"intem":"NID2025",
                     "intem_longrun":"name_flat_longrun",
                    "elris":"name_flat"}
         },   
@@ -326,7 +326,7 @@
         "threshold_scale":1e-8,
         "gwp":8900,
         "mwt":188.0,
-        "std_run":{"intem":"name_flat_2008_1yr",
+        "std_run":{"intem":"NID2025",
                     "intem_longrun":"name_flat_longrun",
                    "rhime":"name_flat",
                    "elris":"name_flat"}
@@ -354,7 +354,7 @@
             "threshold_scale":1e-8,
             "gwp":9540,
             "mwt":200.0,
-            "std_run":{"intem":"name_flat_2008_1yr",
+            "std_run":{"intem":"NID2025",
                         "intem_longrun":"name_flat_longrun",
                        "rhime":"name_flat",
                        "elris":"name_flat"}
@@ -381,7 +381,7 @@
             "threshold_scale":1e-8,
             "gwp":11100,
             "mwt":138.0,
-            "std_run":{"intem":"name_edgarminval_2008_1yr",
+            "std_run":{"intem":"NID2025",
                         "intem_longrun":"name_edgarminval_longrun",
                        "rhime":"name_edgarminval",
                        "elris":"name_edgarminval"}
@@ -408,7 +408,7 @@
             "threshold_scale":1e-4,
             "gwp":6630,
             "mwt":88.0,
-            "std_run":{"intem":"name_edgarminval_2008_1yr",
+            "std_run":{"intem":"NID2025",
                         "intem_longrun":"name_edgarminval_longrun",
                        "rhime":"name_edgarminval",
                        "elris":"name_edgarminval"}
@@ -436,7 +436,7 @@
         "threshold_scale":1e-6,
         "gwp":23500,
         "mwt":146.06,
-        "std_run":{"intem":"name_flat_2008_1yr",
+        "std_run":{"intem":"NID2025",
                     "intem_longrun":"name_flat_longrun",
                    "rhime":"name_flat",
                    "elris":"name_flat"}
@@ -464,7 +464,7 @@
             "threshold_scale":1e-10,
             "gwp":16100,
             "mwt":71.0,
-            "std_run":{"intem":"name_flat_2008_1yr",
+            "std_run":{"intem":"NID2025",
                         "intem_longrun":"name_flat_longrun",
                        "rhime":"name_flat",
                        "elris":"name_flat"}
@@ -492,7 +492,7 @@
         "threshold_scale":1e-3,
         "gwp":265,
         "mwt":44.0,
-        "std_run":{"intem":"1yr_nisc_meeting",
+        "std_run":{"intem":"NID2025",
                    "rhime":"None",
                    "elris":"None"}
         },

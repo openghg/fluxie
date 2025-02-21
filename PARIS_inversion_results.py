@@ -693,22 +693,21 @@ def calculate_resample_uncertainty(ds_all_original,ds_all_p,rtime,
     """
     
     if resample_uncert_correlation == False:
-    
-        for m in ds_all_original.keys():
-            for v in ds_all_original[m].keys():
-                if 'percentile_country' in v:
-                    n_periods = ds_all_original[m][v].resample(time=rtime).count()[:,0,:]   #number of periods in each average
-                    lower = (ds_all_original[m][v.replace('percentile_','')] - ds_all_original[m][v][:,0,:])    #recalculate upper and low standard deviations
-                    upper = (ds_all_original[m][v][:,1,:] - ds_all_original[m][v.replace('percentile_','')])
-                    lower_resampled = np.sqrt(((lower**2).resample(time=rtime).sum(dim="time")))/n_periods  #resample using sqrt of variances,divided by number of periods
-                    upper_resampled = np.sqrt(((upper**2).resample(time=rtime).sum(dim="time")))/n_periods
-                    lower_out = ds_all_p[m][v.replace('percentile_','')] - lower_resampled  #recalculated percentile upper and lower bounds
-                    upper_out = ds_all_p[m][v.replace('percentile_','')] + upper_resampled
-                    
-                    ds_all_p[m][v] = xr.DataArray(np.concatenate((np.expand_dims(lower_out,axis=1),
-                                                                    np.expand_dims(upper_out,axis=1)),axis=1),
-                                                    dims=ds_all_p[m][v].dims)
-        
+
+        for v in ds_all_original.keys():
+            if 'percentile_country' in v:
+                n_periods = ds_all_original[v].resample(time=rtime).count()[:,0,:]   #number of periods in each average
+                lower = (ds_all_original[v.replace('percentile_','')] - ds_all_original[v][:,0,:])    #recalculate upper and low standard deviations
+                upper = (ds_all_original[v][:,1,:] - ds_all_original[v.replace('percentile_','')])
+                lower_resampled = np.sqrt(((lower**2).resample(time=rtime).sum(dim="time")))/n_periods  #resample using sqrt of variances,divided by number of periods
+                upper_resampled = np.sqrt(((upper**2).resample(time=rtime).sum(dim="time")))/n_periods
+                lower_out = ds_all_p[v.replace('percentile_','')] - lower_resampled  #recalculated percentile upper and lower bounds
+                upper_out = ds_all_p[v.replace('percentile_','')] + upper_resampled
+                
+                ds_all_p[v] = xr.DataArray(np.concatenate((np.expand_dims(lower_out,axis=1),
+                                                                np.expand_dims(upper_out,axis=1)),axis=1),
+                                                dims=ds_all_p[v].dims)
+
     return ds_all_p
     
 #####################################################################
@@ -2126,61 +2125,53 @@ def plot_country_flux(ds_all,species,plot_regions,
         
     if type(plot_prior) == bool:
         plot_prior = [plot_prior] * len(models)
+        
+    print(f'\nApplying resampling: {dict(zip(ds_all.keys(),resample))}.\n')
+    
+    ds_all_original = {m:ds_all[m].copy() for m in ds_all.keys()}
+    ds_all_p = {}
     
     # Create annual mean xarrays if needed
-    if resample is not None:
-        
-        if species not in ['ch4','sf6','n2o']:
-            print('ERROR: resample is set, but this option only works for monthly ch4 and sf6 runs.')
-            print('Unless you are plotting monthly ch4 or sf6, set resample = None')
-            return None
-        
-        # Check resample option
-        if (resample == 'year'):
-            rtime = 'YS'
-        elif (resample == 'season'):
-            rtime = 'QS-DEC'
-        else:
-            print(f'ERROR: Option resample=\'{resample}\' is not available. Try \'year\' or \'season\'.')
-            return None
-
-        ds_all_original = {m:ds_all[m].copy() for m in ds_all.keys()}
-                
-        if period_override is not None: 
-            for m in ds_all.keys():
+    for i,m in enumerate(ds_all.keys()):
+        if resample[i] is not None:
+            if (resample[i] == 'year'):
+                rtime = 'YS'
+            elif (resample[i] == 'season'):
+                rtime = 'QS-DEC'
+            else:
+                print(f'ERROR: Option resample=\'{resample[i]}\' is not available. Try \'year\' or \'season\'.')
+                return None
+               
+            if period_override is not None: 
                 if 'elris' in m:
                     del ds_all_original[m]['covariance_country_flux_total_posterior']
-            ds_all_p = {m:ds_all_original[m].resample(time=rtime).mean(dim="time") if period_override[i] == 'monthly' else ds_all_original[m] for i,m in enumerate(ds_all.keys())}
-            for i,m in enumerate(ds_all.keys()):
+                if period_override[i] == 'monthly':
+                    ds_all_p[m] = ds_all_original[m].resample(time=rtime[i]).mean(dim="time")
+                else:
+                    ds_all_p[m] = ds_all_original[m].copy()
                 if 'elris' in m and period_override[i] == 'monthly':
                     ds_all_p[m]['country'] = ds_all_p[m]['country'].isel(time=0).drop('time')
                     ds_all_p[m]['country_fraction'] = ds_all_p[m]['country_fraction'].isel(time=0).drop('time')
                     ds_all_p[m] = ds_all_p[m].assign({'covariance_country_flux_total_posterior':
-                                                      ds_all[m]['covariance_country_flux_total_posterior'].resample(time=rtime).mean(dim="time")})
-                        
-        elif s_data[species]["period"]=='monthly':
-            for m in ds_all.keys():
+                                                    ds_all[m]['covariance_country_flux_total_posterior'].resample(time=rtime).mean(dim="time")})
+                            
+            elif s_data[species]["period"]=='monthly':
                 if 'elris' in m:
                     del ds_all_original[m]['covariance_country_flux_total_posterior']
-            ds_all_p = {m:ds_all_original[m].resample(time=rtime).mean(dim="time") for m in ds_all.keys()}
-            for m in ds_all.keys():
+                ds_all_p[m] = ds_all_original[m].resample(time=rtime[i]).mean(dim="time")
                 if 'elris' in m:
                     ds_all_p[m]['country'] = ds_all_p[m]['country'].isel(time=0).drop('time')
                     ds_all_p[m]['country_fraction'] = ds_all_p[m]['country_fraction'].isel(time=0).drop('time')
                     ds_all_p[m] = ds_all_p[m].assign({'covariance_country_flux_total_posterior':
-                                                      ds_all[m]['covariance_country_flux_total_posterior'].resample(time=rtime).mean(dim="time")})
+                                                    ds_all[m]['covariance_country_flux_total_posterior'].resample(time=rtime).mean(dim="time")})
         
-        else:
-            ds_all_p = ds_all.copy()
-    
-        ds_all_p = calculate_resample_uncertainty(ds_all_original,ds_all_p,rtime,
+            else:
+                ds_all_p[m] = ds_all[m].copy()
+                
+            ds_all_p[m] = calculate_resample_uncertainty(ds_all_original[m],ds_all_p[m],rtime[i],
                                                   resample_uncert_correlation=resample_uncert_correlation)
-    
-        del ds_all_original
         
         # shift timestamps of averaged data forwards to centre of inversion period
-        for m in ds_all.keys():
-                
             time_mid = np.array([]).astype('datetime64[ns]')
             time_diff_all = np.array([]).astype('timedelta64[ns]')
             
@@ -2198,8 +2189,8 @@ def plot_country_flux(ds_all,species,plot_regions,
                     
             ds_all_p[m]['time'] = time_mid
             
-    else:
-        ds_all_p = ds_all.copy()
+        else:
+            ds_all_p[m] = ds_all[m].copy()
 
     max_cf = np.zeros(len(plot_regions))
     min_x = []
@@ -2239,9 +2230,9 @@ def plot_country_flux(ds_all,species,plot_regions,
                     inv_linestyle = [None]
                     inv_fill = ['None']#'gainsboro']
                 else:
-                    inv_colours = ['firebrick']+['black']*len(inventory_years-1)
-                    inv_linestyle = ['dashed']+[None]*len(inventory_years-1)
-                    inv_fill = ['None']+['None']*len(inventory_years-1)#'gainsboro']
+                    inv_colours = ['firebrick']+(['black']*(len(inventory_years)-1))
+                    inv_linestyle = ['dashed']+([None]*(len(inventory_years)-1))
+                    inv_fill = ['None']+(['None']*(len(inventory_years)-1))#'gainsboro']
             else:
                 inv_linestyle = [None,None]
                 inv_fill = ['None','None']
@@ -2461,7 +2452,7 @@ def plot_country_flux(ds_all,species,plot_regions,
         
         ax.set_ylabel(f'{s_data[species]["species_print"]} ({units_print}g y$^{{-1}}${y_label_append})')
         
-        if period_all[list(ds.keys())[0]] == 'monthly' and resample != 'year':
+        if period_all[list(ds.keys())[0]] == 'monthly' and resample[0] != 'year':
             ax.set_xlim([np.min(min_x)-np.timedelta64(1,'M'),
                             np.max(max_x)+np.timedelta64(1,'M')])
         else: #period_all[list(ds.keys())[0]] == 'yearly':
