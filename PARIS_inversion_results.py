@@ -2251,8 +2251,8 @@ def plot_country_flux(ds_all,species,plot_regions,
                 #print(i_mask)
                 #inventory_flux = inventory_flux[i_mask]
                 #inventory_std = inventory_std[i_mask]
-                
-                inventory_time = inventory_time.astype('datetime64[M]') + np.timedelta64(5,'M')
+                if inventory_time is not None:
+                    inventory_time = inventory_time.astype('datetime64[M]') + np.timedelta64(5,'M')
                 
                 if inventory_flux is not None:
                     if np.any(inventory_std > 0.) == True and i_year == max(inventory_years):
