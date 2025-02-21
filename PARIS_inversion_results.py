@@ -117,8 +117,8 @@ def initialize_settings(ppt_mode=False):
 
     ### define colors
 
-    model_colors = {'intem':[['darkorange','darkorange'],
-                             ['navy','navy']],
+    model_colors = {'intem':[['royalblue','royalblue'],
+                             ['darkorange','darkorange']],
                     'elris':[['purple','mediumpurple'],
                              ['deeppink','pink'],
                              ['darkorange','red']],
@@ -2231,11 +2231,17 @@ def plot_country_flux(ds_all,species,plot_regions,
         
         if plot_inventory == True:
             
-            inv_colours = ['firebrick','black']
+            
             
             if nir_style_plot == True:
-                inv_linestyle = ['dashed',None]
-                inv_fill = ['None','None']#'gainsboro']
+                if len(inventory_years) == 1:
+                    inv_colours = ['black']
+                    inv_linestyle = [None]
+                    inv_fill = ['None']#'gainsboro']
+                else:
+                    inv_colours = ['firebrick']+['black']*len(inventory_years-1)
+                    inv_linestyle = ['dashed']+[None]*len(inventory_years-1)
+                    inv_fill = ['None']+['None']*len(inventory_years-1)#'gainsboro']
             else:
                 inv_linestyle = [None,None]
                 inv_fill = ['None','None']
@@ -2360,7 +2366,7 @@ def plot_country_flux(ds_all,species,plot_regions,
                             
                         ax.plot(region_time,
                                     var_flux_total_posterior,
-                                    label=include_label,color=model_colors[m][0])
+                                    label=include_label,color=model_colors[m][0],linewidth=2)
                         
                         if not(plot_combined):
                             if plot_prior[j] == True:
