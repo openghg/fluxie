@@ -2146,7 +2146,7 @@ def plot_country_flux(ds_all,species,plot_regions,
                 if 'elris' in m:
                     del ds_all_original[m]['covariance_country_flux_total_posterior']
                 if period_override[i] == 'monthly':
-                    ds_all_p[m] = ds_all_original[m].resample(time=rtime[i]).mean(dim="time")
+                    ds_all_p[m] = ds_all_original[m].resample(time=rtime).mean(dim="time")
                 else:
                     ds_all_p[m] = ds_all_original[m].copy()
                 if 'elris' in m and period_override[i] == 'monthly':
@@ -2158,7 +2158,7 @@ def plot_country_flux(ds_all,species,plot_regions,
             elif s_data[species]["period"]=='monthly':
                 if 'elris' in m:
                     del ds_all_original[m]['covariance_country_flux_total_posterior']
-                ds_all_p[m] = ds_all_original[m].resample(time=rtime[i]).mean(dim="time")
+                ds_all_p[m] = ds_all_original[m].resample(time=rtime).mean(dim="time")
                 if 'elris' in m:
                     ds_all_p[m]['country'] = ds_all_p[m]['country'].isel(time=0).drop('time')
                     ds_all_p[m]['country_fraction'] = ds_all_p[m]['country_fraction'].isel(time=0).drop('time')
@@ -2168,7 +2168,7 @@ def plot_country_flux(ds_all,species,plot_regions,
             else:
                 ds_all_p[m] = ds_all[m].copy()
                 
-            ds_all_p[m] = calculate_resample_uncertainty(ds_all_original[m],ds_all_p[m],rtime[i],
+            ds_all_p[m] = calculate_resample_uncertainty(ds_all_original[m],ds_all_p[m],rtime,
                                                   resample_uncert_correlation=resample_uncert_correlation)
         
         # shift timestamps of averaged data forwards to centre of inversion period
