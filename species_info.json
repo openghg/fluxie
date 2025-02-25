@@ -687,7 +687,7 @@
             "mwt":44.0
             },
 
-    "hcfc22":{
+    "h22":{
         "species_print":"HCFC-22",
         "period":"yearly",
         "units_scaling":{"intem":1e6,
@@ -703,7 +703,7 @@
         "mf_units_scaling":1e-12,
         "mf_units_print":"ppt",
         "fluxlim":[0,1e-12],
-        "fluxlim_kgkm2yr":[0,0.1],
+        "fluxlim_kgkm2yr":[0,3.0],
         "difflim":[-1e-12,1e-12],
         "difflim_kgkm2yr":[-0.1,0.1],
         "threshold_scale":1e-10,
@@ -727,7 +727,7 @@
         "mf_units_scaling":1e-12,
         "mf_units_print":"ppt",
         "fluxlim":[0,1e-12],
-        "fluxlim_kgkm2yr":[0,0.1],
+        "fluxlim_kgkm2yr":[0,3.0],
         "difflim":[-1e-12,1e-12],
         "difflim_kgkm2yr":[-0.1,0.1],
         "threshold_scale":1e-10,

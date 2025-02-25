@@ -2848,6 +2848,9 @@ def plot_spatial_flux(ds_all,species,plot_area,s_data,m_data,cmap=None,
                         ax1.scatter(point_source_dict[p][0],point_source_dict[p][1],color='black',marker='o',s=5,zorder=2)
                         ax2.scatter(point_source_dict[p][0],point_source_dict[p][1],color='black',marker='o',s=5,zorder=2)
                         
+    print('\nEdit flux_lim_kgkm2yr variable in species_info.json to adjust colourbar limits.'+
+          'You will need to rerun the first cell of the notebook to apply the adjustment\n')
+                        
     #flux colorbar
     levels = np.linspace(s_data[species]['fluxlim'][0],s_data[species]['fluxlim'][1])
     cbar = plt.cm.ScalarMappable(cmap=cmap)
@@ -3152,6 +3155,10 @@ def plot_spatial_flux_one_variable(ds_all,species,plot_area,s_data,m_data,var,
                     else:
                         ax_var.scatter(point_source_dict[p][0],point_source_dict[p][1],color=marker_fill_color,
                                        edgecolor=marker_edge_color,marker='o',s=marker_s,zorder=2)
+
+    print('\nEdit flux_lim_kgkm2yr variable in species_info.json to adjust colourbar limits.'+
+          'You will need to rerun the first cell of the notebook to apply the adjustment\n')
+               
 
     #flux colorbar
     cbar = plt.cm.ScalarMappable(cmap=cmap)
