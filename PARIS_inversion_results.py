@@ -2222,8 +2222,13 @@ def plot_country_flux(ds_all,species,plot_regions,
         
         if plot_inventory == True:
             
-            
-            
+            if inventory_years == None:
+                try:
+                    search_years = sorted(glob.glob(os.path.join(data_dir,'inventory',f'UNFCCC_inventory_{species}_*.nc')))
+                    inventory_years = [search_years[-1][-7:-3]]
+                except:
+                    inventory_years = [None]
+
             if nir_style_plot == True:
                 if len(inventory_years) == 1:
                     inv_colours = ['black']
@@ -2236,16 +2241,18 @@ def plot_country_flux(ds_all,species,plot_regions,
             else:
                 inv_linestyle = [None,None]
                 inv_fill = ['None','None']
-            
-            if inventory_years == None:
-                search_years = sorted(glob.glob(os.path.join(data_dir,'inventory',f'UNFCCC_inventory_{species}_*.nc')))
-                inventory_years = [search_years[-1][-7:-3]]
-                            
+                  
             for y,i_year in enumerate(inventory_years):
-            
-                inventory_flux,inventory_std,inventory_time = extract_region_inventory_flux(country,data_dir,species,s_data,scale_co2eq,
-                                                                              inventory_start_date,end_date,
-                                                                              inventory_year=i_year)
+                
+                try:
+                    inventory_flux,inventory_std,inventory_time = extract_region_inventory_flux(country,data_dir,species,s_data,scale_co2eq,
+                                                                                inventory_start_date,end_date,
+                                                                                inventory_year=i_year)
+                except:
+                    print(f'Could not find inventory data for {species}, continuing without this.')
+                    inventory_flux = None
+                    inventory_std = None
+                    inventory_time = None
                 
                 #i_mask = np.logical_and(inventory_time >= np.datetime64(start_date),inventory_time < np.datetime64(end_date))
                 #print(i_mask)
@@ -2270,6 +2277,12 @@ def plot_country_flux(ds_all,species,plot_regions,
                         region_time_years = inventory_time.astype('datetime64[Y]')
                     else:
                         region_time_years = np.hstack((region_time_years,inventory_time.astype('datetime64[Y]')))
+
+        else:
+            print(f'plot_inventory set to False.')
+            inventory_time = None
+            inventory_flux = None
+            inventory_std = None
 
         ds_count = 0
         
@@ -2452,12 +2465,12 @@ def plot_country_flux(ds_all,species,plot_regions,
         
         ax.set_ylabel(f'{s_data[species]["species_print"]} ({units_print}g y$^{{-1}}${y_label_append})')
         
-        if period_all[list(ds.keys())[0]] == 'monthly' and resample[0] != 'year':
+        if any(period_all[p] == 'monthly' for p in list(ds.keys())) and all(r != 'year' for r in resample):
             ax.set_xlim([np.min(min_x)-np.timedelta64(1,'M'),
                             np.max(max_x)+np.timedelta64(1,'M')])
         else: #period_all[list(ds.keys())[0]] == 'yearly':
-            ax.set_xlim([np.min(min_x)-np.timedelta64(7,'M'),
-                            np.max(max_x)+np.timedelta64(7,'M')])        
+            ax.set_xlim([np.min(min_x)-np.timedelta64(10,'M'),
+                            np.max(max_x)+np.timedelta64(10,'M')])        
         
         ncol = 2
         if set_global_leg == False:
