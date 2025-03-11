@@ -565,7 +565,8 @@
         "difflim":[-1e-12,1e-12],
         "difflim_kgkm2yr":[-0.1,0.1],
         "threshold_scale":1e-10,
-        "mwt":130.49
+        "mwt":130.49,
+        "gwp":1
         },
 
     "clch2ch2cl":{
@@ -588,7 +589,8 @@
         "difflim":[-1e-12,1e-12],
         "difflim_kgkm2yr":[-0.1,0.1],
         "threshold_scale":1e-10,
-        "mwt":98.96
+        "mwt":98.96,
+        "gwp":1        
         },
 
     "ch3br":{
@@ -635,7 +637,7 @@
         "difflim":[-1e-12,1e-12],
         "difflim_kgkm2yr":[-0.1,0.1],
         "threshold_scale":1e-10,
-        "gwp":4090,
+        "gwp":4390,
         "mwt":102.05
         },
 
@@ -659,7 +661,7 @@
             "difflim":[-1e-12,1e-12],
             "difflim_kgkm2yr":[-0.1,0.1],
             "threshold_scale":1e-10,
-            "gwp":4660,
+            "gwp":6410,
             "mwt":44.0
             },
 
@@ -683,7 +685,7 @@
             "difflim":[-1e-12,1e-12],
             "difflim_kgkm2yr":[-0.1,0.1],
             "threshold_scale":1e-10,
-            "gwp":10200,
+            "gwp":12500,
             "mwt":44.0
             },
 
@@ -707,7 +709,7 @@
         "difflim":[-1e-12,1e-12],
         "difflim_kgkm2yr":[-0.1,0.1],
         "threshold_scale":1e-10,
-        "gwp":1760,
+        "gwp":1910,
         "mwt":86.45
         },
 
@@ -731,7 +733,7 @@
         "difflim":[-1e-12,1e-12],
         "difflim_kgkm2yr":[-0.1,0.1],
         "threshold_scale":1e-10,
-        "gwp":782,
+        "gwp":808,
         "mwt":116.9
         },
         
@@ -751,11 +753,11 @@
         "mf_units_scaling":1e-12,
         "mf_units_print":"ppt",
         "fluxlim":[0,1e-12],
-        "fluxlim_kgkm2yr":[0,0.1],
+        "fluxlim_kgkm2yr":[0,2.5],
         "difflim":[-1e-12,1e-12],
         "difflim_kgkm2yr":[-0.1,0.1],
         "threshold_scale":1e-10,
-        "gwp":1980,
+        "gwp":2190,
         "mwt":100.45
         },
     
@@ -779,7 +781,7 @@
         "difflim":[-1e-12,1e-12],
         "difflim_kgkm2yr":[-0.1,0.1],
         "threshold_scale":1e-10,
-        "gwp":1730,
+        "gwp":2150,
         "mwt":153.8
         },    
 
@@ -803,7 +805,7 @@
         "difflim":[-1e-12,1e-12],
         "difflim_kgkm2yr":[-0.1,0.1],
         "threshold_scale":1e-10,
-        "gwp":160,
+        "gwp":164,
         "mwt":133.35
         },
 
@@ -823,11 +825,11 @@
         "mf_units_scaling":1e-12,
         "mf_units_print":"ppt",
         "fluxlim":[0,1e-12],
-        "fluxlim_kgkm2yr":[0,0.1],
+        "fluxlim_kgkm2yr":[0,0.4],
         "difflim":[-1e-12,1e-12],
         "difflim_kgkm2yr":[-0.1,0.1],
         "threshold_scale":1e-10,
-        "gwp":1750,
+        "gwp":1990,
         "mwt":165.35
         },
 
@@ -847,11 +849,11 @@
             "mf_units_scaling":1e-12,
             "mf_units_print":"ppt",
             "fluxlim":[0,1e-12],
-            "fluxlim_kgkm2yr":[0,0.1],
+            "fluxlim_kgkm2yr":[0,0.4],
             "difflim":[-1e-12,1e-12],
             "difflim_kgkm2yr":[-0.1,0.1],
             "threshold_scale":1e-10,
-            "gwp":6290,
+            "gwp":7430,
             "mwt":148.9
             },
 
@@ -875,7 +877,7 @@
             "difflim":[-1e-12,1e-12],
             "difflim_kgkm2yr":[-0.1,0.1],
             "threshold_scale":1e-10,
-            "gwp":1470,
+            "gwp":2260,
             "mwt":259.8
             },
 

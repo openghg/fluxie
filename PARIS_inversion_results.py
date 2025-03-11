@@ -158,6 +158,9 @@ def initialize_settings(ppt_mode=False):
 #####################################################################
 
 def set_model_colors(models,model_colors):
+    """
+    Not in use
+    """
     cList = [['darkorange','darkslateblue'],
              ['red','lightsalmon'],
              ['green','lightgreen'],
@@ -667,6 +670,38 @@ def read_flux_total_fgases(data_dir,species,models,s_data,m_data,regions,
     print('\nTo change the files used as the standard for each HFC/PFC, edit variable std_run in species_info.json')
 
     return ds_all
+
+#####################################################################
+def read_flux_for_tables(data_dir,species,models,s_data,m_data,regions,
+                         start_date,end_date,period_override=None):
+    """
+    Reads in fluxes from a list of gases, to produce one dataset which can be used with 
+
+    Args:
+        data_dir (str): 
+            Path to top data directory.
+        species (str): 
+            'all_hfc' or 'all_pfc'
+        models (list of str): 
+            Keys specifying model names, e.g. ['intem','elris']
+        regions (list of str):
+            Region names used to extract fluxes. Only these regions can then be plotted.
+        s_data (dict of dict):
+            Dictionary of species with information for plotting (read from json file).
+        start_date (str):
+            Date to slice data from, e.g. '2021-01-01'
+        end_date (str):
+            Date to slice data to, e.g. '2022-01-01' would include all
+            data up to 2021-12-31.
+        period_override (list of str) (optional):
+            Inversion periods to include, to override the standards in species_info.json.
+            Must be the same length as models, e.g. ['monthly',None,'yearly']
+    Returns:
+        ds_all (dictionary of datasets): 
+            xarray dataset read directly from each model's flux netCDF.
+    """
+
+    return None
 
 #####################################################################
 def calculate_resample_uncertainty(ds_all_original,ds_all_p,rtime,
@@ -3197,6 +3232,8 @@ def plot_spatial_flux_one_variable(ds_all,species,plot_area,s_data,m_data,var,
             nbins = 11
         if nbins < 5 :
             nbins = 5
+        
+        nbins = 4
         
         tick_locator = ticker.MaxNLocator(nbins=nbins)
         color_bar.locator = tick_locator
