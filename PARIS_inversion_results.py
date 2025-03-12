@@ -1968,7 +1968,11 @@ def extract_region_inventory_flux(country,data_dir,species,
         gwp = s_data[species]["gwp"]
         if (s_data[species]["units_print"] == "G"): #units_print is expected to be either G or T
             scale_factor = scale_factor * 1e3 #Convert to Tg
-    
+            
+    if inventory_year == None and country == 'NW_EU2':
+        inventory_year = '2024'
+        print('WARNING: using hardcoded year 2024 for NW_EU2 inventory data. Edit extract_region_inventory_flux function to update this.')
+            
     if inventory_year == None:
         
         try:
@@ -4107,3 +4111,40 @@ def calc_rolling_mean(data,n_periods):
         
     return rolling_mean
         
+def create_annual_report_tables():
+    """
+    Create a latex-style table of inventory and InTEM flux estimates for a 
+    list of regions.
+    
+    ADD .TXT FORMAT TABLE LATER
+    """
+    
+    ### create header
+    
+    latexheaderitems = ['\hline']
+
+    header_line2 = '& '
+    header_line3 = 'Years & '
+    header_line5 = '& '
+    for r,region in enumerate(regions):
+        if region == 'NWEU2':
+            header_line2 += f' NWEU & NWEU '
+        else:
+            header_line2 += f'{region} & {region} '
+        header_line3 += 'Inventory & InTEM '
+        if r == len(regions)-1:
+            header_line2 += '\\'
+            header_line3 += '\\'
+            header_line5 += '\\'
+            
+        else:
+            header_line2 += '& '
+            header_line3 += '& '
+            header_line5 += '& & & '
+            
+    latexheaderitems.append(header_line2)
+    latexheaderitems.append(header_line3)
+    latexheaderitems.append('\hline')
+    latexheaderitems.append(header_line5)
+    
+    ### read in inventory data
