@@ -1838,45 +1838,45 @@ def extract_region_flux(ds_all,m,m0,country,verbose=True):
         c_key = 'country'
         
     #search for existing region names
+    #try:
     try:
         try:
-            try:
-                if m0 == 'intem' and country == 'BELGIUM':
-                    country_search = 'BEL-LUX'
-                    if verbose: print(f'\nNOTE: InTEM does not estimate separate BELGIUM emissions.')
-                    if verbose: print(f'So a population ratio of {bel_pop_r} is being used to scale InTEM\'s total BELGIUM+LUXEMBOURG estimate.\n')
-                    r = bel_pop_r
-                else:
-                    country_search = countrycodes_dict[country]
-                    r = 1
-                country_index = np.where(ds_all[m][c_key].values.astype(str) == country_search)[0][0]
-
-            # fix for RHIME which reports regions emissions with the regions_dict key names
-            except:
-                
-                country_index = np.where(ds_all[m][c_key].values.astype(str) == country)[0][0]
+            if m0 == 'intem' and country == 'BELGIUM':
+                country_search = 'BEL-LUX'
+                if verbose: print(f'\nNOTE: InTEM does not estimate separate BELGIUM emissions.')
+                if verbose: print(f'So a population ratio of {bel_pop_r} is being used to scale InTEM\'s total BELGIUM+LUXEMBOURG estimate.\n')
+                r = bel_pop_r
+            else:
+                country_search = countrycodes_dict[country]
                 r = 1
-                
-        # fix for error in CW_EU definition in countrycodes_dict and older InTEM netCDF files  
+            country_index = np.where(ds_all[m][c_key].values.astype(str) == country_search)[0][0]
+
+        # fix for RHIME which reports regions emissions with the regions_dict key names
         except:
             
-            country_search = regions_dict_old[country]
-            country_index = np.where(ds_all[m][c_key].values.astype(str) == country_search)[0][0]
+            country_index = np.where(ds_all[m][c_key].values.astype(str) == country)[0][0]
             r = 1
             
-        region_time = ds_all[m].time.values
-        region_flux_total_posterior = ds_all[m]['country_flux_total_posterior'].values[:,country_index]*r
-        region_flux_total_prior = ds_all[m]['country_flux_total_prior'].values[:,country_index]*r
-        region_flux_total_posterior_lower = ds_all[m]['percentile_country_flux_total_posterior'].values[:,model_q_indices[m0][0],country_index]*r
-        region_flux_total_posterior_upper = ds_all[m]['percentile_country_flux_total_posterior'].values[:,model_q_indices[m0][1],country_index]*r
-        region_flux_total_prior_lower = ds_all[m]['percentile_country_flux_total_prior'].values[:,model_q_indices[m0][0],country_index]*r
-        region_flux_total_prior_upper = ds_all[m]['percentile_country_flux_total_prior'].values[:,model_q_indices[m0][1],country_index]*r
-        #print(region_time)
-        #print(region_flux_total_posterior)
+    # fix for error in CW_EU definition in countrycodes_dict and older InTEM netCDF files  
+    except:
         
-        region_flux_total_posterior_lower[region_flux_total_posterior_lower < 0.] = 0.
-        region_flux_total_prior_lower[region_flux_total_prior_lower < 0.] = 0.
-
+        country_search = regions_dict_old[country]
+        country_index = np.where(ds_all[m][c_key].values.astype(str) == country_search)[0][0]
+        r = 1
+        
+    region_time = ds_all[m].time.values
+    region_flux_total_posterior = ds_all[m]['country_flux_total_posterior'].values[:,country_index]*r
+    region_flux_total_prior = ds_all[m]['country_flux_total_prior'].values[:,country_index]*r
+    region_flux_total_posterior_lower = ds_all[m]['percentile_country_flux_total_posterior'].values[:,model_q_indices[m0][0],country_index]*r
+    region_flux_total_posterior_upper = ds_all[m]['percentile_country_flux_total_posterior'].values[:,model_q_indices[m0][1],country_index]*r
+    region_flux_total_prior_lower = ds_all[m]['percentile_country_flux_total_prior'].values[:,model_q_indices[m0][0],country_index]*r
+    region_flux_total_prior_upper = ds_all[m]['percentile_country_flux_total_prior'].values[:,model_q_indices[m0][1],country_index]*r
+    #print(region_time)
+    #print(region_flux_total_posterior)
+    
+    region_flux_total_posterior_lower[region_flux_total_posterior_lower < 0.] = 0.
+    region_flux_total_prior_lower[region_flux_total_prior_lower < 0.] = 0.
+    '''
     #calculate values for region names that don't exist in the file
     except:
         
@@ -1945,7 +1945,7 @@ def extract_region_flux(ds_all,m,m0,country,verbose=True):
             region_flux_total_posterior,region_flux_total_prior = None,None
             region_flux_total_posterior_lower,region_flux_total_posterior_upper = None,None
             region_flux_total_prior_lower,region_flux_total_prior_upper = None,None
-    
+    '''
     return (region_time,region_flux_total_posterior,region_flux_total_prior,
             region_flux_total_posterior_lower,region_flux_total_posterior_upper,
             region_flux_total_prior_lower,region_flux_total_prior_upper)
@@ -4118,16 +4118,74 @@ def create_annual_report_tables():
     
     ADD .TXT FORMAT TABLE LATER
     """
-    
-    ### create header
-    
+
+
+    if len(rolling_mean) != len(models):
+        print('ERROR: rolling_mean must be the same length as models')
+        #return None
+
+    if len(resample) != len(models):
+        print('ERROR: resample must be the same length as models')
+        #return None
+
+    ### remove spatial flux variables to speed up later processing
+
+    for m in models:
+        ds_all_flux_scaled[m] = ds_all_flux_scaled[m].drop_vars(['flux_total_prior','percentile_flux_total_prior',
+                                                                'flux_total_posterior','percentile_flux_total_posterior',
+                                                                'flux_total_prior_out','percentile_flux_total_prior_out',
+                                                                'flux_total_posterior_inversion_grid',
+                                                                'percentile_flux_total_posterior_inversion_grid',
+                                                                'country_fraction','outer_region_fraction'],errors='ignore')
+
+    ds_all = {}
+
+    ### resample from monthly to yearly, if needed
+
+    for i,m in enumerate(models):
+        if resample[i]:
+            if resample[i] == 'year':
+                rtime = 'YS'
+            else:
+                print('ERROR: only resample option year is currently included')
+            ds_all[m] = ds_all_flux_scaled[m].resample(time=rtime).mean(dim='time')
+        else:
+            ds_all[m] = ds_all_flux_scaled[m].copy()
+            
+    ### calculate rolling means, if needed
+            
+    for i,m in enumerate(models):
+        if rolling_mean[i]:
+            for var in list(ds_all[m].keys()):
+                if var != 'countryname':
+                    for c in range(ds_all[m]['countrynumber'].values.shape[0]):
+                        if 'percentile' in list(ds_all[m][var].coords):
+                            for p in range(2):
+                                ds_all[m][var][:,p,c] = func.calc_rolling_mean(ds_all[m][var].values[:,p,c],rolling_mean[i])
+                        else:
+                            ds_all[m][var][:,c] = func.calc_rolling_mean(ds_all[m][var].values[:,c],rolling_mean[i])
+        
+        ### set all timestamps to the start of the year, this is needed for combing monthly and yearly model output into one timeseries
+        ds_all[m]['time'] = ds_all[m].time.values.astype('datetime64[Y]').astype('datetime64[ns]')  
+
+    ### combine monthly and yearly model output into one timeseries, if needed
+
+    ds_merged = {}
+
+    if len(models) == 2:
+        ds_merged[models[0]] = ds_all[models[models_priority[0]]].combine_first(ds_all[models[models_priority[1]]])
+    elif len(models) == 1:
+        ds_merged[models[0]] = ds_all.copy()
+        
+    ### create table header
+
     latexheaderitems = ['\hline']
 
     header_line2 = '& '
     header_line3 = 'Years & '
     header_line5 = '& '
     for r,region in enumerate(regions):
-        if region == 'NWEU2':
+        if region == 'NW_EU2':
             header_line2 += f' NWEU & NWEU '
         else:
             header_line2 += f'{region} & {region} '
@@ -4146,5 +4204,71 @@ def create_annual_report_tables():
     latexheaderitems.append(header_line3)
     latexheaderitems.append('\hline')
     latexheaderitems.append(header_line5)
+
+    ### extract inventory data
+
+    latexlines = []
+
+    inventory_time_all = {}
+    inventory_flux_all = {}
+    inventory_flux_uncert_all = {}
+
+    for r,region in enumerate(regions):
+
+        inventory_flux_all[region],inventory_flux_uncert_all[region],\
+        inventory_time_all[region] = func.extract_region_inventory_flux(region,data_dir,species,
+                                                                        s_data,scale_co2eq,min(start_date),max(end_date),
+                                                                        inventory_year=inventory_years)
+
+        inventory_time_all[region] = [str(t.astype('datetime64[Y]')) for t in inventory_time_all[region]]
+        
+    ### extract region fluxes from merged, resampled and rolling-mean-ed datasets
+
+    region_time = {}
+    region_flux = {}
+    region_flux_lower = {}
+    region_flux_upper = {}
+    region_flux_uncert = {}
+
+    for r,region in enumerate(regions):
+
+        m0 = models[0].split('_')[0]
+
+        region_time[region],region_flux[region],region_flux_total_prior,\
+        region_flux_lower[region],region_flux_upper[region],\
+        region_flux_total_prior_lower,region_flux_total_prior_upper = func.extract_region_flux(ds_merged,models[0],m0,region)
+        
+        region_flux_uncert[region] = region_flux[region] - region_flux_lower[region]
+        region_time[region] = [str(t.astype('datetime64[Y]')) for t in region_time[region]]
+        
+        
+    ### print out table lines containing inventory and intem output
+
+    inv_str_chars = {'ch4':6}   #how to reference these in f string??
+    inv_uncert_str_chars = {'ch4':5}
+
+    latexlines = []
+
+    for t,data_time in enumerate (region_time[regions[-1]]):
+        dataline = str(data_time)
+        if data_time in inventory_time_all[region]:
+            if data_time == inventory_time_all[region][t]:
+                for r,region in enumerate(regions):
+                    dataline += f'& {inventory_flux_all[region][t]:6.2f} ${{\pm}}$ {inventory_flux_uncert_all[region][t]:5.2f}'
+                    dataline += f'& {region_flux[region][t]:5.2f} ${{\pm}}$ {region_flux_uncert[region][t]:4.2f}'
+                    if r == len(regions)-1:
+                        dataline += ' \\'
+                latexlines.append(dataline)
+            else:
+                print('Inventory and InTEM timestamps do not match, check read in of data.')
+        else:
+            for r,region in enumerate(regions):
+                dataline += f'& '
+                dataline += f'& {region_flux[region][t]:4.2f} ${{\pm}}$ {region_flux_uncert[region][t]:4.2f}'
+                if r == len(regions)-1:
+                    dataline += ' \\'
+            latexlines.append(dataline)
+            
+    ### save latex file
     
-    ### read in inventory data
+    ### create txt format file and save this
