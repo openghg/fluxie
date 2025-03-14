@@ -4111,22 +4111,55 @@ def calc_rolling_mean(data,n_periods):
         
     return rolling_mean
         
-def create_annual_report_tables():
+def create_annual_report_tables(ds_all_flux_scaled,models,models_priority,regions,
+                                data_dir,species,s_data,start_date,end_date,inventory_years,
+                                rolling_mean,resample,output_path_table=None,save=False):
     """
     Create a latex-style table of inventory and InTEM flux estimates for a 
     list of regions.
     
+    Args:
+        ds_all_flux_scaled (dict of datasets):
+            Output from slice_flux, containing all data to be output to table.
+        models (list of str):
+            Model names used extract data. Keys of ds_all_flux_scaled.
+        models_priority (list of int):
+            Priority of which data to include in the table. E.g. if models = ['intem','intem_monthly']
+            and you wanted to only include intem data when intem_monthly was not available, models_priority
+            should be [1,0], where lower numbers are higher priority.
+        regions (list of str):
+            A column is created for each region.
+        data_dir (str):
+            Path to location of emissions and tseries netcdfs.
+        species (str):
+            Gas species.
+        s_data (dict of dict):
+            Dictionary of species with information for plotting (read from json file).
+        start_date (list of str):
+            List of dates, one for each model e.g. ['1990-01-01','2012-01-01']
+        end_date (list of str):
+            One for each model.
+        inventory_years (list of str or None):
+            List of inventory data from different years to include. If None, only plots 
+            the most recent inventory data available for each region. Currently hardcoded to 2024 for NWEU2.
+        rolling_mean (list of int or None):
+            Number of years to use to calculate a rolling mean in the intem results, one value per model,
+            e.g. [3,None].
+        resample (list of str or None):
+            Time period over which data is resampled, one str per model, e.g. [None,'year'].
+        output_path_table (str):
+            If not None, tables saved to this path.
+        
     ADD .TXT FORMAT TABLE LATER
     """
 
-
     if len(rolling_mean) != len(models):
         print('ERROR: rolling_mean must be the same length as models')
-        #return None
+        return None
 
     if len(resample) != len(models):
         print('ERROR: resample must be the same length as models')
-        #return None
+        return None
 
     ### remove spatial flux variables to speed up later processing
 
@@ -4161,9 +4194,9 @@ def create_annual_report_tables():
                     for c in range(ds_all[m]['countrynumber'].values.shape[0]):
                         if 'percentile' in list(ds_all[m][var].coords):
                             for p in range(2):
-                                ds_all[m][var][:,p,c] = func.calc_rolling_mean(ds_all[m][var].values[:,p,c],rolling_mean[i])
+                                ds_all[m][var][:,p,c] = calc_rolling_mean(ds_all[m][var].values[:,p,c],rolling_mean[i])
                         else:
-                            ds_all[m][var][:,c] = func.calc_rolling_mean(ds_all[m][var].values[:,c],rolling_mean[i])
+                            ds_all[m][var][:,c] = calc_rolling_mean(ds_all[m][var].values[:,c],rolling_mean[i])
         
         ### set all timestamps to the start of the year, this is needed for combing monthly and yearly model output into one timeseries
         ds_all[m]['time'] = ds_all[m].time.values.astype('datetime64[Y]').astype('datetime64[ns]')  
@@ -4175,35 +4208,7 @@ def create_annual_report_tables():
     if len(models) == 2:
         ds_merged[models[0]] = ds_all[models[models_priority[0]]].combine_first(ds_all[models[models_priority[1]]])
     elif len(models) == 1:
-        ds_merged[models[0]] = ds_all.copy()
-        
-    ### create table header
-
-    latexheaderitems = ['\hline']
-
-    header_line2 = '& '
-    header_line3 = 'Years & '
-    header_line5 = '& '
-    for r,region in enumerate(regions):
-        if region == 'NW_EU2':
-            header_line2 += f' NWEU & NWEU '
-        else:
-            header_line2 += f'{region} & {region} '
-        header_line3 += 'Inventory & InTEM '
-        if r == len(regions)-1:
-            header_line2 += '\\'
-            header_line3 += '\\'
-            header_line5 += '\\'
-            
-        else:
-            header_line2 += '& '
-            header_line3 += '& '
-            header_line5 += '& & & '
-            
-    latexheaderitems.append(header_line2)
-    latexheaderitems.append(header_line3)
-    latexheaderitems.append('\hline')
-    latexheaderitems.append(header_line5)
+        ds_merged[models[0]] = ds_all[models[0]].copy()
 
     ### extract inventory data
 
@@ -4216,9 +4221,11 @@ def create_annual_report_tables():
     for r,region in enumerate(regions):
 
         inventory_flux_all[region],inventory_flux_uncert_all[region],\
-        inventory_time_all[region] = func.extract_region_inventory_flux(region,data_dir,species,
-                                                                        s_data,scale_co2eq,min(start_date),max(end_date),
-                                                                        inventory_year=inventory_years)
+        inventory_time_all[region] = extract_region_inventory_flux(country=region,data_dir=data_dir,
+                                                                   species=species,s_data=s_data,
+                                                                   scale_co2eq=False,start_date=min(start_date),
+                                                                   end_date=max(end_date),
+                                                                   inventory_year=inventory_years)
 
         inventory_time_all[region] = [str(t.astype('datetime64[Y]')) for t in inventory_time_all[region]]
         
@@ -4236,13 +4243,54 @@ def create_annual_report_tables():
 
         region_time[region],region_flux[region],region_flux_total_prior,\
         region_flux_lower[region],region_flux_upper[region],\
-        region_flux_total_prior_lower,region_flux_total_prior_upper = func.extract_region_flux(ds_merged,models[0],m0,region)
+        region_flux_total_prior_lower,region_flux_total_prior_upper = extract_region_flux(ds_merged,models[0],m0,region)
         
         region_flux_uncert[region] = region_flux[region] - region_flux_lower[region]
         region_time[region] = [str(t.astype('datetime64[Y]')) for t in region_time[region]]
+          
+    ### create table header and footer
+
+    col_setup = 'cc|'*len(regions)
+
+    latexheaderitems = ['\\begin{table}[H]',
+                        '\captionsetup{width=0.9\linewidth}',
+                        '\centering',
+                        '\caption{}',
+                        f'\label{{table:{species}_emit}}'
+                        '{\\begin{tabular}{|l|'+col_setup+'}',
+                        '\hline',
+                        ]
+
+    header_line2 = '& '
+    header_line3 = 'Years & '
+    header_line5 = '& '
+    for r,region in enumerate(regions):
+        if region == 'NW_EU2':
+            header_line2 += f'NWEU & NWEU '
+        else:
+            header_line2 += f'{region} & {region} '
+        header_line3 += 'Inventory & InTEM '
+        if r == len(regions)-1:
+            header_line2 += r'\\'
+            header_line3 += r'\\'
+            header_line5 += r'\\'
+            
+        else:
+            header_line2 += '& '
+            header_line3 += '& '
+            header_line5 += '& & & '
+            
+    latexheaderitems.append(header_line2)
+    latexheaderitems.append(header_line3)
+    latexheaderitems.append('\hline')
+    latexheaderitems.append(header_line5)
+    
+    latexfooteritems = ['\hline',
+                        '\end{tabular}',
+                        '}',
+                        '\end{table}']
         
-        
-    ### print out table lines containing inventory and intem output
+    ### create table lines containing inventory and intem output
 
     inv_str_chars = {'ch4':6}   #how to reference these in f string??
     inv_uncert_str_chars = {'ch4':5}
@@ -4257,7 +4305,7 @@ def create_annual_report_tables():
                     dataline += f'& {inventory_flux_all[region][t]:6.2f} ${{\pm}}$ {inventory_flux_uncert_all[region][t]:5.2f}'
                     dataline += f'& {region_flux[region][t]:5.2f} ${{\pm}}$ {region_flux_uncert[region][t]:4.2f}'
                     if r == len(regions)-1:
-                        dataline += ' \\'
+                        dataline += r' \\'
                 latexlines.append(dataline)
             else:
                 print('Inventory and InTEM timestamps do not match, check read in of data.')
@@ -4266,9 +4314,20 @@ def create_annual_report_tables():
                 dataline += f'& '
                 dataline += f'& {region_flux[region][t]:4.2f} ${{\pm}}$ {region_flux_uncert[region][t]:4.2f}'
                 if r == len(regions)-1:
-                    dataline += ' \\'
+                    dataline += r' \\'
             latexlines.append(dataline)
             
     ### save latex file
+    if save == True:
+        with open(output_path_table+'.tex','w') as f:
+            for l in latexheaderitems:
+                f.writelines(l+'\n')
+            for l in latexlines:
+                f.writelines(l+'\n')
+            for l in latexfooteritems:
+                f.writelines(l+'\n')
+        print(f'\nTable saved to {output_path_table}.tex')
+    
+    return latexheaderitems,latexlines
     
     ### create txt format file and save this
