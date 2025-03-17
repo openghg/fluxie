@@ -15,6 +15,7 @@ from IPython.utils import io
 import sys
 import cartopy.crs as ccrs
 from matplotlib import colors, ticker
+from collections import Counter
 
 model_q_indices = {'intem':[0,1],
                    'rhime':[0,1],
@@ -543,19 +544,6 @@ def read_flux_total_fgases(data_dir,species,models,s_data,m_data,regions,
                     region_flux_total_posterior = region_flux_total_posterior * 1e3 * s_data[species]['gwp'] * 1e-12
                     region_flux_total_prior = region_flux_total_prior * 1e3 * s_data[species]['gwp'] * 1e-12
 
-                    #fix to replace rhime's timestamps, which aren't always in the centre of the inversion period
-                    # which breaks the .sum() steps below if trying to include data from missing species
-                    if 'rhime' in model:
-                        region_time = np.arange(np.datetime64(start_date[m]).astype('datetime64[Y]'),np.datetime64(end_date[m]).astype('datetime64[Y]'),
-                                        np.timedelta64(1,'Y')).astype('datetime64[ns]')
-                        region_time_extended = np.arange(np.datetime64(start_date[m]).astype('datetime64[Y]'),
-                                                        np.datetime64(end_date[m]).astype('datetime64[Y]')+np.timedelta64(1,'Y'),
-                                                        np.timedelta64(1,'Y')).astype('datetime64[ns]')
-                        time_diff = []
-                        for t,test_time in enumerate(region_time):
-                            time_diff.append((region_time_extended[t+1] - region_time_extended[t])/2)
-                        region_time = region_time + time_diff
-                
                 except:
                     # create empty set of values for this region and species, so it can be skipped if needed
                     print(f'No {species} {region} fluxes found for {model} check directory paths and netcdf contents.')
@@ -670,38 +658,6 @@ def read_flux_total_fgases(data_dir,species,models,s_data,m_data,regions,
     print('\nTo change the files used as the standard for each HFC/PFC, edit variable std_run in species_info.json')
 
     return ds_all
-
-#####################################################################
-def read_flux_for_tables(data_dir,species,models,s_data,m_data,regions,
-                         start_date,end_date,period_override=None):
-    """
-    Reads in fluxes from a list of gases, to produce one dataset which can be used with 
-
-    Args:
-        data_dir (str): 
-            Path to top data directory.
-        species (str): 
-            'all_hfc' or 'all_pfc'
-        models (list of str): 
-            Keys specifying model names, e.g. ['intem','elris']
-        regions (list of str):
-            Region names used to extract fluxes. Only these regions can then be plotted.
-        s_data (dict of dict):
-            Dictionary of species with information for plotting (read from json file).
-        start_date (str):
-            Date to slice data from, e.g. '2021-01-01'
-        end_date (str):
-            Date to slice data to, e.g. '2022-01-01' would include all
-            data up to 2021-12-31.
-        period_override (list of str) (optional):
-            Inversion periods to include, to override the standards in species_info.json.
-            Must be the same length as models, e.g. ['monthly',None,'yearly']
-    Returns:
-        ds_all (dictionary of datasets): 
-            xarray dataset read directly from each model's flux netCDF.
-    """
-
-    return None
 
 #####################################################################
 def calculate_resample_uncertainty(ds_all_original,ds_all_p,rtime,
@@ -1008,6 +964,1391 @@ def extract_site_info(sites):
                         'longitude':site_data[s][list(site_data[s].keys())[0]]['longitude']}
     
     return site_info
+
+#####################################################################
+def extract_region_flux(ds_all,m,m0,country,verbose=True):
+    """
+    Finds the index of a chosen region name and extracts the country flux
+    variables for this region.
+    Either extracts values directly from the dataset (if this region definition
+    exists in the file) or calculates values by taking the sum of smaller regions
+    (if this region definition does not exist in the file).
+    start_date and end_date can be specified to 
+    """
+    
+    if m0 == 'intem':
+        c_key = 'countrynumber'
+    elif m0 == 'rhime':
+        c_key = 'country'
+    elif m0 == 'elris':
+        c_key = 'country'
+        
+    #search for existing region names
+    try:
+        try:
+            try:
+                if m0 == 'intem' and country == 'BELGIUM':
+                    country_search = 'BEL-LUX'
+                    if verbose: print(f'\nNOTE: InTEM does not estimate separate BELGIUM emissions.')
+                    if verbose: print(f'So a population ratio of {bel_pop_r} is being used to scale InTEM\'s total BELGIUM+LUXEMBOURG estimate.\n')
+                    r = bel_pop_r
+                else:
+                    country_search = countrycodes_dict[country]
+                    r = 1
+                country_index = np.where(ds_all[m][c_key].values.astype(str) == country_search)[0][0]
+
+            # fix for RHIME which reports regions emissions with the regions_dict key names
+            except:
+                
+                country_index = np.where(ds_all[m][c_key].values.astype(str) == country)[0][0]
+                r = 1
+                
+        # fix for error in CW_EU definition in countrycodes_dict and older InTEM netCDF files  
+        except:
+            
+            country_search = regions_dict_old[country]
+            country_index = np.where(ds_all[m][c_key].values.astype(str) == country_search)[0][0]
+            r = 1
+            
+        region_time = ds_all[m].time.values
+        region_flux_total_posterior = ds_all[m]['country_flux_total_posterior'].values[:,country_index]*r
+        region_flux_total_prior = ds_all[m]['country_flux_total_prior'].values[:,country_index]*r
+        region_flux_total_posterior_lower = ds_all[m]['percentile_country_flux_total_posterior'].values[:,model_q_indices[m0][0],country_index]*r
+        region_flux_total_posterior_upper = ds_all[m]['percentile_country_flux_total_posterior'].values[:,model_q_indices[m0][1],country_index]*r
+        region_flux_total_prior_lower = ds_all[m]['percentile_country_flux_total_prior'].values[:,model_q_indices[m0][0],country_index]*r
+        region_flux_total_prior_upper = ds_all[m]['percentile_country_flux_total_prior'].values[:,model_q_indices[m0][1],country_index]*r
+        #print(region_time)
+        #print(region_flux_total_posterior)
+        
+        region_flux_total_posterior_lower[region_flux_total_posterior_lower < 0.] = 0.
+        region_flux_total_prior_lower[region_flux_total_prior_lower < 0.] = 0.
+    
+    #calculate values for region names that don't exist in the file
+    except:
+        
+        try:
+            region_search = regions_dict[country]
+            if verbose: print(f'{country} emissions are not present in {m}. Considering covariance matrix and sum of individual countries: {region_search}.')
+
+            country_list = region_search.split('-')
+
+            if m0 == 'intem':
+                c_key = 'countrynumber'
+            elif m0 == 'rhime':
+                c_key = 'country'
+            elif m0 == 'elris':
+                c_key = 'country'
+
+            country_index_vec = np.zeros(len(ds_all[m][c_key]))
+            sigma2_region_flux_total_prior = 0
+            region_flux_total_posterior = 0
+            region_flux_total_prior = 0
+
+            # Compute sum of prior/posterior emissions and prior uncertainty
+            for var in country_list:
+                try:
+                    country_index = np.where(ds_all[m][c_key].values.astype(str) == var)[0][0]
+                    country_index_vec[country_index] = 1
+
+                    region_flux_total_posterior = region_flux_total_posterior + ds_all[m]['country_flux_total_posterior'].values[:,country_index]
+                    region_flux_total_prior     = region_flux_total_prior + ds_all[m]['country_flux_total_prior'].values[:,country_index]
+
+                    sigma_country_prior = ds_all[m]['country_flux_total_prior'].values[:,country_index] - ds_all[m]['percentile_country_flux_total_prior'].values[:,model_q_indices[m0][0],country_index]
+                    sigma2_region_flux_total_prior = sigma2_region_flux_total_prior + sigma_country_prior**2
+
+                except:
+                    print(f'WARNING: {var} emissions are not present in {m}. This country will be neglected in {country} emissions.')
+                    sigma2_region_flux_total_prior = np.zeros(ds_all[m].time.values.shape[0])
+                    
+            sigma_region_flux_total_prior = np.sqrt(sigma2_region_flux_total_prior)
+        
+            # Compute posterior uncertainty from covariance matrix
+            try:
+                sigma2 = np.zeros(np.shape(ds_all[m]['covariance_country_flux_total_posterior'])[0])
+
+                for i in range(len(sigma2)):
+                    sigma2[i] = country_index_vec.dot(ds_all[m]['covariance_country_flux_total_posterior'].values[i,:,:].dot(country_index_vec))
+
+                sigma_region_flux_total_posterior = np.sqrt(sigma2)
+            except:
+                print(f'WARNING: Covariance matrix is not available for {m}. A posteriori uncertainty of {country} emissions will not be plotted.')
+                sigma_region_flux_total_posterior = np.zeros(ds_all[m].time.values.shape[0])
+                
+            region_time = ds_all[m].time.values
+            region_flux_total_posterior_lower = region_flux_total_posterior - sigma_region_flux_total_posterior
+            region_flux_total_posterior_upper = region_flux_total_posterior + sigma_region_flux_total_posterior
+            region_flux_total_prior_lower = region_flux_total_prior - sigma_region_flux_total_prior
+            region_flux_total_prior_upper = region_flux_total_prior + sigma_region_flux_total_prior
+
+            region_flux_total_posterior_lower[region_flux_total_posterior_lower < 0.] = 0.
+            region_flux_total_prior_lower[region_flux_total_prior_lower < 0.] = 0.
+
+        except:
+            print(f'ERROR: Could not find {country} emissions for {m}.')
+            print(f'Skipping read in of {m}.')
+            
+            region_time = None
+            region_flux_total_posterior,region_flux_total_prior = None,None
+            region_flux_total_posterior_lower,region_flux_total_posterior_upper = None,None
+            region_flux_total_prior_lower,region_flux_total_prior_upper = None,None
+    
+    return (region_time,region_flux_total_posterior,region_flux_total_prior,
+            region_flux_total_posterior_lower,region_flux_total_posterior_upper,
+            region_flux_total_prior_lower,region_flux_total_prior_upper)
+    
+#####################################################################
+def extract_region_inventory_flux(country,data_dir,species,
+                                  s_data,scale_co2eq,start_date,end_date,
+                                  inventory_year=None):
+    """
+    Extracts inventory flux values for regions that exists,
+    or calculates total inventory flux values for aggregated regions.
+    """
+    
+    gwp = 1
+    scale_factor = s_data[species]["units_scaling"]["intem"]
+
+    # Update scaling factors
+    if scale_co2eq and ('all' not in species):
+        gwp = s_data[species]["gwp"]
+        if (s_data[species]["units_print"] == "G"): #units_print is expected to be either G or T
+            scale_factor = scale_factor * 1e3 #Convert to Tg
+            
+    if inventory_year == None and country == 'NW_EU2':
+        inventory_year = '2024'
+        print('WARNING: using hardcoded year 2024 for NW_EU2 inventory data. Edit extract_region_inventory_flux function to update this.')
+            
+    if inventory_year == None:
+        
+        try:
+            with xr.open_dataset(sorted(glob.glob(os.path.join(data_dir,'inventory',f'UNFCCC_inventory_{species}_*.nc')))[-1]) as f:
+                inv_ds = f
+        except:
+            with xr.open_dataset(os.path.join(data_dir,'inventory',f'UNFCCC_inventory_{s_data[species]["model_species"]["intem"]}.nc')) as f:
+                inv_ds = f
+            
+    else:
+        try:
+            with xr.open_dataset(sorted(glob.glob(os.path.join(data_dir,'inventory',f'UNFCCC_inventory_{species}_{inventory_year}.nc')))[-1]) as f:
+                    inv_ds = f
+        except:
+            print(f'No {species} inventory data available for year {inventory_year}.')
+            inventory_flux = None
+            inventory_time = None
+
+    try:
+        inv_ds = inv_ds.sel(time=slice(start_date,end_date))
+        inv_c_index = np.where(inv_ds['country'].values == country)[0][0]
+        inventory_flux = inv_ds['inventory'].values[:,inv_c_index]/scale_factor * gwp
+        try:
+            inventory_std = inv_ds['inventory_std'].values[:,inv_c_index]/scale_factor * gwp
+        except:
+            inventory_std = np.zeros(inventory_flux.shape)
+            
+        inventory_time = inv_ds.time.values
+
+    except:
+        try:
+            region_search = regions_dict[country]
+            country_list = region_search.split('-')
+
+            inv_c_index = [0]*len(country_list)
+            inv_c_value = np.zeros(len(inv_ds.time.values))
+            inv_c_std_value = np.zeros(len(inv_ds.time.values))
+
+            print(f'No inventory data available for {country}. Considering sum of individual countries: {region_search}')
+
+            for i,var in enumerate(country_list):
+                try:
+                    inv_key = [k for k, code in countrycodes_dict.items() if code == var]
+                    inv_c_index[i] = np.where(inv_ds['country'].values == inv_key[0])[0][0]
+                    inv_c_temp = inv_ds['inventory'].values[:,inv_c_index[i]]
+                    try:
+                        inv_c_std_temp = inv_ds['inventory_std'].values[:,inv_c_index[i]]
+                    except:
+                        inv_c_std_temp = np.zeros(inv_c_temp.shape)
+                    if np.all(np.isnan(inv_c_temp) == True):
+                        inv_c_temp = np.zeros(len(inv_ds.time.values))
+                        print(f'WARNING: Inventory data for {inv_key[0]} is NaN. Inventory value for {country} will not include {inv_key[0]} contributions.')
+
+                    inv_c_value = inv_c_value + inv_c_temp
+                    inv_c_std_value = np.mean(np.vstack((inv_c_std_value,inv_c_std_temp)),axis=0)
+                    inventory_flux = inv_c_value/scale_factor * gwp
+                    inventory_std = inv_c_std_value/scale_factor * gwp
+                    inventory_time = inv_ds.time.values
+
+                except:
+                    try:
+                        print(f'WARNING: No inventory data available for {inv_key[0]}. Inventory value for {country} will not include {inv_key[0]} contributions.')
+                    except:
+                        print(f'ERROR: {var} does not exist in country dictionary!')
+                    inventory_flux = None
+                    inventory_std = None
+                    inventory_time = None
+
+        except:
+            print(f'No inventory data available for {country}')
+            inventory_flux = None
+            inventory_std = None
+            inventory_time = None
+    
+    return inventory_flux,inventory_std,inventory_time
+
+#####################################################################
+def resample_flux(ds_all,species,resample,period_override,s_data,
+                  resample_uncert_correlation):
+    """
+    Uses xarray to create annual or seasonal averages from monthly inversion runs.
+    """
+    
+    ds_all_original = {m:ds_all[m].copy() for m in ds_all.keys()}
+    ds_all_p = {}
+    
+    # Create annual mean xarrays if needed
+    for i,m in enumerate(ds_all.keys()):
+        if resample[i] is not None:
+            if (resample[i] == 'year'):
+                rtime = 'YS'
+            elif (resample[i] == 'season'):
+                rtime = 'QS-DEC'
+            else:
+                print(f'ERROR: Option resample=\'{resample[i]}\' is not available. Try \'year\' or \'season\'.')
+                return None
+               
+            if period_override is not None: 
+                if 'elris' in m:
+                    del ds_all_original[m]['covariance_country_flux_total_posterior']
+                if period_override[i] == 'monthly':
+                    ds_all_p[m] = ds_all_original[m].resample(time=rtime).mean(dim="time")
+                else:
+                    ds_all_p[m] = ds_all_original[m].copy()
+                if 'elris' in m and period_override[i] == 'monthly':
+                    ds_all_p[m]['country'] = ds_all_p[m]['country'].isel(time=0).drop('time')
+                    ds_all_p[m]['country_fraction'] = ds_all_p[m]['country_fraction'].isel(time=0).drop('time')
+                    ds_all_p[m] = ds_all_p[m].assign({'covariance_country_flux_total_posterior':
+                                                    ds_all[m]['covariance_country_flux_total_posterior'].resample(time=rtime).mean(dim="time")})
+                            
+            elif s_data[species]["period"]=='monthly':
+                if 'elris' in m:
+                    del ds_all_original[m]['covariance_country_flux_total_posterior']
+                ds_all_p[m] = ds_all_original[m].resample(time=rtime).mean(dim="time")
+                if 'elris' in m:
+                    ds_all_p[m]['country'] = ds_all_p[m]['country'].isel(time=0).drop('time')
+                    ds_all_p[m]['country_fraction'] = ds_all_p[m]['country_fraction'].isel(time=0).drop('time')
+                    ds_all_p[m] = ds_all_p[m].assign({'covariance_country_flux_total_posterior':
+                                                    ds_all[m]['covariance_country_flux_total_posterior'].resample(time=rtime).mean(dim="time")})
+        
+            else:
+                ds_all_p[m] = ds_all[m].copy()
+                
+            ds_all_p[m] = calculate_resample_uncertainty(ds_all_original[m],ds_all_p[m],rtime,
+                                                  resample_uncert_correlation=resample_uncert_correlation)
+        
+        # shift timestamps of averaged data forwards to centre of inversion period
+            time_mid = np.array([]).astype('datetime64[ns]')
+            time_diff_all = np.array([]).astype('timedelta64[ns]')
+            
+            for i,t in enumerate(ds_all_p[m].time.values):
+                if i < ds_all_p[m].time.values.shape[0]-1:
+                    time_diff = (ds_all_p[m].time.values[i+1].astype('datetime64[ns]') - ds_all_p[m].time.values[i].astype('datetime64[ns]'))/2
+                    time_diff_all = np.hstack((time_diff_all,time_diff))
+                    time_mid = np.hstack((time_mid,t+time_diff))
+                else:
+                    try:
+                        av_diff = Counter(time_diff_all).most_common()[0][0]
+                    except:
+                        av_diff = np.mean(time_diff_all)
+                    time_mid = np.hstack((time_mid,t+av_diff))
+                    
+            ds_all_p[m]['time'] = time_mid
+            
+        else:
+            ds_all_p[m] = ds_all[m].copy()
+       
+    return ds_all_p
+
+#####################################################################
+def calc_rolling_mean(data,n_periods):
+    """
+    Calculates a rolling mean using the equation:
+        mean[i] = sum(flux[i-a]:flux[i+a])/n_periods
+        where a = (n_periods - 1) / 2
+        
+    The start and end values (which are not surrounded by the complete number
+    of n_periods required for a full average) are calculated using the maximum
+    number of surrounding periods available.
+    """
+    
+    if n_periods%2 != 1:
+        print('ERROR: rolling_mean is the total number of periods include in the average. So it must be an odd number.')
+        sys.exit()
+
+    a = int((n_periods - 1) / 2)    #number of periods either size of central period to include in average
+
+    rolling_mean = np.zeros(data.shape)
+
+    all_indices = np.arange(0,data.shape[0],1).astype(int)
+
+    for i,v in enumerate(all_indices):
+        if (i-a) in all_indices and (i+a) in all_indices:
+            rolling_mean[i] = np.sum(data[i-a:i+a+1])/n_periods
+        #start of timeseries
+        elif (i+a) in all_indices:  
+            rolling_mean[i] = np.sum(data[:i+a+1])/data[:i+a+1].shape[0]
+        #end of timeseries
+        elif (i-a) in all_indices:  
+            rolling_mean[i] = np.sum(data[i-a:])/data[i-a:].shape[0]
+        
+    return rolling_mean
+    
+#####################################################################
+def plot_country_flux(ds_all,species,plot_regions,
+                      s_data,m_data,model_colors,
+                      start_date,end_date,ppt_mode=False,
+                      scale_co2eq=False,
+                      plot_inventory=True,inventory_years=None,
+                      data_dir=None,fix_y_axes=False,plot_prior=False,
+                      add_prior_unc=False, set_global_leg=False,
+                      country_codes_as_titles=None,
+                      skip_country_title=False,plot_separate=True,
+                      plot_combined=False,resample=None,
+                      resample_uncert_correlation=False,
+                      plot_resample_and_original=False,
+                      period_override=None,plot_grid=True,
+                      inventory_start_date=None,nid_style_plot=False,
+                      rolling_mean=False):
+    """
+    Timeseries plot of prior and posterior country fluxes, from list of 
+    areas in plot_regions.
+    
+    Args:
+        ds_all (dictionary of datasets):
+            xarray datasets of fluxes, scaled and sliced between 
+            chosen dates.
+        species (str): 
+            Gas species, e.g. 'ch4'.
+        plot_regions (list of str):
+            Country or regions to plot, e.g. ['UNITED KINGDOM','SWITZERLAND']
+        s_data (dict of dict):
+            Dictionary of species with information for plotting (read from json file).
+        m_data (dict of dict):
+            Dictionary of inversion runs with filename and plot label (read from json file).
+        start_date (str) and end_date (str):
+            Start and end dates of the data to plot.
+            Used to slice inventory data.
+        ppt_mode (logical) (optional):
+            If True, adjust global legend position to accomodate bigger fonts.
+        scale_co2eq (bool):
+            If True, adapt y-axis label to CO2-eq.
+        model_colors (dict of str):
+            Models and corresponding colours used to plot the model.
+        plot_inventory (bool):
+            If True, plots inventory flux estimates as bars in each plot.
+        inventory_years (list of str, optional):
+            List of inventory data from different years to include. If None, only plots 
+            the most recent inventory data.
+        data_dir (str): 
+            Path to top data directory, used to read inventory data files.
+        fix_y_axes (bool):
+            If True, uses a consistent y axis for all plots.
+        add_prior_unc (bool):
+            If True, plots prior uncertainty as shaded area.
+        set_global_leg (bool):
+            If True, plots one single legend instead of one legend per subplot.
+        country_codes_as_titles (bool)
+            If True, uses list of country codes as titles, instead of the region names.
+        skip_country_title(bool, default False):
+            If True, does not plot country title.
+        plot_separate (bool):
+            If True, plots model results as separate lines.
+        plot_combined (bool):
+            If True, plots combined average results from all models.
+        resample (str):
+            Option to be passed to resample built-in function of xarray Dataset. 
+            For yearly average, 'YS' option should be used; 'QS-DEC' for seasonaly average.
+            See http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
+        resample_uncert_correlation (bool, default False):
+            If True, calculates the resampled uncertainty as the mean from all averaged periods.
+            If False, recalculates uncertainty assuming no correlation between all averaged periods,
+            by taking the square root of the summed variances, divided by the number of averaging 
+            periods.
+        plot_resample_and_original (bool):
+            If True, plots both the resampled data and the data as its original frequency.
+            If False, only plots the resampled data.
+        period_override (list of str, optional):
+            Inversion periods to include, to override the standards in species_info.json.
+            Must be the same length as models, e.g. ['monthly',None,'yearly']
+        plot_grid (bool, default True):
+            Plot background grid lines. 
+        inventory_start_date (str) (optional):
+            start_date for inventory data, to override start_date for inversion data.
+        nid_style_plot (bool) (default False):
+            If True, adjusts plot formatting slightly for use in NIR/NISC reports,
+            e.g. uses different colours/format for inventory bars.
+        rolling_mean (int or list of int) (optional):
+            If not None, calculates a rolling mean over this number of periods.
+            e.g. if set to 3, will calculate the mean for each timestamp from values
+            between timestamp-1 and timestamp+1.
+    Returns:
+        fig (figure): 
+            A plot per country/region.
+    """
+    
+    if type(start_date) == list:
+        start_date = str(min(start_date))
+        end_date = str(max(end_date))
+        
+    if type(rolling_mean) == int:
+        print(f'\nApplying rolling mean: {rolling_mean} to all models.\n')
+        rolling_mean = [rolling_mean] * len(ds_all.keys())
+    elif type(rolling_mean) == list:
+        if len(rolling_mean) != len(ds_all.keys()):
+            print('ERROR: rolling_mean must be a None, a single int or a list of int and None, the same length as models.')
+            return None
+        else:
+            print(f'\nApplying rolling means {dict(zip(ds_all.keys(),rolling_mean))}.\n')
+    elif rolling_mean == None:
+        rolling_mean = [None] * len(ds_all.keys())
+    
+    if inventory_start_date is None:
+        inventory_start_date = start_date
+        
+    if type(plot_prior) == bool:
+        plot_prior = [plot_prior] * len(ds_all.keys())
+    
+    ### apply resampling (averaging to annual or seasonal)    
+    print(f'\nApplying resampling: {dict(zip(ds_all.keys(),resample))}.\n')
+    
+    ds_all_p = resample_flux(ds_all,species,resample,period_override,s_data,
+                  resample_uncert_correlation)
+    
+    max_cf = np.zeros(len(plot_regions))
+    min_x = []
+    max_x = []
+    period_all = {}
+    
+    if len(plot_regions) == 4:
+        n_cols = 2
+        n_rows = 2
+    elif len(plot_regions) < 4:
+        n_cols = len(plot_regions)
+        n_rows = 1
+    elif len(plot_regions) == 6:
+        n_cols = 3
+        n_rows = 2
+    elif len(plot_regions) > 4:
+        n_cols = 4
+        n_rows = math.ceil(len(plot_regions)/4)
+        
+    fig = plt.figure(constrained_layout=True,figsize=(n_cols*6,n_rows*4))
+    gs = fig.add_gridspec(n_rows,n_cols)
+    
+    # used to iterate through subplots
+    count = 0
+
+    for i,country in enumerate(plot_regions):
+        
+        ax = fig.add_subplot(gs[count])
+        
+        if plot_inventory == True:
+            
+            if inventory_years == None:
+                try:
+                    search_years = sorted(glob.glob(os.path.join(data_dir,'inventory',f'UNFCCC_inventory_{species}_*.nc')))
+                    inventory_years = [search_years[-1][-7:-3]]
+                except:
+                    inventory_years = [None]
+
+            if nid_style_plot == True:
+                if len(inventory_years) == 1:
+                    inv_colours = ['black']
+                    inv_linestyle = [None]
+                    inv_fill = ['None']#'gainsboro']
+                else:
+                    inv_colours = ['firebrick']+(['black']*(len(inventory_years)-1))
+                    inv_linestyle = ['dashed']+([None]*(len(inventory_years)-1))
+                    inv_fill = ['None']+(['None']*(len(inventory_years)-1))#'gainsboro']
+            else:
+                inv_linestyle = [None,None]
+                inv_fill = ['None','None']
+                  
+            for y,i_year in enumerate(inventory_years):
+                
+                try:
+                    inventory_flux,inventory_std,inventory_time = extract_region_inventory_flux(country,data_dir,species,s_data,scale_co2eq,
+                                                                                inventory_start_date,end_date,
+                                                                                inventory_year=i_year)
+                except:
+                    print(f'Could not find inventory data for {species}, continuing without this.')
+                    inventory_flux = None
+                    inventory_std = None
+                    inventory_time = None
+                
+                if inventory_time is not None:
+                    inventory_time = inventory_time.astype('datetime64[M]') + np.timedelta64(5,'M')
+                
+                if inventory_flux is not None:
+                    if np.any(inventory_std > 0.) == True and i_year == max(inventory_years):
+                        ax.bar(inventory_time,inventory_flux,
+                               np.timedelta64(280, 'D'),color=inv_fill[y],edgecolor=inv_colours[y],align='center',#align='edge',
+                               label=f'Inventory {i_year}',zorder=0,linewidth=1.2,
+                               yerr=inventory_std,capsize=2,linestyle=inv_linestyle[y])
+                    else:
+                        ax.bar(inventory_time,inventory_flux,
+                                    np.timedelta64(280, 'D'),color=inv_fill[y],edgecolor=inv_colours[y],align='center',#align='edge',
+                                    label=f'Inventory {i_year}',zorder=0,linewidth=1.2,
+                                    linestyle=inv_linestyle[y])
+                                
+                    if i == 0:
+                        region_time_years = inventory_time.astype('datetime64[Y]')
+                    else:
+                        region_time_years = np.hstack((region_time_years,inventory_time.astype('datetime64[Y]')))
+
+        else:
+            print(f'plot_inventory set to False.')
+            inventory_time = None
+            inventory_flux = None
+            inventory_std = None
+
+        ds_count = 0
+        
+        if plot_resample_and_original == True:
+            all_datasets = [ds_all_p,ds_all]
+        else:
+            all_datasets = [ds_all_p]
+        
+        for d,ds in enumerate(all_datasets):
+        
+            post_pdfs = {}
+            
+            for j,m in enumerate(ds.keys()):
+                
+                m0 = m.split('_')[0]
+
+                # Get inversion period
+                if period_override is not None:
+                    if period_override[i] == 'monthly':
+                        period_all[m] = 'monthly'
+                    elif period_override[i] == 'yearly':
+                        period_all[m] = 'yearly'
+                    else:
+                        period_all[m] = s_data[species]["period"]
+                else:
+                    period_all[m] = s_data[species]["period"]
+                    
+                region_time,region_flux_total_posterior,region_flux_total_prior,\
+                region_flux_total_posterior_lower,region_flux_total_posterior_upper,\
+                region_flux_total_prior_lower,region_flux_total_prior_upper = extract_region_flux(ds,m,m0,country)
+                
+                if d == 0 and j == 0 and ('region_time_years' in locals()) == False:
+                    region_time_years = region_time.astype('datetime64[Y]')
+                else:
+                    region_time_years = np.hstack((region_time_years,region_time.astype('datetime64[Y]')))
+                    
+                if region_time is not None:
+            
+                    if plot_combined == True:
+                
+                        if j == 0:
+                            all_region_flux_total_posterior = region_flux_total_posterior
+                            all_region_flux_total_prior = region_flux_total_prior
+                            all_region_flux_total_lower = region_flux_total_posterior_lower
+                            all_region_flux_total_upper = region_flux_total_posterior_upper
+                        else:
+                            all_region_flux_total_posterior = np.vstack((all_region_flux_total_posterior,
+                                                                        region_flux_total_posterior))
+                            all_region_flux_total_prior = np.vstack((all_region_flux_total_prior,
+                                                                    region_flux_total_prior))
+                            all_region_flux_total_lower = np.vstack((all_region_flux_total_lower,
+                                                                    region_flux_total_posterior_lower))
+                            all_region_flux_total_upper = np.vstack((all_region_flux_total_upper,
+                                                                    region_flux_total_posterior_upper))
+                            
+                        post_pdfs[m] = np.array([np.random.default_rng().normal(loc=region_flux_total_posterior[t],
+                                                                                scale=np.mean(np.array([region_flux_total_posterior[t]-region_flux_total_posterior_lower[t],
+                                                                                                        region_flux_total_posterior_upper[t]-region_flux_total_posterior[t]])),
+                                                                                size=1000) for t in range(region_time.shape[0])])
+                                
+                    if rolling_mean[j]:
+                            var_flux_total_posterior = calc_rolling_mean(region_flux_total_posterior,rolling_mean[j])
+                            var_flux_total_posterior_lower = calc_rolling_mean(region_flux_total_posterior_lower,rolling_mean[j])
+                            var_flux_total_posterior_upper = calc_rolling_mean(region_flux_total_posterior_upper,rolling_mean[j])
+
+                            var_flux_total_prior = calc_rolling_mean(region_flux_total_prior,rolling_mean[j])
+                            var_flux_total_prior_lower = calc_rolling_mean(region_flux_total_prior_lower,rolling_mean[j])
+                            var_flux_total_prior_upper = calc_rolling_mean(region_flux_total_prior_upper,rolling_mean[j])
+                    else:
+                        var_flux_total_posterior = region_flux_total_posterior
+                        var_flux_total_posterior_lower = region_flux_total_posterior_lower
+                        var_flux_total_posterior_upper = region_flux_total_posterior_upper
+
+                        var_flux_total_prior = region_flux_total_prior
+                        var_flux_total_prior_lower = region_flux_total_prior_lower
+                        var_flux_total_prior_upper = region_flux_total_prior_upper
+                                
+                    if plot_separate == True:
+                        if ds_count == 0:
+                            include_label = m_data[m]["label"]
+                            include_label_prior = f'{m_data[m]["label"]} prior'
+                        else:
+                            include_label = None
+                            include_label_prior = None
+                            
+                        ax.plot(region_time,
+                                    var_flux_total_posterior,
+                                    label=include_label,color=model_colors[m][0],linewidth=2)
+                        
+                        if not(plot_combined):
+                            if plot_prior[j] == True:
+                                ax.plot(region_time,
+                                            region_flux_total_prior,
+                                            label=include_label_prior,color=model_colors[m][0],linestyle='dashed')
+                        
+                                if add_prior_unc == True:
+                                    ax.fill_between(region_time,
+                                                        var_flux_total_prior_lower,
+                                                        var_flux_total_prior_upper,
+                                                        alpha=0.1,color=model_colors[m][0])
+                                    max_cf[i] = np.max((max_cf[i],np.nanmax(var_flux_total_prior_upper)))
+                    
+                            ax.fill_between(region_time,
+                                                var_flux_total_posterior_lower,
+                                                var_flux_total_posterior_upper,
+                                                alpha=0.3,color=model_colors[m][0])
+
+                    min_x.append(np.min(region_time).astype('datetime64[M]'))
+                    max_x.append(np.max(region_time).astype('datetime64[M]'))
+                    if inventory_time is not None:
+                        min_x.append(np.min(inventory_time).astype('datetime64[M]'))
+                        max_x.append(np.max(inventory_time).astype('datetime64[M]'))
+                    max_cf[i] = np.max((max_cf[i],np.nanmax(region_flux_total_posterior_upper)))
+                    if plot_inventory == True:
+                        if inventory_flux is not None:
+                            max_cf[i] = np.nanmax((max_cf[i],np.nanmax(inventory_flux+inventory_std)))
+
+            if plot_combined == True:
+                
+                #if i == 0:
+                    #print('\nNOTE: This currently assumes that posterior PDFs are Gaussian. The average percentile is used '+
+                    #    'to estimate an approximate standard deviation.\n')
+                
+                mean_country_flux_total_posterior = np.mean(all_region_flux_total_posterior,axis=0)
+                mean_country_flux_total_prior = np.mean(all_region_flux_total_prior,axis=0)
+                mean_country_flux_total_lower = np.mean(all_region_flux_total_lower,axis=0)
+                mean_country_flux_total_upper = np.mean(all_region_flux_total_upper,axis=0)
+                min_country_flux_total_lower = np.min(all_region_flux_total_lower,axis=0)
+                max_country_flux_total_upper = np.max(all_region_flux_total_upper,axis=0)
+                      
+                ax.plot(region_time.astype('datetime64[ns]'),
+                                mean_country_flux_total_posterior,
+                                label='Mean posterior',color='black',linewidth=3.5)
+                ax.plot(region_time.astype('datetime64[ns]'),
+                                    mean_country_flux_total_prior,
+                                    label='Mean prior',color='black',linestyle='dashed')
+                
+                ax.fill_between(region_time.astype('datetime64[ns]'),
+                                                min_country_flux_total_lower,
+                                                max_country_flux_total_upper,
+                                                alpha=0.3,color='grey',label='Min/max of post uncertainty')
+ 
+            ds_count += 1
+            
+        #format each subplot
+        if 'all' in species:
+            y_label_append = ' CO$_2$-eq'
+            units_print = "T"
+        elif scale_co2eq:
+            y_label_append = ' CO$_2$-eq'
+            units_print = "T"
+        else:
+            y_label_append = ''
+            units_print = s_data[species]["units_print"]
+        
+        ax.set_ylabel(f'{s_data[species]["species_print"]} ({units_print}g y$^{{-1}}${y_label_append})')
+        
+        if any(period_all[p] == 'monthly' for p in list(ds.keys())) and all(r != 'year' for r in resample):
+            ax.set_xlim([np.min(min_x)-np.timedelta64(1,'M'),
+                            np.max(max_x)+np.timedelta64(1,'M')])
+        else:
+            ax.set_xlim([np.min(min_x)-np.timedelta64(10,'M'),
+                            np.max(max_x)+np.timedelta64(10,'M')])        
+        
+        ncol = 2
+        if set_global_leg == False:
+            leg = ax.legend(ncol=ncol,borderpad=.4,columnspacing=1.0)#,loc='upper right')
+            if plot_inventory == True:
+                try:
+                    for l in leg.legend_handles[:-len(inventory_years)]:
+                        l.set_linewidth(3.0)
+                except:
+                    for l in leg.legendHandles[:-len(inventory_years)]:
+                        l.set_linewidth(3.0)
+            else:
+                try:
+                    for l in leg.legend_handles:
+                        l.set_linewidth(3.0)
+                except:
+                    for l in leg.legendHandles:
+                        l.set_linewidth(3.0)
+        
+        if country == 'NW_EU2':
+            print_country = 'NW EUROPE'
+        elif country == 'CW_EU':
+            print_country = 'CENTRAL W EUROPE'
+        elif country == 'NW_EU_CONTINENT':
+            print_country = 'NW CONTINENTAL EUROPE'
+        else:
+            print_country = country
+        
+        if country_codes_as_titles == True:
+            try:
+                ax.set_title(f'{print_country}\n{regions_dict[country]}')
+            except:
+                ax.set_title(f'{print_country}')
+        else:        
+            if skip_country_title == False:
+                ax.set_title(f'{print_country}')
+            
+        if plot_grid == True:
+            ax.grid(visible=True,which='major',alpha=0.4)
+        
+        # x axis labels used for longer timeseries
+        region_time_years = sorted(np.unique(region_time_years))
+        
+        if (region_time_years[-1]-region_time_years[0]).astype('timedelta64[Y]') > 8:
+            ax.set_xticks(region_time_years[::2]+np.timedelta64(5,'M'))
+            ax.set_xticklabels(region_time_years[::2],rotation=90)
+            ax.xaxis.set_minor_formatter(NullFormatter())
+
+        else:
+            ax.xaxis.set_minor_locator(MonthLocator())
+            ax.xaxis.set_minor_formatter(NullFormatter())
+            ax.xaxis.set_major_locator(YearLocator())
+        
+        count += 1
+        
+        if set_global_leg:
+            if n_rows > 1:
+                if (ppt_mode):
+                    legend_loc = (0.5, 1.1)
+                else:
+                    legend_loc = (0.5, 1.07)
+            else:
+                legend_loc = (0.5, 1.15)
+            handles, labels = ax.get_legend_handles_labels()
+            ncol=0   
+            if (plot_separate or resample):
+                ncol=len(ds_all.keys())
+            if (plot_combined and plot_separate):
+                ncol=math.floor(len(ds_all.keys())/2)+2
+            elif plot_combined:
+                ncol=3
+            if plot_inventory:
+                ncol=ncol+1
+            leg = fig.legend(handles, labels, loc='upper center',ncol=ncol,borderpad=.4,columnspacing=1.0,bbox_to_anchor=legend_loc)
+            if plot_inventory == True:
+                try:
+                    for l in leg.legend_handles:
+                        l.set_linewidth(3.0)
+                except:
+                    for l in leg.legendHandles:
+                        l.set_linewidth(3.0)
+            else:
+                try:
+                    for l in leg.legend_handles:
+                        l.set_linewidth(3.0)
+                except:
+                    for l in leg.legendHandles:
+                        l.set_linewidth(3.0)
+
+    # loop through plots again to fix min/max axis values
+    
+    for i,country in enumerate(plot_regions):
+        if fix_y_axes == True:
+            fig.axes[i].set_ylim([0,np.nanmax(max_cf)*1.1])  
+        elif (type(fix_y_axes) == list) == True:
+            fig.axes[i].set_ylim(fix_y_axes)
+        elif fix_y_axes == False:
+            fig.axes[i].set_ylim([0,max_cf[i]*1.1])  
+    
+    print('NOTE: If all the data is not within axis limits, adjust the set_ylim parameter')
+    
+    return fig
+
+#####################################################################
+def create_annual_report_tables(ds_all_flux_scaled,models,models_priority,regions,
+                                data_dir,species,s_data,start_date,end_date,inventory_years,
+                                rolling_mean,resample,output_path_table=None,save=False):
+    """
+    Create a latex-style table of inventory and InTEM flux estimates for a 
+    list of regions.
+    
+    Args:
+        ds_all_flux_scaled (dict of datasets):
+            Output from slice_flux, containing all data to be output to table.
+        models (list of str):
+            Model names used extract data. Keys of ds_all_flux_scaled.
+        models_priority (list of int):
+            Priority of which data to include in the table. E.g. if models = ['intem','intem_monthly']
+            and you wanted to only include intem data when intem_monthly was not available, models_priority
+            should be [1,0], where lower numbers are higher priority.
+        regions (list of str):
+            A column is created for each region.
+        data_dir (str):
+            Path to location of emissions and tseries netcdfs.
+        species (str):
+            Gas species.
+        s_data (dict of dict):
+            Dictionary of species with information for plotting (read from json file).
+        start_date (list of str):
+            List of dates, one for each model e.g. ['1990-01-01','2012-01-01']
+        end_date (list of str):
+            One for each model.
+        inventory_years (list of str or None):
+            List of inventory data from different years to include. If None, only plots 
+            the most recent inventory data available for each region. Currently hardcoded to 2024 for NWEU2.
+        rolling_mean (list of int or None):
+            Number of years to use to calculate a rolling mean in the intem results, one value per model,
+            e.g. [3,None].
+        resample (list of str or None):
+            Time period over which data is resampled, one str per model, e.g. [None,'year'].
+        output_path_table (str):
+            Tables saved to this path.
+        save (bool):
+            If True, saves tables to output_path_table.
+        
+    ADD .TXT FORMAT TABLE LATER
+    """
+
+    if len(rolling_mean) != len(models):
+        print('ERROR: rolling_mean must be the same length as models')
+        return None
+
+    if len(resample) != len(models):
+        print('ERROR: resample must be the same length as models')
+        return None
+        
+    if rolling_mean == None:
+        rolling_mean = [None] * len(ds_all_flux_scaled.keys())
+    print(f'\nApplying rolling means {dict(zip(ds_all_flux_scaled.keys(),rolling_mean))}.')
+    
+    print(f'\nApplying resampling: {dict(zip(ds_all_flux_scaled.keys(),resample))}.\n')
+    
+    ### remove spatial flux variables to speed up later processing
+
+    for m in models:
+        ds_all_flux_scaled[m] = ds_all_flux_scaled[m].drop_vars(['flux_total_prior','percentile_flux_total_prior',
+                                                                'flux_total_posterior','percentile_flux_total_posterior',
+                                                                'flux_total_prior_out','percentile_flux_total_prior_out',
+                                                                'flux_total_posterior_inversion_grid',
+                                                                'percentile_flux_total_posterior_inversion_grid',
+                                                                'country_fraction','outer_region_fraction'],errors='ignore')
+
+    ds_all = {}
+
+    ### resample from monthly to yearly, if needed
+
+    for i,m in enumerate(models):
+        if resample[i]:
+            if resample[i] == 'year':
+                rtime = 'YS'
+            else:
+                print('ERROR: only resample option year is currently included')
+            ds_all[m] = ds_all_flux_scaled[m].resample(time=rtime).mean(dim='time')
+        else:
+            ds_all[m] = ds_all_flux_scaled[m].copy()
+            
+    ### calculate rolling means, if needed
+            
+    for i,m in enumerate(models):
+        if rolling_mean[i]:
+            for var in list(ds_all[m].keys()):
+                if var != 'countryname':
+                    for c in range(ds_all[m]['countrynumber'].values.shape[0]):
+                        if 'percentile' in list(ds_all[m][var].coords):
+                            for p in range(2):
+                                ds_all[m][var][:,p,c] = calc_rolling_mean(ds_all[m][var].values[:,p,c],rolling_mean[i])
+                        else:
+                            ds_all[m][var][:,c] = calc_rolling_mean(ds_all[m][var].values[:,c],rolling_mean[i])
+        
+        # set all timestamps to the start of the year, this is needed for combing monthly and yearly model output into one timeseries
+        ds_all[m]['time'] = ds_all[m].time.values.astype('datetime64[Y]').astype('datetime64[ns]')  
+
+    ### combine monthly and yearly model output into one timeseries, if needed
+    
+    ds_merged = {}
+
+    if len(models) == 2:
+        ds_merged[models[0]] = ds_all[models[models_priority[0]]].combine_first(ds_all[models[models_priority[1]]])
+    elif len(models) == 1:
+        ds_merged[models[0]] = ds_all[models[0]].copy()
+
+    min_start = str(min(ds_merged[models[0]].time.values).astype('datetime64[Y]').astype('datetime64[D]'))
+    max_end = str(max(ds_merged[models[0]].time.values).astype('datetime64[Y]').astype('datetime64[D]'))
+
+    ### extract inventory data
+
+    latexlines = []
+
+    inventory_time_all = {}
+    inventory_flux_all = {}
+    inventory_flux_uncert_all = {}
+
+    for r,region in enumerate(regions):
+
+        inventory_flux_all[region],inventory_flux_uncert_all[region],\
+        inventory_time_all[region] = extract_region_inventory_flux(country=region,data_dir=data_dir,
+                                                                   species=species,s_data=s_data,
+                                                                   scale_co2eq=False,start_date=min_start,
+                                                                   end_date=max_end,
+                                                                   inventory_year=inventory_years)
+
+        inventory_time_all[region] = [str(t.astype('datetime64[Y]')) for t in inventory_time_all[region]]
+
+    ### extract region fluxes from merged, resampled and rolling-mean-ed datasets
+
+    region_time = {}
+    region_flux = {}
+    region_flux_lower = {}
+    region_flux_upper = {}
+    region_flux_uncert = {}
+
+    for r,region in enumerate(regions):
+
+        m0 = models[0].split('_')[0]
+
+        region_time[region],region_flux[region],region_flux_total_prior,\
+        region_flux_lower[region],region_flux_upper[region],\
+        region_flux_total_prior_lower,region_flux_total_prior_upper = extract_region_flux(ds_merged,models[0],m0,region)
+        
+        region_flux_uncert[region] = region_flux[region] - region_flux_lower[region]
+        region_time[region] = [str(t.astype('datetime64[Y]')) for t in region_time[region]]
+          
+    ### create table header and footer
+
+    col_setup = 'cc|'*len(regions)
+
+    latexheaderitems = ['\\begin{table}[H]',
+                        '\captionsetup{width=0.9\linewidth}',
+                        '\centering',
+                        '\caption{}',
+                        f'\label{{table:{species}_emit}}'
+                        '{\\begin{tabular}{|l|'+col_setup+'}',
+                        '\hline',
+                        ]
+
+    header_line2 = '& '
+    header_line3 = 'Years & '
+    header_line5 = '& '
+    for r,region in enumerate(regions):
+        if region == 'NW_EU2':
+            header_line2 += f'NWEU & NWEU '
+        else:
+            header_line2 += f'{region} & {region} '
+        header_line3 += 'Inventory & InTEM '
+        if r == len(regions)-1:
+            header_line2 += r'\\'
+            header_line3 += r'\\'
+            header_line5 += r'\\'
+            
+        else:
+            header_line2 += '& '
+            header_line3 += '& '
+            header_line5 += '& & & '
+            
+    latexheaderitems.append(header_line2)
+    latexheaderitems.append(header_line3)
+    latexheaderitems.append('\hline')
+    latexheaderitems.append(header_line5)
+    
+    latexfooteritems = ['\hline',
+                        '\end{tabular}',
+                        '}',
+                        '\end{table}']
+        
+    ### create table lines containing inventory and intem output
+
+    if species == 'hfc4310mee':
+        inv_str_chars = 3
+        inv_uncert_str_chars = 3
+        intem_str_chars = 3
+        intem_uncert_str_chars = 3
+    else:
+        inv_str_chars = 2
+        inv_uncert_str_chars = 2
+        intem_str_chars = 2
+        intem_uncert_str_chars = 2
+        
+    print(f'\nIf the number of decimal places in the table is not correct, edit lines near {inspect.getframeinfo(inspect.currentframe()).lineno} to add exception for this species.\n')
+
+    latexlines = []
+
+    for t,data_time in enumerate (region_time[regions[-1]]):
+        dataline = str(data_time)
+        if data_time in inventory_time_all[region]:
+            if data_time == inventory_time_all[region][t]:
+                for r,region in enumerate(regions):
+                    if all(a == 0 for a in inventory_flux_uncert_all[region]):
+                        dataline += f'& {inventory_flux_all[region][t]:6.{inv_str_chars}f}'
+                    else:
+                        dataline += f'& {inventory_flux_all[region][t]:6.{inv_str_chars}f} ${{\pm}}$ {inventory_flux_uncert_all[region][t]:5.{inv_uncert_str_chars}f}'
+                    dataline += f'& {region_flux[region][t]:5.{intem_str_chars}f} ${{\pm}}$ {region_flux_uncert[region][t]:5.{intem_uncert_str_chars}f}'
+                    if r == len(regions)-1:
+                        dataline += r' \\'
+                latexlines.append(dataline)
+            else:
+                print('Inventory and InTEM timestamps do not match, check read in of data.')
+        else:
+            for r,region in enumerate(regions):
+                dataline += f'& '
+                dataline += f'& {region_flux[region][t]:4.2f} ${{\pm}}$ {region_flux_uncert[region][t]:4.2f}'
+                if r == len(regions)-1:
+                    dataline += r' \\'
+            latexlines.append(dataline)
+            
+    ### save latex file
+    if save == True:
+        with open(output_path_table+'.tex','w') as f:
+            for l in latexheaderitems:
+                f.writelines(l+'\n')
+            for l in latexlines:
+                f.writelines(l+'\n')
+            for l in latexfooteritems:
+                f.writelines(l+'\n')
+        print(f'\nTable saved to {output_path_table}.tex')
+    
+    return latexheaderitems,latexlines
+    
+    ### create txt format file and save this
+
+#####################################################################
+def plot_spatial_flux_one_variable(ds_all,species,plot_area,s_data,m_data,var,
+                                   cmap=None,cmap_diff=None,c_border=None,period_override=None,
+                                    plot_site_locations=False,plot_point_markers=None,
+                                    season=None,plot_inversion_grid_flux=False,
+                                    scale_to_kgkm2yr=False,nid_style_plot=False,
+                                    mask_sea_areas=False,include_threshold=False,sites_available=None):
+    """
+    Plots either posterior or prior fluxes, one plot per model.
+    Function created just for the NISC_plots version of the notebook.
+    This function only plots one set of results across one time period.
+    If ds_all contains mulitple time periods for each model, the average 
+    across all times will be plotted.
+    Plots are formatted in the style of the NIR annex.
+    
+    Args:
+        ds_all (dictionary of datasets):
+            xarray datasets of fluxes, scaled and sliced between 
+            chosen dates.
+        species (str): 
+            Gas species, e.g. 'ch4'.
+        plot_area (str or list):
+            Lat/lon region to plot, options for 'UK', 'FRANCE', 'GERMANY',
+            'NWEU','CWEU','EUROPE'.
+            A list with [min_lon, max_lon, min_lat, max_lat] can also be provided.
+        s_data (dict of dict):
+            Dictionary of species with information for plotting (read from json file).
+        m_data (dict of dict):
+            Dictionary of inversion runs with filename and plot label (read from json file).
+        var (str):
+            Variable to plot, either 'flux_total_posterior' or 'flux_total_prior'. 'inversion_grid'
+            is appended to this if plot_inversion_grid_flux == True.
+        cmap (str):
+            Colour map for flux plots.
+        cmap_diff (str):
+            Colour map for difference plots.
+        c_border (str):
+            Colour for flux plot country borders.
+        period_override (list of str, optional):
+            Inversion periods to include, to override the standards in species_info.json.
+            Must be the same length as models, e.g. ['monthly',None,'yearly']
+        plot_site_locations (bool):
+            If True, adds triangles with site locations to spatial plot.
+        plot_point_markers (list of str or list of lat/lon):
+            List of names of points to plot over larger point sources or lat/lon locations.
+            See point_markers_dict for a list of options.
+            e.g. ['paris','nw_england',[50.,5.]]
+        season (string, default None):
+            If specified, plot the seasonal mean (only valable for monthly data). 
+            Options are 'DJF', 'MAM', 'JJA', 'SON'.
+        plot_inversion_grid_flux (bool, default False):
+            If True, plots fluxes at the spatial resolution of the inversion (using the 
+            inversion_grid variable). If False, plots fluxes at the spatial resolution
+            of the prior.
+        scale_to_kgkm2yr (bool, default False):
+            If True, outputs fluxes in kg/km2/year. If False, uses mol/m2/s.
+        nid_style_plot (bool, default False):
+            If True, plots sites and cities using NIR-style markers (triangles for sites and red circles for cities.)
+            Simplifies plot title and colourbar title and converts zero-value fluxes to nans, to remove from plot.
+        mask_sea_areas (bool, default False):
+            If True, sets fluxes in grid cells labelled as 'Sea' to zero.
+        include_threshold (bool, default None):
+            If True, all values below threshold_scale * max(flux) are set to zero in the plotting. 
+            threshold_scale is set in species_info.json.
+            This scaling step is now applied after averaging.
+        sites_available (dict of list of str, default None):
+            List of 3-letter site codes with data between start_date and end_date, for each model.
+            If None, site location will be plotting for all sites used across whole inversion period.
+    Returns:
+        fig (figure): 
+            A plot of spatial flux posterior and prior mean/mode and a plot 
+            of the absolute difference between these, for each model.
+    """
+    
+    var_labels = {'flux_total_prior':'Prior mean',
+                  'flux_total_posterior':'Posterior mean',
+                  'posterior_prior_diff':'Posterior-prior'}
+    
+    period_all = {}
+    
+    for i,m in enumerate(ds_all.keys()):
+        m0 = m.split('_')[0]
+        if period_override is not None:
+            if period_override[i] == 'monthly':
+                period_all[m] = 'datetime64[M]'
+            elif period_override[i] == 'yearly':
+                period_all[m] = 'datetime64[Y]'
+        else:
+            period_all[m] = s_data[species]["dt_units"][m0]
+    
+    if cmap == None:
+        cmap = 'viridis' #'Blues'
+    if cmap_diff == None:
+        cmap_diff = 'coolwarm'
+    if c_border == None:
+        c_border = 'floralwhite'
+    if cmap in ['green','blue','greyscale']:
+        cmap = set_colormaps(cmap)
+    
+    n_cols = len(ds_all.keys())
+
+    region_limits = {'UK':[-12,4,49,62],   #min_lon, max_lon, min_lat, max_lat
+                    'FRANCE':[-6,9,42,52],
+                    'GERMANY':[2,18,45,60],
+                    'ITALY':[6,19,36,48],
+                    'SWITZERLAND':[5.5,11,45,49],
+                    'NETHERLANDS':[2.5,8,50,55],
+                    'IRELAND':[-12,-4,51,56],
+                    'HUNGARY':[15,24,44.5,50],
+                    'NORWAY':[1,32,55,76],
+                    'BENELUX':[1,9,48,55],
+                    'NWEU':[-11,11,45,62],
+                    'CWEU':[-12,27,37,66],
+                    'EUROPE':[-98,40,10,80]}
+    
+    month_names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+    # Define variable specific settings
+    if scale_to_kgkm2yr == True:
+        lim = s_data[species]['fluxlim_kgkm2yr']
+        if species == 'ch4':
+            flux_units_scaling = s_data[species]['mwt'] / 1e6 * 1e6 * 365*24*60*60 
+            cb_units = 't km$^{-2}$ yr$^{-1}$'
+        else:
+            flux_units_scaling = s_data[species]['mwt'] / 1000 * 1e6 * 365*24*60*60 
+            cb_units = 'kg km$^{-2}$ yr$^{-1}$'
+    else:
+        lim = s_data[species]['fluxlim']
+        flux_units_scaling = 1
+        cb_units = 'mol m$^{-2}$ s$^{-1}$'
+
+    # find site info in netcdf attrs. if none present, use site info from first model with this 
+    # data available
+    sites_info = {}
+    if plot_site_locations == True:
+        if sites_available == None:
+            print('WARNING: sites_available not supplied, so plotting all sites listed in flux file attrs.')
+            for i,m in enumerate(ds_all.keys()):
+                try:
+                    sites_test = ds_all[m].sites.replace("'","").replace(']','').replace('[','').replace(' ','').split(',')
+                    sites_info[m] = extract_site_info(sites_test)
+                except:
+                    sites_info[m] = None
+                    
+            for i,m in enumerate(ds_all.keys()):
+                if sites_info[m] == None:
+                    for j,m2 in enumerate(sites_info.keys()):
+                        if sites_info[m2] != None:
+                            print(f'No sites data available in {m} attrs, so using site data from {m2}')
+                            sites_info[m] = sites_info[m2]
+                    break
+        else:
+            for i,m in enumerate(sites_available.keys()):
+                sites_info[m] = extract_site_info(sites_available[m])
+
+    fig,ax = plt.subplots(1,n_cols,figsize=(n_cols*4,3),
+                   subplot_kw={'projection':cartopy.crs.PlateCarree()})
+
+    for i in range(n_cols):
+        border_color = c_border
+        if n_cols > 1:
+            ax_var = ax[i]
+        else:
+            ax_var = ax
+
+        ax_var.add_feature(cartopy.feature.BORDERS,edgecolor=border_color,linewidth=1.)
+        ax_var.coastlines(resolution='50m',color=border_color,linewidth=1.)
+        if type(plot_area) == str:
+            ax_var.set_extent(region_limits[plot_area])
+        elif type(plot_area) == list:    
+            ax_var.set_extent(plot_area)
+            
+        if nid_style_plot == True:
+            ax_var.gridlines(crs=ccrs.PlateCarree(), draw_labels=False,linewidth=1, color='gray', alpha=0.5, linestyle='-')
+
+    for i,m in enumerate(ds_all.keys()):
+        
+        if n_cols > 1:
+            ax_var = ax[i]
+        else:
+            ax_var = ax
+        
+        lon = ds_all[m].longitude.values + (ds_all[m].longitude.values[1]-ds_all[m].longitude.values[1])/2
+        lat = ds_all[m].latitude.values + (ds_all[m].latitude.values[1]-ds_all[m].latitude.values[1])/2
+
+        m0 = m.split('_')[0]
+
+        if len(ds_all[m].time.values) == 1:
+            time_out = to_datetime(ds_all[m].time.values[0].astype(s_data[species]["dt_units"][m0])).strftime('%d/%m/%Y')
+        else:
+            start_print = to_datetime(ds_all[m].time.values[0].astype(period_all[m])).strftime("%d/%m/%Y")
+            if period_all[m] == 'datetime64[Y]':
+                end_period = ds_all[m].time.values[-1].astype(period_all[m]) + np.timedelta64(1,'Y') - np.timedelta64(1,'D')                    
+            elif period_all[m] == 'datetime64[M]':
+                end_period = ds_all[m].time.values[-1].astype(period_all[m]) + np.timedelta64(1,'M') - np.timedelta64(1,'D')                    
+            else:
+                print('This currently only works for monthly or yearly inversion periods. Update the plotting code to print out '+
+                        'correct dates for higher frequency inversions.')
+            end_print = to_datetime(end_period).strftime("%d/%m/%Y")
+            time_out = (f'{start_print} - {end_print}')
+            
+        if plot_inversion_grid_flux:
+            var_append = '_inversion_grid'
+        else:
+            var_append = ''
+        
+        if season is None:
+            try:
+                var_plot = np.mean(ds_all[m][f'{var}{var_append}'][:,:,:],axis=0)
+            except:
+                print(f'Cannot find inversion_grid variables for {m} so using standard flux output.')
+                var_plot = np.mean(ds_all[m][f'{var}'][:,:,:],axis=0)          
+        else:
+            try:
+                var_plot = ds_all[m][f'{var}{var_append}'].groupby("time.season").mean().sel(season=season).values
+            except:
+                print(f'Cannot find inversion_grid variables for {m} so using standard flux output.')
+                var_plot = ds_all[m][f'{var}'].groupby("time.season").mean().sel(season=season).values
+            time_out = f'{season} of {time_out}'
+            
+        if nid_style_plot == True and include_threshold is True:
+            for m in ds_all.keys():
+                threshold = s_data[species]['threshold_scale'] * np.max(var_plot.values)
+                var_plot.values[np.where(var_plot.values == 0.)] = np.nan
+                var_plot.values[np.where(var_plot.values < threshold)] = np.nan
+
+        if mask_sea_areas == True:
+            print(f'Masking sea areas...')
+            
+            mask_path = '/project/InTEM_GHG/inversion/region_files/regions_EUextN_land_June2024_as_netcdf.nc'
+            with xr.open_dataset(mask_path) as f:
+                sea_code = f['region_code'].values[np.where(f['region_name'].values == 'Sea')][0]
+                mask = f['region'].values
+                mask_lat = f.lat.values
+                mask_lon = f.lon.values
+            
+            # round used to fix rounding issues in emissions netcdf lat/lons
+            for a,la in enumerate(np.round(lat,3)):
+                for b,lo in enumerate(np.round(lon,3)):
+                    if la in mask_lat and lo in mask_lon:
+                        lat_id = np.where(mask_lat == la)[0]
+                        lon_id = np.where(mask_lon == lo)[0]
+                        if mask[lat_id,lon_id] == sea_code:
+                            var_plot[a,b] = np.nan
+  
+        ax_var.pcolormesh(lon,lat,var_plot*flux_units_scaling,cmap=cmap,vmin=lim[0],vmax=lim[1],shading='nearest')
+
+        if n_cols != 1: 
+            ax_var.set_title(f'{m_data[m]["label"]} {var}')
+
+        if plot_site_locations == True:
+            if sites_info[m] is not None:
+                for s in sites_info[m]:
+                    if nid_style_plot == True:
+                        ax_var.scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],facecolor='none',
+                                        edgecolor='darkblue',marker='^',s=30,zorder=2)
+                    else:
+                        ax_var.scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],color='white',
+                                        edgecolor='none',marker='o',s=30,zorder=2,alpha=0.5)
+                        ax_var.scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],color='none',
+                                    edgecolor='black',marker='o',s=30,zorder=2)
+            
+        if plot_point_markers is not None:
+            if nid_style_plot == True:
+                marker_edge_color = 'purple'
+                marker_fill_color = 'None'
+                marker_s = 20
+            else:
+                marker_edge_color = 'black'
+                marker_fill_color = 'black'
+                marker_s = 2
+
+            if i == 0:
+                print(f'\nPlotting markers for: {plot_point_markers}')
+                print(f'Edit lines below line {inspect.getframeinfo(inspect.currentframe()).lineno} to change marker colour and size')
+            for p in plot_point_markers:
+                if type(p) == list:
+                    ax_var.scatter(p[0],p[1],color=marker_fill_color,edgecolor=marker_edge_color,marker='o',s=marker_s,zorder=2)
+                elif type(p) == str:
+                    if p not in point_source_dict.keys():
+                        print(f'{p} is not specified in point_source_dict, edit this to add a lat/lon location.')
+                    else:
+                        ax_var.scatter(point_source_dict[p][0],point_source_dict[p][1],color=marker_fill_color,
+                                       edgecolor=marker_edge_color,marker='o',s=marker_s,zorder=2)
+
+    print('\nEdit flux_lim_kgkm2yr variable in species_info.json to adjust colourbar limits.'+
+          'You will need to rerun the first cell of the notebook to apply the adjustment\n')
+            
+    #flux colorbar
+    cbar = plt.cm.ScalarMappable(cmap=cmap)
+    levels = np.linspace(lim[0],lim[1])
+    cbar.set_array(levels)
+    cbar.set_clim(lim)
+
+    # Size of color bar
+    f_height = 0.9
+    f_bottom = (1-f_height)/2
+    f_width = 0.04/n_cols #0.02
+    f_left = 0.95         #0.94
+
+    cbar_ax = fig.add_axes([f_left, f_bottom, f_width, f_height])
+    color_bar = fig.colorbar(cbar,cax=cbar_ax,orientation='vertical',cmap=cmap,extend='max')
+        
+    color_bar.ax.tick_params(labelsize=10)
+        
+    if nid_style_plot == True:
+        
+        nbins = np.ceil(np.max(levels)-np.min(levels)).astype(int)
+        if nbins > 11:
+            nbins = 11
+        if nbins < 5 :
+            nbins = 5
+        
+        nbins = 4
+        
+        tick_locator = ticker.MaxNLocator(nbins=nbins)
+        color_bar.locator = tick_locator
+        color_bar.update_ticks()
+        color_bar.set_label(f'{cb_units}')
+        
+    else:
+        color_bar.set_label(f'{var_labels[var]} {s_data[species]["species_print"]} ({cb_units})')
+    
+    fig.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05, wspace=0.04, hspace=0.12)
+    
+    return fig
+
+
 
 #####################################################################
 
@@ -1820,801 +3161,6 @@ def plot_stats_mf(pearson,nrmse,species,
 
 #####################################################################
 
-def extract_region_flux(ds_all,m,m0,country,verbose=True):
-    """
-    Finds the index of a chosen region name and extracts the country flux
-    variables for this region.
-    Either extracts values directly from the dataset (if this region definition
-    exists in the file) or calculates values by taking the sum of smaller regions
-    (if this region definition does not exist in the file).
-    start_date and end_date can be specified to 
-    """
-    
-    if m0 == 'intem':
-        c_key = 'countrynumber'
-    elif m0 == 'rhime':
-        c_key = 'country'
-    elif m0 == 'elris':
-        c_key = 'country'
-        
-    #search for existing region names
-    #try:
-    try:
-        try:
-            if m0 == 'intem' and country == 'BELGIUM':
-                country_search = 'BEL-LUX'
-                if verbose: print(f'\nNOTE: InTEM does not estimate separate BELGIUM emissions.')
-                if verbose: print(f'So a population ratio of {bel_pop_r} is being used to scale InTEM\'s total BELGIUM+LUXEMBOURG estimate.\n')
-                r = bel_pop_r
-            else:
-                country_search = countrycodes_dict[country]
-                r = 1
-            country_index = np.where(ds_all[m][c_key].values.astype(str) == country_search)[0][0]
-
-        # fix for RHIME which reports regions emissions with the regions_dict key names
-        except:
-            
-            country_index = np.where(ds_all[m][c_key].values.astype(str) == country)[0][0]
-            r = 1
-            
-    # fix for error in CW_EU definition in countrycodes_dict and older InTEM netCDF files  
-    except:
-        
-        country_search = regions_dict_old[country]
-        country_index = np.where(ds_all[m][c_key].values.astype(str) == country_search)[0][0]
-        r = 1
-        
-    region_time = ds_all[m].time.values
-    region_flux_total_posterior = ds_all[m]['country_flux_total_posterior'].values[:,country_index]*r
-    region_flux_total_prior = ds_all[m]['country_flux_total_prior'].values[:,country_index]*r
-    region_flux_total_posterior_lower = ds_all[m]['percentile_country_flux_total_posterior'].values[:,model_q_indices[m0][0],country_index]*r
-    region_flux_total_posterior_upper = ds_all[m]['percentile_country_flux_total_posterior'].values[:,model_q_indices[m0][1],country_index]*r
-    region_flux_total_prior_lower = ds_all[m]['percentile_country_flux_total_prior'].values[:,model_q_indices[m0][0],country_index]*r
-    region_flux_total_prior_upper = ds_all[m]['percentile_country_flux_total_prior'].values[:,model_q_indices[m0][1],country_index]*r
-    #print(region_time)
-    #print(region_flux_total_posterior)
-    
-    region_flux_total_posterior_lower[region_flux_total_posterior_lower < 0.] = 0.
-    region_flux_total_prior_lower[region_flux_total_prior_lower < 0.] = 0.
-    '''
-    #calculate values for region names that don't exist in the file
-    except:
-        
-        try:
-            region_search = regions_dict[country]
-            if verbose: print(f'{country} emissions are not present in {m}. Considering covariance matrix and sum of individual countries: {region_search}.')
-
-            country_list = region_search.split('-')
-
-            if m0 == 'intem':
-                c_key = 'countrynumber'
-            elif m0 == 'rhime':
-                c_key = 'country'
-            elif m0 == 'elris':
-                c_key = 'country'
-
-            country_index_vec = np.zeros(len(ds_all[m][c_key]))
-            sigma2_region_flux_total_prior = 0
-            region_flux_total_posterior = 0
-            region_flux_total_prior = 0
-
-            # Compute sum of prior/posterior emissions and prior uncertainty
-            for var in country_list:
-                try:
-                    country_index = np.where(ds_all[m][c_key].values.astype(str) == var)[0][0]
-                    country_index_vec[country_index] = 1
-
-                    region_flux_total_posterior = region_flux_total_posterior + ds_all[m]['country_flux_total_posterior'].values[:,country_index]
-                    region_flux_total_prior     = region_flux_total_prior + ds_all[m]['country_flux_total_prior'].values[:,country_index]
-
-                    sigma_country_prior = ds_all[m]['country_flux_total_prior'].values[:,country_index] - ds_all[m]['percentile_country_flux_total_prior'].values[:,model_q_indices[m0][0],country_index]
-                    sigma2_region_flux_total_prior = sigma2_region_flux_total_prior + sigma_country_prior**2
-
-                except:
-                    print(f'WARNING: {var} emissions are not present in {m}. This country will be neglected in {country} emissions.')
-                    sigma2_region_flux_total_prior = np.zeros(ds_all[m].time.values.shape[0])
-                    
-            sigma_region_flux_total_prior = np.sqrt(sigma2_region_flux_total_prior)
-        
-            # Compute posterior uncertainty from covariance matrix
-            try:
-                sigma2 = np.zeros(np.shape(ds_all[m]['covariance_country_flux_total_posterior'])[0])
-
-                for i in range(len(sigma2)):
-                    sigma2[i] = country_index_vec.dot(ds_all[m]['covariance_country_flux_total_posterior'].values[i,:,:].dot(country_index_vec))
-
-                sigma_region_flux_total_posterior = np.sqrt(sigma2)
-            except:
-                print(f'WARNING: Covariance matrix is not available for {m}. A posteriori uncertainty of {country} emissions will not be plotted.')
-                sigma_region_flux_total_posterior = np.zeros(ds_all[m].time.values.shape[0])
-                
-            region_time = ds_all[m].time.values
-            region_flux_total_posterior_lower = region_flux_total_posterior - sigma_region_flux_total_posterior
-            region_flux_total_posterior_upper = region_flux_total_posterior + sigma_region_flux_total_posterior
-            region_flux_total_prior_lower = region_flux_total_prior - sigma_region_flux_total_prior
-            region_flux_total_prior_upper = region_flux_total_prior + sigma_region_flux_total_prior
-
-            region_flux_total_posterior_lower[region_flux_total_posterior_lower < 0.] = 0.
-            region_flux_total_prior_lower[region_flux_total_prior_lower < 0.] = 0.
-
-        except:
-            #print(f'ERROR: Could not find {country} emissions for {m}.')
-            print(f'Skipping read in of {m}.')
-            
-            region_time = None
-            region_flux_total_posterior,region_flux_total_prior = None,None
-            region_flux_total_posterior_lower,region_flux_total_posterior_upper = None,None
-            region_flux_total_prior_lower,region_flux_total_prior_upper = None,None
-    '''
-    return (region_time,region_flux_total_posterior,region_flux_total_prior,
-            region_flux_total_posterior_lower,region_flux_total_posterior_upper,
-            region_flux_total_prior_lower,region_flux_total_prior_upper)
-    
-#####################################################################
-
-def extract_region_inventory_flux(country,data_dir,species,
-                                  s_data,scale_co2eq,start_date,end_date,
-                                  inventory_year=None):
-    """
-    Extracts inventory flux values for regions that exists,
-    or calculates total inventory flux values for aggregated regions.
-    """
-    
-    gwp = 1
-    scale_factor = s_data[species]["units_scaling"]["intem"]
-
-    # Update scaling factors
-    if scale_co2eq and ('all' not in species):
-        gwp = s_data[species]["gwp"]
-        if (s_data[species]["units_print"] == "G"): #units_print is expected to be either G or T
-            scale_factor = scale_factor * 1e3 #Convert to Tg
-            
-    if inventory_year == None and country == 'NW_EU2':
-        inventory_year = '2024'
-        print('WARNING: using hardcoded year 2024 for NW_EU2 inventory data. Edit extract_region_inventory_flux function to update this.')
-            
-    if inventory_year == None:
-        
-        try:
-            with xr.open_dataset(sorted(glob.glob(os.path.join(data_dir,'inventory',f'UNFCCC_inventory_{species}_*.nc')))[-1]) as f:
-                inv_ds = f
-        except:
-            with xr.open_dataset(os.path.join(data_dir,'inventory',f'UNFCCC_inventory_{s_data[species]["model_species"]["intem"]}.nc')) as f:
-                inv_ds = f
-            
-    else:
-        try:
-            with xr.open_dataset(sorted(glob.glob(os.path.join(data_dir,'inventory',f'UNFCCC_inventory_{species}_{inventory_year}.nc')))[-1]) as f:
-                    inv_ds = f
-        except:
-            print(f'No {species} inventory data available for year {inventory_year}.')
-            inventory_flux = None
-            inventory_time = None
-
-    try:
-        inv_ds = inv_ds.sel(time=slice(start_date,end_date))
-        inv_c_index = np.where(inv_ds['country'].values == country)[0][0]
-        inventory_flux = inv_ds['inventory'].values[:,inv_c_index]/scale_factor * gwp
-        try:
-            inventory_std = inv_ds['inventory_std'].values[:,inv_c_index]/scale_factor * gwp
-        except:
-            inventory_std = np.zeros(inventory_flux.shape)
-            
-        inventory_time = inv_ds.time.values
-
-    except:
-        try:
-            region_search = regions_dict[country]
-            country_list = region_search.split('-')
-
-            inv_c_index = [0]*len(country_list)
-            inv_c_value = np.zeros(len(inv_ds.time.values))
-            inv_c_std_value = np.zeros(len(inv_ds.time.values))
-
-            print(f'No inventory data available for {country}. Considering sum of individual countries: {region_search}')
-
-            for i,var in enumerate(country_list):
-                try:
-                    inv_key = [k for k, code in countrycodes_dict.items() if code == var]
-                    inv_c_index[i] = np.where(inv_ds['country'].values == inv_key[0])[0][0]
-                    inv_c_temp = inv_ds['inventory'].values[:,inv_c_index[i]]
-                    try:
-                        inv_c_std_temp = inv_ds['inventory_std'].values[:,inv_c_index[i]]
-                    except:
-                        inv_c_std_temp = np.zeros(inv_c_temp.shape)
-                    if np.all(np.isnan(inv_c_temp) == True):
-                        inv_c_temp = np.zeros(len(inv_ds.time.values))
-                        print(f'WARNING: Inventory data for {inv_key[0]} is NaN. Inventory value for {country} will not include {inv_key[0]} contributions.')
-
-                    inv_c_value = inv_c_value + inv_c_temp
-                    inv_c_std_value = np.mean(np.vstack((inv_c_std_value,inv_c_std_temp)),axis=0)
-                    inventory_flux = inv_c_value/scale_factor * gwp
-                    inventory_std = inv_c_std_value/scale_factor * gwp
-                    inventory_time = inv_ds.time.values
-
-                except:
-                    try:
-                        print(f'WARNING: No inventory data available for {inv_key[0]}. Inventory value for {country} will not include {inv_key[0]} contributions.')
-                    except:
-                        print(f'ERROR: {var} does not exist in country dictionary!')
-                    inventory_flux = None
-                    inventory_std = None
-                    inventory_time = None
-
-        except:
-            print(f'No inventory data available for {country}')
-            inventory_flux = None
-            inventory_std = None
-            inventory_time = None
-    
-    return inventory_flux,inventory_std,inventory_time
-
-#####################################################################
-
-def plot_country_flux(ds_all,species,plot_regions,
-                      s_data,m_data,model_colors,
-                      start_date,end_date,ppt_mode=False,
-                      scale_co2eq=False,
-                      plot_inventory=True,inventory_years=None,
-                      data_dir=None,fix_y_axes=False,plot_prior=False,
-                      add_prior_unc=False, set_global_leg=False,
-                      country_codes_as_titles=None,
-                      skip_country_title=False,plot_separate=True,
-                      plot_combined=False,resample=None,
-                      resample_uncert_correlation=False,
-                      plot_resample_and_original=False,
-                      period_override=None,plot_grid=True,
-                      inventory_start_date=None,nir_style_plot=False,
-                      rolling_mean=False):
-    """
-    Timeseries plot of prior and posterior country fluxes, from list of 
-    areas in plot_regions.
-    
-    Args:
-        ds_all (dictionary of datasets):
-            xarray datasets of fluxes, scaled and sliced between 
-            chosen dates.
-        species (str): 
-            Gas species, e.g. 'ch4'.
-        plot_regions (list of str):
-            Country or regions to plot, e.g. ['UNITED KINGDOM','SWITZERLAND']
-        s_data (dict of dict):
-            Dictionary of species with information for plotting (read from json file).
-        m_data (dict of dict):
-            Dictionary of inversion runs with filename and plot label (read from json file).
-        start_date (str) and end_date (str):
-            Start and end dates of the data to plot.
-            Used to slice inventory data.
-        ppt_mode (logical) (optional):
-            If True, adjust global legend position to accomodate bigger fonts.
-        scale_co2eq (bool):
-            If True, adapt y-axis label to CO2-eq.
-        model_colors (dict of str):
-            Models and corresponding colours used to plot the model.
-        plot_inventory (bool):
-            If True, plots inventory flux estimates as bars in each plot.
-        inventory_years (list of str, optional):
-            List of inventory data from different years to include. If None, only plots 
-            the most recent inventory data.
-        data_dir (str): 
-            Path to top data directory, used to read inventory data files.
-        fix_y_axes (bool):
-            If True, uses a consistent y axis for all plots.
-        add_prior_unc (bool):
-            If True, plots prior uncertainty as shaded area.
-        set_global_leg (bool):
-            If True, plots one single legend instead of one legend per subplot.
-        country_codes_as_titles (bool)
-            If True, uses list of country codes as titles, instead of the region names.
-        skip_country_title(bool, default False):
-            If True, does not plot country title.
-        plot_separate (bool):
-            If True, plots model results as separate lines.
-        plot_combined (bool):
-            If True, plots combined average results from all models.
-        resample (str):
-            Option to be passed to resample built-in function of xarray Dataset. 
-            For yearly average, 'YS' option should be used; 'QS-DEC' for seasonaly average.
-            See http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
-        resample_uncert_correlation (bool, default False):
-            If True, calculates the resampled uncertainty as the mean from all averaged periods.
-            If False, recalculates uncertainty assuming no correlation between all averaged periods,
-            by taking the square root of the summed variances, divided by the number of averaging 
-            periods.
-        plot_resample_and_original (bool):
-            If True, plots both the resampled data and the data as its original frequency.
-            If False, only plots the resampled data.
-        period_override (list of str, optional):
-            Inversion periods to include, to override the standards in species_info.json.
-            Must be the same length as models, e.g. ['monthly',None,'yearly']
-        plot_grid (bool, default True):
-            Plot background grid lines. 
-        inventory_start_date (str) (optional):
-            start_date for inventory data, to override start_date for inversion data.
-        nir_style_plot (bool) (default False):
-            If True, adjusts plot formatting slightly for use in NIR/NISC reports,
-            e.g. uses different colours/format for inventory bars.
-        rolling_mean (int or list of int) (optional):
-            If not None, calculates a rolling mean over this number of periods.
-            e.g. if set to 3, will calculate the mean for each timestamp from values
-            between timestamp-1 and timestamp+1.
-    Returns:
-        fig (figure): 
-            A plot per country/region.
-    """
-    
-    if type(start_date) == list:
-        start_date = str(min(start_date))
-        end_date = str(max(end_date))
-        
-    if type(rolling_mean) == int:
-        print(f'\nApplying rolling mean: {rolling_mean} to all models.\n')
-        rolling_mean = [rolling_mean] * len(ds_all.keys())
-    elif type(rolling_mean) == list:
-        if len(rolling_mean) != len(ds_all.keys()):
-            print('ERROR: rolling_mean must be a None, a single int or a list of int and None, the same length as models.')
-            return None
-        else:
-            print(f'\nApplying rolling means {dict(zip(ds_all.keys(),rolling_mean))}.\n')
-    elif rolling_mean == None:
-        rolling_mean = [None] * len(ds_all.keys())
-    
-    if inventory_start_date is None:
-        inventory_start_date = start_date
-        
-    if type(plot_prior) == bool:
-        plot_prior = [plot_prior] * len(models)
-        
-    print(f'\nApplying resampling: {dict(zip(ds_all.keys(),resample))}.\n')
-    
-    ds_all_original = {m:ds_all[m].copy() for m in ds_all.keys()}
-    ds_all_p = {}
-    
-    # Create annual mean xarrays if needed
-    for i,m in enumerate(ds_all.keys()):
-        if resample[i] is not None:
-            if (resample[i] == 'year'):
-                rtime = 'YS'
-            elif (resample[i] == 'season'):
-                rtime = 'QS-DEC'
-            else:
-                print(f'ERROR: Option resample=\'{resample[i]}\' is not available. Try \'year\' or \'season\'.')
-                return None
-               
-            if period_override is not None: 
-                if 'elris' in m:
-                    del ds_all_original[m]['covariance_country_flux_total_posterior']
-                if period_override[i] == 'monthly':
-                    ds_all_p[m] = ds_all_original[m].resample(time=rtime).mean(dim="time")
-                else:
-                    ds_all_p[m] = ds_all_original[m].copy()
-                if 'elris' in m and period_override[i] == 'monthly':
-                    ds_all_p[m]['country'] = ds_all_p[m]['country'].isel(time=0).drop('time')
-                    ds_all_p[m]['country_fraction'] = ds_all_p[m]['country_fraction'].isel(time=0).drop('time')
-                    ds_all_p[m] = ds_all_p[m].assign({'covariance_country_flux_total_posterior':
-                                                    ds_all[m]['covariance_country_flux_total_posterior'].resample(time=rtime).mean(dim="time")})
-                            
-            elif s_data[species]["period"]=='monthly':
-                if 'elris' in m:
-                    del ds_all_original[m]['covariance_country_flux_total_posterior']
-                ds_all_p[m] = ds_all_original[m].resample(time=rtime).mean(dim="time")
-                if 'elris' in m:
-                    ds_all_p[m]['country'] = ds_all_p[m]['country'].isel(time=0).drop('time')
-                    ds_all_p[m]['country_fraction'] = ds_all_p[m]['country_fraction'].isel(time=0).drop('time')
-                    ds_all_p[m] = ds_all_p[m].assign({'covariance_country_flux_total_posterior':
-                                                    ds_all[m]['covariance_country_flux_total_posterior'].resample(time=rtime).mean(dim="time")})
-        
-            else:
-                ds_all_p[m] = ds_all[m].copy()
-                
-            ds_all_p[m] = calculate_resample_uncertainty(ds_all_original[m],ds_all_p[m],rtime,
-                                                  resample_uncert_correlation=resample_uncert_correlation)
-        
-        # shift timestamps of averaged data forwards to centre of inversion period
-            time_mid = np.array([]).astype('datetime64[ns]')
-            time_diff_all = np.array([]).astype('timedelta64[ns]')
-            
-            for i,t in enumerate(ds_all_p[m].time.values):
-                if i < ds_all_p[m].time.values.shape[0]-1:
-                    time_diff = (ds_all_p[m].time.values[i+1].astype('datetime64[ns]') - ds_all_p[m].time.values[i].astype('datetime64[ns]'))/2
-                    time_diff_all = np.hstack((time_diff_all,time_diff))
-                    time_mid = np.hstack((time_mid,t+time_diff))
-                else:
-                    try:
-                        av_diff = collections.Counter(time_diff_all).most_common()[0][0]
-                    except:
-                        av_diff = np.mean(time_diff_all)
-                    time_mid = np.hstack((time_mid,t+av_diff))
-                    
-            ds_all_p[m]['time'] = time_mid
-            
-        else:
-            ds_all_p[m] = ds_all[m].copy()
-
-    max_cf = np.zeros(len(plot_regions))
-    min_x = []
-    max_x = []
-    period_all = {}
-    
-    if len(plot_regions) == 4:
-        n_cols = 2
-        n_rows = 2
-    elif len(plot_regions) < 4:
-        n_cols = len(plot_regions)
-        n_rows = 1
-    elif len(plot_regions) == 6:
-        n_cols = 3
-        n_rows = 2
-    elif len(plot_regions) > 4:
-        n_cols = 4
-        n_rows = math.ceil(len(plot_regions)/4)
-        
-    fig = plt.figure(constrained_layout=True,figsize=(n_cols*6,n_rows*4))
-    gs = fig.add_gridspec(n_rows,n_cols)
-    
-    # used to iterate through subplots
-    count = 0
-
-    for i,country in enumerate(plot_regions):
-        
-        ax = fig.add_subplot(gs[count])
-        
-        if plot_inventory == True:
-            
-            if inventory_years == None:
-                try:
-                    search_years = sorted(glob.glob(os.path.join(data_dir,'inventory',f'UNFCCC_inventory_{species}_*.nc')))
-                    inventory_years = [search_years[-1][-7:-3]]
-                except:
-                    inventory_years = [None]
-
-            if nir_style_plot == True:
-                if len(inventory_years) == 1:
-                    inv_colours = ['black']
-                    inv_linestyle = [None]
-                    inv_fill = ['None']#'gainsboro']
-                else:
-                    inv_colours = ['firebrick']+(['black']*(len(inventory_years)-1))
-                    inv_linestyle = ['dashed']+([None]*(len(inventory_years)-1))
-                    inv_fill = ['None']+(['None']*(len(inventory_years)-1))#'gainsboro']
-            else:
-                inv_linestyle = [None,None]
-                inv_fill = ['None','None']
-                  
-            for y,i_year in enumerate(inventory_years):
-                
-                try:
-                    inventory_flux,inventory_std,inventory_time = extract_region_inventory_flux(country,data_dir,species,s_data,scale_co2eq,
-                                                                                inventory_start_date,end_date,
-                                                                                inventory_year=i_year)
-                except:
-                    print(f'Could not find inventory data for {species}, continuing without this.')
-                    inventory_flux = None
-                    inventory_std = None
-                    inventory_time = None
-                
-                #i_mask = np.logical_and(inventory_time >= np.datetime64(start_date),inventory_time < np.datetime64(end_date))
-                #print(i_mask)
-                #inventory_flux = inventory_flux[i_mask]
-                #inventory_std = inventory_std[i_mask]
-                if inventory_time is not None:
-                    inventory_time = inventory_time.astype('datetime64[M]') + np.timedelta64(5,'M')
-                
-                if inventory_flux is not None:
-                    if np.any(inventory_std > 0.) == True and i_year == max(inventory_years):
-                        ax.bar(inventory_time,inventory_flux,
-                               np.timedelta64(280, 'D'),color=inv_fill[y],edgecolor=inv_colours[y],align='center',#align='edge',
-                               label=f'Inventory {i_year}',zorder=0,linewidth=1.2,
-                               yerr=inventory_std,capsize=2,linestyle=inv_linestyle[y])
-                    else:
-                        ax.bar(inventory_time,inventory_flux,
-                                    np.timedelta64(280, 'D'),color=inv_fill[y],edgecolor=inv_colours[y],align='center',#align='edge',
-                                    label=f'Inventory {i_year}',zorder=0,linewidth=1.2,
-                                    linestyle=inv_linestyle[y])
-                                
-                    if i == 0:
-                        region_time_years = inventory_time.astype('datetime64[Y]')
-                    else:
-                        region_time_years = np.hstack((region_time_years,inventory_time.astype('datetime64[Y]')))
-
-        else:
-            print(f'plot_inventory set to False.')
-            inventory_time = None
-            inventory_flux = None
-            inventory_std = None
-
-        ds_count = 0
-        
-        if plot_resample_and_original == True:
-            all_datasets = [ds_all_p,ds_all]
-        else:
-            all_datasets = [ds_all_p]
-        
-        for d,ds in enumerate(all_datasets):
-        
-            post_pdfs = {}
-            
-            for j,m in enumerate(ds.keys()):
-                
-                m0 = m.split('_')[0]
-
-                # Get inversion period
-                if period_override is not None:
-                    if period_override[i] == 'monthly':
-                        period_all[m] = 'monthly'
-                    elif period_override[i] == 'yearly':
-                        period_all[m] = 'yearly'
-                    else:
-                        period_all[m] = s_data[species]["period"]
-                else:
-                    period_all[m] = s_data[species]["period"]
-                    
-                region_time,region_flux_total_posterior,region_flux_total_prior,\
-                region_flux_total_posterior_lower,region_flux_total_posterior_upper,\
-                region_flux_total_prior_lower,region_flux_total_prior_upper = extract_region_flux(ds,m,m0,country)
-                
-                if d == 0 and j == 0 and ('region_time_years' in locals()) == False:
-                    region_time_years = region_time.astype('datetime64[Y]')
-                else:
-                    region_time_years = np.hstack((region_time_years,region_time.astype('datetime64[Y]')))
-                    
-                if region_time is not None:
-            
-                    if plot_combined == True:
-                
-                        if j == 0:
-                            all_region_flux_total_posterior = region_flux_total_posterior
-                            all_region_flux_total_prior = region_flux_total_prior
-                            all_region_flux_total_lower = region_flux_total_posterior_lower
-                            all_region_flux_total_upper = region_flux_total_posterior_upper
-                        else:
-                            all_region_flux_total_posterior = np.vstack((all_region_flux_total_posterior,
-                                                                        region_flux_total_posterior))
-                            all_region_flux_total_prior = np.vstack((all_region_flux_total_prior,
-                                                                    region_flux_total_prior))
-                            all_region_flux_total_lower = np.vstack((all_region_flux_total_lower,
-                                                                    region_flux_total_posterior_lower))
-                            all_region_flux_total_upper = np.vstack((all_region_flux_total_upper,
-                                                                    region_flux_total_posterior_upper))
-                            
-                        post_pdfs[m] = np.array([np.random.default_rng().normal(loc=region_flux_total_posterior[t],
-                                                                                scale=np.mean(np.array([region_flux_total_posterior[t]-region_flux_total_posterior_lower[t],
-                                                                                                        region_flux_total_posterior_upper[t]-region_flux_total_posterior[t]])),
-                                                                                size=1000) for t in range(region_time.shape[0])])
-                                
-                    if rolling_mean[j]:
-                            var_flux_total_posterior = calc_rolling_mean(region_flux_total_posterior,rolling_mean[j])
-                            var_flux_total_posterior_lower = calc_rolling_mean(region_flux_total_posterior_lower,rolling_mean[j])
-                            var_flux_total_posterior_upper = calc_rolling_mean(region_flux_total_posterior_upper,rolling_mean[j])
-
-                            var_flux_total_prior = calc_rolling_mean(region_flux_total_prior,rolling_mean[j])
-                            var_flux_total_prior_lower = calc_rolling_mean(region_flux_total_prior_lower,rolling_mean[j])
-                            var_flux_total_prior_upper = calc_rolling_mean(region_flux_total_prior_upper,rolling_mean[j])
-                    else:
-                        var_flux_total_posterior = region_flux_total_posterior
-                        var_flux_total_posterior_lower = region_flux_total_posterior_lower
-                        var_flux_total_posterior_upper = region_flux_total_posterior_upper
-
-                        var_flux_total_prior = region_flux_total_prior
-                        var_flux_total_prior_lower = region_flux_total_prior_lower
-                        var_flux_total_prior_upper = region_flux_total_prior_upper
-                                
-                    if plot_separate == True:
-                        if ds_count == 0:
-                            include_label = m_data[m]["label"]
-                            include_label_prior = f'{m_data[m]["label"]} prior'
-                        else:
-                            include_label = None
-                            include_label_prior = None
-                            
-                        ax.plot(region_time,
-                                    var_flux_total_posterior,
-                                    label=include_label,color=model_colors[m][0],linewidth=2)
-                        
-                        if not(plot_combined):
-                            if plot_prior[j] == True:
-                                ax.plot(region_time,
-                                            region_flux_total_prior,
-                                            label=include_label_prior,color=model_colors[m][0],linestyle='dashed')
-                        
-                                if add_prior_unc == True:
-                                    ax.fill_between(region_time,
-                                                        var_flux_total_prior_lower,
-                                                        var_flux_total_prior_upper,
-                                                        alpha=0.1,color=model_colors[m][0])
-                                    max_cf[i] = np.max((max_cf[i],np.nanmax(var_flux_total_prior_upper)))
-                    
-                            ax.fill_between(region_time,
-                                                var_flux_total_posterior_lower,
-                                                var_flux_total_posterior_upper,
-                                                alpha=0.3,color=model_colors[m][0])
-
-                    min_x.append(np.min(region_time).astype('datetime64[M]'))
-                    max_x.append(np.max(region_time).astype('datetime64[M]'))
-                    if inventory_time is not None:
-                        min_x.append(np.min(inventory_time).astype('datetime64[M]'))
-                        max_x.append(np.max(inventory_time).astype('datetime64[M]'))
-                    max_cf[i] = np.max((max_cf[i],np.nanmax(region_flux_total_posterior_upper)))
-                    if plot_inventory == True:
-                        if inventory_flux is not None:
-                            max_cf[i] = np.nanmax((max_cf[i],np.nanmax(inventory_flux+inventory_std)))
-
-            if plot_combined == True:
-                
-                #if i == 0:
-                    #print('\nNOTE: This currently assumes that posterior PDFs are Gaussian. The average percentile is used '+
-                    #    'to estimate an approximate standard deviation.\n')
-                
-                mean_country_flux_total_posterior = np.mean(all_region_flux_total_posterior,axis=0)
-                mean_country_flux_total_prior = np.mean(all_region_flux_total_prior,axis=0)
-                mean_country_flux_total_lower = np.mean(all_region_flux_total_lower,axis=0)
-                mean_country_flux_total_upper = np.mean(all_region_flux_total_upper,axis=0)
-                min_country_flux_total_lower = np.min(all_region_flux_total_lower,axis=0)
-                max_country_flux_total_upper = np.max(all_region_flux_total_upper,axis=0)
-                '''
-                for j,m in enumerate(ds.keys()):
-                    if j == 0:
-                        pdf_all = np.array([np.random.choice(post_pdfs[m][t,:],500) for t in range(post_pdfs[m].shape[0])])
-                    else:
-                        pdf_all = np.hstack((pdf_all,
-                                            np.array([np.random.choice(post_pdfs[m][t,:],500) for t in range(post_pdfs[m].shape[0])])))
-                
-                pdf_mean = np.mean(pdf_all,axis=1)
-                pdf_std = np.std(pdf_all,axis=1)
-                '''                          
-                ax.plot(region_time.astype('datetime64[ns]'),
-                                mean_country_flux_total_posterior,
-                                label='Mean posterior',color='black',linewidth=3.5)
-                ax.plot(region_time.astype('datetime64[ns]'),
-                                    mean_country_flux_total_prior,
-                                    label='Mean prior',color='black',linestyle='dashed')
-                
-                ax.fill_between(region_time.astype('datetime64[ns]'),
-                                                min_country_flux_total_lower,
-                                                max_country_flux_total_upper,
-                                                alpha=0.3,color='grey',label='Min/max of post uncertainty')
-                '''
-                ax.plot(region_time.astype('datetime64[ns]'),
-                                    pdf_mean,
-                                    label='Mean of sampled post PDFs',color='dodgerblue')
-                
-                ax.fill_between(region_time.astype('datetime64[ns]'),
-                                                pdf_mean-pdf_std,
-                                                pdf_mean+pdf_std,
-                                                alpha=0.3,color='dodgerblue',label='Std dev of sampled post PDFs')
-                
-                ax.fill_between(region_time.astype('datetime64[ns]'),
-                                                mean_country_flux_total_lower,
-                                                mean_country_flux_total_upper,
-                                                alpha=0.3,color='yellow',label='Mean of post uncertainty')
-                '''                     
-
-            ds_count += 1
-            
-        #format each subplot
-        if 'all' in species:
-            y_label_append = ' CO$_2$-eq'
-            units_print = "T"
-        elif scale_co2eq:
-            y_label_append = ' CO$_2$-eq'
-            units_print = "T"
-        else:
-            y_label_append = ''
-            units_print = s_data[species]["units_print"]
-        
-        ax.set_ylabel(f'{s_data[species]["species_print"]} ({units_print}g y$^{{-1}}${y_label_append})')
-        
-        if any(period_all[p] == 'monthly' for p in list(ds.keys())) and all(r != 'year' for r in resample):
-            ax.set_xlim([np.min(min_x)-np.timedelta64(1,'M'),
-                            np.max(max_x)+np.timedelta64(1,'M')])
-        else: #period_all[list(ds.keys())[0]] == 'yearly':
-            ax.set_xlim([np.min(min_x)-np.timedelta64(10,'M'),
-                            np.max(max_x)+np.timedelta64(10,'M')])        
-        
-        ncol = 2
-        if set_global_leg == False:
-            leg = ax.legend(ncol=ncol,borderpad=.4,columnspacing=1.0)#,loc='upper right')
-            if plot_inventory == True:
-                try:
-                    for l in leg.legend_handles[:-len(inventory_years)]:
-                        l.set_linewidth(3.0)
-                except:
-                    for l in leg.legendHandles[:-len(inventory_years)]:
-                        l.set_linewidth(3.0)
-            else:
-                try:
-                    for l in leg.legend_handles:
-                        l.set_linewidth(3.0)
-                except:
-                    for l in leg.legendHandles:
-                        l.set_linewidth(3.0)
-        
-        if country == 'NW_EU2':
-            print_country = 'NW EUROPE'
-        elif country == 'CW_EU':
-            print_country = 'CENTRAL W EUROPE'
-        elif country == 'NW_EU_CONTINENT':
-            print_country = 'NW CONTINENTAL EUROPE'
-        else:
-            print_country = country
-        
-        if country_codes_as_titles == True:
-            try:
-                ax.set_title(f'{print_country}\n{regions_dict[country]}')
-            except:
-                ax.set_title(f'{print_country}')
-        else:        
-            if skip_country_title == False:
-                ax.set_title(f'{print_country}')
-            
-        if plot_grid == True:
-            ax.grid(visible=True,which='major',alpha=0.4)
-        
-        # x axis labels used for longer timeseries
-        region_time_years = sorted(np.unique(region_time_years))
-        
-        if (region_time_years[-1]-region_time_years[0]).astype('timedelta64[Y]') > 8:
-            ax.set_xticks(region_time_years[::2]+np.timedelta64(5,'M'))
-            ax.set_xticklabels(region_time_years[::2],rotation=90)
-            ax.xaxis.set_minor_formatter(NullFormatter())
-
-        else:
-            ax.xaxis.set_minor_locator(MonthLocator())
-            ax.xaxis.set_minor_formatter(NullFormatter())
-            ax.xaxis.set_major_locator(YearLocator())
-        
-        count += 1
-        
-        if set_global_leg:
-            if n_rows > 1:
-                if (ppt_mode):
-                    legend_loc = (0.5, 1.1)
-                else:
-                    legend_loc = (0.5, 1.07)
-            else:
-                legend_loc = (0.5, 1.15)
-            handles, labels = ax.get_legend_handles_labels()
-            ncol=0   
-            if (plot_separate or resample):
-                ncol=len(ds_all.keys())
-            if (plot_combined and plot_separate):
-                ncol=math.floor(len(ds_all.keys())/2)+2
-            elif plot_combined:
-                ncol=3
-            if plot_inventory:
-                ncol=ncol+1
-            leg = fig.legend(handles, labels, loc='upper center',ncol=ncol,borderpad=.4,columnspacing=1.0,bbox_to_anchor=legend_loc)
-            if plot_inventory == True:
-                try:
-                    for l in leg.legend_handles:
-                        l.set_linewidth(3.0)
-                except:
-                    for l in leg.legendHandles:
-                        l.set_linewidth(3.0)
-            else:
-                try:
-                    for l in leg.legend_handles:
-                        l.set_linewidth(3.0)
-                except:
-                    for l in leg.legendHandles:
-                        l.set_linewidth(3.0)
-
-    # loop through plots again to fix min/max axis values
-    
-    for i,country in enumerate(plot_regions):
-        if fix_y_axes == True:
-            fig.axes[i].set_ylim([0,np.nanmax(max_cf)*1.1])  
-        elif (type(fix_y_axes) == list) == True:
-            fig.axes[i].set_ylim(fix_y_axes)
-        elif fix_y_axes == False:
-            fig.axes[i].set_ylim([0,max_cf[i]*1.1])  
-    
-    print('NOTE: If all the data is not within axis limits, adjust the set_ylim parameter')
-    
-    return fig
-
-#####################################################################
-
 def plot_spatial_flux(ds_all,species,plot_area,s_data,m_data,cmap=None,
                       cmap_diff=None,c_border=None,period_override=None,
                       plot_site_locations=False,plot_point_markers=None,
@@ -2928,331 +3474,6 @@ def plot_spatial_flux(ds_all,species,plot_area,s_data,m_data,cmap=None,
 
 #####################################################################
 
-def plot_spatial_flux_one_variable(ds_all,species,plot_area,s_data,m_data,var,
-                                   cmap=None,cmap_diff=None,c_border=None,period_override=None,
-                                    plot_site_locations=False,plot_point_markers=None,
-                                    season=None,plot_inversion_grid_flux=False,
-                                    scale_to_kgkm2yr=False,nir_style_plot=False,
-                                    mask_sea_areas=False,include_threshold=False,sites_available=None):
-    """
-    Plots either posterior or prior fluxes, one plot per model.
-    Function created just for the NISC_plots version of the notebook.
-    This function only plots one set of results across one time period.
-    If ds_all contains mulitple time periods for each model, the average 
-    across all times will be plotted.
-    Plots are formatted in the style of the NIR annex.
-    
-    Args:
-        ds_all (dictionary of datasets):
-            xarray datasets of fluxes, scaled and sliced between 
-            chosen dates.
-        species (str): 
-            Gas species, e.g. 'ch4'.
-        plot_area (str or list):
-            Lat/lon region to plot, options for 'UK', 'FRANCE', 'GERMANY',
-            'NWEU','CWEU','EUROPE'.
-            A list with [min_lon, max_lon, min_lat, max_lat] can also be provided.
-        s_data (dict of dict):
-            Dictionary of species with information for plotting (read from json file).
-        m_data (dict of dict):
-            Dictionary of inversion runs with filename and plot label (read from json file).
-        var (str):
-            Variable to plot, either 'flux_total_posterior' or 'flux_total_prior'. 'inversion_grid'
-            is appended to this if plot_inversion_grid_flux == True.
-        cmap (str):
-            Colour map for flux plots.
-        cmap_diff (str):
-            Colour map for difference plots.
-        c_border (str):
-            Colour for flux plot country borders.
-        period_override (list of str, optional):
-            Inversion periods to include, to override the standards in species_info.json.
-            Must be the same length as models, e.g. ['monthly',None,'yearly']
-        plot_site_locations (bool):
-            If True, adds triangles with site locations to spatial plot.
-        plot_point_markers (list of str or list of lat/lon):
-            List of names of points to plot over larger point sources or lat/lon locations.
-            See point_markers_dict for a list of options.
-            e.g. ['paris','nw_england',[50.,5.]]
-        season (string, default None):
-            If specified, plot the seasonal mean (only valable for monthly data). 
-            Options are 'DJF', 'MAM', 'JJA', 'SON'.
-        plot_inversion_grid_flux (bool, default False):
-            If True, plots fluxes at the spatial resolution of the inversion (using the 
-            inversion_grid variable). If False, plots fluxes at the spatial resolution
-            of the prior.
-        scale_to_kgkm2yr (bool, default False):
-            If True, outputs fluxes in kg/km2/year. If False, uses mol/m2/s.
-        nir_style_plot (bool, default False):
-            If True, plots sites and cities using NIR-style markers (triangles for sites and red circles for cities.)
-            Simplifies plot title and colourbar title and converts zero-value fluxes to nans, to remove from plot.
-        mask_sea_areas (bool, default False):
-            If True, sets fluxes in grid cells labelled as 'Sea' to zero.
-        include_threshold (bool, default None):
-            If True, all values below threshold_scale * max(flux) are set to zero in the plotting. 
-            threshold_scale is set in species_info.json.
-            This scaling step is now applied after averaging.
-        sites_available (dict of list of str, default None):
-            List of 3-letter site codes with data between start_date and end_date, for each model.
-            If None, site location will be plotting for all sites used across whole inversion period.
-    Returns:
-        fig (figure): 
-            A plot of spatial flux posterior and prior mean/mode and a plot 
-            of the absolute difference between these, for each model.
-    """
-    
-    period_all = {}
-    
-    for i,m in enumerate(ds_all.keys()):
-        m0 = m.split('_')[0]
-        if period_override is not None:
-            if period_override[i] == 'monthly':
-                period_all[m] = 'datetime64[M]'
-            elif period_override[i] == 'yearly':
-                period_all[m] = 'datetime64[Y]'
-        else:
-            period_all[m] = s_data[species]["dt_units"][m0]
-    
-    if cmap == None:
-        cmap = 'viridis' #'Blues'
-    if cmap_diff == None:
-        cmap_diff = 'coolwarm'
-    if c_border == None:
-        c_border = 'floralwhite'
-    if cmap in ['green','blue','greyscale']:
-        cmap = set_colormaps(cmap)
-    
-    n_cols = len(ds_all.keys())
-
-    region_limits = {'UK':[-12,4,49,62],   #min_lon, max_lon, min_lat, max_lat
-                    'FRANCE':[-6,9,42,52],
-                    'GERMANY':[2,18,45,60],
-                    'ITALY':[6,19,36,48],
-                    'SWITZERLAND':[5.5,11,45,49],
-                    'NETHERLANDS':[2.5,8,50,55],
-                    'IRELAND':[-12,-4,51,56],
-                    'HUNGARY':[15,24,44.5,50],
-                    'NORWAY':[1,32,55,76],
-                    'BENELUX':[1,9,48,55],
-                    'NWEU':[-11,11,45,62],
-                    'CWEU':[-12,27,37,66],
-                    'EUROPE':[-98,40,10,80]}
-    
-    month_names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-
-    # Define variable specific settings
-    if scale_to_kgkm2yr == True:
-        lim = s_data[species]['fluxlim_kgkm2yr']
-        if species == 'ch4':
-            flux_units_scaling = s_data[species]['mwt'] / 1e6 * 1e6 * 365*24*60*60 
-            cb_units = 't km$^{-2}$ yr$^{-1}$'
-        else:
-            flux_units_scaling = s_data[species]['mwt'] / 1000 * 1e6 * 365*24*60*60 
-            cb_units = 'kg km$^{-2}$ yr$^{-1}$'
-    else:
-        lim = s_data[species]['fluxlim']
-        flux_units_scaling = 1
-        cb_units = 'mol m$^{-2}$ s$^{-1}$'
-
-    # find site info in netcdf attrs. if none present, use site info from first model with this 
-    # data available
-    sites_info = {}
-    if plot_site_locations == True:
-        if sites_available == None:
-            print('WARNING: sites_available not supplied, so plotting all sites listed in flux file attrs.')
-            for i,m in enumerate(ds_all.keys()):
-                try:
-                    sites_test = ds_all[m].sites.replace("'","").replace(']','').replace('[','').replace(' ','').split(',')
-                    sites_info[m] = extract_site_info(sites_test)
-                except:
-                    sites_info[m] = None
-                    
-            for i,m in enumerate(ds_all.keys()):
-                if sites_info[m] == None:
-                    for j,m2 in enumerate(sites_info.keys()):
-                        if sites_info[m2] != None:
-                            print(f'No sites data available in {m} attrs, so using site data from {m2}')
-                            sites_info[m] = sites_info[m2]
-                    break
-        else:
-            for i,m in enumerate(sites_available.keys()):
-                sites_info[m] = extract_site_info(sites_available[m])
-
-    fig,ax = plt.subplots(1,n_cols,figsize=(n_cols*4,3),
-                   subplot_kw={'projection':cartopy.crs.PlateCarree()})
-
-    for i in range(n_cols):
-        border_color = c_border
-        if n_cols > 1:
-            ax_var = ax[i]
-        else:
-            ax_var = ax
-
-        ax_var.add_feature(cartopy.feature.BORDERS,edgecolor=border_color,linewidth=1.)
-        ax_var.coastlines(resolution='50m',color=border_color,linewidth=1.)
-        if type(plot_area) == str:
-            ax_var.set_extent(region_limits[plot_area])
-        elif type(plot_area) == list:    
-            ax_var.set_extent(plot_area)
-            
-        if nir_style_plot == True:
-            ax_var.gridlines(crs=ccrs.PlateCarree(), draw_labels=False,linewidth=1, color='gray', alpha=0.5, linestyle='-')
-
-    for i,m in enumerate(ds_all.keys()):
-        
-        if n_cols > 1:
-            ax_var = ax[i]
-        else:
-            ax_var = ax
-        
-        lon = ds_all[m].longitude.values + (ds_all[m].longitude.values[1]-ds_all[m].longitude.values[1])/2
-        lat = ds_all[m].latitude.values + (ds_all[m].latitude.values[1]-ds_all[m].latitude.values[1])/2
-
-        m0 = m.split('_')[0]
-
-        if len(ds_all[m].time.values) == 1:
-            time_out = to_datetime(ds_all[m].time.values[0].astype(s_data[species]["dt_units"][m0])).strftime('%d/%m/%Y')
-        else:
-            start_print = to_datetime(ds_all[m].time.values[0].astype(period_all[m])).strftime("%d/%m/%Y")
-            if period_all[m] == 'datetime64[Y]':
-                end_period = ds_all[m].time.values[-1].astype(period_all[m]) + np.timedelta64(1,'Y') - np.timedelta64(1,'D')                    
-            elif period_all[m] == 'datetime64[M]':
-                end_period = ds_all[m].time.values[-1].astype(period_all[m]) + np.timedelta64(1,'M') - np.timedelta64(1,'D')                    
-            else:
-                print('This currently only works for monthly or yearly inversion periods. Update the plotting code to print out '+
-                        'correct dates for higher frequency inversions.')
-            end_print = to_datetime(end_period).strftime("%d/%m/%Y")
-            time_out = (f'{start_print} - {end_print}')
-            
-        if plot_inversion_grid_flux:
-            var_append = '_inversion_grid'
-        else:
-            var_append = ''
-        
-        if season is None:
-            try:
-                var_plot = np.mean(ds_all[m][f'{var}{var_append}'][:,:,:],axis=0)
-            except:
-                print(f'Cannot find inversion_grid variables for {m} so using standard flux output.')
-                var_plot = np.mean(ds_all[m][f'{var}'][:,:,:],axis=0)          
-        else:
-            try:
-                var_plot = ds_all[m][f'{var}{var_append}'].groupby("time.season").mean().sel(season=season).values
-            except:
-                print(f'Cannot find inversion_grid variables for {m} so using standard flux output.')
-                var_plot = ds_all[m][f'{var}'].groupby("time.season").mean().sel(season=season).values
-            time_out = f'{season} of {time_out}'
-            
-        if nir_style_plot == True and include_threshold is True:
-            for m in ds_all.keys():
-                threshold = s_data[species]['threshold_scale'] * np.max(var_plot.values)
-                var_plot.values[np.where(var_plot.values == 0.)] = np.nan
-                var_plot.values[np.where(var_plot.values < threshold)] = np.nan
-
-        if mask_sea_areas == True:
-            print(f'Masking sea areas...')
-            
-            mask_path = '/project/InTEM_GHG/inversion/region_files/regions_EUextN_land_June2024_as_netcdf.nc'
-            with xr.open_dataset(mask_path) as f:
-                sea_code = f['region_code'].values[np.where(f['region_name'].values == 'Sea')][0]
-                mask = f['region'].values
-                mask_lat = f.lat.values
-                mask_lon = f.lon.values
-            
-            # round used to fix rounding issues in emissions netcdf lat/lons
-            for a,la in enumerate(np.round(lat,3)):
-                for b,lo in enumerate(np.round(lon,3)):
-                    if la in mask_lat and lo in mask_lon:
-                        lat_id = np.where(mask_lat == la)[0]
-                        lon_id = np.where(mask_lon == lo)[0]
-                        if mask[lat_id,lon_id] == sea_code:
-                            var_plot[a,b] = np.nan
-  
-        ax_var.pcolormesh(lon,lat,var_plot*flux_units_scaling,cmap=cmap,vmin=lim[0],vmax=lim[1],shading='nearest')
-
-        if n_cols != 1: 
-            ax_var.set_title(f'{m_data[m]["label"]} {var}')
-
-        if plot_site_locations == True:
-            if sites_info[m] is not None:
-                for s in sites_info[m]:
-                    if nir_style_plot == True:
-                        ax_var.scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],facecolor='none',
-                                        edgecolor='darkblue',marker='^',s=30,zorder=2)
-                    else:
-                        ax_var.scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],color='white',
-                                        edgecolor='none',marker='o',s=30,zorder=2,alpha=0.5)
-                        ax_var.scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],color='none',
-                                    edgecolor='black',marker='o',s=30,zorder=2)
-            
-        if plot_point_markers is not None:
-            if nir_style_plot == True:
-                marker_edge_color = 'purple'
-                marker_fill_color = 'None'
-                marker_s = 20
-            else:
-                marker_edge_color = 'black'
-                marker_fill_color = 'black'
-                marker_s = 2
-
-            if i == 0:
-                print(f'\nPlotting markers for: {plot_point_markers}')
-                print(f'Edit lines below line {inspect.getframeinfo(inspect.currentframe()).lineno} to change marker colour and size')
-            for p in plot_point_markers:
-                if type(p) == list:
-                    ax_var.scatter(p[0],p[1],color=marker_fill_color,edgecolor=marker_edge_color,marker='o',s=marker_s,zorder=2)
-                elif type(p) == str:
-                    if p not in point_source_dict.keys():
-                        print(f'{p} is not specified in point_source_dict, edit this to add a lat/lon location.')
-                    else:
-                        ax_var.scatter(point_source_dict[p][0],point_source_dict[p][1],color=marker_fill_color,
-                                       edgecolor=marker_edge_color,marker='o',s=marker_s,zorder=2)
-
-    print('\nEdit flux_lim_kgkm2yr variable in species_info.json to adjust colourbar limits.'+
-          'You will need to rerun the first cell of the notebook to apply the adjustment\n')
-               
-
-    #flux colorbar
-    cbar = plt.cm.ScalarMappable(cmap=cmap)
-    levels = np.linspace(lim[0],lim[1])
-    cbar.set_array(levels)
-    cbar.set_clim(lim)
-
-    # Size of color bar
-    f_height = 0.9
-    f_bottom = (1-f_height)/2
-    f_width = 0.04/n_cols #0.02
-    f_left = 0.95         #0.94
-
-    cbar_ax = fig.add_axes([f_left, f_bottom, f_width, f_height])
-    color_bar = fig.colorbar(cbar,cax=cbar_ax,orientation='vertical',cmap=cmap,extend='max')
-        
-    color_bar.ax.tick_params(labelsize=10)
-        
-    if nir_style_plot == True:
-        
-        nbins = np.ceil(np.max(levels)-np.min(levels)).astype(int)
-        if nbins > 11:
-            nbins = 11
-        if nbins < 5 :
-            nbins = 5
-        
-        nbins = 4
-        
-        tick_locator = ticker.MaxNLocator(nbins=nbins)
-        color_bar.locator = tick_locator
-        color_bar.update_ticks()
-        color_bar.set_label(f'{cb_units}')
-        
-    else:
-        color_bar.set_label(f'{var_labels[var]} {s_data[species]["species_print"]} ({cb_units})')
-    
-    fig.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05, wspace=0.04, hspace=0.12)
-    
-    return fig
-
-#####################################################################
-
 def plot_spatial_flux_comparison(ds_all,species,plot_area,s_data,m_data,ppt_mode=False,
                                  cmap=None,cmap_diff=None,c_border=None,period_override=None,
                                  plot_site_locations=False,plot_point_markers=None,
@@ -3530,7 +3751,7 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
                                     chop_by='year',dt=1,period_override=None,
                                     plot_site_locations=False,plot_point_markers=False,
                                    plot_inversion_grid_flux=False,
-                                   scale_to_kgkm2yr=False,nir_style_plot=False,
+                                   scale_to_kgkm2yr=False,nid_style_plot=False,
                                    mask_sea_areas=False,include_threshold=None):
     """
     Plots posterior fluxes, prior fluxes or difference between these
@@ -3583,7 +3804,7 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
             of the prior.
         scale_to_kgkm2yr (bool, default False):
             If True, outputs fluxes in kg/km2/year. If False, uses mol/m2/s.
-        nir_style_plot (bool, default False):
+        nid_style_plot (bool, default False):
             If True, plots sites and cities using NIR-style markers (triangles for sites and red circles for cities.)
             Simplifies plot title and colourbar title and converts zero-value fluxes to nans, to remove from plot.
         mask_sea_areas (bool, default False):
@@ -3862,7 +4083,7 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
                     time_out = (f'{start_print[m][i]} - {end_print[m][i]}')
                                         
             
-            if nir_style_plot == True and include_threshold == True:
+            if nid_style_plot == True and include_threshold == True:
                 for m in ds_all.keys():
                     threshold = s_data[species]['threshold_scale'] * np.max(var_plot.values)
                     var_plot.values[np.where(var_plot.values == 0.)] = np.nan
@@ -3889,7 +4110,7 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
             # Make plot
             if n_cols == 1 and n_lines == 1:
                 ax.pcolormesh(lon,lat,var_plot*flux_units_scaling,cmap=cmap,vmin=lim[0],vmax=lim[1],shading='nearest')
-                if nir_style_plot == False:
+                if nid_style_plot == False:
                     ax.set_title(f'{m_data[m]["label"]}\n{time_out}')
                 ax_var = ax
             else:
@@ -3901,7 +4122,7 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
                     ax_var = ax[j,i]
 
                 ax_var.pcolormesh(lon,lat,var_plot*flux_units_scaling,cmap=cmap,vmin=lim[0],vmax=lim[1],shading='nearest')
-                #if nir_style_plot == False:
+                #if nid_style_plot == False:
                 ax_var.set_title(f'{time_out}')
                 if i == 0:
                     if '\n' in m_data[m]["label"]:
@@ -3914,7 +4135,7 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
     
                 if sites_info[m] is not None:
                     for s in sites_info[m]:
-                        if nir_style_plot == True:
+                        if nid_style_plot == True:
                             ax_var.scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],facecolor='none',
                                             edgecolor='darkblue',marker='^',s=30,zorder=2)
                         else:
@@ -3926,7 +4147,7 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
             # Add markers at specific locations
             if plot_point_markers is not None:
                 
-                if nir_style_plot == True:
+                if nid_style_plot == True:
                     marker_edge_color = 'purple'
                     marker_fill_color = 'None'
                     marker_s = 20
@@ -3953,7 +4174,7 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
             #    print(f'ERROR: Either start and end dates are incorrect or there is no model output from {m}.')
             #    print(f'Skipping plotting {m}.')
             
-            if nir_style_plot == True:
+            if nid_style_plot == True:
                 ax_var.gridlines(crs=ccrs.PlateCarree(), draw_labels=False,linewidth=1, color='gray', alpha=0.5, linestyle='-')
 
     #flux colorbar
@@ -3985,7 +4206,7 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
         
     color_bar.ax.tick_params(labelsize=10)
         
-    if nir_style_plot == True:
+    if nid_style_plot == True:
         
         nbins = np.ceil(np.max(levels)-np.min(levels)).astype(int)
         if nbins > 11:
@@ -3997,7 +4218,7 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,end_date,s_data,m_d
         color_bar.locator = tick_locator
         color_bar.update_ticks()
 
-    if nir_style_plot == True:
+    if nid_style_plot == True:
         color_bar.set_label(f'{cb_units}')
     else:
         color_bar.set_label(f'{var_labels[var]} {s_data[species]["species_print"]} ({cb_units})')
@@ -4075,259 +4296,3 @@ def plot_sites_timeseries(ds_all,var,start_date,end_date,model_colors,m_data):
     plt.legend(loc='upper right')
     
     return fig
-
-#####################################################################
-
-def calc_rolling_mean(data,n_periods):
-    """
-    Calculates a rolling mean using the equation:
-        mean[i] = sum(flux[i-a]:flux[i+a])/n_periods
-        where a = (n_periods - 1) / 2
-        
-    The start and end values (which are not surrounded by the complete number
-    of n_periods required for a full average) are calculated using the maximum
-    number of surrounding periods available.
-    """
-    
-    if n_periods%2 != 1:
-        print('ERROR: rolling_mean is the total number of periods include in the average. So it must be an odd number.')
-        sys.exit()
-
-    a = int((n_periods - 1) / 2)    #number of periods either size of central period to include in average
-
-    rolling_mean = np.zeros(data.shape)
-
-    all_indices = np.arange(0,data.shape[0],1).astype(int)
-
-    for i,v in enumerate(all_indices):
-        if (i-a) in all_indices and (i+a) in all_indices:
-            rolling_mean[i] = np.sum(data[i-a:i+a+1])/n_periods
-        #start of timeseries
-        elif (i+a) in all_indices:  
-            rolling_mean[i] = np.sum(data[:i+a+1])/data[:i+a+1].shape[0]
-        #end of timeseries
-        elif (i-a) in all_indices:  
-            rolling_mean[i] = np.sum(data[i-a:])/data[i-a:].shape[0]
-        
-    return rolling_mean
-        
-def create_annual_report_tables(ds_all_flux_scaled,models,models_priority,regions,
-                                data_dir,species,s_data,start_date,end_date,inventory_years,
-                                rolling_mean,resample,output_path_table=None,save=False):
-    """
-    Create a latex-style table of inventory and InTEM flux estimates for a 
-    list of regions.
-    
-    Args:
-        ds_all_flux_scaled (dict of datasets):
-            Output from slice_flux, containing all data to be output to table.
-        models (list of str):
-            Model names used extract data. Keys of ds_all_flux_scaled.
-        models_priority (list of int):
-            Priority of which data to include in the table. E.g. if models = ['intem','intem_monthly']
-            and you wanted to only include intem data when intem_monthly was not available, models_priority
-            should be [1,0], where lower numbers are higher priority.
-        regions (list of str):
-            A column is created for each region.
-        data_dir (str):
-            Path to location of emissions and tseries netcdfs.
-        species (str):
-            Gas species.
-        s_data (dict of dict):
-            Dictionary of species with information for plotting (read from json file).
-        start_date (list of str):
-            List of dates, one for each model e.g. ['1990-01-01','2012-01-01']
-        end_date (list of str):
-            One for each model.
-        inventory_years (list of str or None):
-            List of inventory data from different years to include. If None, only plots 
-            the most recent inventory data available for each region. Currently hardcoded to 2024 for NWEU2.
-        rolling_mean (list of int or None):
-            Number of years to use to calculate a rolling mean in the intem results, one value per model,
-            e.g. [3,None].
-        resample (list of str or None):
-            Time period over which data is resampled, one str per model, e.g. [None,'year'].
-        output_path_table (str):
-            If not None, tables saved to this path.
-        
-    ADD .TXT FORMAT TABLE LATER
-    """
-
-    if len(rolling_mean) != len(models):
-        print('ERROR: rolling_mean must be the same length as models')
-        return None
-
-    if len(resample) != len(models):
-        print('ERROR: resample must be the same length as models')
-        return None
-
-    ### remove spatial flux variables to speed up later processing
-
-    for m in models:
-        ds_all_flux_scaled[m] = ds_all_flux_scaled[m].drop_vars(['flux_total_prior','percentile_flux_total_prior',
-                                                                'flux_total_posterior','percentile_flux_total_posterior',
-                                                                'flux_total_prior_out','percentile_flux_total_prior_out',
-                                                                'flux_total_posterior_inversion_grid',
-                                                                'percentile_flux_total_posterior_inversion_grid',
-                                                                'country_fraction','outer_region_fraction'],errors='ignore')
-
-    ds_all = {}
-
-    ### resample from monthly to yearly, if needed
-
-    for i,m in enumerate(models):
-        if resample[i]:
-            if resample[i] == 'year':
-                rtime = 'YS'
-            else:
-                print('ERROR: only resample option year is currently included')
-            ds_all[m] = ds_all_flux_scaled[m].resample(time=rtime).mean(dim='time')
-        else:
-            ds_all[m] = ds_all_flux_scaled[m].copy()
-            
-    ### calculate rolling means, if needed
-            
-    for i,m in enumerate(models):
-        if rolling_mean[i]:
-            for var in list(ds_all[m].keys()):
-                if var != 'countryname':
-                    for c in range(ds_all[m]['countrynumber'].values.shape[0]):
-                        if 'percentile' in list(ds_all[m][var].coords):
-                            for p in range(2):
-                                ds_all[m][var][:,p,c] = calc_rolling_mean(ds_all[m][var].values[:,p,c],rolling_mean[i])
-                        else:
-                            ds_all[m][var][:,c] = calc_rolling_mean(ds_all[m][var].values[:,c],rolling_mean[i])
-        
-        ### set all timestamps to the start of the year, this is needed for combing monthly and yearly model output into one timeseries
-        ds_all[m]['time'] = ds_all[m].time.values.astype('datetime64[Y]').astype('datetime64[ns]')  
-
-    ### combine monthly and yearly model output into one timeseries, if needed
-
-    ds_merged = {}
-
-    if len(models) == 2:
-        ds_merged[models[0]] = ds_all[models[models_priority[0]]].combine_first(ds_all[models[models_priority[1]]])
-    elif len(models) == 1:
-        ds_merged[models[0]] = ds_all[models[0]].copy()
-
-    ### extract inventory data
-
-    latexlines = []
-
-    inventory_time_all = {}
-    inventory_flux_all = {}
-    inventory_flux_uncert_all = {}
-
-    for r,region in enumerate(regions):
-
-        inventory_flux_all[region],inventory_flux_uncert_all[region],\
-        inventory_time_all[region] = extract_region_inventory_flux(country=region,data_dir=data_dir,
-                                                                   species=species,s_data=s_data,
-                                                                   scale_co2eq=False,start_date=min(start_date),
-                                                                   end_date=max(end_date),
-                                                                   inventory_year=inventory_years)
-
-        inventory_time_all[region] = [str(t.astype('datetime64[Y]')) for t in inventory_time_all[region]]
-        
-    ### extract region fluxes from merged, resampled and rolling-mean-ed datasets
-
-    region_time = {}
-    region_flux = {}
-    region_flux_lower = {}
-    region_flux_upper = {}
-    region_flux_uncert = {}
-
-    for r,region in enumerate(regions):
-
-        m0 = models[0].split('_')[0]
-
-        region_time[region],region_flux[region],region_flux_total_prior,\
-        region_flux_lower[region],region_flux_upper[region],\
-        region_flux_total_prior_lower,region_flux_total_prior_upper = extract_region_flux(ds_merged,models[0],m0,region)
-        
-        region_flux_uncert[region] = region_flux[region] - region_flux_lower[region]
-        region_time[region] = [str(t.astype('datetime64[Y]')) for t in region_time[region]]
-          
-    ### create table header and footer
-
-    col_setup = 'cc|'*len(regions)
-
-    latexheaderitems = ['\\begin{table}[H]',
-                        '\captionsetup{width=0.9\linewidth}',
-                        '\centering',
-                        '\caption{}',
-                        f'\label{{table:{species}_emit}}'
-                        '{\\begin{tabular}{|l|'+col_setup+'}',
-                        '\hline',
-                        ]
-
-    header_line2 = '& '
-    header_line3 = 'Years & '
-    header_line5 = '& '
-    for r,region in enumerate(regions):
-        if region == 'NW_EU2':
-            header_line2 += f'NWEU & NWEU '
-        else:
-            header_line2 += f'{region} & {region} '
-        header_line3 += 'Inventory & InTEM '
-        if r == len(regions)-1:
-            header_line2 += r'\\'
-            header_line3 += r'\\'
-            header_line5 += r'\\'
-            
-        else:
-            header_line2 += '& '
-            header_line3 += '& '
-            header_line5 += '& & & '
-            
-    latexheaderitems.append(header_line2)
-    latexheaderitems.append(header_line3)
-    latexheaderitems.append('\hline')
-    latexheaderitems.append(header_line5)
-    
-    latexfooteritems = ['\hline',
-                        '\end{tabular}',
-                        '}',
-                        '\end{table}']
-        
-    ### create table lines containing inventory and intem output
-
-    inv_str_chars = {'ch4':6}   #how to reference these in f string??
-    inv_uncert_str_chars = {'ch4':5}
-
-    latexlines = []
-
-    for t,data_time in enumerate (region_time[regions[-1]]):
-        dataline = str(data_time)
-        if data_time in inventory_time_all[region]:
-            if data_time == inventory_time_all[region][t]:
-                for r,region in enumerate(regions):
-                    dataline += f'& {inventory_flux_all[region][t]:6.2f} ${{\pm}}$ {inventory_flux_uncert_all[region][t]:5.2f}'
-                    dataline += f'& {region_flux[region][t]:5.2f} ${{\pm}}$ {region_flux_uncert[region][t]:4.2f}'
-                    if r == len(regions)-1:
-                        dataline += r' \\'
-                latexlines.append(dataline)
-            else:
-                print('Inventory and InTEM timestamps do not match, check read in of data.')
-        else:
-            for r,region in enumerate(regions):
-                dataline += f'& '
-                dataline += f'& {region_flux[region][t]:4.2f} ${{\pm}}$ {region_flux_uncert[region][t]:4.2f}'
-                if r == len(regions)-1:
-                    dataline += r' \\'
-            latexlines.append(dataline)
-            
-    ### save latex file
-    if save == True:
-        with open(output_path_table+'.tex','w') as f:
-            for l in latexheaderitems:
-                f.writelines(l+'\n')
-            for l in latexlines:
-                f.writelines(l+'\n')
-            for l in latexfooteritems:
-                f.writelines(l+'\n')
-        print(f'\nTable saved to {output_path_table}.tex')
-    
-    return latexheaderitems,latexlines
-    
-    ### create txt format file and save this
