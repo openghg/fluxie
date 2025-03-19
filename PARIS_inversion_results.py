@@ -25,7 +25,9 @@ model_q_indices = {'intem':[0,1],
 
 point_source_dict = {'paris':[2.340430,48.860050],
                      'london':[-0.127799,51.507593],
-                 'nw_england':[-2.796870,53.774820]}
+                 'nw_england':[-2.796870,53.774820],
+                 'birmingham':[-1.898441,52.481253],
+                 'grimsby':[-0.088815,53.567244]}
 
 countrycodes_dict = {'IRELAND':'IRL',
                      'UK':'GBR',
@@ -51,7 +53,8 @@ countrycodes_dict = {'IRELAND':'IRL',
                      'PORTUGAL':'PRT',
                      'NORWAY':'NOR',
                      'ENGLAND':'ENG',
-                     'SE-ENGLAND':'HFD'}
+                     'SE-ENGLAND':'HFD',
+                     'SE_UK':'SUK'}
 
 regions_dict = {'BELUX':'BEL-LUX',
                 'BENELUX':'BEL-LUX-NLD',
@@ -92,10 +95,10 @@ site_lon = {'BSD':-1.15036,
 #                   2:[0.65,0.25],
 #                  3:[0.65,0.1],}
 
-annotate_coords = {0:[0.15,0.75],
-                   1:[0.15,0.5],
-                   2:[0.15,0.25],
-                   3:[0.15,0.1],}
+annotate_coords = {0:[0.1,0.75],
+                   1:[0.1,0.5],
+                   2:[0.1,0.25],
+                   3:[0.1,0.1],}
 
 # population from 2018 to 2023 (at Jan 1 each year)
 bel_pop = np.array([11.399,11.455,11.522,11.555,11.618,11.723])
@@ -372,104 +375,115 @@ def slice_mf(ds_all,start_date=None,end_date=None,site=None,
         with xr.open_dataset(os.path.join(data_dir,f'intem_baseline_timestamps/{baseline_site}_InTEM_baseline_timestamps.nc')) as f:
             baseline = f.sel(time=slice(start_date,end_date))
     
-    for m in ds_all.keys():
-        
-        m0 = m.split('_')[0]
-        
-        if 'mcmc' in m0:
-            s = f'_{species}'
+    try:
+        if type(species) == str:
+            species_all = [species]
         else:
-            s = ''
+            species_all = species
+    except:
+        print('ERROR: You must specify species')
         
-        print(f'\nMasking data from {m}')
-        
-        if 'Yav' in ds_all[m].keys():
-            offset = int(np.mean(ds_all[m]['Yav'].values))
-        else:
-            offset = (ds_all[m][f'time{s}'].values[1].astype('datetime64[h]') - ds_all[m][f'time{s}'].values[0].astype('datetime64[h]')).astype(int)
-
-        # fix to move elris timestamps back to the middle of av period - to be removed once fixed in .nc files
-        if 'elris_old' in m:
-            ds_all[m]['time'] = ds_all[m]['time'] - np.timedelta64(offset,'h')/2
-
-        # round seconds to integer (correction for elris)
-        if 'elris' in m:
-            ds_all[m]['time'] = ds_all[m]['time'].dt.round('s')
-
-        if site is not None:
-            try:
-                ds_all[m] = ds_all[m].drop_duplicates(dim=f'time{s}')   #added to deal with minor errors introduced in test files
-                site_index = np.where(ds_all[m][f'sitenames{s}'].astype(str) == site)[0][0]
-                ds_all[m] = ds_all[m].sel(**{f'time{s}':slice(start_date,end_date),
-                                        f'nsite{s}':site_index})
-            except:
-                ds_all[m] = None
-                print(f'No {m} obs found for {site} between {start_date} and {end_date}')
-        else:
-            try:
-                ds_all[m] = ds_all[m].sel(**{f'time{s}':slice(start_date,end_date)})
-            except:
-                ds_all[m] = None
-                print(f'No {m} obs found between {start_date} and {end_date}')
-                
-        if scale_units == True:
-            print(f'Scaling {m} units by {s_data[species]["mf_units_scaling"]}')
-            if ds_all[m] is not None:
-                var_names = [k for k in ds_all[m].keys() if k not in ['Yav','sitenames','median_poll_uncert_flag']]
-                print(ds_all[m].species)
-
-                if type(ds_all[m].species) is not list:
-                    species_test = [ds_all[m].species]
-                else:
-                    species_test = ds_all[m].species
-                for s in species_test:
-                    if f'sitenames_{s}' in var_names:
-                        var_names.remove(f'sitenames_{s}')
-                for v in var_names:
-                    ds_all[m][v] = ds_all[m][v]/s_data[species]["mf_units_scaling"]
-      
-        if baseline_site is not None:
-            print('Masking timeseries to only include baseline times')
-
-            try:
-                                        
-                #average baseline mask over obs averaging period
-                b = baseline.resample(**{f'time{s}':f'{offset}H'}).mean()
-                #adjust baseline mask time back to centre of av period (resample removes this)
-                b[f'time{s}'] = b[f'time{s}'] + np.timedelta64(offset,'h')/2
-                                    
-                #mask baseline mask again, to only include timestamps where every period in the averaging period is classified as baseline
-                b_masked = b.sel(**{f'time{s}':b[f'time{s}'].values[np.where(b['baseline'] == 1.)]})
-                                
-                #mask dataset using only baseline times
-                both_times = np.isin(ds_all[m][f'time{s}'].values,b_masked[f'time{s}'].values)
-                                
-                ds_all[m] = ds_all[m].sel(**{f'time{s}':both_times})
-                    
-            except:
-                print('Failed to mask {m} data by baseline times')
+    for species in species_all:
     
-    check_keys = list(ds_all.keys())
-    for m in check_keys:
-        if ds_all[m] is None:
-            ds_all.pop(m)
-    '''  
-    for m in ds_all.keys():
-        time_diff = np.min([ds_all[m][f'time_{species}'].values[i+1] - ds_all[m][f'time_{species}'].values[i] for i in range(ds_all[m][f'time_{species}'].values.shape[0]-1)])
-        time_all = np.arange(np.datetime64(ds_all[m][f'time_{species}'].values[0]),
-                             np.datetime64(ds_all[m][f'time_{species}'].values[-1])+time_diff,
-                             time_diff)
-        time_all_ds = xr.Dataset({f'time_{species}':([f'time_{species}'],time_all)})
-        
-        print(ds_all[m][f'time_{species}'].values)
-        print(time_all_ds)
-    ''' 
-    if remove_missing_timestamps == True:
         for m in ds_all.keys():
-            try:
-                ds_all[m] = ds_all[m].dropna(dim=f'time_{species}')
-            except:
-                ds_all[m] = ds_all[m].dropna(dim=f'time')
+            
+            m0 = m.split('_')[0]
+            
+            if 'mcmc' in m0:
+                s = f'_{species}'
+            else:
+                s = ''
+            
+            print(f'\nMasking data from {m}')
+            
+            if 'Yav' in ds_all[m].keys():
+                offset = int(np.mean(ds_all[m]['Yav'].values))
+            else:
+                offset = (ds_all[m][f'time{s}'].values[1].astype('datetime64[h]') - ds_all[m][f'time{s}'].values[0].astype('datetime64[h]')).astype(int)
+
+            # fix to move elris timestamps back to the middle of av period - to be removed once fixed in .nc files
+            if 'elris_old' in m:
+                ds_all[m]['time'] = ds_all[m]['time'] - np.timedelta64(offset,'h')/2
+
+            # round seconds to integer (correction for elris)
+            if 'elris' in m:
+                ds_all[m]['time'] = ds_all[m]['time'].dt.round('s')
+
+            if site is not None:
+                try:
+                    ds_all[m] = ds_all[m].drop_duplicates(dim=f'time{s}')   #added to deal with minor errors introduced in test files
+                    site_index = np.where(ds_all[m][f'sitenames{s}'].astype(str) == site)[0][0]
+                    ds_all[m] = ds_all[m].sel(**{f'time{s}':slice(start_date,end_date),
+                                            f'nsite{s}':site_index})
+                except:
+                    ds_all[m] = None
+                    print(f'No {m} obs found for {site} between {start_date} and {end_date}')
+            else:
+                try:
+                    ds_all[m] = ds_all[m].sel(**{f'time{s}':slice(start_date,end_date)})
+                except:
+                    ds_all[m] = None
+                    print(f'No {m} obs found between {start_date} and {end_date}')
+                    
+            if scale_units == True:
+                print(s_data[species])
+                print(f'Scaling {m} units by {s_data[species]["mf_units_scaling"]}')
+                if ds_all[m] is not None:
+                    var_names = [k for k in ds_all[m].keys() if k not in ['Yav','sitenames','median_poll_uncert_flag'] and k.endswith(f'_{species}')]
+                    print(ds_all[m].species)
+
+                    if type(ds_all[m].species) is not list:
+                        species_test = [ds_all[m].species]
+                    else:
+                        species_test = ds_all[m].species
+                    for s in species_test:
+                        if f'sitenames_{s}' in var_names:
+                            var_names.remove(f'sitenames_{s}')
+                    for v in var_names:
+                        ds_all[m][v] = ds_all[m][v]/s_data[species]["mf_units_scaling"]
+        
+            if baseline_site is not None:
+                print('Masking timeseries to only include baseline times')
+
+                try:
+                                            
+                    #average baseline mask over obs averaging period
+                    b = baseline.resample(**{f'time{s}':f'{offset}H'}).mean()
+                    #adjust baseline mask time back to centre of av period (resample removes this)
+                    b[f'time{s}'] = b[f'time{s}'] + np.timedelta64(offset,'h')/2
+                                        
+                    #mask baseline mask again, to only include timestamps where every period in the averaging period is classified as baseline
+                    b_masked = b.sel(**{f'time{s}':b[f'time{s}'].values[np.where(b['baseline'] == 1.)]})
+                                    
+                    #mask dataset using only baseline times
+                    both_times = np.isin(ds_all[m][f'time{s}'].values,b_masked[f'time{s}'].values)
+                                    
+                    ds_all[m] = ds_all[m].sel(**{f'time{s}':both_times})
+                        
+                except:
+                    print('Failed to mask {m} data by baseline times')
+        
+        check_keys = list(ds_all.keys())
+        for m in check_keys:
+            if ds_all[m] is None:
+                ds_all.pop(m)
+        '''  
+        for m in ds_all.keys():
+            time_diff = np.min([ds_all[m][f'time_{species}'].values[i+1] - ds_all[m][f'time_{species}'].values[i] for i in range(ds_all[m][f'time_{species}'].values.shape[0]-1)])
+            time_all = np.arange(np.datetime64(ds_all[m][f'time_{species}'].values[0]),
+                                np.datetime64(ds_all[m][f'time_{species}'].values[-1])+time_diff,
+                                time_diff)
+            time_all_ds = xr.Dataset({f'time_{species}':([f'time_{species}'],time_all)})
+            
+            print(ds_all[m][f'time_{species}'].values)
+            print(time_all_ds)
+        ''' 
+        if remove_missing_timestamps == True:
+            for m in ds_all.keys():
+                try:
+                    ds_all[m] = ds_all[m].dropna(dim=f'time_{species}')
+                except:
+                    ds_all[m] = ds_all[m].dropna(dim=f'time')
                 
     return ds_all
 
@@ -622,24 +636,39 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
         fig (figure): 
             A timeseries and histogram plot for each model included.
     """
-        
-    var_labels = {'Yapriori':'Prior mf',
-                  'Yapost':'Posterior mean mf',
-                  'YaprioriBC':'Prior baseline',
-                  'YapostBC':'Posterior mean baseline',
-                  'Yapriori_bias':'Prior bias',
-                  'Yapost_bias':'Posterior bias',
-                  'YaprioriOUTER':'Prior outer region mf',
-                  'YapostOUTER':'Posterior outer region mf',
-                  'Yobs':'Observed mf',
-                  'uYobs_repeatability':'Obs repeatability mf uncertainty',
-                  'uYobs_variability':'Obs variability mf uncertainty',
-                  'uYmod':'Model uncertainty',
-                  'uYtotal':'Total uncertainty'}
+    
+    if species in ['ch4','c2h6']:
+        var_labels = {'Yapriori':'Prior mf',
+                    'Yapost':'Modelled mf',
+                    'YaprioriBC':'Prior baseline',
+                    'YapostBC':'Modelled baseline',
+                    'Yapriori_bias':'Prior bias',
+                    'Yapost_bias':'Posterior bias',
+                    'YaprioriOUTER':'Prior outer region mf',
+                    'YapostOUTER':'Posterior outer region mf',
+                    'Yobs':'Observed mf',
+                    'uYobs_repeatability':'Obs repeatability mf uncertainty',
+                    'uYobs_variability':'Obs variability mf uncertainty',
+                    'uYmod':'Model uncertainty',
+                    'uYtotal':'Total uncertainty'}
+    elif 'dc' in species:
+        var_labels = {'Yapriori':'Prior mf',
+                    'Yapost':'Modelled $\delta$',
+                    'YaprioriBC':'Prior baseline',
+                    'YapostBC':'Modelled baseline',
+                    'Yapriori_bias':'Prior bias',
+                    'Yapost_bias':'Posterior bias',
+                    'YaprioriOUTER':'Prior outer region mf',
+                    'YapostOUTER':'Posterior outer region mf',
+                    'Yobs':'Observed mf',
+                    'uYobs_repeatability':'Obs repeatability mf uncertainty',
+                    'uYobs_variability':'Obs variability mf uncertainty',
+                    'uYmod':'Model uncertainty',
+                    'uYtotal':'Total uncertainty'}
     var_colors = {'Yapriori':1,
                   'Yapost':0,
                   'YaprioriBC':1,
-                  'YapostBC':0,
+                  'YapostBC':1,
                   'Yapriori_bias':0,
                   'Yapost_bias':1,
                   'YaprioriOUTER':1,
@@ -656,6 +685,8 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
     min_x,max_x = [],[]
     ax_all = []
     ax2_all = []
+    
+    
     
     fig = plt.figure(constrained_layout=True,figsize=(15,len(models)*3))
     gs = fig.add_gridspec(len(models),2,width_ratios=[0.8,0.2])
@@ -687,7 +718,7 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
                     ax.scatter(ds_all[m][f'time{s}'].values,
                                ds_all[m][f'Yobs{s}'].values,
                                color=model_colors[m][var_colors[var]],
-                               label=f'Obs',s=8,alpha=0.8,marker='s')
+                               label=f'Obs',s=8,alpha=0.8,marker='o')
                     
                     if add_unc:
                         try:
@@ -723,7 +754,7 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
                         
                     ax.scatter(ds_all[m][f'time{s}'].values,
                                 ds_all[m][f'Yobs{s}'].values,
-                                color='black',label=f'Obs',s=8,alpha=0.8,
+                                color='black',label=f'Obs',s=8,
                                 marker='s')
                     
                     
@@ -754,10 +785,10 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
 
             else:
                 try:
-                    ax.plot(ds_all[m][f'time{s}'].values,
-                            ds_all[m][f'{var}{s}'].values,
-                            color=model_colors[m][var_colors[var]],alpha=0.8,
-                            linewidth=0.8)
+                    #ax.plot(ds_all[m][f'time{s}'].values,
+                    #        ds_all[m][f'{var}{s}'].values,
+                    #        color=model_colors[m][var_colors[var]],alpha=0.8,
+                    #        linewidth=0.8)
                     ax.scatter(ds_all[m][f'time{s}'].values,
                             ds_all[m][f'{var}{s}'].values,
                             color=model_colors[m][var_colors[var]],alpha=0.8,
@@ -787,10 +818,15 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
                         print(f'ERROR: variable {var} not found in {m} or deprecated!')
 
                 if (var == 'Yapost') and add_unc:
-                    ax.fill_between(ds_all[m][f'time{s}'].values,
-                                    ds_all[m][f'qYapost{s}'].values[:,model_q_indices[m0][0]],
-                                    ds_all[m][f'qYapost{s}'].values[:,model_q_indices[m0][1]],
-                                    color=model_colors[m][var_colors[var]],alpha=0.2)
+                    #ax.fill_between(ds_all[m][f'time{s}'].values,
+                    #                ds_all[m][f'qYapost{s}'].values[:,model_q_indices[m0][0]],
+                    #                ds_all[m][f'qYapost{s}'].values[:,model_q_indices[m0][1]],
+                    #                color=model_colors[m][var_colors[var]],alpha=0.2)
+                    ax.errorbar(ds_all[m][f'time{s}'].values,
+                                ds_all[m][f'{var}{s}'].values,
+                                yerr=np.vstack((ds_all[m][f'{var}{s}'].values-ds_all[m][f'qYapost{s}'].values[:,model_q_indices[m0][0]],
+                                                ds_all[m][f'qYapost{s}'].values[:,model_q_indices[m0][1]]-ds_all[m][f'{var}{s}'].values)),
+                                                color=model_colors[m][var_colors[var]],alpha=0.4,fmt='none')
 
         # Plot histogram
         if len(diff_include) == 0:
@@ -801,12 +837,12 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
         else:
             make_diff   = True
             vars        = diff_include
-            legend_hist = 'Obs - modelled mean'
+            legend_hist = 'Modelled - obs (ppt)'
 
         for i,var in enumerate(vars):
             
             if make_diff:
-                var_plot = ds_all[m][f'Yobs{s}'].values - ds_all[m][f'{var}{s}'].values
+                var_plot = ds_all[m][f'{var}{s}'].values - ds_all[m][f'Yobs{s}'].values
             else:
                 try:
                     var_plot = ds_all[m][f'{var}{s}'].values
@@ -825,18 +861,39 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
             var_mean = np.round(np.nanmean(var_plot),2)
             var_sd = np.round(np.nanstd(var_plot),2)
 
-            a,b,c = ax2.hist(var_plot,bins=30,color=model_colors[m][var_colors[var]],density=1,alpha=0.7)
-            
+            if species == 'ch4':
+                ax2.set_xlim([-100,100])
+                bins=30
+            elif species == 'c2h6':
+                ax2.set_xlim([-500,500])
+                bins=30
+            elif 'dch4d' in species:
+                ax2.set_xlim([-10,10])
+                bins=15
+            elif 'dch4c13' in species:
+                ax2.set_xlim([-0.8,0.8])    
+                bins=15
+
+            if 'prior' in var:
+                a,b,c = ax2.hist(var_plot,bins=bins,color='grey',density=1)
+            else:
+                a,b,c = ax2.hist(var_plot,bins=bins,color=model_colors[m][var_colors[var]],density=1,alpha=0.6)
+
             if make_diff:
-                ax2.vlines(0,0,np.max(a),color='dimgrey',linewidth=3.)
+                ax2.vlines(0,0,np.max(a),color='dimgrey',linewidth=2.)
             
             with np.printoptions(precision=2, suppress=True):
-
-                ax2.annotate('$\mu$: '+str(var_mean)+'\n$\sigma$: '+str(var_sd),xy=annotate_coords[i],
+                if 'prior' in var:
+                    ax2.annotate('$\mu$: '+str(var_mean)+'\n$\sigma$: '+str(var_sd),xy=annotate_coords[i],
+                                xycoords='axes fraction',color='grey')
+                else:
+                    ax2.annotate('$\mu$: '+str(var_mean)+'\n$\sigma$: '+str(var_sd),xy=annotate_coords[i],
                                 xycoords='axes fraction',color=model_colors[m][var_colors[var]])
+
 
         # Write number of obs to plot
         n_obs = (~np.isnan(ds_all[m][f'Yobs{s}'].values)).sum()
+        #ax2.annotate('\n$N_{obs}$: '+str(n_obs),xy=[0.65,1.05],xycoords='axes fraction',color='k')
         ax2.annotate('\n$N_{obs}$: '+str(n_obs),xy=[0.65,1.05],xycoords='axes fraction',color='k')
 
         ax2.set_xlabel(legend_hist)
@@ -846,9 +903,10 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
         min_x.append(np.min(ds_all[m][f'time{s}'].values))
         max_x.append(np.max(ds_all[m][f'time{s}'].values))
         
-        ax.set_title(model_labels[m])
+        #ax.set_title(model_labels[m])
         ax.set_ylabel(f'{s_data[species]["species_print"]} {site} ({s_data[species]["mf_units_print"]})')
-        leg = ax.legend(ncol=3,borderpad=.2,columnspacing=1.0,fontsize=10)
+        leg = ax.legend(ncol=3,borderpad=.2,columnspacing=1.0,fontsize=12,
+                        loc='lower right')
         try:
             for l in leg.legend_handles:
                 l.set_linewidth(5.0)
@@ -881,7 +939,375 @@ def plot_obs_modelled_separate(ds_all,species,site,model_labels,
             ax_all[i].set_ylim(y_lim)
             
     for i in range(len(models)):
-        ax_all[i].set_xlim([np.min(min_x),np.max(max_x)])
+        ax_all[i].set_xlim([np.min(min_x)-np.timedelta64(2,'D'),
+                            np.max(max_x)+np.timedelta64(1,'D')])
+            
+    print('NOTE: If all the data is not within axis limits, adjust the set_ylim')
+    print('NOTE: If annotations in the histograms are not displaying correctly, adjust annotate_coords.')
+    
+    return fig
+
+def plot_obs_modelled_separate_multi_species(ds_all,species,site,model_labels,
+                             include=['Yobs','Yapriori','Yapost'],
+                             diff_include=['Yapriori','Yapost'],
+                             add_unc=True,
+                             y_lim=None,line_plot_with_scatter=False,colors=None):
+    """
+    Timeseries plots of observations and modelled mole fractions or 
+    baselines from each model.
+    Also includes a histogram for each model, showing the difference between
+    the prior and posterior fit to the observations.
+    
+    Args:
+        ds_all (dictionary of datasets):
+            xarray datasets, scaled and sliced between chosen dates and for 
+            chosen site.
+        species (str): 
+            Gas species, e.g. 'ch4'.
+        site (str):
+            Obs site, e.g. 'MHD'.
+        model_labels (dict of str):
+            Models and corresponding strings used to describe the model in the 
+            plot legend.
+        model_colors (dict of str):
+            Models and corresponding colours used to plot the model.
+        include (list of str):
+            Variables included in the plot, options for 'Yobs', 'Yapriori',
+            'Yapost', 'YaprioriBC', 'YapostBC'.
+        diff_include (list of str):
+            Variables included in the 'obs - variable' difference histogram, 
+            same options as above.
+        add_unc (bool):
+            if True, plot uncertainty bar on Yobs and Yapost timeseries.
+        line_plot_with_scatter (bool, default False):
+            If True, plots data as a line with no gaps and uncert as shaded areas.
+            If False, only plots lines between present data and plots uncerts as error bars.
+    Returns:
+        fig (figure): 
+            A timeseries and histogram plot for each model included.
+    """
+        
+    var_colors = {'Yapriori':1,
+                  'Yapost':0,
+                  'YaprioriBC':1,
+                  'YapostBC':1,
+                  'Yapriori_bias':0,
+                  'Yapost_bias':1,
+                  'YaprioriOUTER':1,
+                  'YapostOUTER':0,
+                  'Yobs':0,
+                  'uYobs_repeatability':0,
+                  'uYobs_variability':0,
+                  'uYmod':1,
+                  'uYtotal':1}
+        
+    models = list(ds_all.keys())
+    min_mf = []
+    max_mf = []
+    min_x,max_x = [],[]
+    ax_all = []
+    ax2_all = []
+    
+    fig_labs1 = ['(a)','(c)','(e)']
+    fig_labs2 = ['(b)','(d)','(f)']
+    
+    fig = plt.figure(constrained_layout=True,figsize=(15,len(species)*3))
+    gs = fig.add_gridspec(len(species),2,width_ratios=[0.8,0.2])
+    
+    m = models[0]
+    
+    for i,sp in enumerate(species):
+        
+        if sp in ['ch4','c2h6']:
+            var_labels = {'Yapriori':'Prior mf',
+                        'Yapost':'Modelled mf',
+                        'YaprioriBC':'Prior baseline',
+                        'YapostBC':'Modelled baseline',
+                        'Yapriori_bias':'Prior bias',
+                        'Yapost_bias':'Posterior bias',
+                        'YaprioriOUTER':'Prior outer region mf',
+                        'YapostOUTER':'Posterior outer region mf',
+                        'Yobs':'Observed mf',
+                        'uYobs_repeatability':'Obs repeatability mf uncertainty',
+                        'uYobs_variability':'Obs variability mf uncertainty',
+                        'uYmod':'Model uncertainty',
+                        'uYtotal':'Total uncertainty'}
+        elif 'dc' in sp:
+            var_labels = {'Yapriori':'Prior mf',
+                        'Yapost':'Modelled $\delta$',
+                        'YaprioriBC':'Prior baseline',
+                        'YapostBC':'Modelled baseline',
+                        'Yapriori_bias':'Prior bias',
+                        'Yapost_bias':'Posterior bias',
+                        'YaprioriOUTER':'Prior outer region mf',
+                        'YapostOUTER':'Posterior outer region mf',
+                        'Yobs':'Observed mf',
+                        'uYobs_repeatability':'Obs repeatability mf uncertainty',
+                        'uYobs_variability':'Obs variability mf uncertainty',
+                        'uYmod':'Model uncertainty',
+                        'uYtotal':'Total uncertainty'}
+              
+        if sp == 'ch4':
+            ylim = [1960,2350]
+        elif sp == 'dch4c13':
+            ylim = [-49.5,-47.7]
+        elif sp == 'dch4d':
+            ylim = [-112,-81]
+        elif sp == 'c2h6':
+            ylim = None #[0,4]    #FOR BC
+
+        m0 = m.split('_')[0]
+        
+        ax = fig.add_subplot(gs[i,0])
+        ax2 = fig.add_subplot(gs[i,1])
+        ax_all.append(ax)
+        ax2_all.append(ax2)
+        
+        ax.annotate(fig_labs1[i],xy=(-0.04,1.),annotation_clip=False,weight='bold',fontsize=16,xycoords='axes fraction')
+        ax2.annotate(fig_labs2[i],xy=(-0.18,1.),annotation_clip=False,weight='bold',fontsize=16,xycoords='axes fraction')
+                
+        if m0 == 'mcmc':
+            s = f'_{sp}'
+        else:
+            s = ''
+            
+        for var in include:
+
+            if var == 'Yobs':
+                if len(include) == 1:
+                    if line_plot_with_scatter == True:
+                        ax.plot(ds_all[m][f'time{s}'].values,
+                                ds_all[m][f'Yobs{s}'].values,
+                                color=colors[sp][var_colors[var]],
+                                alpha=0.8)
+                        
+                    ax.scatter(ds_all[m][f'time{s}'].values,
+                               ds_all[m][f'Yobs{s}'].values,
+                               color=colors[sp][var_colors[var]],
+                               label=f'Obs',s=8,alpha=0.8,marker='o')
+                    
+                    if add_unc:
+                        try:
+                            if line_plot_with_scatter == True:
+                                ax.fill_between(ds_all[m][f'time{s}'].values,
+                                            ds_all[m][f'Yobs{s}'].values-ds_all[m][f'uYobs_repeatability{s}'].values,
+                                            ds_all[m][f'Yobs{s}'].values+ds_all[m][f'uYobs_repeatability{s}'].values,
+                                            color=colors[sp][var_colors[var]],alpha=0.2)
+                            else:
+                                ax.errorbar(ds_all[m][f'time{s}'].values,
+                                            ds_all[m][f'Yobs{s}'].values,
+                                            ds_all[m][f'uYobs_repeatability{s}'].values,
+                                            color=colors[sp][var_colors[var]],alpha=0.4,fmt='none')
+                        except:
+                            if line_plot_with_scatter == True:
+                                ax.fill_between(ds_all[m][f'time{s}'].values,
+                                            ds_all[m][f'Yobs{s}'].values-ds_all[m][f'uYobs{s}'].values,
+                                            ds_all[m][f'Yobs{s}'].values+ds_all[m][f'uYobs{s}'].values,
+                                            color=colors[sp][var_colors[var]],alpha=0.2)
+                            else:
+                                ax.errorbar(ds_all[m][f'time{s}'].values,
+                                            ds_all[m][f'Yobs{s}'].values,
+                                            ds_all[m][f'uYobs{s}'].values,
+                                            color=colors[sp][var_colors[var]],alpha=0.4,fmt='none')
+                            print(f'WARNING: uYobs_repeatability is not present in {m}. uYobs is being plotted instead as error bars.')
+                            
+                else:
+                    if line_plot_with_scatter == True:
+                        ax.plot(ds_all[m][f'time{s}'].values,
+                                ds_all[m][f'Yobs{s}'].values,
+                                color='black',
+                                alpha=0.8,linewidth=0.8)
+                        
+                    ax.scatter(ds_all[m][f'time{s}'].values,
+                                ds_all[m][f'Yobs{s}'].values,
+                                color='black',label=f'Obs',s=8,
+                                marker='s')
+                    
+                    
+                    if add_unc:
+                        try:
+                            if line_plot_with_scatter == True:
+                                ax.fill_between(ds_all[m][f'time{s}'].values,
+                                            ds_all[m][f'Yobs{s}'].values-ds_all[m][f'uYobs_repeatability{s}'].values,
+                                            ds_all[m][f'Yobs{s}'].values+ds_all[m][f'uYobs_repeatability{s}'].values,
+                                                color='black',alpha=0.2)
+                            else:
+                                ax.errorbar(ds_all[m][f'time{s}'].values,
+                                            ds_all[m][f'Yobs{s}'].values,
+                                            ds_all[m][f'uYobs_repeatability{s}'].values,
+                                                color='black',alpha=0.4,fmt='none')
+                        except:
+                            if line_plot_with_scatter == True:
+                                ax.fill_between(ds_all[m][f'time{s}'].values,
+                                            ds_all[m][f'Yobs{s}'].values-ds_all[m][f'uYobs{s}'].values,
+                                            ds_all[m][f'Yobs{s}'].values+ds_all[m][f'uYobs{s}'].values,
+                                                color='black',alpha=0.2)
+                            else:
+                                ax.errorbar(ds_all[m][f'time{s}'].values,
+                                            ds_all[m][f'Yobs{s}'].values,
+                                            ds_all[m][f'uYobs{s}'].values,
+                                                color='black',alpha=0.4,fmt='none')
+                            print(f'WARNING: uYobs_repeatability is not present in {m}. uYobs is being plotted instead as error bars.')
+
+            else:
+                
+                try:
+                    #ax.plot(ds_all[m][f'time{s}'].values,
+                    #        ds_all[m][f'{var}{s}'].values,
+                    #        color=colors[sp][var_colors[var]],alpha=0.8,
+                    #        linewidth=0.8)
+                    ax.scatter(ds_all[m][f'time{s}'].values,
+                            ds_all[m][f'{var}{s}'].values,
+                            color=colors[sp][var_colors[var]],alpha=0.8,
+                            s=8,
+                            label=f'{var_labels[var]}')
+                
+                except:
+                    #handle old ncdf files
+                    if 'uYmod' in var:
+                        uYmod = ds_all[m][f'Yobs{s}'].values - ds_all[m]['qYmod'].values[:,model_q_indices[m0][0]]
+                        ax.plot(ds_all[m][f'time{s}'].values,
+                                uYmod,
+                                color=colors[sp][var_colors[var]],alpha=0.8,
+                                linewidth=2.,
+                                label=f'{var_labels[var]}')
+                        print(f'WARNING: uYmod is not present in {m}. This quantity is being computed from qYmod.')
+
+                    elif 'uYobs_repeatability' in var:
+                        ax.plot(ds_all[m][f'time{s}'].values,
+                                ds_all[m][f'uYobs{s}'].values,
+                                color=colors[sp][var_colors[var]],alpha=0.8,
+                                linewidth=2.,
+                                label=f'{var_labels[var]}')
+                        print(f'WARNING: uYobs_repeatability is not present in {m}. uYobs is being plotted instead.')
+
+                    else:
+                        print(f'ERROR: variable {var} not found in {m} or deprecated!')
+                
+                if (var == 'Yapost') and add_unc:
+                    #ax.fill_between(ds_all[m][f'time{s}'].values,
+                    #                ds_all[m][f'qYapost{s}'].values[:,model_q_indices[m0][0]],
+                    #                ds_all[m][f'qYapost{s}'].values[:,model_q_indices[m0][1]],
+                    #                color=colors[sp][var_colors[var]],alpha=0.2)
+                    ax.errorbar(ds_all[m][f'time{s}'].values,
+                                ds_all[m][f'{var}{s}'].values,
+                                yerr=np.vstack((ds_all[m][f'{var}{s}'].values-ds_all[m][f'qYapost{s}'].values[:,model_q_indices[m0][0]],
+                                                ds_all[m][f'qYapost{s}'].values[:,model_q_indices[m0][1]]-ds_all[m][f'{var}{s}'].values)),
+                                                color=colors[sp][var_colors[var]],alpha=0.4,fmt='none')
+
+        # Plot histogram
+        if len(diff_include) == 0:
+            make_diff   = False
+            vars        = include
+            legend_hist = 'Modelled mean'
+
+        else:
+            if 'dc' in sp:
+                legend_hist = 'Modelled - obs (‰)'
+            else:
+                legend_hist = 'Modelled - obs (ppt)'
+            make_diff   = True
+            vars        = diff_include
+
+        for i,var in enumerate(vars):
+            
+            if make_diff:
+                var_plot = ds_all[m][f'{var}{s}'].values - ds_all[m][f'Yobs{s}'].values
+            else:
+                try:
+                    var_plot = ds_all[m][f'{var}{s}'].values
+                except:
+                    if var == 'uYmod':
+                        var_plot = f'uYmod{s}'
+                    elif var == 'uYobs_repeatability':
+                        var_plot = ds_all[m][f'uYobs{s}'].values
+                    else:
+                        continue
+
+            #if np.abs(np.nanmean(var_plot)) <= 0.01:
+            #    var_mean = np.round(np.nanmean(var_plot),5)
+            #    var_sd = np.round(np.nanstd(var_plot),5)
+            #else:
+            var_mean = np.round(np.nanmean(var_plot),2)
+            var_sd = np.round(np.nanstd(var_plot),2)
+
+            if sp == 'ch4':
+                ax2.set_xlim([-100,100])
+                bins=30
+            elif sp == 'c2h6':
+                ax2.set_xlim([-500,500])
+                bins=30
+            elif sp == 'dch4d':
+                ax2.set_xlim([-10,10])
+                bins=15
+            elif sp == 'dch4c13':
+                ax2.set_xlim([-0.8,0.8])    
+                bins=15
+
+            if 'prior' in var:
+                a,b,c = ax2.hist(var_plot,bins=bins,color='grey',density=1)
+            else:
+                a,b,c = ax2.hist(var_plot,bins=bins,color=colors[sp][var_colors[var]],density=1,alpha=0.6)
+
+            if make_diff:
+                ax2.vlines(0,0,np.max(a),color='dimgrey',linewidth=2.)
+            
+            with np.printoptions(precision=2, suppress=True):
+                if 'prior' in var:
+                    ax2.annotate('$\mu$: '+str(var_mean)+'\n$\sigma$: '+str(var_sd),xy=annotate_coords[i],
+                                xycoords='axes fraction',color='grey')
+                else:
+                    ax2.annotate('$\mu$: '+str(var_mean)+'\n$\sigma$: '+str(var_sd),xy=annotate_coords[i],
+                                xycoords='axes fraction',color=colors[sp][var_colors[var]])
+
+
+        # Write number of obs to plot
+        n_obs = (~np.isnan(ds_all[m][f'Yobs{s}'].values)).sum()
+        #ax2.annotate('\n$N_{obs}$: '+str(n_obs),xy=[0.65,1.05],xycoords='axes fraction',color='k')
+        ax2.annotate('\n$N_{obs}$: '+str(n_obs),xy=[0.65,1.05],xycoords='axes fraction',color='k')
+
+        ax2.set_xlabel(legend_hist)
+    
+        min_mf.append(ax.get_ylim()[0])
+        max_mf.append(ax.get_ylim()[1])
+        min_x.append(np.min(ds_all[m][f'time{s}'].values))
+        max_x.append(np.max(ds_all[m][f'time{s}'].values))
+        
+        #ax.set_title(model_labels[m])
+        ax.set_ylabel(f'{s_data[sp]["species_print"]} {site} ({s_data[sp]["mf_units_print"]})')
+        leg = ax.legend(ncol=3,borderpad=.2,columnspacing=1.0,fontsize=12,
+                        loc='lower right')
+        try:
+            for l in leg.legend_handles:
+                l.set_linewidth(5.0)
+        except:
+            for l in leg.legendHandles:
+                l.set_linewidth(5.0)
+        '''        
+        if int(ds_all[m][f'time{s}'].values[-1].astype('datetime64[M]')-ds_all[m][f'time{s}'].values[0].astype('datetime64[M]')) > 12:
+            ax.xaxis.set_minor_locator(MonthLocator())
+            ax.xaxis.set_minor_formatter(NullFormatter())
+            ax.xaxis.set_major_locator(YearLocator())
+        else:
+            ax.xaxis.set_major_locator(MonthLocator())
+            ax.xaxis.set_minor_locator(DayLocator())
+        '''
+        locator = mdates.AutoDateLocator(minticks=3, maxticks=7)
+        formatter = mdates.ConciseDateFormatter(locator)
+        ax.xaxis.set_major_locator(locator)
+        ax.xaxis.set_major_formatter(formatter)
+        ax.xaxis.set_minor_locator(MonthLocator())
+        ax.xaxis.set_minor_formatter(NullFormatter())
+        ax.xaxis.set_minor_locator(DayLocator())
+
+        #if y_lim == None:    
+        #    ax.set_ylim([min(min_mf)-(0.02*min(min_mf)),
+        #                            max(max_mf)+(0.05*max(max_mf))])
+        #else:
+        ax.set_ylim(y_lim)
+            
+        ax.set_xlim([np.min(min_x)-np.timedelta64(2,'D'),
+                                np.max(max_x)+np.timedelta64(1,'D')])
             
     print('NOTE: If all the data is not within axis limits, adjust the set_ylim')
     print('NOTE: If annotations in the histograms are not displaying correctly, adjust annotate_coords.')
@@ -931,9 +1357,9 @@ def plot_obs_modelled_together(ds_all,species,site,model_labels,
     """
 
     var_labels = {'Yapriori':'prior mf',
-                  'Yapost':'posterior mean mf',
+                  'Yapost':'Modelled mf',
                   'YaprioriBC':'prior baseline',
-                  'YapostBC':'posterior mean baseline',
+                  'YapostBC':'Modelled baseline',
                   'Yapriori_bias':'prior bias',
                   'Yapost_bias':'posterior bias',
                   'YaprioriOUTER':'prior outer region mf',
@@ -1984,6 +2410,16 @@ def plot_country_flux(ds_all,species,plot_regions,model_labels,
 
 #######################################################################################
 
+def plot_country_flux_sectors_as_whole_timeseries_average():
+    """
+    Create box-and-whisker style plots for the whole study period,
+    with the min and max of boxes giving the min and max of posterior country
+    mean/median across the study period and whiskers giving the min and max 
+    of posterior uncertainties across the whole study period.
+    """
+
+#######################################################################################
+
 def plot_country_flux_sectors(ds_all,species,sectors,plot_region,model_labels,
                       model_colors,
                       plot_inventory=True,inventory_years=None,
@@ -2038,6 +2474,9 @@ def plot_country_flux_sectors(ds_all,species,sectors,plot_region,model_labels,
         fig (figure): 
             A plot per country/region.
     """
+        
+    font = {'size':12}
+    plt.rc('font', **font)
         
     # Create annual mean xarrays if needed
     if plot_separate_by_year == True:
@@ -2157,9 +2596,12 @@ def plot_country_flux_sectors(ds_all,species,sectors,plot_region,model_labels,
                 if plot_separate == True:
                     
                     if prior_plotted == False:
+                        #ax[i].plot(region_time,
+                        #            region_flux_sector_prior,
+                        #            label=f'Prior mean',color=model_colors[m][0],linestyle='dashed')
                         ax[i].plot(region_time,
                                     region_flux_sector_prior,
-                                    label=f'Prior mean',color=model_colors[m][0],linestyle='dashed')
+                                    label=f'Prior mean',color='dimgrey',linestyle='dashed')
                         prior_plotted = True
                     
                     ax[i].plot(region_time,
@@ -2271,20 +2713,31 @@ def plot_country_flux_sectors(ds_all,species,sectors,plot_region,model_labels,
                 l.set_linewidth(3.0)
     '''
     ncol = len(list(ds_all.keys()))+1
-    ncol = 3
+    ncol = 5
     handles, labels = ax[-1].get_legend_handles_labels()
     leg = ax[-1].legend(handles, labels, loc='lower right',ncol=ncol,borderpad=.4,columnspacing=1.0,
                         fontsize=11)
     
     for l in leg.legend_handles[1:]:
-            l.set_linewidth(5.0)
+        l.set_linewidth(5.0)
             
     for i,sector in enumerate(sectors):
         
-        ax[i].set_ylabel(f'{plot_region} {sector}\n{s_data[species]["species_print"]} ({s_data[species]["units_print"]}g y$^{{-1}}$)')
+        if plot_region == 'SE_UK':
+            ax[i].set_ylabel(f'South-east UK\n{sector} {s_data[species]["species_print"]} ({s_data[species]["units_print"]}g y$^{{-1}}$)')
+        else:
+            ax[i].set_ylabel(f'{plot_region} {sector}\n{s_data[species]["species_print"]} ({s_data[species]["units_print"]}g y$^{{-1}}$)')
+        
         ax[i].set_xlim([np.min(min_x),
                         np.max(max_x)+np.timedelta64(1,'M')])
+        major_ticks = np.arange(np.datetime64('2022-01'),np.datetime64('2024-02'),np.timedelta64(3,'M'))
+        minor_ticks = np.arange(np.datetime64('2022-01'),np.datetime64('2024-02'),np.timedelta64(1,'M'))
         
+        ax[i].set_xticks(major_ticks)
+        ax[i].set_xticks(minor_ticks,minor=True)
+        ax[i].set_xticklabels(['Jan\n2022','Apr\n2022','Jul\n2022','Oct\n2022',
+                                'Jan\n2023','Apr\n2023','Jul\n2023','Oct\n2023',
+                                'Jan\n2024'])
         if fix_y_axes == True:
             ax[i].set_ylim([0,(np.max(max_cf)+(0.1*np.max(max_cf)))])  
         elif type(fix_y_axes) == list:
@@ -3284,6 +3737,437 @@ def plot_spatial_flux_comparison_sectors(ds_all,species,plot_area,model_labels,
 
 #####################################################################
 
+def plot_spatial_flux_comparison_sectors_multi(ds_all,species,plot_area,model_labels,
+                                 cmap=None,cmap_diff=None,c_border=None,period_override=None,
+                                 plot_site_locations=False,plot_point_markers=None,
+                                 sectors=None):
+    """
+    Plots posterior fluxes and the difference between these
+    for multiple models
+    
+    If ds_all contains more than two models, only the first two will
+    be plotted.
+    
+    Args:
+        ds_all (dictionary of datasets):
+            xarray datasets of fluxes, scaled and sliced between 
+            chosen dates.
+        species (str): 
+            Gas species, e.g. 'ch4'.
+        plot_area (str):
+            Lat/lon region to plot, options for 'UK', 'FRANCE', 'GERMANY',
+            'NWEU','CWEU'.
+        model_labels (dict of str):
+            Models and corresponding strings used to describe the model in the 
+            plot legend.
+        cmap (str):
+            Colour map for flux plots.
+        cmap_diff (str):
+            Colour map for difference plots.
+        c_border (str):
+            Colour for flux plot country borders.
+        period_override (list of str, optional):
+            Inversion periods to include, to override the standards in species_info.json.
+            Must be the same length as models, e.g. ['monthly',None,'yearly']
+        plot_site_locations (bool):
+            If True, adds triangles with site locations to spatial plot.
+        plot_point_markers (list of str or list of lat/lon):
+            List of names of points to plot over larger point sources or lat/lon locations.
+            See point_markers_dict for a list of options.
+            e.g. ['paris','nw_england',[50.,5.]]
+        sectors (list of str):
+            List of sectors to separately compare fluxes for.
+    Returns:
+        fig (figure): 
+            A plot of spatial flux posterior from two models a plot 
+            of the absolute difference between these.
+    """
+    
+    font = {'size':18}
+    plt.rc('font', **font)
+    
+    if sectors == None:
+        sectors = ['total' for i in range(len(models))]
+    
+    period_all = {}
+    
+    for i,m in enumerate(ds_all.keys()):
+        m0 = m.split('_')[0]
+        if period_override is not None:
+            if period_override[i] == 'monthly':
+                period_all[m] = 'datetime64[M]'
+            elif period_override[i] == 'yearly':
+                period_all[m] = 'datetime64[Y]'
+            else:
+                period_all[m] = s_data[species]["dt_units"][m0]
+        else:
+            period_all[m] = s_data[species]["dt_units"][m0]
+    
+    if cmap == None:
+        cmap = 'viridis' #'Blues'
+    if cmap_diff == None:
+        cmap_diff = 'coolwarm'
+    if c_border == None:
+        c_border = 'floralwhite'
+    
+    n_cols = len(ds_all.keys())
+
+    region_limits = {'UK':[-12,4,49,62],   #min_lon, max_lon, min_lat, max_lat
+                    'FRANCE':[-6,9,42,52],
+                    'GERMANY':[2,18,45,60],
+                    'ITALY':[6,19,36,48],
+                    'SWITZERLAND':[5.5,11,45,49],
+                    'BENELUX':[1,9,48,55],
+                    'NWEU':[-11,11,45,62],
+                    'CWEU':[-12,27,37,66],
+                    'EUROPE':[-98,40,10,80],
+                    'SUK':[-3,2,50,54]}
+    
+    sites_info = {}
+    if plot_site_locations == True:
+        for i,m in enumerate(ds_all.keys()):
+            try:
+                sites_test = ds_all[m].sites.replace("'","").replace(']','').replace('[','').replace(' ','').split(',')
+                sites_info[m] = extract_site_info(sites_test)
+            except:
+                sites_info[m] = None
+                
+        for i,m in enumerate(ds_all.keys()):
+            if sites_info[m] == None:
+                for j,m2 in enumerate(sites_info.keys()):
+                    if sites_info[m2] != None:
+                        print(f'No sites data available in {m} attrs, so using site data from {m2}')
+                        sites_info[m] = sites_info[m2]
+                    break
+
+    fig,ax = plt.subplots(len(sectors[0]),n_cols-1,constrained_layout=True,figsize=(18,8),
+                   subplot_kw={'projection':cartopy.crs.PlateCarree()})
+    
+    for i in range(len(sectors[0])):
+        for j in range(n_cols-1):
+            border_color = c_border
+            ax[i,j].add_feature(cartopy.feature.BORDERS,edgecolor=border_color,linewidth=1.)
+            ax[i,j].coastlines(resolution='10m',color=border_color,linewidth=1.)
+            ax[i,j].set_extent(region_limits[plot_area])
+            if plot_area == 'SUK':
+                ax[i,j].set_xticks([-2,0,2])
+                ax[i,j].set_yticks([50,52,54])
+                
+
+    all_keys = []
+    flux_total_posterior = {}
+    
+    base_model = list(ds_all.keys())[0]
+    
+    for s,sector in enumerate(sectors[0]):
+    
+        for i,m in enumerate(list(ds_all.keys())[1:]):
+            
+            lon = ds_all[m].longitude.values + (ds_all[m].longitude.values[1]-ds_all[m].longitude.values[1])/2
+            lat = ds_all[m].latitude.values + (ds_all[m].latitude.values[1]-ds_all[m].latitude.values[1])/2
+            
+            if s == 0:
+                all_keys.append(m)
+            m0 = m.split('_')[0]
+  
+            if len(ds_all[m].time.values) == 1:
+                time_out = to_datetime(ds_all[m].time.values[0].astype(period_all[m])).strftime('%m/%Y')
+            else:
+                start_print = to_datetime(ds_all[m].time.values[0].astype(period_all[m])).strftime("%m/%Y")
+                if period_all[m] == 'datetime64[Y]':
+                    end_period = ds_all[m].time.values[-1].astype(period_all[m]) + np.timedelta64(1,'Y') - np.timedelta64(1,'D')                    
+                elif period_all[m] == 'datetime64[M]':
+                    end_period = ds_all[m].time.values[-1].astype(period_all[m]) + np.timedelta64(1,'M') - np.timedelta64(1,'D')                    
+                else:
+                    print('This currently only works for monthly or yearly inversion periods. Update the plotting code to print out '+
+                        'correct dates for higher frequency inversions.')
+                end_print = to_datetime(end_period).strftime("%m/%Y")
+                time_out = (f'{start_print} - {end_print}')
+                
+            diff = np.nanmean(ds_all[m][f'flux_{sector}_posterior'].values,axis=0) - np.nanmean(ds_all[base_model][f'flux_{sector}_posterior'].values,axis=0)
+        
+            ax[s,i].pcolormesh(lon,lat,diff,cmap=cmap,vmin=s_data[species]['difflim'][0],
+                                vmax=s_data[species]['difflim'][1],shading='nearest')
+
+            ax[s,i].set_title(f'{model_labels[m]}\n{sector}',fontsize=16)
+                
+            if plot_site_locations == True:
+                if sites_info[m] is not None:
+                    for s in sites_info[m]:
+                        ax[s,i].scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],color='white',
+                                    edgecolor='none',marker='o',s=30,zorder=2,alpha=0.5)
+                        ax[s,i].scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],color='none',
+                                    edgecolor='black',marker='o',s=30,zorder=2)
+    
+            if plot_point_markers is not None:
+                m_labels = ['A','B','C']
+                #print(f'\nPlotting markers for: {plot_point_markers}')
+                #print(f'Edit lines below line {inspect.getframeinfo(inspect.currentframe()).lineno} to change marker colour')
+                for a,p in enumerate(plot_point_markers):
+                    if type(p) == list:
+                        ax[s,i].scatter(p[0],p[1],color='black',marker='o',s=5,zorder=2)
+                    elif type(p) == str:
+                        if p not in point_source_dict.keys():
+                            print(f'{p} is not specified in point_source_dict, edit this to add a lat/lon location.')
+                        else:
+                            ax[s,i].scatter(point_source_dict[p][0],point_source_dict[p][1],color='black',marker='o',s=30,zorder=2)
+                            ax[s,i].annotate(m_labels[a],(point_source_dict[p][0]+0.1,point_source_dict[p][1]+0.1),color='black',zorder=2)
+
+    #flux colorbar
+    levels = np.linspace(s_data[species]['difflim'][0],s_data[species]['difflim'][1])
+    cbar = plt.cm.ScalarMappable(cmap=cmap)
+    cbar.set_array(levels)
+    cbar.set_clim(s_data[species]['difflim'])
+
+    color_bar = fig.colorbar(cbar,orientation='vertical',cmap=cmap,extend='both',ax=ax[:,-1],shrink=0.9,pad=0.01)
+    color_bar.set_label(f'2022-2023 average modelled {s_data[species]["species_print"]} emissions\n relative to the CH$_4$-only model (mol m$^{{-2}}$ s$^{{-1}}$)')
+
+    return fig
+
+#####################################################################
+
+def plot_spatial_flux_comparison_sectors_multi_with_ch4_only(ds_all,species,plot_area,model_labels,
+                                 cmap=None,cmap_diff=None,c_border=None,period_override=None,
+                                 plot_site_locations=False,plot_point_markers=None,
+                                 sectors=None,percentage_diff=False):
+    """
+    Plots posterior fluxes and the difference between these
+    for multiple models
+    
+    If ds_all contains more than two models, only the first two will
+    be plotted.
+    
+    Args:
+        ds_all (dictionary of datasets):
+            xarray datasets of fluxes, scaled and sliced between 
+            chosen dates.
+        species (str): 
+            Gas species, e.g. 'ch4'.
+        plot_area (str):
+            Lat/lon region to plot, options for 'UK', 'FRANCE', 'GERMANY',
+            'NWEU','CWEU'.
+        model_labels (dict of str):
+            Models and corresponding strings used to describe the model in the 
+            plot legend.
+        cmap (str):
+            Colour map for flux plots.
+        cmap_diff (str):
+            Colour map for difference plots.
+        c_border (str):
+            Colour for flux plot country borders.
+        period_override (list of str, optional):
+            Inversion periods to include, to override the standards in species_info.json.
+            Must be the same length as models, e.g. ['monthly',None,'yearly']
+        plot_site_locations (bool):
+            If True, adds triangles with site locations to spatial plot.
+        plot_point_markers (list of str or list of lat/lon):
+            List of names of points to plot over larger point sources or lat/lon locations.
+            See point_markers_dict for a list of options.
+            e.g. ['paris','nw_england',[50.,5.]]
+        sectors (list of str):
+            List of sectors to separately compare fluxes for.
+    Returns:
+        fig (figure): 
+            A plot of spatial flux posterior from two models a plot 
+            of the absolute difference between these.
+    """
+    
+    font = {'size':20}
+    plt.rc('font', **font)
+    
+    if sectors == None:
+        sectors = ['total' for i in range(len(models))]
+    
+    period_all = {}
+    fig_labs = ['(a)','(b)','(c)','(d)','(e)','(f)','(g)',
+                '(h)','(i)','(j)']
+    
+    for i,m in enumerate(ds_all.keys()):
+        m0 = m.split('_')[0]
+        if period_override is not None:
+            if period_override[i] == 'monthly':
+                period_all[m] = 'datetime64[M]'
+            elif period_override[i] == 'yearly':
+                period_all[m] = 'datetime64[Y]'
+            else:
+                period_all[m] = s_data[species]["dt_units"][m0]
+        else:
+            period_all[m] = s_data[species]["dt_units"][m0]
+    
+    if cmap == None:
+        cmap = 'viridis' #'Blues'
+    if cmap_diff == None:
+        cmap_diff = 'coolwarm'
+    if c_border == None:
+        c_border = 'floralwhite'
+    
+    n_cols = len(ds_all.keys())
+
+    region_limits = {'UK':[-12,4,49,62],   #min_lon, max_lon, min_lat, max_lat
+                    'FRANCE':[-6,9,42,52],
+                    'GERMANY':[2,18,45,60],
+                    'ITALY':[6,19,36,48],
+                    'SWITZERLAND':[5.5,11,45,49],
+                    'BENELUX':[1,9,48,55],
+                    'NWEU':[-11,11,45,62],
+                    'CWEU':[-12,27,37,66],
+                    'EUROPE':[-98,40,10,80],
+                    'SUK':[-3,2,50,54]}
+    
+    sites_info = {}
+    if plot_site_locations == True:
+        for i,m in enumerate(ds_all.keys()):
+            try:
+                sites_test = ds_all[m].sites.replace("'","").replace(']','').replace('[','').replace(' ','').split(',')
+                sites_info[m] = extract_site_info(sites_test)
+            except:
+                sites_info[m] = None
+                
+        for i,m in enumerate(ds_all.keys()):
+            if sites_info[m] == None:
+                for j,m2 in enumerate(sites_info.keys()):
+                    if sites_info[m2] != None:
+                        print(f'No sites data available in {m} attrs, so using site data from {m2}')
+                        sites_info[m] = sites_info[m2]
+                    break
+
+    fig,ax = plt.subplots(len(sectors[0]),n_cols,constrained_layout=True,figsize=(24,8),
+                   subplot_kw={'projection':cartopy.crs.PlateCarree()})
+    
+    count = 0
+    
+    for i in range(len(sectors[0])):
+        for j in range(n_cols):
+            if j == 0:
+                border_color = c_border#'white'
+            else:
+                border_color = c_border
+            ax[i,j].add_feature(cartopy.feature.BORDERS,edgecolor=border_color,linewidth=1.)
+            ax[i,j].coastlines(resolution='10m',color=border_color,linewidth=1.)
+            ax[i,j].set_extent(region_limits[plot_area])
+            if plot_area == 'SUK' and j == 0:
+                ax[i,j].set_xticks([-2,0,2])
+                ax[i,j].set_yticks([50,52,54])
+                
+            if j == 0:
+                ax[i,j].annotate(fig_labs[count],xy=(-0.1,1.1),annotation_clip=False,weight='bold',fontsize=18,xycoords='axes fraction')
+            else:
+                ax[i,j].annotate(fig_labs[count],xy=(-0.1,1.05),annotation_clip=False,weight='bold',fontsize=18,xycoords='axes fraction')
+            count += 1
+                
+                
+
+    all_keys = []
+    flux_total_posterior = {}
+    
+    base_model = list(ds_all.keys())[0]
+    
+    for s,sector in enumerate(sectors[0]):
+    
+        for i,m in enumerate(list(ds_all.keys())):
+            
+            lon = ds_all[m].longitude.values + (ds_all[m].longitude.values[1]-ds_all[m].longitude.values[1])/2
+            lat = ds_all[m].latitude.values + (ds_all[m].latitude.values[1]-ds_all[m].latitude.values[1])/2
+            
+            if s == 0:
+                all_keys.append(m)
+            m0 = m.split('_')[0]
+  
+            if len(ds_all[m].time.values) == 1:
+                time_out = to_datetime(ds_all[m].time.values[0].astype(period_all[m])).strftime('%m/%Y')
+            else:
+                start_print = to_datetime(ds_all[m].time.values[0].astype(period_all[m])).strftime("%m/%Y")
+                if period_all[m] == 'datetime64[Y]':
+                    end_period = ds_all[m].time.values[-1].astype(period_all[m]) + np.timedelta64(1,'Y') - np.timedelta64(1,'D')                    
+                elif period_all[m] == 'datetime64[M]':
+                    end_period = ds_all[m].time.values[-1].astype(period_all[m]) + np.timedelta64(1,'M') - np.timedelta64(1,'D')                    
+                else:
+                    print('This currently only works for monthly or yearly inversion periods. Update the plotting code to print out '+
+                        'correct dates for higher frequency inversions.')
+                end_print = to_datetime(end_period).strftime("%m/%Y")
+                time_out = (f'{start_print} - {end_print}')
+                
+                        
+            if i == 0:
+                
+                if percentage_diff == False:
+                    diff = np.nanmean(ds_all[m][f'flux_{sector}_posterior'].values,axis=0) - np.nanmean(ds_all[base_model][f'flux_{sector}_prior'].values,axis=0)
+                    diff_lim = [s_data[species]['difflim'][0],s_data[species]['difflim'][1]]
+                else:
+                    diff = (np.nanmean(ds_all[m][f'flux_{sector}_posterior'].values,axis=0) - np.nanmean(ds_all[base_model][f'flux_{sector}_posterior'].values,axis=0))/np.nanmean(ds_all[base_model][f'flux_{sector}_posterior'].values,axis=0)*100 
+                    diff_lim = [-200,200]
+                
+                ax[s,i].pcolormesh(lon,lat,diff,cmap=cmap,vmin=s_data[species]['difflim'][0],
+                                    vmax=s_data[species]['difflim'][1],shading='nearest')
+                
+                ax[s,i].set_title(f'{model_labels[m]}\n{sector}',fontsize=18)
+                
+            else:
+                
+                if percentage_diff == False:
+                    diff = np.nanmean(ds_all[m][f'flux_{sector}_posterior'].values,axis=0) - np.nanmean(ds_all[base_model][f'flux_{sector}_posterior'].values,axis=0)
+                    diff_lim = [s_data[species]['difflim'][0],s_data[species]['difflim'][1]]
+                else:
+                    diff = (np.nanmean(ds_all[m][f'flux_{sector}_posterior'].values,axis=0) - np.nanmean(ds_all[base_model][f'flux_{sector}_posterior'].values,axis=0))/np.nanmean(ds_all[base_model][f'flux_{sector}_posterior'].values,axis=0)*100 
+                    diff_lim = [-200,200]
+                    
+                #if percentage_diff == False:
+                #    diff = np.nanmean(ds_all[m][f'flux_{sector}_posterior'].values,axis=0) - np.nanmean(ds_all[m][f'flux_{sector}_prior'].values,axis=0)
+                #    diff_lim = [s_data[species]['difflim'][0],s_data[species]['difflim'][1]]
+                #else:
+                #    diff = (np.nanmean(ds_all[m][f'flux_{sector}_posterior'].values,axis=0) - np.nanmean(ds_all[base_model][f'flux_{sector}_posterior'].values,axis=0))/np.nanmean(ds_all[base_model][f'flux_{sector}_posterior'].values,axis=0)*100 
+                #    diff_lim = [-200,200]
+            
+                ax[s,i].pcolormesh(lon,lat,diff,cmap=cmap,vmin=diff_lim[0],vmax=diff_lim[1],shading='nearest')
+
+                ax[s,i].set_title(f'{model_labels[m]}\n{sector}',fontsize=16)
+                    
+                if plot_site_locations == True:
+                    if sites_info[m] is not None:
+                        for s in sites_info[m]:
+                            ax[s,i].scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],color='white',
+                                        edgecolor='none',marker='o',s=30,zorder=2,alpha=0.5)
+                            ax[s,i].scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],color='none',
+                                        edgecolor='black',marker='o',s=30,zorder=2)
+        
+                if plot_point_markers is not None:
+                    m_labels = ['A','B','C']
+                    #print(f'\nPlotting markers for: {plot_point_markers}')
+                    #print(f'Edit lines below line {inspect.getframeinfo(inspect.currentframe()).lineno} to change marker colour')
+                    for a,p in enumerate(plot_point_markers):
+                        if type(p) == list:
+                            ax[s,i].scatter(p[0],p[1],color='black',marker='o',s=5,zorder=2)
+                        elif type(p) == str:
+                            if p not in point_source_dict.keys():
+                                print(f'{p} is not specified in point_source_dict, edit this to add a lat/lon location.')
+                            else:
+                                ax[s,i].scatter(point_source_dict[p][0],point_source_dict[p][1],color='black',marker='o',s=30,zorder=2)
+                                ax[s,i].annotate(m_labels[a],(point_source_dict[p][0]+0.1,point_source_dict[p][1]+0.1),color='black',zorder=2)
+
+    #flux colorbar
+    levels0 = np.linspace(s_data[species]['difflim'][0],s_data[species]['difflim'][1])
+    cbar0 = plt.cm.ScalarMappable(cmap=cmap)
+    cbar0.set_array(levels0)
+    cbar0.set_clim(s_data[species]['difflim'])
+
+    color_bar0 = fig.colorbar(cbar0,orientation='vertical',cmap=cmap,extend='both',ax=ax[:,0],shrink=0.99,pad=0.01)
+    color_bar0.set_label(f'Modelled {s_data[species]["species_print"]} emissions\nDifference from prior (mol m$^{{-2}}$ s$^{{-1}}$)')
+
+    #flux colorbar
+    levels = np.linspace(diff_lim[0],diff_lim[1])
+    cbar = plt.cm.ScalarMappable(cmap=cmap)
+    cbar.set_array(levels)
+    cbar.set_clim(diff_lim)
+
+    color_bar = fig.colorbar(cbar,orientation='vertical',cmap=cmap,extend='both',ax=ax[:,-1],shrink=0.99,pad=0.01)
+    color_bar.set_label(f'Modelled {s_data[species]["species_print"]} emissions\n Differnce from CH$_4$-only model (mol m$^{{-2}}$ s$^{{-1}}$)')
+    #color_bar.set_label(f'Modelled {s_data[species]["species_print"]} emissions\n Difference from prior (mol m$^{{-2}}$ s$^{{-1}}$)')
+    
+
+    return fig
+
+#####################################################################
+
 def plot_spatial_flux_comparison_sectors_by_basis(ds_all,species,plot_area,model_labels,
                                  cmap=None,cmap_diff=None,c_border=None,period_override=None,
                                  plot_site_locations=False,plot_point_markers=None,
@@ -3431,14 +4315,14 @@ def plot_spatial_flux_comparison_sectors_by_basis(ds_all,species,plot_area,model
                     end_print = to_datetime(end_period).strftime("%m/%Y")
                     time_out = (f'{start_print} - {end_print}')
             
-                ax[s,0].pcolormesh(lon,lat,np.nanmean(ds_all[m][f'flux_{sector}_posterior'].values/ds_all[m][f'flux_{sector}_prior'].values,axis=0),
+                ax[s,0].pcolormesh(lon,lat,np.nanmean(ds_all[m][f'x_post_mu_latlon_{sector}'].values,axis=0),
                                    cmap=cmap,vmin=0,vmax=2,shading='nearest')
 
                 ax[s,0].set_title(f'{model_labels[m]}\n{sector}',fontsize=12)
                 
             elif i == 1:
                 
-                ax[s,1].pcolormesh(lon,lat,np.nanmean(ds_all[m][f'flux_{sector}_posterior'].values/ds_all[m][f'flux_{sector}_prior'].values,axis=0),
+                ax[s,1].pcolormesh(lon,lat,np.nanmean(ds_all[m][f'x_post_mu_latlon_{sector}'].values,axis=0),
                                 vmin=0,vmax=2,shading='nearest',cmap=cmap)
 
                 ax[s,1].set_title(f'{model_labels[m]}\n{sector}',fontsize=12)
@@ -3459,7 +4343,7 @@ def plot_spatial_flux_comparison_sectors_by_basis(ds_all,species,plot_area,model
                         ax[s,2].scatter(sites_info[m][s]['longitude'],sites_info[m][s]['latitude'],color='none',
                                     edgecolor='black',marker='o',s=30,zorder=2)
     
-        flux_diff = np.nanmean(ds_all[all_keys[1]][f'flux_{sector}_posterior'].values/ds_all[all_keys[1]][f'flux_{sector}_prior'].values,axis=0) - np.nanmean(ds_all[all_keys[0]][f'flux_{sector}_posterior'].values/ds_all[all_keys[0]][f'flux_{sector}_prior'].values,axis=0)
+        flux_diff = np.nanmean(ds_all[all_keys[1]][f'x_post_mu_latlon_{sector}'].values,axis=0) - np.nanmean(ds_all[all_keys[0]][f'x_post_mu_latlon_{sector}'].values,axis=0)
         flux_diff[np.where(flux_diff) == np.nan] = 0.
     
         ax[s,2].pcolormesh(lon,lat,flux_diff,
@@ -3610,7 +4494,6 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,model_labels,end_da
         lim = s_data[species]['difflim']
         extend ='both'
     elif var == 'posterior_prior_scaling_diff':
-        print('NOTE: GAPS IN SPATIAL MAPS CAN BE TIDIED UP NOW BY USING X_POST_MU_LATLON WHICH I PUT BACK IN OUTPUT .NC')
         lim = [0,2]
         extend = 'max'
     else:
@@ -3777,7 +4660,7 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,model_labels,end_da
                     var_plot = np.mean(ds_all[m][f'flux_{sector}_posterior'][indexes[m][i],:,:],axis=0) - np.mean(ds_all[m][f'flux_{sector}_prior'][indexes[m][i],:,:],axis=0)
                     var_plot[np.where(var_plot) == np.nan] = 0.
                 elif var == 'posterior_prior_scaling_diff':
-                    var_plot = np.mean(ds_all[m][f'flux_{sector}_posterior'][indexes[m][i],:,:],axis=0)/np.mean(ds_all[m][f'flux_{sector}_prior'][indexes[m][i],:,:],axis=0)
+                    var_plot = np.mean(ds_all[m][f'x_post_mu_latlon_{sector}'][indexes[m][i],:,:],axis=0)
                     var_plot[np.where(var_plot) == np.nan] = 0.
                 else:
                     var_plot = np.mean(ds_all[m][var][indexes[m][i],:,:],axis=0)
@@ -3795,10 +4678,7 @@ def plot_spatial_flux_per_timestamp(ds_all,species,plot_area,model_labels,end_da
                     var_plot      = np.mean(slice_apost,axis=0) - np.mean(slice_apriori,axis=0)
                     var_plot[np.where(var_plot) == np.nan] = 0.
                 elif var == 'posterior_prior_scaling_diff':
-                    slice_apost   = ds_all[m][f'flux_{sector}_posterior'].sel(time=slice(t0_date[m][i],t1_date[m][i]))
-                    slice_apriori = ds_all[m][f'flux_{sector}_prior'].sel(time=slice(t0_date[m][i],t1_date[m][i]))
-                    var_plot      = np.mean(slice_apost,axis=0)/np.mean(slice_apriori,axis=0)
-                    var_plot[np.where(var_plot) == np.nan] = 0.
+                    var_plot  = np.mean(ds_all[m][f'x_post_mu_latlon_{sector}'].sel(time=slice(t0_date[m][i],t1_date[m][i])),axis=0)
                 else:
                     var_plot = np.mean(ds_all[m][var].sel(time=slice(t0_date[m][i],t1_date[m][i])),axis=0)
 
