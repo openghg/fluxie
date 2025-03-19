@@ -2356,7 +2356,7 @@ def create_annual_report_tables(ds_all_flux_scaled,models,models_priority,region
         region_flux_uncert[region] = region_flux[region] - region_flux_lower[region]
         region_time[region] = [str(t.astype('datetime64[Y]')) for t in region_time[region]]
           
-    ### create latex table header and footer
+    ### create table header and footer
 
     col_setup = 'cc|'*len(regions)
 
@@ -2398,7 +2398,15 @@ def create_annual_report_tables(ds_all_flux_scaled,models,models_priority,region
                         '}',
                         '\end{table}']
         
-    ### create latex table lines containing inventory and intem output
+    txtheaderitems = 'Year'
+    for r,region in enumerate(regions):
+        if region == 'NW_EU2':
+            region_name = 'NWEU'
+        else:
+            region_name = region
+        txtheaderitems += f',{region_name}_inventory,{region_name}_inventory_uncert,{region_name}_InTEM,{region_name}_InTEM_uncert'
+        
+    ### create latex and txt table lines containing inventory and intem output
 
     if species == 'hfc4310mee':
         inv_str_chars = 3
@@ -2414,38 +2422,54 @@ def create_annual_report_tables(ds_all_flux_scaled,models,models_priority,region
     print(f'\nIf the number of decimal places in the table is not correct, edit lines near {inspect.getframeinfo(inspect.currentframe()).lineno} to add exception for this species.\n')
 
     latexlines = []
-
+    txtlines = []
+    
     for t,data_time in enumerate (region_time[regions[-1]]):
         dataline = str(data_time)
+        dataline_txt = str(data_time)
         if inventory_time_all[region] is not None:
             if data_time in inventory_time_all[region]:
                 if data_time == inventory_time_all[region][t]:
                     for r,region in enumerate(regions):
                         if all(a == 0 for a in inventory_flux_uncert_all[region]):
                             dataline += f'& {inventory_flux_all[region][t]:6.{inv_str_chars}f}'
+                            dataline_txt += f',{inventory_flux_all[region][t]:6.{inv_str_chars}f},'
                         else:
                             dataline += f'& {inventory_flux_all[region][t]:6.{inv_str_chars}f} ${{\pm}}$ {inventory_flux_uncert_all[region][t]:5.{inv_uncert_str_chars}f}'
+                            dataline_txt += f',{inventory_flux_all[region][t]:6.{inv_str_chars}f},{inventory_flux_uncert_all[region][t]:5.{inv_uncert_str_chars}f}'
+                            
                         dataline += f'& {region_flux[region][t]:5.{intem_str_chars}f} ${{\pm}}$ {region_flux_uncert[region][t]:5.{intem_uncert_str_chars}f}'
+                        dataline_txt += f',{region_flux[region][t]:5.{intem_str_chars}f},{region_flux_uncert[region][t]:5.{intem_uncert_str_chars}f}'
+                        
                         if r == len(regions)-1:
                             dataline += r' \\'
                     latexlines.append(dataline)
+                    txtlines.append(dataline_txt)
                 else:
                     print('Inventory and InTEM timestamps do not match, check read in of data.')
             else:
                 for r,region in enumerate(regions):
                     dataline += f'& '
+                    dataline_txt += f',,'
                     dataline += f'& {region_flux[region][t]:4.2f} ${{\pm}}$ {region_flux_uncert[region][t]:4.2f}'
+                    dataline_txt += f',{region_flux[region][t]:4.2f},{region_flux_uncert[region][t]:4.2f}'
+                    
                     if r == len(regions)-1:
                         dataline += r' \\'
                 latexlines.append(dataline)
-            
+                txtlines.append(dataline_txt)
+
         else:
             for r,region in enumerate(regions):
                 dataline += f'& '
+                dataline_txt += f',,'
                 dataline += f'& {region_flux[region][t]:4.2f} ${{\pm}}$ {region_flux_uncert[region][t]:4.2f}'
+                dataline_txt += f',{region_flux[region][t]:4.2f},{region_flux_uncert[region][t]:4.2f}'
+                
                 if r == len(regions)-1:
                     dataline += r' \\'
             latexlines.append(dataline)
+            txtlines.append(dataline)
             
     ### save latex file
     if save == True:
@@ -2458,41 +2482,13 @@ def create_annual_report_tables(ds_all_flux_scaled,models,models_priority,region
                 f.writelines(l+'\n')
         print(f'\nTable saved to {output_path_table}.tex')
         
-    ### create txt file header
-    '''
-    txt_header = 'Years, '
-    
-    ### create and save txt file
-    
-    #for r,region in enumerate(regions):
-    #    if region == 'NW_EU2':
-    #        txt_header += 'NWEU_inventory, NWEU_InTEM'
-    #        txt_header += f'{region}_inventory, {region}_InTEM'
-            
-    txt_dict = {'Years':region_time[regions[0]]}
-    
-    for r,region in enumerate(regions):
-        if inventory_time_all[region] == None:
-            inventory_flux_all[region] = np.ones(region_time[regions].shape[0])*np.nan
-        if region == 'NW_EU2':
-            txt_dict['NWEU_inventory'] = inventory_flux_all[region]
-            txt_dict['NWEU_InTEM'] = region_flux[region]
-        else:
-            txt_dict[f'{region}_inventory'] = inventory_flux_all[region]
-            txt_dict[f'{region}_InTEM'] = region_flux[region]
-            
-    for k in txt_dict.keys():
-        try:
-            print(txt_dict[k].shape)
-        except:
-            print(len(txt_dict[k]))
-            
-    txt_dataframe = pd.DataFrame(txt_dict)
-    
-    print(txt_dataframe)
-            
-    txt_dataframe.to_csv('output_path_table.txt')
-    '''
+    ### save txt file
+        with open(output_path_table+'.txt','w') as f:
+            f.writelines(txtheaderitems+'\n')
+            for l in txtlines:
+                f.writelines(l+'\n')
+        print(f'\nTable saved to {output_path_table}.txt')
+
     return latexheaderitems,latexlines
 
 #####################################################################
