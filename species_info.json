@@ -169,7 +169,7 @@
     "hfc227ea":{
         "species_print":"HFC-227ea",
         "period":"yearly",
-        "units_scaling":{"intem":1e6,
+        "units_scaling":{"intem":1e3,
                         "rhime":1e6,
                         "elris":1e6},
         "model_species":{"intem":"hfc227ea",
@@ -197,7 +197,7 @@
     "hfc23":{
         "species_print":"HFC-23",
         "period":"yearly",
-        "units_scaling":{"intem":1e6,
+        "units_scaling":{"intem":1e3,
                         "rhime":1e6,
                         "elris":1e6},
         "model_species":{"intem":"hfc23",

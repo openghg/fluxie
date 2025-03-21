@@ -2419,7 +2419,10 @@ def create_annual_report_tables(ds_all_flux_scaled,models,models_priority,region
         intem_str_chars = 2
         intem_uncert_str_chars = 2
         
-    print(f'\nIf the number of decimal places in the table is not correct, edit lines near {inspect.getframeinfo(inspect.currentframe()).lineno} to add exception for this species.\n')
+    print(f'\nIf the number of decimal places in the table is not correct, edit lines near {inspect.getframeinfo(inspect.currentframe()).lineno} in PARIS_inversion_results.py to add exception for this species.\n')
+
+    print(f'\nIf the units table are not correct, edit the units_scaling variable in species_info.json to adjust this.\n')
+
 
     latexlines = []
     txtlines = []
