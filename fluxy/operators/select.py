@@ -358,7 +358,7 @@ def get_unique_sites(ds_all: dict[str, xr.Dataset]) -> list[str]:
 
     sites = []
     for ds in ds_all.values():
-        sites.append(ds["sitenames"].astype(str))
+        sites = np.concatenate([sites, ds["sitenames"].astype(str).values])
 
     sites = np.sort(np.unique(sites))
 

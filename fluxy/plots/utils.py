@@ -69,7 +69,9 @@ def add_colorbar(fig, ax, im, extend, label, n_cbar, idx_cbar, colorbar_type="ro
         cbar = fig.colorbar(im, cax=cax, orientation="horizontal", extend=extend)
 
     elif colorbar_type == "figure":
-        cbar_ax = fig.add_axes([0.92, 0.11, 0.015, 0.77]) # [left, bottom, width, height]
+        cbar_ax = fig.add_axes(
+            [0.92, 0.11, 0.015, 0.77]
+        )  # [left, bottom, width, height]
         cbar = fig.colorbar(
             im, cax=cbar_ax, orientation="vertical", extend=extend, shrink=1, pad=0.01
         )
@@ -128,7 +130,9 @@ def print_cbar_label(
     time_label = ""
     if "time" in format:
         freq = get_frequency(ds)
-        period = print_period(ds, freq, season) #TODO Here, based on the last iteration. Check if consistent for all models?
+        period = print_period(
+            ds, freq, season
+        )  # TODO Here, based on the last iteration. Check if consistent for all models?
         time_label = f"{period}"
 
     # Construct the final label with proper line breaks

@@ -219,26 +219,28 @@ def read_model_output(
     return ds_all
 
 
-def read_flux_total_fgases(data_dir: str, 
-    species: str, 
-    models: str | list, 
-    config_data: dict[str, dict], 
-    regions: list |str,
-    start_date: str,end_date: str,
-    period: str = 'yearly',
-    unit: str = 'Tg CO2-eq yr-1',
+def read_flux_total_fgases(
+    data_dir: str,
+    species: str,
+    models: str | list,
+    config_data: dict[str, dict],
+    regions: list | str,
+    start_date: str,
+    end_date: str,
+    period: str = "yearly",
+    unit: str = "Tg CO2-eq yr-1",
 ) -> dict[str, xr.Dataset]:
     """
     Reads in fluxes from a list of gases and sums/averages totals and uncertainties,
-    to produce one dataset which can be used with plotting functions in the rest 
+    to produce one dataset which can be used with plotting functions in the rest
     of the notebook.
 
     Args:
-        data_dir (str): 
+        data_dir (str):
             Path to top data directory.
-        species (str): 
+        species (str):
             'all_hfc' or 'all_pfc'
-        models (list of str): 
+        models (list of str):
             Keys specifying model names, e.g. ['intem','elris']
         regions (list of str):
             Region names used to extract fluxes. Only these regions can then be plotted.
@@ -256,142 +258,206 @@ def read_flux_total_fgases(data_dir: str,
             If it is a list, one value per model must be specified, e.g. ['monthly','yearly']
         unit (str):
             unit in which to put the dataset. Must be in CO2-eq
-                 
+
     Returns:
-        ds_all (dictionary of datasets): 
+        ds_all (dictionary of datasets):
             xarray dataset read directly from each model's flux netCDF.
     """
 
-    all_species = config_data['species_info'].get(species,{'list_species':None}).get('list_species',None)
+    all_species = (
+        config_data["species_info"]
+        .get(species, {"list_species": None})
+        .get("list_species", None)
+    )
     if all_species is None:
-        raise ValueError(f'No list of species was found in the config_data for {species}. '+
-                         f'If config_data was created with read_config_files from fluxy/io.py, update configs/species_info.json.')
-    if 'CO2-eq' not in unit:
-        raise ValueError('Unit should be in CO2-eq.')
-    
+        raise ValueError(
+            f"No list of species was found in the config_data for {species}. "
+            + f"If config_data was created with read_config_files from fluxy/io.py, update configs/species_info.json."
+        )
+    if "CO2-eq" not in unit:
+        raise ValueError("Unit should be in CO2-eq.")
+
     # Update parameters
-    date_message = (' If this fails with an error message related to region_time dimensions, check the availablility\n'+
-              'of data from all models for all timestamps.\n'+
-              'To fix this error, set start_date and end_date as lists with the correct start and end times\nfor each model.')
+    date_message = (
+        " If this fails with an error message related to region_time dimensions, check the availablility\n"
+        + "of data from all models for all timestamps.\n"
+        + "To fix this error, set start_date and end_date as lists with the correct start and end times\nfor each model."
+    )
     if isinstance(start_date, str):
-        logger.info(' Using same start date for all models')
+        logger.info(" Using same start date for all models")
         logger.info(date_message)
-        start_date = [start_date]*len(models)
+        start_date = [start_date] * len(models)
     if isinstance(end_date, str):
-        logger.info(' Using same end date for all models')
+        logger.info(" Using same end date for all models")
         logger.info(date_message)
-        end_date = [end_date]*len(models)
+        end_date = [end_date] * len(models)
 
     if isinstance(period, str):
-        period = [period]*len(models)    
+        period = [period] * len(models)
     if len(period) != len(models):
-        raise ValueError(f'period must be a string or a list of the same length as models.')
-    
+        raise ValueError(
+            f"period must be a string or a list of the same length as models."
+        )
+
     # Assign key to find file for each species and model according to the config file
-    missing_species = {model : list() for model in models}
-    default_overwrite = {model : list() for model in models}
+    missing_species = {model: list() for model in models}
+    default_overwrite = {model: list() for model in models}
     valid_experiments = {species_p: dict() for species_p in all_species}
 
     for model in models:
-        m0, *run_key = model.split('_')
-        run_key = '_'.join(run_key)
-        if not run_key: run_key = 'default'
+        m0, *run_key = model.split("_")
+        run_key = "_".join(run_key)
+        if not run_key:
+            run_key = "default"
 
-        standard_run_dict = config_data['models_info']["standard_run"][run_key]
-        standard_run_dict_default = config_data['models_info']["standard_run"]['default']
+        standard_run_dict = config_data["models_info"]["standard_run"][run_key]
+        standard_run_dict_default = config_data["models_info"]["standard_run"][
+            "default"
+        ]
         for species_p in all_species:
             if species_p in standard_run_dict:
-                valid_experiments[species_p][model] = f'{m0}_{standard_run_dict[species_p]}'
+                valid_experiments[species_p][
+                    model
+                ] = f"{m0}_{standard_run_dict[species_p]}"
             elif species_p in standard_run_dict_default:
-                valid_experiments[species_p][model] = f'{m0}_{standard_run_dict_default[species_p]}'
+                valid_experiments[species_p][
+                    model
+                ] = f"{m0}_{standard_run_dict_default[species_p]}"
                 default_overwrite[model].append(species_p)
             else:
-                raise ValueError(f"No standard run provided for {species_p}, neither for '{run_key}' nor in 'default'. Please update your config file.")          
+                raise ValueError(
+                    f"No standard run provided for {species_p}, neither for '{run_key}' nor in 'default'. Please update your config file."
+                )
 
     # Extract data by species, model and region
-    ds_all = {region : {model : list() for model in models} for region in regions}
-    for species_p in all_species: 
+    ds_all = {region: {model: list() for model in models} for region in regions}
+    for species_p in all_species:
         # read and slice dataset for each species and model separately
         ds_in = dict()
-        for ik, (model, standard_run) in enumerate(valid_experiments[species_p].items()):
-            model_output = read_model_output(data_dir, "flux", species_p,
-                                             [standard_run], config_data, period[ik])
+        for ik, (model, standard_run) in enumerate(
+            valid_experiments[species_p].items()
+        ):
+            model_output = read_model_output(
+                data_dir, "flux", species_p, [standard_run], config_data, period[ik]
+            )
             if standard_run in model_output:
                 ds_in[model] = model_output[standard_run]
             else:
                 missing_species[model].append(f"{species_p} ({standard_run})")
 
-        ds_in = slice_flux(ds_in, config_data, start_date, end_date, species_p,
-                            country_flux_units_print = unit)
+        ds_in = slice_flux(
+            ds_in,
+            config_data,
+            start_date,
+            end_date,
+            species_p,
+            country_flux_units_print=unit,
+        )
         # extract regions
         for region in regions:
-            ds_all_region = extract_region_flux(ds_in, region, config_data["regions_info"], keep_country_dim = True)
+            ds_all_region = extract_region_flux(
+                ds_in, region, config_data["regions_info"], keep_country_dim=True
+            )
             for model in ds_all_region.keys():
                 ds_all[region][model].append(ds_all_region[model])
 
     # Sum species datasets by region and model to create output
-    ds_output = create_flux_total_fgases(ds_all,species,regions,models)
-    
+    ds_output = create_flux_total_fgases(ds_all, species, regions, models)
+
     # print messages about used config
     messages_ordered_by_model = list()
     for model in models:
         if default_overwrite[model]:
-            messages_ordered_by_model.append([logger.warning, f' {default_overwrite[model]} have been overwritten by default config for {model}.'])
+            messages_ordered_by_model.append(
+                [
+                    logger.warning,
+                    f" {default_overwrite[model]} have been overwritten by default config for {model}.",
+                ]
+            )
         if missing_species[model]:
-            messages_ordered_by_model.append([logger.warning, f' Model {model} is missing species: {missing_species[model]}'])
+            messages_ordered_by_model.append(
+                [
+                    logger.warning,
+                    f" Model {model} is missing species: {missing_species[model]}",
+                ]
+            )
         else:
-            messages_ordered_by_model.append([logger.info, f' All species succesfully read for {model}!'])
+            messages_ordered_by_model.append(
+                [logger.info, f" All species succesfully read for {model}!"]
+            )
     for message in messages_ordered_by_model:
         message[0](message[1])
 
-    logger.info(' To change the files used as the standard for each HFC/PFC, edit variable std_run in species_info.json')
+    logger.info(
+        " To change the files used as the standard for each HFC/PFC, edit variable std_run in species_info.json"
+    )
 
     return ds_output
 
-def create_flux_total_fgases(ds_all,species,regions,models):
+
+def create_flux_total_fgases(ds_all, species, regions, models):
     """
     Sum species datasets by region and model to create output.
 
     Args:
-        ds_all (dictionnary of dictionnary of list of xarray datasets): 
+        ds_all (dictionnary of dictionnary of list of xarray datasets):
             First keys are the regions, second the model, the list contains all the data for the species to be summed.
-        species (str): 
+        species (str):
             'all_hfc' or 'all_pfc'
-        models (list of str): 
+        models (list of str):
             Keys specifying model names, e.g. ['intem','elris']
         regions (list of str):
             Region names used to extract fluxes. Only these regions can then be plotted.
-    
+
     Returns:
-        ds_output (dictionary of datasets): 
+        ds_output (dictionary of datasets):
             dictionnary of xarray datasets ready to be used with fluxy plot methods.
     """
     ds_output = {}
-    for model in models :
+    for model in models:
         ds_list = []
         for region in regions:
-            ds_tmp = xr.concat(align_time(ds_all[region][model]), dim = 'species', combine_attrs = "drop_conflicts")
-            ds_mean = ds_tmp[['prior','posterior']].sum(dim='species', keep_attrs= True)
-            ds_unc = np.sqrt((ds_tmp[['prior_lower','prior_upper','posterior_lower','posterior_upper']
-                                     ]**2).sum(dim='species', keep_attrs= True))
-            ds_summed = [ds_tmp[['prior','posterior']].sum(dim='species', keep_attrs= True),]
-            for var  in ['prior','posterior']:
-                ds_unc = np.sqrt(((ds_tmp[[f'{var}_lower',f'{var}_upper']]-ds_tmp[var])**2
-                                ).sum(dim='species', keep_attrs= True))
-                ds_unc[f'{var}_lower'] = ds_summed[0][var] - ds_unc[f'{var}_lower']
-                ds_unc[f'{var}_upper'] = ds_summed[0][var] + ds_unc[f'{var}_upper']
+            ds_tmp = xr.concat(
+                align_time(ds_all[region][model]),
+                dim="species",
+                combine_attrs="drop_conflicts",
+            )
+            ds_mean = ds_tmp[["prior", "posterior"]].sum(dim="species", keep_attrs=True)
+            ds_unc = np.sqrt(
+                (
+                    ds_tmp[
+                        [
+                            "prior_lower",
+                            "prior_upper",
+                            "posterior_lower",
+                            "posterior_upper",
+                        ]
+                    ]
+                    ** 2
+                ).sum(dim="species", keep_attrs=True)
+            )
+            ds_summed = [
+                ds_tmp[["prior", "posterior"]].sum(dim="species", keep_attrs=True),
+            ]
+            for var in ["prior", "posterior"]:
+                ds_unc = np.sqrt(
+                    ((ds_tmp[[f"{var}_lower", f"{var}_upper"]] - ds_tmp[var]) ** 2).sum(
+                        dim="species", keep_attrs=True
+                    )
+                )
+                ds_unc[f"{var}_lower"] = ds_summed[0][var] - ds_unc[f"{var}_lower"]
+                ds_unc[f"{var}_upper"] = ds_summed[0][var] + ds_unc[f"{var}_upper"]
                 ds_summed.append(ds_unc)
-            ds_list.append(xr.merge([ds_mean,ds_unc], combine_attrs = "no_conflicts"))
+            ds_list.append(xr.merge([ds_mean, ds_unc], combine_attrs="no_conflicts"))
 
-        ds_tmp =  xr.concat(ds_list, dim = 'country', combine_attrs = "no_conflicts")
-        ds_tmp.attrs['species'] = species
+        ds_tmp = xr.concat(ds_list, dim="country", combine_attrs="no_conflicts")
+        ds_tmp.attrs["species"] = species
 
         ds_output[model] = ds_tmp
     return ds_output
 
-def load_countries_shape(
-    region_bounds: tuple = ()
-    ) -> gpd.geodataframe:
+
+def load_countries_shape(region_bounds: tuple = ()) -> gpd.geodataframe:
     """
     Load Natural Earth vector map data and optionally filters for a specific region.
 
@@ -401,7 +467,7 @@ def load_countries_shape(
             Default is None, which loads the full world.
 
     Returns:
-        gdf (GeoDataFrame): 
+        gdf (GeoDataFrame):
             A GeoDataFrame containing the country boundaries for the specified region.
     """
 
@@ -424,14 +490,14 @@ def load_countries_shape(
 
     # Update the missing ISO_A3 values in the data
     name_to_iso_a3_mapping = {
-        'Norway': 'NOR',
-        'Kosovo': 'KOS',
-        'France': 'FRA',
-        'Indian Ocean Ter.': 'IOT',
+        "Norway": "NOR",
+        "Kosovo": "KOS",
+        "France": "FRA",
+        "Indian Ocean Ter.": "IOT",
     }
 
     for name, iso_a3 in name_to_iso_a3_mapping.items():
-        gdf.loc[gdf['NAME'] == name, 'ISO_A3'] = iso_a3
+        gdf.loc[gdf["NAME"] == name, "ISO_A3"] = iso_a3
 
     # If a region is specified, filter the GeoDataFrame
     if region_bounds:
@@ -440,12 +506,13 @@ def load_countries_shape(
 
     return gdf
 
+
 def edit_vars_and_attributes(
-        ds: xr.Dataset,
-        model : str,
-        frequency: str,
-        file_type: str,
-        regions_info: dict[str, str],
+    ds: xr.Dataset,
+    model: str,
+    frequency: str,
+    file_type: str,
+    regions_info: dict[str, str],
 ) -> xr.Dataset:
     """
     Edit dataset variables and attributes.
@@ -490,77 +557,119 @@ def edit_vars_and_attributes(
                 ds[var].attrs["units"] = ds[var].attrs["unit"]
 
         # Aply model specific corrections
-        m0 = model.split('_')[0].lower()
-            
-        if m0 == 'elris':
-            ds['country'] = ds['country'].astype('str')
-            ds = ds.set_index(countrynumber='country').rename({'countrynumber':'country'})
+        m0 = model.split("_")[0].lower()
+
+        if m0 == "elris":
+            ds["country"] = ds["country"].astype("str")
+            ds = ds.set_index(countrynumber="country").rename(
+                {"countrynumber": "country"}
+            )
             var_to_change = "covariance_country_flux_total_posterior"
-            if var_to_change in ds and ds[var_to_change].dims == ("time","country","country"): 
+            if var_to_change in ds and ds[var_to_change].dims == (
+                "time",
+                "country",
+                "country",
+            ):
                 ds[var_to_change] = xr.DataArray(
-                    data = ds[var_to_change].data,
-                    dims = ['time','country','country_2'],
-                    coords = dict(
-                        time = (["time"], ds[var_to_change].time.data),
-                        country = (["country"], ds[var_to_change].country.data),
-                        country_2 = (["country_2"], ds[var_to_change].country.data)
-                        ),
-                        attrs = ds[var_to_change].attrs,
-                        )
+                    data=ds[var_to_change].data,
+                    dims=["time", "country", "country_2"],
+                    coords=dict(
+                        time=(["time"], ds[var_to_change].time.data),
+                        country=(["country"], ds[var_to_change].country.data),
+                        country_2=(["country_2"], ds[var_to_change].country.data),
+                    ),
+                    attrs=ds[var_to_change].attrs,
+                )
 
-        elif m0 == 'enkf':
-            period = np.median(ds.time.values[1:] - ds.time.values[:-1]).astype('timedelta64[D]')
-            if abs(period-np.timedelta64(30,'D')) < 3 :
-                ds['time'] = ds.time.values + np.timedelta64(15,'D')
+        elif m0 == "enkf":
+            period = np.median(ds.time.values[1:] - ds.time.values[:-1]).astype(
+                "timedelta64[D]"
+            )
+            if abs(period - np.timedelta64(30, "D")) < 3:
+                ds["time"] = ds.time.values + np.timedelta64(15, "D")
 
-        elif m0 == 'intem':            
-            ds = ds.rename({'countrynumber':'country'})
+        elif m0 == "intem":
+            ds = ds.rename({"countrynumber": "country"})
 
-            if 'BEL-LUX' in ds.country and ('BEL' not in ds.country and 'LUX'  not in ds.country):
-                logger.info(f" InTEM does not estimate separate BELGIUM emissions.\n A population ratio of {config.bel_pop_r} is being used to scale InTEM's total BELGIUM+LUXEMBOURG estimate.")
+            if "BEL-LUX" in ds.country and (
+                "BEL" not in ds.country and "LUX" not in ds.country
+            ):
+                logger.info(
+                    f" InTEM does not estimate separate BELGIUM emissions.\n A population ratio of {config.bel_pop_r} is being used to scale InTEM's total BELGIUM+LUXEMBOURG estimate."
+                )
 
                 r = config.bel_pop_r
 
-                variables_with_country = [var for var in ds.data_vars if "country" in ds[var].dims]
-                numerical_vars = [var for var in variables_with_country 
-                                    if np.issubdtype(ds[var].dtype, np.number) and var != "country_fraction"]
+                variables_with_country = [
+                    var for var in ds.data_vars if "country" in ds[var].dims
+                ]
+                numerical_vars = [
+                    var
+                    for var in variables_with_country
+                    if np.issubdtype(ds[var].dtype, np.number)
+                    and var != "country_fraction"
+                ]
 
-                ds_bel = r * ds[numerical_vars].sel(country='BEL-LUX')
-                ds_lux = (1-r) * ds[numerical_vars].sel(country='BEL-LUX')
+                ds_bel = r * ds[numerical_vars].sel(country="BEL-LUX")
+                ds_lux = (1 - r) * ds[numerical_vars].sel(country="BEL-LUX")
 
-                del ds_bel['country']
-                del ds_lux['country']
+                del ds_bel["country"]
+                del ds_lux["country"]
 
-                ds_bel['countryname'] = xr.DataArray(data = ['BELGIUM',] * ds_bel.time.size,
-                                                    dims = ['time',],
-                                                    coords = {'time': ds_bel.time},
-                                                    attrs = ds.countryname.attrs)
-                
-                ds_lux['countryname'] = xr.DataArray(data = ['LUXEMBOURG',] * ds_lux.time.size,
-                                                    dims = ['time',],
-                                                    coords = {'time': ds_lux.time},
-                                                    attrs = ds.countryname.attrs)
-                
-                ds_bellux = xr.concat([ds_bel, ds_lux], pd.Index(['BEL','LUX'], name='country'))
+                ds_bel["countryname"] = xr.DataArray(
+                    data=[
+                        "BELGIUM",
+                    ]
+                    * ds_bel.time.size,
+                    dims=[
+                        "time",
+                    ],
+                    coords={"time": ds_bel.time},
+                    attrs=ds.countryname.attrs,
+                )
+
+                ds_lux["countryname"] = xr.DataArray(
+                    data=[
+                        "LUXEMBOURG",
+                    ]
+                    * ds_lux.time.size,
+                    dims=[
+                        "time",
+                    ],
+                    coords={"time": ds_lux.time},
+                    attrs=ds.countryname.attrs,
+                )
+
+                ds_bellux = xr.concat(
+                    [ds_bel, ds_lux], pd.Index(["BEL", "LUX"], name="country")
+                )
                 ds = xr.merge([ds, ds_bellux])
 
-        elif m0 == 'rhime':
-            ds['country'] = [regions_info["country_codes"].get(x, x) for x in ds['country'].values]
+        elif m0 == "rhime":
+            ds["country"] = [
+                regions_info["country_codes"].get(x, x) for x in ds["country"].values
+            ]
 
-        elif m0 == 'flexinvert':
-            ds['percentile_country_flux_total_posterior'] = xr.concat([ds['country_flux_total_posterior']
-                                                                    - ds['country_flux_error_posterior'],
-                                                                    ds['country_flux_total_posterior']
-                                                                    + ds['country_flux_error_posterior']],
-                                                                    pd.Index([0,1], name = 'percentile'))
-            
-            ds['percentile_country_flux_total_prior'] = xr.concat([ds['country_flux_total_prior']
-                                                                - ds['country_flux_error_prior'],
-                                                                ds['country_flux_total_prior']
-                                                                + ds['country_flux_error_prior']],
-                                                                pd.Index([0,1], name = 'percentile'))
-            ds['countrynumber'] = ds['country'].astype(str)
-            del ds['country']
-            ds = ds.rename({'countrynumber':'country'})
-        
+        elif m0 == "flexinvert":
+            ds["percentile_country_flux_total_posterior"] = xr.concat(
+                [
+                    ds["country_flux_total_posterior"]
+                    - ds["country_flux_error_posterior"],
+                    ds["country_flux_total_posterior"]
+                    + ds["country_flux_error_posterior"],
+                ],
+                pd.Index([0, 1], name="percentile"),
+            )
+
+            ds["percentile_country_flux_total_prior"] = xr.concat(
+                [
+                    ds["country_flux_total_prior"] - ds["country_flux_error_prior"],
+                    ds["country_flux_total_prior"] + ds["country_flux_error_prior"],
+                ],
+                pd.Index([0, 1], name="percentile"),
+            )
+            ds["countrynumber"] = ds["country"].astype(str)
+            del ds["country"]
+            ds = ds.rename({"countrynumber": "country"})
+
     return ds

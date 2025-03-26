@@ -180,8 +180,14 @@ def plot_flux_map(
             ax_i.set_aspect(1)
 
             # Add titles
-            ax_i.set_title(model_labels[model], fontsize=12) if row==0 else "" # Column titles
-            ax_i.set_ylabel(config.flux_labels[var], fontsize=12) if col==0 else "" # Row titles
+            (
+                ax_i.set_title(model_labels[model], fontsize=12) if row == 0 else ""
+            )  # Column titles
+            (
+                ax_i.set_ylabel(config.flux_labels[var], fontsize=12)
+                if col == 0
+                else ""
+            )  # Row titles
 
             # Add sites and markers if specified
             if add_sites and model in sites_info:
@@ -314,7 +320,9 @@ def plot_flux_map_model_comparison(
     ds_dict = {k: v for k, v in ds_all.items() if k in models}
     ds_dict = prepare_data(ds_dict)
     ds_dict["diff"] = ds_dict[models[1]] - ds_dict[models[0]]
-    ds_dict["diff"].attrs["frequency"] = ds_dict[models[0]].attrs["frequency"]  # Copy attributes from models[0]
+    ds_dict["diff"].attrs["frequency"] = ds_dict[models[0]].attrs[
+        "frequency"
+    ]  # Copy attributes from models[0]
     for v in ds_dict["diff"].data_vars:
         ds_dict["diff"][v].attrs = ds_dict[models[0]][v].attrs
 
@@ -505,7 +513,9 @@ def plot_flux_map_over_time(
     # Load country lines, species and sites information
     country_lines = compute_boundary_geometry(map_bounds)
     species_info = config_data["species_info"][species]
-    sites_info = (get_sites_coordinates(ds_all, config_data) if add_sites else "")  # TODO move in the for loop once the info comes from the concentration files
+    sites_info = (
+        get_sites_coordinates(ds_all, config_data) if add_sites else ""
+    )  # TODO move in the for loop once the info comes from the concentration files
 
     # Set flux limits
     lim = set_flux_limits(

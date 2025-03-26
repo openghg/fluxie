@@ -3,6 +3,7 @@
 This reduces the size of the data by a large factor,
 so that the tests run faster.
 """
+
 # %%
 import xarray as xr
 from pathlib import Path

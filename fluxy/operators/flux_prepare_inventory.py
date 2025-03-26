@@ -5,6 +5,7 @@ from matplotlib.cm import get_cmap
 
 from fluxy.operators.regions import extract_region_inventory_flux
 
+
 def retrieve_inventories(
     data_dir: str,
     country: str,
@@ -18,7 +19,7 @@ def retrieve_inventories(
 ) -> list[xr.Dataset]:
     """
     Load (in a list) inventories data to be plotted.
-    
+
     Args:
         data_dir: directory which contains the data (should have inside a directory named 'inventory').
         species: Gas species, e.g. 'ch4'.
@@ -37,7 +38,7 @@ def retrieve_inventories(
 
     if inventory_years is None:
         inventory_years = [None]
-    
+
     inv_cmap = get_cmap("Greys")
     inv_colors = [inv_cmap(i) for i in np.linspace(0.9, 0.5, len(inventory_years))]
 
@@ -48,4 +49,4 @@ def retrieve_inventories(
         ds_inv.attrs["plot_color"] = inv_color
         inventories_list.append(ds_inv.sel(time=slice(start_date, end_date)))
 
-    return inventories_list        
+    return inventories_list

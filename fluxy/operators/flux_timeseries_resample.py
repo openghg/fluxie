@@ -17,7 +17,7 @@ def calculate_resampled_flux(
         ds_all_output: resampled datasets
     """
     ds_all_output = dict()
-    for i, (m, ds) in enumerate(ds_all.items()) : 
+    for i, (m, ds) in enumerate(ds_all.items()):
         if rtime[i] is not None:
             ds_all_output[m] = ds.resample(time=rtime[i]).mean(dim="time")
         else:
@@ -42,7 +42,7 @@ def calculate_resampled_uncertainty(
     Returns:
         ds_all_resampled: Same dataset as above, but with updated '..._upper'/'..._lower' terms.
     """
-    
+
     for i, m in enumerate(ds_all_original.keys()):
         if rtime[i] is None:
             continue
@@ -52,10 +52,22 @@ def calculate_resampled_uncertainty(
                 ds_all_original[m][v].resample(time=rtime[i]).count()
             )  # count the number of sample in each period
 
-            lower = np.sqrt(((ds_all_original[m][f"{v}_lower"] - ds_all_original[m][v]) ** 2)
-                            .resample(time=rtime[i]).sum(dim="time")) / n_periods
-            upper = np.sqrt(((ds_all_original[m][f"{v}_upper"] - ds_all_original[m][v]) ** 2)
-                            .resample(time=rtime[i]).sum(dim="time")) / n_periods
+            lower = (
+                np.sqrt(
+                    ((ds_all_original[m][f"{v}_lower"] - ds_all_original[m][v]) ** 2)
+                    .resample(time=rtime[i])
+                    .sum(dim="time")
+                )
+                / n_periods
+            )
+            upper = (
+                np.sqrt(
+                    ((ds_all_original[m][f"{v}_upper"] - ds_all_original[m][v]) ** 2)
+                    .resample(time=rtime[i])
+                    .sum(dim="time")
+                )
+                / n_periods
+            )
 
             ds_all_resampled[m][f"{v}_lower"] = ds_all_resampled[m][v] - lower
             ds_all_resampled[m][f"{v}_upper"] = ds_all_resampled[m][v] + upper
@@ -94,26 +106,36 @@ def resample_flux(
             rtime.append(None)
 
         else:
-            raise ValueError(f"'{resample_val}' is not available for resample. Try 'year' or 'season' or None.")
-        
+            raise ValueError(
+                f"'{resample_val}' is not available for resample. Try 'year' or 'season' or None."
+            )
+
     ds_all_original = {m: ds_all[m].copy() for m in ds_all.keys()}
-            
+
     ds_all_resampled = calculate_resampled_flux(ds_all, rtime)
-    
+
     if not resample_uncert_correlation:
-        ds_all_resampled = calculate_resampled_uncertainty(ds_all_original, ds_all_resampled, rtime)
-    
+        ds_all_resampled = calculate_resampled_uncertainty(
+            ds_all_original, ds_all_resampled, rtime
+        )
+
     # shift timestamps of averaged data forwards to centre of inversion period
     for im, m in enumerate(ds_all.keys()):
 
-        if rtime[im] is not None and ds_all_original[m].time.size > ds_all_resampled[m].time.size:
+        if (
+            rtime[im] is not None
+            and ds_all_original[m].time.size > ds_all_resampled[m].time.size
+        ):
 
             # I feel like there is better ways of doing this but didn't find them -> check openGHG_inversions
             # in fact do it on the plot axis (or not)
             date_list_for_offset = pd.date_range(
-                            start="2018-01-01", end="2023-01-01", freq=rtime[im]
-                        )
+                start="2018-01-01", end="2023-01-01", freq=rtime[im]
+            )
             offset = (date_list_for_offset[1:] - date_list_for_offset[:-1]).mean() / 2
-            ds_all_resampled[m]['time'] = ds_all_resampled[m]['time'].values + offset
+            ds_all_resampled[m]["time"] = ds_all_resampled[m]["time"].values + offset
 
-    return {m + '_resample': ds.dropna(dim='time',how='all') for m, ds in ds_all_resampled.items()}
+    return {
+        m + "_resample": ds.dropna(dim="time", how="all")
+        for m, ds in ds_all_resampled.items()
+    }

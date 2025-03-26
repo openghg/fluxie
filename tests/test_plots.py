@@ -25,10 +25,10 @@ config_data = read_config_files()
 annotate_coords = set_print_settings()
 
 species = "hfc134a"  # options for individual species, or 'all_hfc' or 'all_pfc'
-models = ['InTEM_NAME_EDGAR_std','ELRIS_NAME_EDGAR_std','RHIME_NAME_EDGAR_std']
+models = ["InTEM_NAME_EDGAR_std", "ELRIS_NAME_EDGAR_std", "RHIME_NAME_EDGAR_std"]
 regions = ["GERMANY", "UK", "BENELUX", "NW_EU2"]
-period = 'yearly'  # use to override standard inversion periods, must be a list the same length as models, e.g. ['monthly','yearly']
-country_flux_units_print = 'Gg yr-1'
+period = "yearly"  # use to override standard inversion periods, must be a list the same length as models, e.g. ['monthly','yearly']
+country_flux_units_print = "Gg yr-1"
 start_date = "2018-01-01"  # inclusive. Option to set as list of dates, e.g. ['2018-01-01','2019-01-01'] which is required for total fgases if one model is missing obs for a year
 end_date = "2024-01-01"  # not inclusive. Option to set as list of dates, e.g. ['2023-01-01','2022-01-01'] which is required for total fgases if one model is missing obs for a year
 get_labels_from_file = False
@@ -64,10 +64,10 @@ else:
 
 site = "MHD"
 baseline_site = None
-mf_units_print = 'ppt'
+mf_units_print = "ppt"
 ds_all_mf = read_model_output(
     data_dir,
-    file_type='concentration',
+    file_type="concentration",
     species=species,
     models=models,
     config_data=config_data,
@@ -85,7 +85,7 @@ ds_all_mf_sliced = slice_mf(
 )
 
 model_colors = set_model_colors(models)
-model_labels = set_model_labels(models,config_data,get_labels_from_file)
+model_labels = set_model_labels(models, config_data, get_labels_from_file)
 
 
 region = "UK"
@@ -99,7 +99,8 @@ set_fluxlim = "auto"
 set_fluxlim_percentile = None
 plot_inversion_grid_flux = False
 
-stats_to_plot = ['pearson','nrmse','rmse']
+stats_to_plot = ["pearson", "nrmse", "rmse"]
+
 
 def test_flux_timeseries():
     plot_inventory = False
@@ -165,9 +166,8 @@ def test_obs_modelled_separate():
         model_labels,
         config_data,
         annotate_coords,
-        plot_type='separate',
-        include={"Yobs": None,
-                 "Yapost": 'qYapost'},
+        plot_type="separate",
+        include={"Yobs": None, "Yapost": "qYapost"},
         diff_include=["Yapost"],
         y_lim=None,
     )
@@ -183,8 +183,8 @@ def test_obs_modelled_together():
         model_labels,
         config_data,
         annotate_coords,
-        plot_type='together',
-        include={"Yapost": 'qYapost'},
+        plot_type="together",
+        include={"Yapost": "qYapost"},
         diff_include=["Yapost"],
         y_lim=None,
     )
@@ -202,8 +202,8 @@ def test_mole_fraction_diff():
         model_labels,
         config_data,
         annotate_coords,
-        plot_type='diff',
-        include={'Yobs': None},
+        plot_type="diff",
+        include={"Yobs": None},
         diff_include=None,
         y_lim=None,
     )
@@ -256,7 +256,7 @@ def test_plot_flux_map():
 
 def test_plot_flux_map_model_comparison():
 
-    var = 'flux_total_posterior'
+    var = "flux_total_posterior"
     models_comparison = [models[0], models[2]]
 
     fig = plot_flux_map_model_comparison(

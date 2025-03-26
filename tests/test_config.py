@@ -17,5 +17,3 @@ def test_model_colors():
     model_colors = set_model_colors(
         models=["intem_name_edgar", "elris_name_edgar", "rhime_name_edgar"]
     )
-
-    
