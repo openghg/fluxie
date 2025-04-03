@@ -225,7 +225,7 @@
     "hfc245fa":{
         "species_print":"HFC-245fa",
         "period":"yearly",
-        "units_scaling":{"intem":1e6,
+        "units_scaling":{"intem":1e3,
                         "rhime":1e6,
                         "elris":1e6},
         "model_species":{"intem":"hfc245fa",
@@ -238,7 +238,7 @@
         "mf_units_scaling":1e-12,
         "mf_units_print":"ppt",
         "fluxlim":[0,1e-11],
-        "fluxlim_kgkm2yr":[0,1.5],
+        "fluxlim_kgkm2yr":[0,1.6],
         "difflim":[-1e-11,1e-11],
         "difflim_kgkm2yr":[-1.5,1.5],
         "threshold_scale":1e-10,
@@ -253,7 +253,7 @@
     "hfc365mfc":{
         "species_print":"HFC-365mfc",
         "period":"yearly",
-        "units_scaling":{"intem":1e6,
+        "units_scaling":{"intem":1e3,
                         "rhime":1e6,
                         "elris":1e6},
         "model_species":{"intem":"hfc365mfc",
@@ -280,7 +280,7 @@
     "hfc4310mee":{
         "species_print":"HFC-4310mee",
         "period":"yearly",
-        "units_scaling":{"intem":1e6,
+        "units_scaling":{"intem":1e3,
                         "rhime":1e6,
                         "elris":1e6},
         "model_species":{"intem":"hfc4310mee",
@@ -307,7 +307,7 @@
     "pfc218":{
         "species_print":"PFC-218",
         "period":"yearly",
-        "units_scaling":{"intem":1e6,
+        "units_scaling":{"intem":1e3,
                         "rhime":1e6,
                         "elris":1e6},
         "model_species":{"intem":"pfc218",
@@ -335,7 +335,7 @@
     "pfc318":{
             "species_print":"PFC-318",
             "period":"yearly",
-            "units_scaling":{"intem":1e6,
+            "units_scaling":{"intem":1e3,
                             "rhime":1e6,
                             "elris":1e6},
             "model_species":{"intem":"pfc318",
@@ -362,7 +362,7 @@
     "pfc116":{
             "species_print":"PFC-116",
             "period":"yearly",
-            "units_scaling":{"intem":1e6,
+            "units_scaling":{"intem":1e3,
                             "rhime":1e6,
                             "elris":1e6},
             "model_species":{"intem":"pfc116",
@@ -389,7 +389,7 @@
     "cf4":{
             "species_print":"PFC-14",
             "period":"yearly",
-            "units_scaling":{"intem":1e6,
+            "units_scaling":{"intem":1e3,
                             "rhime":1e6,
                             "elris":1e6},
             "model_species":{"intem":"cf4",
@@ -445,7 +445,7 @@
     "nf3":{
             "species_print":"NF$_3$",
             "period":"yearly",
-            "units_scaling":{"intem":1e6,
+            "units_scaling":{"intem":1e3,
                             "rhime":1e6,
                             "elris":1e6},
             "model_species":{"intem":"nf3",
@@ -777,7 +777,7 @@
         "mf_units_scaling":1e-12,
         "mf_units_print":"ppt",
         "fluxlim":[0,1e-12],
-        "fluxlim_kgkm2yr":[0,0.1],
+        "fluxlim_kgkm2yr":[0,0.2],
         "difflim":[-1e-12,1e-12],
         "difflim_kgkm2yr":[-0.1,0.1],
         "threshold_scale":1e-10,
@@ -801,7 +801,7 @@
         "mf_units_scaling":1e-12,
         "mf_units_print":"ppt",
         "fluxlim":[0,1e-12],
-        "fluxlim_kgkm2yr":[0,0.1],
+        "fluxlim_kgkm2yr":[0,0.2],
         "difflim":[-1e-12,1e-12],
         "difflim_kgkm2yr":[-0.1,0.1],
         "threshold_scale":1e-10,
@@ -812,7 +812,7 @@
     "h12b1":{
         "species_print":"Halon-1211",
         "period":"yearly",
-        "units_scaling":{"intem":1e6,
+        "units_scaling":{"intem":1e3,
                         "rhime":1e6,
                         "elris":1e6},
         "model_species":{"intem":"h12b1",
@@ -836,7 +836,7 @@
     "h13b1":{
             "species_print":"Halon-1301",
             "period":"yearly",
-            "units_scaling":{"intem":1e6,
+            "units_scaling":{"intem":1e3,
                             "rhime":1e6,
                             "elris":1e6},
             "model_species":{"intem":"h13b1",
@@ -860,7 +860,7 @@
     "h2402":{
             "species_print":"Halon-2402",
             "period":"yearly",
-            "units_scaling":{"intem":1e6,
+            "units_scaling":{"intem":1e3,
                             "rhime":1e6,
                             "elris":1e6},
             "model_species":{"intem":"h2402",
