@@ -142,8 +142,8 @@ def initialize_settings(ppt_mode=False):
 
     ### define colors
 
-    model_colors = {'intem':[['royalblue','royalblue'],
-                             ['darkgreen','darkorange'],
+    model_colors = {'intem':[['firebrick','royalblue'],
+                             ['darkorange','darkorange'],
                              ['firebrick','pink'],
                              ['purple','mediumpurple']],
                     'elris':[['purple','mediumpurple'],
@@ -545,7 +545,7 @@ def read_flux_total_fgases(data_dir,species,models,s_data,m_data,regions,
                 if longrun: model_read = f'{m0}_{s_data[species]["std_run"][m0+"_longrun"]}'
                 #if longrun: model_read = f'{model_read}_longrun'
 
-                ds_in[model] = read_flux(data_dir,species,[model_read],s_data,m_data,period_override[s],verbose=False)[model_read]    #edit read_flux so that it searches for correct filename per gas
+                ds_in[model] = read_flux(data_dir,species,[model_read],s_data,m_data,period_override[s],verbose=True)[model_read]    #edit read_flux so that it searches for correct filename per gas
                 with io.capture_output() as captured:
                     ds_in[model] = slice_flux(ds_in,start_date[m],end_date[m],s_data,scale_units=False,species=None)[model]
 
@@ -1241,22 +1241,19 @@ def resample_flux(ds_all,species,resample,period_override,s_data,
             elif (resample[i] == 'season'):
                 rtime = 'QS-DEC'
             elif (resample[i] == 'month'):
-                rtime = '1m'
+                rtime = 'MS'
             else:
-                print(f'ERROR: Option resample=\'{resample[i]}\' is not available. Try \'year\' or \'season\'.')
+                print(f'ERROR: Option resample=\'{resample[i]}\' is not available. Try \'year\' \'month\' or \'season\'.')
                 return None
-            
-            print(ds_all_original[m].groupby("time.month"))
-            print(ds_all_original[m].groupby("time.month").mean())
             
             if period_override is not None: 
                 if 'elris' in m:
                     del ds_all_original[m]['covariance_country_flux_total_posterior']
                 if period_override[i] == 'monthly':
-                    if rtime == '1m':
-                        ds_all_p[m] = ds_all_original[m].groupby("time.month").mean()                        
-                    else:
-                        ds_all_p[m] = ds_all_original[m].resample(time=rtime).mean(dim="time")
+                    #if resample[i] == 'season':
+                    #    ds_all_p[m] = ds_all_original[m].groupby("time.season").mean().sel(season='J')
+                    #else:
+                    ds_all_p[m] = ds_all_original[m].resample(time=rtime).mean(dim="time")
                 else:
                     ds_all_p[m] = ds_all_original[m].copy()
                 if 'elris' in m and period_override[i] == 'monthly':
@@ -1268,10 +1265,10 @@ def resample_flux(ds_all,species,resample,period_override,s_data,
             elif s_data[species]["period"]=='monthly':
                 if 'elris' in m:
                     del ds_all_original[m]['covariance_country_flux_total_posterior']
-                if rtime == '1m':
-                    ds_all_p[m] = ds_all_original[m].groupby("time.month").mean()
-                else:
-                    ds_all_p[m] = ds_all_original[m].resample(time=rtime).mean(dim="time")
+                #if resample == 'season':
+                #    ds_all_p[m] = ds_all_original[m].groupby("time.season").mean().sel(season='J')
+                #else:
+                ds_all_p[m] = ds_all_original[m].resample(time=rtime).mean(dim="time")
                 if 'elris' in m:
                     ds_all_p[m]['country'] = ds_all_p[m]['country'].isel(time=0).drop('time')
                     ds_all_p[m]['country_fraction'] = ds_all_p[m]['country_fraction'].isel(time=0).drop('time')
@@ -1437,6 +1434,9 @@ def plot_country_flux(ds_all_flux_scaled,species,regions,
     
     models = list(ds_all_flux_scaled.keys())
     
+    if type(plot_prior) == bool:
+        plot_prior = [plot_prior] * len(ds_all_flux_scaled.keys())
+    
     if type(start_date) == list:
         start_date = str(min(start_date))
         end_date = str(max(end_date))
@@ -1465,58 +1465,82 @@ def plot_country_flux(ds_all_flux_scaled,species,regions,
                                                                 'percentile_flux_total_posterior_inversion_grid',
                                                                 'country_fraction','outer_region_fraction'],errors='ignore')
 
-    ds_all_p = {}
     ds_all = ds_all_flux_scaled.copy()
 
     ### resample from monthly to yearly, if needed
-
-    for i,m in enumerate(models):
-        if resample[i]:
-            if resample[i] == 'year':
-                rtime = 'YS'
-            else:
-                print('ERROR: only resample option year is currently included')
-            ds_all_p[m] = ds_all_flux_scaled[m].resample(time=rtime).mean(dim='time')
-            
-            if plot_resample_and_original == True:
-                ds_all_p[f'{m}_original'] = ds_all_flux_scaled[m].copy()
-        else:
-            ds_all_p[m] = ds_all_flux_scaled[m].copy()
+    
+    ds_all_p = resample_flux(ds_all_flux_scaled,species,resample,period_override,s_data,
+                                    resample_uncert_correlation)
+    
+    rolling_mean_adjusted = []
+    plot_prior_adjusted = []
+    rolling_mean_count = 0
     
     for i,m in enumerate(models):
-        if resample[i]:
-            if plot_resample_and_original == True:
-                models.append(f'{m}_original')
+        
+        rolling_mean_adjusted.append(rolling_mean[rolling_mean_count])
+        plot_prior_adjusted.append(plot_prior[rolling_mean_count])
+        
+        if plot_resample_and_original == True:
+            if resample[i] is not None:
+                ds_all_p[f'{m}_original'] = ds_all_flux_scaled[m].copy()
+                rolling_mean_adjusted.append(rolling_mean[rolling_mean_count])
+                plot_prior_adjusted.append(plot_prior[rolling_mean_count])
+        rolling_mean_count += 1
+        
 
     ### calculate rolling means, if needed
             
     for i,m in enumerate(models):
-        if rolling_mean[i]:
+        if rolling_mean_adjusted[i]:
             for var in list(ds_all_p[m].keys()):
                 if var != 'countryname':
                     for c in range(ds_all_p[m]['countrynumber'].values.shape[0]):
-                        if 'percentile' in list(ds_all_p[m][var].coords):
+                        if 'percentile' in var:
                             for p in range(2):
-                                ds_all_p[m][var][:,p,c] = calc_rolling_mean(ds_all_p[m][var].values[:,p,c],rolling_mean[i])
+                                ds_all_p[m][var][:,p,c] = calc_rolling_mean(ds_all_p[m][var].values[:,p,c],rolling_mean_adjusted[i])
                         else:
-                            ds_all_p[m][var][:,c] = calc_rolling_mean(ds_all_p[m][var].values[:,c],rolling_mean[i])
-        
-        # set all timestamps to the start of the year, this is needed for combing monthly and yearly model output into one timeseries
-        ds_all_p[m]['time'] = ds_all_p[m].time.values.astype('datetime64[Y]').astype('datetime64[ns]')  
+                            ds_all_p[m][var][:,c] = calc_rolling_mean(ds_all_p[m][var].values[:,c],rolling_mean_adjusted[i])
 
     ### combine monthly and yearly model output into one timeseries, if needed
     
     ds_merged = {}
     
     if combine_to_one_timeseries == True:
+        
+        # set all timestamps to the start of the year, this is needed for combing monthly and yearly model output into one timeseries
+        ds_merged_input = ds_all_p.copy()
+        for i,m in enumerate(models):
+            ds_merged_input[m]['time'] = ds_merged_input[m].time.values.astype('datetime64[Y]').astype('datetime64[ns]')
 
         if len(models) == 2:
-            ds_merged[models[0]] = ds_all_p[models[models_priority[0]]].combine_first(ds_all_p[models[models_priority[1]]])
+            ds_merged[models[0]] = ds_merged_input[models[models_priority[0]]].combine_first(ds_merged_input[models[models_priority[1]]])
         elif len(models) == 1:
-            ds_merged[models[0]] = ds_all[models[0]].copy()
+            ds_merged[models[0]] = ds_merged_input[models[0]].copy()
+    
+        # shift timestamps of averaged data forwards to centre of inversion period
+        time_mid = np.array([]).astype('datetime64[ns]')
+        time_diff_all = np.array([]).astype('timedelta64[ns]')
+        
+        for i,m in enumerate(list(ds_merged.keys())):
+        
+            for i,t in enumerate(ds_merged[m].time.values):
+                if i < ds_merged[m].time.values.shape[0]-1:
+                    time_diff = (ds_merged[m].time.values[i+1].astype('datetime64[ns]') - ds_merged[m].time.values[i].astype('datetime64[ns]'))/2
+                    time_diff_all = np.hstack((time_diff_all,time_diff))
+                    time_mid = np.hstack((time_mid,t+time_diff))
+                else:
+                    try:
+                        av_diff = Counter(time_diff_all).most_common()[0][0]
+                    except:
+                        av_diff = np.mean(time_diff_all)
+                    time_mid = np.hstack((time_mid,t+av_diff))
+                    
+            ds_merged[m]['time'] = time_mid
     
     else:
-        ds_merged = ds_all.copy()
+        ds_merged = ds_all_p.copy()
+    
 
     min_start = str(min(ds_merged[models[0]].time.values).astype('datetime64[Y]').astype('datetime64[D]'))
     max_end = str(max(ds_merged[models[0]].time.values).astype('datetime64[Y]').astype('datetime64[D]'))
@@ -1544,16 +1568,8 @@ def plot_country_flux(ds_all_flux_scaled,species,regions,
     region_flux_upper = {}
     region_flux_prior_lower = {}
     region_flux_prior_upper = {}
-    
-    region_time_combined = {}
-    region_flux_combined = {}
-    region_flux_prior_combined = {}
-    region_flux_lower_combined = {}
-    region_flux_upper_combined = {}
-    region_flux_prior_lower_combined = {}
-    region_flux_prior_upper_combined = {}
 
-    for r,region in enumerate(regions):
+    for m,model in enumerate(list(ds_merged.keys())):
         
         region_time[model] = {}
         region_flux[model] = {}
@@ -1563,7 +1579,7 @@ def plot_country_flux(ds_all_flux_scaled,species,regions,
         region_flux_prior_lower[model] = {}
         region_flux_prior_upper[model] = {}
         
-        for m,model in enumerate(list(ds_merged.keys())):
+        for r,region in enumerate(regions):
             
             m0 = model.split('_')[0]
             
@@ -1577,7 +1593,20 @@ def plot_country_flux(ds_all_flux_scaled,species,regions,
                 region_time_years = region_time[model][region].astype('datetime64[Y]')
             else:
                 region_time_years = np.hstack((region_time_years,region_time[model][region].astype('datetime64[Y]')))
-                
+    
+    ### calculate the average results from all models
+    
+    if plot_combined == True:
+        print('WARNING: Plotting combined data (as an average of all model inputs) only works if all models have data across the same time period.')
+    
+        region_time_combined = {}
+        region_flux_combined = {}
+        region_flux_prior_combined = {}
+        region_flux_lower_combined = {}
+        region_flux_upper_combined = {}
+        
+        for m,model in enumerate(list(ds_merged.keys())):
+            
             if m == 0:
                 region_time_combined[region] = region_time[model][region].copy()
                 region_flux_combined[region] = region_flux[model][region].copy()
@@ -1594,17 +1623,16 @@ def plot_country_flux(ds_all_flux_scaled,species,regions,
                                                           region_flux_upper[model][region].copy()))
                 region_flux_prior_combined[region] = np.vstack((region_flux_prior_combined[region],
                                                           region_flux_prior[region]))
+    
+        for r,region in enumerate(regions):
         
-        region_flux_combined[region] = np.mean(region_flux_combined[region],axis=0)
-        region_flux_lower_combined[region] = np.mean(region_flux_lower_combined[region],axis=0)        
-        region_flux_upper_combined[region] = np.mean(region_flux_upper_combined[region],axis=0)        
-        region_flux_prior_combined[region] = np.mean(region_flux_prior_combined[region],axis=0)                              
-          
+            region_flux_combined[region] = np.mean(region_flux_combined[region],axis=0)
+            region_flux_lower_combined[region] = np.mean(region_flux_lower_combined[region],axis=0)        
+            region_flux_upper_combined[region] = np.mean(region_flux_upper_combined[region],axis=0)        
+            region_flux_prior_combined[region] = np.mean(region_flux_prior_combined[region],axis=0)                              
+        
     if inventory_start_date is None:
         inventory_start_date = start_date
-        
-    if type(plot_prior) == bool:
-        plot_prior = [plot_prior] * len(ds_merged.keys())
         
     ### start creating plot
     
@@ -1699,35 +1727,37 @@ def plot_country_flux(ds_all_flux_scaled,species,regions,
         if plot_separate == True:
             
             for m,model in enumerate(list(ds_merged.keys())):
-            
+                model_name = model.removesuffix('_original')
                 if ds_count == 0:
-                    include_label = m_data[model]["label"]
-                    include_label_prior = f'{m_data[model]["label"]} prior'
+                    include_label = m_data[model_name]["label"]
+                    include_label_prior = f'{m_data[model_name]["label"]} prior'
                 else:
                     include_label = None
                     include_label_prior = None
                     
                 ax.plot(region_time[model][region],
                         region_flux[model][region],
-                        label=include_label,color=model_colors[model][0],linewidth=2)
+                        label=include_label,color=model_colors[model_name][0],linewidth=2)
+                
+                ax.fill_between(region_time[model][region],
+                        region_flux_lower[model][region],
+                        region_flux_upper[model][region],
+                                    alpha=0.3,color=model_colors[model_name][0])
             
             if not(plot_combined):
-                if plot_prior[m] == True:
+                if plot_prior_adjusted[m] == True:
                     ax.plot(region_time[model][region],
                                 region_flux_prior[model][region],
-                                label=include_label_prior,color=model_colors[model][0],linestyle='dashed')
+                                label=include_label_prior,color=model_colors[model_name][0],linestyle='dashed')
             
                     if add_prior_unc == True:
                         ax.fill_between(region_time[model][region],
                                             region_flux_prior_lower[model][region],
                                             region_flux_prior_upper[model][region],
-                                            alpha=0.1,color=model_colors[model][0])
+                                            alpha=0.1,color=model_colors[model_name][0])
                         max_cf[i] = np.max((max_cf[i],np.nanmax(region_flux_prior_upper[model][region])))
         
-                ax.fill_between(region_time[model][region],
-                        region_flux_lower[model][region],
-                        region_flux_upper[model][region],
-                                    alpha=0.3,color=model_colors[model][0])
+                
                 
             min_x.append(np.min(region_time[model][region]).astype('datetime64[M]'))
             max_x.append(np.max(region_time[model][region]).astype('datetime64[M]'))
