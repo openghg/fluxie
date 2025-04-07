@@ -142,7 +142,7 @@ def initialize_settings(ppt_mode=False):
 
     ### define colors
 
-    model_colors = {'intem':[['firebrick','royalblue'],
+    model_colors = {'intem':[['royalblue','royalblue'],
                              ['darkorange','darkorange'],
                              ['firebrick','pink'],
                              ['purple','mediumpurple']],
@@ -1354,7 +1354,7 @@ def plot_country_flux(ds_all_flux_scaled,species,regions,
                       period_override=None,plot_grid=True,
                       inventory_start_date=None,nid_style_plot=False,
                       rolling_mean=False,models_priority=None,
-                      combine_to_one_timeseries=False):
+                      combine_to_one_timeseries=False,seasonal_mean=False):
     """
     Timeseries plot of prior and posterior country fluxes, from list of 
     areas in plot_regions.
@@ -1629,8 +1629,52 @@ def plot_country_flux(ds_all_flux_scaled,species,regions,
             region_flux_combined[region] = np.mean(region_flux_combined[region],axis=0)
             region_flux_lower_combined[region] = np.mean(region_flux_lower_combined[region],axis=0)        
             region_flux_upper_combined[region] = np.mean(region_flux_upper_combined[region],axis=0)        
-            region_flux_prior_combined[region] = np.mean(region_flux_prior_combined[region],axis=0)                              
+            region_flux_prior_combined[region] = np.mean(region_flux_prior_combined[region],axis=0)
+            
+    ### calculates monthly averages (e.g. average Jan results from all years)
+    
+    if seasonal_mean == True:
         
+        region_time_month = {}
+        region_flux_month = {}
+        region_flux_lower_month = {}
+        region_flux_upper_month = {}
+        
+        for m,model in enumerate(list(ds_merged.keys())):
+            
+            region_time_month[model] = {}
+            region_flux_month[model] = {}
+            region_flux_lower_month[model] = {}
+            region_flux_upper_month[model] = {}
+            
+            for r,region in enumerate(regions):
+                for j,month in enumerate(range(1,13,1)):
+                    month_id = np.where(pd.DatetimeIndex(region_time[model][region]).month == month)
+                    
+                     #recalc posterior monthly uncertainty, assuming no correlation between all month e.g. all January fluxes
+                    lower = region_flux[model][region][month_id] - region_flux_lower[model][region][month_id]   
+                    upper = region_flux_upper[model][region][month_id] - region_flux[model][region][month_id]
+                    lower_av = np.sqrt(np.sum(lower**2))/(lower.shape[0])
+                    upper_av = np.sqrt(np.sum(upper**2))/(upper.shape[0])
+                    lower_perc =  np.mean(region_flux[model][region][month_id]) - lower_av
+                    upper_perc =  np.mean(region_flux[model][region][month_id]) + upper_av
+                    
+                    if j == 0:
+                        region_time_month[model][region] = np.array([j])
+                        region_flux_month[model][region] = np.mean(region_flux[model][region][month_id])
+                        region_flux_lower_month[model][region] = lower_perc
+                        region_flux_upper_month[model][region] = upper_perc
+                    else:
+                        region_time_month[model][region] = np.hstack((region_time_month[model][region],np.array([j])))
+                        region_flux_month[model][region] = np.hstack((region_flux_month[model][region],np.mean(region_flux[model][region][month_id])))
+                        region_flux_lower_month[model][region] = np.hstack((region_flux_lower_month[model][region],lower_perc))
+                        region_flux_upper_month[model][region] = np.hstack((region_flux_upper_month[model][region],upper_perc))
+                        
+                region_time[model][region] = region_time_month[model][region].astype('timedelta64[M]') + np.datetime64('2018-01')
+                region_flux[model][region] = region_flux_month[model][region]
+                region_flux_lower[model][region] = region_flux_lower_month[model][region]
+                region_flux_upper[model][region] = region_flux_upper_month[model][region]
+
     if inventory_start_date is None:
         inventory_start_date = start_date
         
@@ -1757,8 +1801,7 @@ def plot_country_flux(ds_all_flux_scaled,species,regions,
                                             alpha=0.1,color=model_colors[model_name][0])
                         max_cf[i] = np.max((max_cf[i],np.nanmax(region_flux_prior_upper[model][region])))
         
-                
-                
+
             min_x.append(np.min(region_time[model][region]).astype('datetime64[M]'))
             max_x.append(np.max(region_time[model][region]).astype('datetime64[M]'))
             
@@ -1801,17 +1844,21 @@ def plot_country_flux(ds_all_flux_scaled,species,regions,
         ax.set_ylabel(f'{s_data[species]["species_print"]} ({units_print}g y$^{{-1}}${y_label_append})')
         
         if any(period_all[p] == 'monthly' for p in list(ds_merged.keys())) and all(r != 'year' for r in resample):
-            ax.set_xlim([np.min(min_x)-np.timedelta64(1,'M'),
-                            np.max(max_x)+np.timedelta64(1,'M')])
+            ax.set_xlim([np.min(min_x)-np.timedelta64(2,'M'),
+                            np.max(max_x)+np.timedelta64(2,'M')])
         else:
             ax.set_xlim([np.min(min_x)-np.timedelta64(10,'M'),
                             np.max(max_x)+np.timedelta64(10,'M')])   
          
-        ax.set_xlim([np.min(min_x)-np.timedelta64(12,'M'),
-                            np.max(max_x)+np.timedelta64(10,'M')]) 
+        #ax.set_xlim([np.min(min_x)-np.timedelta64(12,'M'),
+        #                   np.max(max_x)+np.timedelta64(10,'M')]) 
+        
+        if seasonal_mean == True:
+            ax.set_xlim([np.min(min_x)-np.timedelta64(8,'D'),
+                         np.max(max_x)+np.timedelta64(8,'D')])
         #ax.set_xlim([np.datetime64('1990-01-01'),np.datetime64('2025-01-01')])         
         
-        ncol = 1
+        ncol = 2
         if set_global_leg == False:
             leg = ax.legend(ncol=ncol,borderpad=.4,columnspacing=1.0)#,loc='upper right')
             if plot_inventory == True:
@@ -1853,7 +1900,12 @@ def plot_country_flux(ds_all_flux_scaled,species,regions,
         # x axis labels used for longer timeseries
         region_time_years = sorted(np.unique(region_time_years))
         
-        if (region_time_years[-1]-region_time_years[0]).astype('timedelta64[Y]') > 8:
+        if seasonal_mean == True:
+            ax.set_xticks((np.arange(np.min(min_x),np.max(max_x)+np.timedelta64(1,'M'),np.timedelta64(1,'M'))))
+            ax.set_xticklabels(np.arange(1,13,1))    
+            ax.set_xlabel('Month')   
+        
+        elif (region_time_years[-1]-region_time_years[0]).astype('timedelta64[Y]') > 8:
             ax.set_xticks(region_time_years[::2]+np.timedelta64(5,'M'))
             ax.set_xticklabels(region_time_years[::2],rotation=90)
             ax.xaxis.set_minor_formatter(NullFormatter())
