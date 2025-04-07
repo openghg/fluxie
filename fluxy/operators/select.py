@@ -1,5 +1,6 @@
 import xarray as xr
 import numpy as np
+import pandas as pd
 import os
 from pathlib import Path
 import logging
@@ -171,6 +172,9 @@ def slice_mf(
                     ds_all.pop(m)
                     continue
 
+                # Remove NaN added by reshaping and add Nan between data gaps
+                ds_all[m] = clean_mf_timeseries(m, ds_all[m])
+
             else:
                 logger.warning(f"No {m} obs found for {site}.")
                 ds_all.pop(m)
@@ -250,3 +254,59 @@ def get_unique_sites(ds_all: dict[str, xr.Dataset]) -> list[str]:
     sites = np.sort(np.unique(sites))
 
     return sites
+
+
+def clean_mf_timeseries(model: str, ds: xr.Dataset) -> xr.Dataset:
+    """
+    Removes NaN from dataset (originated from data gaps and the process of reshaping).
+    Adds back in NaN related to data gaps.
+
+    Args:
+        model (string):
+            Model name tag to which ds corresponds to.
+        ds (xarray dataset):
+            Original dataset with mf data.
+
+    Returns:
+        ds (xarray dataset):
+            Modified dataset with NaN in data gaps.
+    """
+
+    # Remove all NaN from dataset
+    ds = ds.dropna(dim="time", subset=["Yobs"])
+
+    # Define threshold for data gap
+    time = ds.time.values
+    dtime = np.diff(time)
+    dt_median = np.median(dtime)
+    dt_gap = 1.9 * dt_median
+    # NOTE: it is assumed that the median of the time difference between data points is a good representation
+    # of the time difference between data points. Time differences higher than 2xmedian are considered a data gap.
+    # A value of 1.9 is used instead to avoid approximation errors.
+
+    # Check for data gaps
+    if np.any(dtime > dt_gap):
+        logger.info(
+            f"Adding NaN between data gaps of {model} using dt={dt_median.astype('timedelta64[h]')}."
+        )
+        time_new = list(time)
+        for i, dt in enumerate(dtime):
+            if dt > dt_gap:
+                # Append time stamps to data gap
+                start_time = pd.Timestamp(time[i])
+                end_time = pd.Timestamp(time[i + 1])
+                time_unit = np.datetime_data(dt_median.dtype)[0]
+                freq = pd.to_timedelta(dt_median, unit=time_unit)
+                gap_times = pd.date_range(start=start_time, end=end_time, freq=freq)[
+                    1:-1
+                ]
+                time_new.extend(gap_times)
+                logger.debug(f"Data gap found between {start_time} and {end_time}.")
+
+        # Sort and remove duplicates
+        time_new = sorted(set(time_new))
+
+        # Reindex the data (add NaN in data gaps)
+        ds = ds.reindex(time=time_new)
+
+    return ds

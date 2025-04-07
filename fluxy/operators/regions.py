@@ -93,7 +93,7 @@ def extract_region_flux(
                 ds_region["sigma_posterior"] = np.sqrt(
                     ds_region["covariance_country_flux_total_posterior"]
                     .sum(dim="country")
-                    .sum(dim="country_2")
+                    .sum(dim="country2")
                 )
 
             else:

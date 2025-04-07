@@ -536,29 +536,20 @@ def edit_vars_and_attributes(
         ds (xarray dataset):
             xarray dataset with updated variables and attributes.
     """
+    # Get inversion model
+    m0 = model.split("_")[0].lower()
 
     # Add inversion frequency to global attributes
     if "frequency" not in ds.attrs:
         ds.attrs["frequency"] = frequency
 
+    # Temporary conversion from new format to old format
+    if m0 == "cif":
+        ds = convert_new_format(ds, file_type)
+
     # Fix flux dataset
     if file_type == "flux":
-
-        # Easy fix for InTEM ("units" attribute is wrongly set to "unit")
-        vars_to_check = [
-            "country_flux_total_prior",
-            "country_flux_total_posterior",
-            "percentile_country_flux_total_prior",
-            "percentile_country_flux_total_posterior",
-        ]
-
-        for var in vars_to_check:
-            if "units" not in ds[var].attrs.keys() and "unit" in ds[var].attrs.keys():
-                ds[var].attrs["units"] = ds[var].attrs["unit"]
-
-        # Aply model specific corrections
-        m0 = model.split("_")[0].lower()
-
+        # Apply model specific corrections
         if m0 == "elris":
             ds["country"] = ds["country"].astype("str")
             ds = ds.set_index(countrynumber="country").rename(
@@ -572,11 +563,11 @@ def edit_vars_and_attributes(
             ):
                 ds[var_to_change] = xr.DataArray(
                     data=ds[var_to_change].data,
-                    dims=["time", "country", "country_2"],
+                    dims=["time", "country", "country2"],
                     coords=dict(
                         time=(["time"], ds[var_to_change].time.data),
                         country=(["country"], ds[var_to_change].country.data),
-                        country_2=(["country_2"], ds[var_to_change].country.data),
+                        country2=(["country2"], ds[var_to_change].country.data),
                     ),
                     attrs=ds[var_to_change].attrs,
                 )
@@ -589,6 +580,21 @@ def edit_vars_and_attributes(
                 ds["time"] = ds.time.values + np.timedelta64(15, "D")
 
         elif m0 == "intem":
+            # Easy fix for InTEM ("units" attribute is wrongly set to "unit")
+            vars_to_check = [
+                "country_flux_total_prior",
+                "country_flux_total_posterior",
+                "percentile_country_flux_total_prior",
+                "percentile_country_flux_total_posterior",
+            ]
+
+            for var in vars_to_check:
+                if (
+                    "units" not in ds[var].attrs.keys()
+                    and "unit" in ds[var].attrs.keys()
+                ):
+                    ds[var].attrs["units"] = ds[var].attrs["unit"]
+
             ds = ds.rename({"countrynumber": "country"})
 
             if "BEL-LUX" in ds.country and (
@@ -671,5 +677,103 @@ def edit_vars_and_attributes(
             ds["countrynumber"] = ds["country"].astype(str)
             del ds["country"]
             ds = ds.rename({"countrynumber": "country"})
+
+    return ds
+
+
+def convert_new_format(ds: xr.Dataset, file_type: str):
+
+    if file_type == "flux":
+        # Rename variables
+        ds = ds.rename(
+            {
+                "flux_total_prior_country": "country_flux_total_prior",
+                "flux_total_posterior_country": "country_flux_total_posterior",
+                "covariance_flux_total_posterior_country": "covariance_country_flux_total_posterior",
+                "covariance_flux_total_prior_country": "covariance_country_flux_total_prior",
+            }
+        )
+
+        # Convert stdev into percentile
+        ds["percentile_country_flux_total_posterior"] = xr.concat(
+            [
+                ds["country_flux_total_posterior"]
+                - ds["stdev_flux_total_posterior_country"],
+                ds["country_flux_total_posterior"]
+                + ds["stdev_flux_total_posterior_country"],
+            ],
+            pd.Index([0, 1], name="percentile"),
+        )
+
+        ds["percentile_country_flux_total_prior"] = xr.concat(
+            [
+                ds["country_flux_total_prior"] - ds["stdev_flux_total_prior_country"],
+                ds["country_flux_total_prior"] + ds["stdev_flux_total_prior_country"],
+            ],
+            pd.Index([0, 1], name="percentile"),
+        )
+
+        # Update units of percentile variables
+        ds["percentile_country_flux_total_posterior"].attrs["units"] = ds[
+            "stdev_flux_total_posterior_country"
+        ].attrs["units"]
+        ds["percentile_country_flux_total_prior"].attrs["units"] = ds[
+            "stdev_flux_total_prior_country"
+        ].attrs["units"]
+
+        # Move time variable to center of the month
+        ds["time"] = ds.time.values + np.timedelta64(15, "D")
+
+    elif file_type == "concentration":
+        # Create filtered dataset with renamed variables
+        mask = ds["assimilation_flag"] == 1
+        ds_assimilated = xr.Dataset(
+            {
+                "Yobs": ds["mf_observed"].where(mask, drop=True),
+                "Yapriori": ds["mf_prior"].where(mask, drop=True),
+                "Yapost": ds["mf_posterior"].where(mask, drop=True),
+                "YaprioriBC": ds["mf_bc_prior"].where(mask, drop=True),
+                "YapostBC": ds["mf_bc_posterior"].where(mask, drop=True),
+                "uYmod": ds["stdev_mf_model"].where(mask, drop=True),
+                "uYtotal": ds["stdev_mf_total"].where(mask, drop=True),
+                "platform": ds["platform"].where(mask, drop=True),
+                "time": ds["time"].where(mask, drop=True),
+                "index": ds["index"].where(mask, drop=True),
+            }
+        )
+
+        # Set time and platform as dimensions
+        ds_assimilated = ds_assimilated.set_coords(["time", "platform"])
+        ds_assimilated = ds_assimilated.set_index(index=["time", "platform"])
+
+        # Create reshaped dataset
+        ds_reshaped = xr.Dataset(
+            {
+                "Yobs": ds_assimilated["Yobs"].unstack(),
+                "Yapriori": ds_assimilated["Yapriori"].unstack(),
+                "Yapost": ds_assimilated["Yapost"].unstack(),
+                "YaprioriBC": ds_assimilated["YaprioriBC"].unstack(),
+                "YapostBC": ds_assimilated["YapostBC"].unstack(),
+                "uYmod": ds_assimilated["uYmod"].unstack(),
+                "uYtotal": ds_assimilated["uYtotal"].unstack(),
+            }
+        )
+
+        # Create sitenames variable and convert to upper case
+        sitenames = ds_reshaped["platform"].values
+        sitenames = [site.upper() for site in sitenames]
+        for i, site in enumerate(sitenames):
+            # Drop "_C" for continuos data
+            site_id, dtype = site.split("_")
+            if dtype == "C":
+                sitenames[i] = site_id
+
+        ds_reshaped["sitenames"] = xr.DataArray(sitenames, dims=["nsite"])
+
+        # Rename platform to nsite
+        ds_reshaped = ds_reshaped.rename({"platform": "nsite"}).drop_vars("nsite")
+
+        # Update ds
+        ds = ds_reshaped
 
     return ds
