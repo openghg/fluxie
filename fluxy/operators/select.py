@@ -172,7 +172,7 @@ def slice_mf(
                     ds_all.pop(m)
                     continue
 
-                # Remove NaN added by reshaping and add Nan between data gaps
+                # Remove NaN added by reshaping and add NaN between data gaps
                 ds_all[m] = clean_mf_timeseries(m, ds_all[m])
 
             else:
