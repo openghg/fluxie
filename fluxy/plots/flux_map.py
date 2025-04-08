@@ -20,7 +20,9 @@ from fluxy.plots.utils import (
     compute_boundary_geometry,
     plot_country_borders,
 )
-from fluxy.operators.flux_prepare_map_data import define_var_plot, prepare_data
+from fluxy.operators.flux_map_diff import define_var_plot
+from fluxy.operators.flux_align_dataset import align_map_data
+from fluxy.operators.flux_combine import combine_map_dataset
 from fluxy.operators.flux_map_resample import get_flux_mean, average_over_period
 
 
@@ -318,7 +320,7 @@ def plot_flux_map_model_comparison(
 
     # Prepare datasets
     ds_dict = {k: v for k, v in ds_all.items() if k in models}
-    ds_dict = prepare_data(ds_dict)
+    ds_dict = align_map_data(ds_dict)
     ds_dict["diff"] = ds_dict[models[1]] - ds_dict[models[0]]
     ds_dict["diff"].attrs["frequency"] = ds_dict[models[0]].attrs[
         "frequency"
@@ -505,7 +507,12 @@ def plot_flux_map_over_time(
         )
 
     # Prepare datasets and average over given periods
-    ds_dict = prepare_data(ds_all, plot_combined)
+    if plot_combined:
+        ds_dict = align_map_data(ds_all)
+        ds_dict = combine_map_dataset(ds_dict)
+    else:
+        ds_dict = ds_all
+
     ds_chopby = {}
     for key, ds in ds_dict.items():
         ds_chopby[key], time_labels = average_over_period(ds, dt, chop_by)

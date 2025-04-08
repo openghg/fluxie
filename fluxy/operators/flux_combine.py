@@ -28,3 +28,25 @@ def combine_dataset(
         }
     )
     return {"combined": ds_output}
+
+def combine_map_dataset(
+    ds_all: dict[str, xr.Dataset]
+) -> dict[str, xr.Dataset]:
+    """
+    Args:
+        ds_all: xarray datasets of fluxes.
+
+    Returns
+        A dictionnary with 'combined' as key and the combined dataset as value.
+    """
+
+    models = list(ds_all.keys())
+    ds_list = list(ds_all.values())
+
+    ds_dict = {
+        "combined": xr.concat(ds_list, dim="model", combine_attrs="override").mean(
+            dim="model", keep_attrs=True
+        )
+    }
+
+    return ds_dict
