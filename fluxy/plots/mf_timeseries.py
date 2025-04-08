@@ -297,15 +297,13 @@ def plot_sites_timeseries(
             )
 
         for i, m in enumerate(models):
-            # Define label
-            if iSite == 0:
-                label = model_labels[m]
-            else:
-                label = None
 
             site_index = get_site_index(ds_all[m], site)
 
             if site_index is not None:
+                # Define label
+                label = model_labels[m]
+                
                 # Make scatter plot
                 data = ds_all[m].isel(nsite=site_index)[var].dropna(dim="time").time
                 ax.scatter(
@@ -315,6 +313,7 @@ def plot_sites_timeseries(
                     s=2,
                     label=label,
                 )
+                model_labels[m] = None
 
             else:
                 continue
