@@ -11,7 +11,7 @@ def combine_dataset(
         ds_all: xarray datasets of fluxes.
         plot_combined: If True, the model is included in combined average result to be plotted.
              List must be of same size as models, e.g. [False, True, True].
-    Returns
+    Returns:
         A dictionnary with 'combined' as key and the combined dataset as value.
     """
     ds_to_combined = [ds for i, ds in enumerate(ds_all.values()) if plot_combined[i]]
@@ -33,11 +33,13 @@ def combine_map_dataset(
     ds_all: dict[str, xr.Dataset]
 ) -> dict[str, xr.Dataset]:
     """
-    Args:
-        ds_all: xarray datasets of fluxes.
+    Combine multiple xarray datasets along the 'model' dimension and return the mean dataset.
 
-    Returns
-        A dictionnary with 'combined' as key and the combined dataset as value.
+    Args:
+        ds_all: xarray datasets of fluxes indexed by model names.
+
+    Returns:
+        A dictionary with a single key 'combined', containing the mean of all datasets along the 'model' dimension.
     """
 
     models = list(ds_all.keys())
