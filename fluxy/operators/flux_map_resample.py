@@ -166,7 +166,12 @@ def average_over_seasons(
     groups = ds.time.dt.season
     ds_avg = ds.groupby(groups, restore_coord_dims=True).mean(dim="time")
     ds_avg = ds_avg.rename({"season": "time"})
-    time_labels = np.unique(groups.values).tolist()
+
+    desired_order = ["DJF", "MAM", "JJA", "SON"] # desired season order
+    ordered_seasons = [s for s in desired_order if s in ds_avg.time.values]
+    ds_avg = ds_avg.sel(time=ordered_seasons)
+
+    time_labels = ds_avg.time.values.tolist()
     return ds_avg, time_labels
 
 
