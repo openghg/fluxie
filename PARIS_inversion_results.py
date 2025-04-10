@@ -143,6 +143,7 @@ def initialize_settings(ppt_mode=False):
     ### define colors
 
     model_colors = {'intem':[['royalblue','royalblue'],
+                             ['grey','darkorange'],
                              ['darkorange','darkorange'],
                              ['firebrick','pink'],
                              ['purple','mediumpurple']],
@@ -371,11 +372,13 @@ def read_flux(data_dir,species,models,s_data,m_data,period_override=None,verbose
         
         try:
             filepath = glob.glob(os.path.join(data_dir,model_dir,species,
-                                              f'{m_data[m]["filename"]}_{s_data[species]["model_species"][m0]}_{period_all[m]}.nc'))
+                                                f'{m_data[m]["filename"]}_{s_data[species]["model_species"][m0]}_{period_all[m]}.nc'))
+            
             if verbose: print(f'Reading data from: {filepath[0]}')
             with xr.open_dataset(filepath[0]) as in_ds:
                 ds_all[m] = in_ds
                 if verbose: print('Done!')
+        
         except:
             try:
                 if (m_data[m]["filename"].split('_')[-1] == 'std*'):
@@ -391,6 +394,7 @@ def read_flux(data_dir,species,models,s_data,m_data,period_override=None,verbose
             except:
                 print(f'Failed!')
                 print(f'Cannot find {m} file for {species}. This data will not be included.')
+        
     
     return ds_all
 
@@ -541,18 +545,34 @@ def read_flux_total_fgases(data_dir,species,models,s_data,m_data,regions,
             
             #tries to read from standard filename
             try:
-                model_read = f'{m0}_{s_data[species]["std_run"][m0]}'
+                if '20' in model:
+                    model_read = model
+                else:
+                    model_read = f'{m0}_{s_data[species]["std_run"][m0]}'
                 if longrun: model_read = f'{m0}_{s_data[species]["std_run"][m0+"_longrun"]}'
                 #if longrun: model_read = f'{model_read}_longrun'
+            
 
                 ds_in[model] = read_flux(data_dir,species,[model_read],s_data,m_data,period_override[s],verbose=True)[model_read]    #edit read_flux so that it searches for correct filename per gas
+                
+                if len(models) > 1:
+                    print('Dropping spatial flux variables, to reduce memory usage. Comment out this section if using this function for spatial flux plotting.')
+                    ds_in[model] = ds_in[model].drop_vars(['flux_total_prior','percentile_flux_total_prior',
+                                                                'flux_total_posterior','percentile_flux_total_posterior',
+                                                                'flux_total_prior_out','percentile_flux_total_prior_out',
+                                                                'flux_total_posterior_inversion_grid',
+                                                                'percentile_flux_total_posterior_inversion_grid',
+                                                                'country_fraction','outer_region_fraction'],errors='ignore')
+                
+                
                 with io.capture_output() as captured:
                     ds_in[model] = slice_flux(ds_in,start_date[m],end_date[m],s_data,scale_units=False,species=None)[model]
-
+                
             except:
                 ds_in[model] = None
                 if species not in missing_species[model]:
                     missing_species[model].append(species)
+            
 
             for r,region in enumerate(regions):
                 
@@ -1436,10 +1456,17 @@ def plot_country_flux(ds_all_flux_scaled,species,regions,
     
     if type(plot_prior) == bool:
         plot_prior = [plot_prior] * len(ds_all_flux_scaled.keys())
+    elif len(plot_prior) != len(models):
+        print('ERROR: plot_prior must be a single boolean, or the same length as models')
+        return None
     
     if type(start_date) == list:
         start_date = str(min(start_date))
         end_date = str(max(end_date))
+        
+    if type(inventory_start_date) == list:
+        print('ERROR: inventory_start_date must be a single string')
+        return None
         
     if len(rolling_mean) != len(models):
         print('ERROR: rolling_mean must be the same length as models')
@@ -1899,6 +1926,10 @@ def plot_country_flux(ds_all_flux_scaled,species,regions,
         
         # x axis labels used for longer timeseries
         region_time_years = sorted(np.unique(region_time_years))
+
+        #region_time_years = np.arange(np.datetime64('1998'),
+        #                              np.datetime64('2025'),
+        #                              np.timedelta64(1,'Y'))
         
         if seasonal_mean == True:
             ax.set_xticks((np.arange(np.min(min_x),np.max(max_x)+np.timedelta64(1,'M'),np.timedelta64(1,'M'))))
@@ -2063,7 +2094,7 @@ def plot_country_flux_devolved_nations(ds_all,species,plot_regions,
     
     model_colors = [['royalblue','royalblue'],
                     ['darkorange','darkorange'],
-                    ['firebrick','pink'],
+                    ['gold','pink'],
                     ['purple','mediumpurple']]
     
     if type(start_date) == list:
@@ -3005,7 +3036,7 @@ def plot_spatial_flux_one_variable(ds_all,species,plot_area,s_data,m_data,var,
         if nbins < 5 :
             nbins = 5
         
-        nbins = 4
+        nbins = 6
         
         tick_locator = ticker.MaxNLocator(nbins=nbins)#,integer=True)
         color_bar.locator = tick_locator
