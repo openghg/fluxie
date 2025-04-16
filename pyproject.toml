@@ -38,6 +38,6 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://horizoneurope-paris.eu/"
-Documentation = "https://github.com/ACRG-Bristol/PARIS_intercomparison/blob/devel/README.md"
-Repository = "https://github.com/ACRG-Bristol/PARIS_intercomparison"
-"Bug Tracker" = "https://github.com/ACRG-Bristol/PARIS_intercomparison/issues"
+Documentation = "https://github.com/openghg/fluxy/blob/devel/README.md"
+Repository = "https://github.com/openghg/fluxy"
+"Bug Tracker" = "https://github.com/openghg/fluxy/issues"

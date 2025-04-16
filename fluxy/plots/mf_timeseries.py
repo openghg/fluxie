@@ -304,7 +304,7 @@ def plot_sites_timeseries(
             if site_index is not None:
                 # Define label
                 label = model_labels_copy[m]
-                
+
                 # Make scatter plot
                 data = ds_all[m].isel(nsite=site_index)[var].dropna(dim="time").time
                 ax.scatter(

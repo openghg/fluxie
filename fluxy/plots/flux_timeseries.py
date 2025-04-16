@@ -382,22 +382,15 @@ def plot_country_flux(
     max_x = max_x.values.astype("datetime64[Y]")
     xlim = [min_x - np.timedelta64(60, "D"), max_x + np.timedelta64(60, "D")]
 
-    if max_x - min_x > np.timedelta64(20, "Y"):
-        print("test")
-        xticks = np.arange(min_x, max_x, step=np.timedelta64(5, "Y"))
+    if max_x - min_x > np.timedelta64(8, "Y"):
+        step = int(max_x - min_x) // 8 + 1
+        xticks = np.arange(min_x, max_x, step=np.timedelta64(step, "Y"))
         ax.set_xticks(xticks)
         ax.set_xticklabels(xticks.astype("datetime64[Y]"))
-        ax.xaxis.set_minor_formatter(NullFormatter())
-
-    elif max_x - min_x > np.timedelta64(10, "Y"):
-        xticks = np.arange(min_x, max_x, step=np.timedelta64(1, "Y"))
-        ax.set_xticks(xticks)
-        ax.set_xticklabels(xticks.astype("datetime64[Y]"))
-        ax.xaxis.set_minor_formatter(NullFormatter())
+        ax.xaxis.set_major_locator(YearLocator())
 
     else:
         ax.xaxis.set_minor_locator(MonthLocator())
-        ax.xaxis.set_minor_formatter(NullFormatter())
         ax.xaxis.set_major_locator(YearLocator())
 
     ax.set_xlim(xlim)

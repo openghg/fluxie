@@ -83,9 +83,7 @@ def align_lat_lon(
     return aligned_ds_list
 
 
-def align_map_data(
-    ds_all: dict[xr.Dataset]
-) -> dict[xr.Dataset]:
+def align_map_data(ds_all: dict[xr.Dataset]) -> dict[xr.Dataset]:
     """
     Prepare flux datasets for flux maps by filtering variables, removing unused dimensions, and aligning time and spatial coordinates.
 

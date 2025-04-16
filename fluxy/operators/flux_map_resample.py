@@ -167,7 +167,7 @@ def average_over_seasons(
     ds_avg = ds.groupby(groups, restore_coord_dims=True).mean(dim="time")
     ds_avg = ds_avg.rename({"season": "time"})
 
-    desired_order = ["DJF", "MAM", "JJA", "SON"] # desired season order
+    desired_order = ["DJF", "MAM", "JJA", "SON"]  # desired season order
     ordered_seasons = [s for s in desired_order if s in ds_avg.time.values]
     ds_avg = ds_avg.sel(time=ordered_seasons)
 

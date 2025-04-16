@@ -29,9 +29,8 @@ def combine_dataset(
     )
     return {"combined": ds_output}
 
-def combine_map_dataset(
-    ds_all: dict[str, xr.Dataset]
-) -> dict[str, xr.Dataset]:
+
+def combine_map_dataset(ds_all: dict[str, xr.Dataset]) -> dict[str, xr.Dataset]:
     """
     Combine multiple xarray datasets along the 'model' dimension and return the mean dataset.
 

@@ -1,6 +1,6 @@
-# PARIS inverse modelling intercomparison tool
+# Inverse Modelling Intercomparison Tool
 
-This repository contains functions to compare inverse models used during the PARIS project, and a notebook to allow for easy use of these functions.
+This repository contains functions to compare inverse models developed under the PARIS project, and a notebook to allow for easy use of these functions.
 
 Follow the steps below to run the notebook and plot model results.
 
@@ -8,8 +8,8 @@ Follow the steps below to run the notebook and plot model results.
 
 Clone the repository and install fluxy:
 ```
-git clone https://github.com/ACRG-Bristol/PARIS_intercomparison.git
-cd PARIS_intercomparison
+git clone https://github.com/openghg/fluxy.git
+cd fluxy
 pip install -e .
 ```
 Note: in the ICOS Jupyter Hub, you might need to restart the kernel so that package fluxy is found.
