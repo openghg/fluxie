@@ -153,6 +153,8 @@ def plot_stats_pd_mf(
     model_labels,
     config_data,
     mf_units_print: str,
+    type: str,
+    stats_ylim=None, 
     start_date=None,
     end_date=None,
 ) -> Figure:
@@ -171,6 +173,11 @@ def plot_stats_pd_mf(
         config_data (dict of dict):
             Dictionary with settings read from json file.
             Use json filenames as keys.
+        mf_units_print (str):
+            Mole fraction units used in plots
+        type (str):
+            Type of statistics to be plotted. Should be the same as used in call to stats_mf().
+        stats_ylim (dict of lists) limits for y-axis of individual statistic plots. Can be given for selected statistics only or passed as None for automatic axis range. 
         start_date (str) and end_date (str):
             Dates used to title the plot.
     Returns:
@@ -187,6 +194,12 @@ def plot_stats_pd_mf(
     for i, model in enumerate(models):
         colors[i] = model_colors[model][0]
 
+    if type in ['prior', 'posterior']: 
+        mf_str = ""
+    else: 
+        mf_str = " above BC"
+        type = type.split("_")[0]
+        
     long_stats = pd.melt(stats, id_vars=['model', 'site'], value_vars=stats_to_plot)
     nrows = len(stats_to_plot)
     fig, ax = plt.subplots(nrows, 1, figsize=(10, 3 * nrows), tight_layout=True)
@@ -196,22 +209,26 @@ def plot_stats_pd_mf(
         tmp.plot(kind="bar", 
              ax=ax[i], 
              stacked=False, 
-             color=colors, 
-             grid=True, 
+             color=colors,              
              xlabel="", 
-             legend=False
+             legend=False,
+             zorder=3
             )
+        ax[i].grid(zorder=0)
+        if stats_ylim is not None:
+            if stat in stats_ylim.keys():
+                ax[i].set_ylim(stats_ylim[stat][0], stats_ylim[stat][1])
         if stat in ['pearson', 'nrmse', 'nn']:
             ax[i].set_ylabel(config.stat_labels[stat])
         else:
             ax[i].set_ylabel(config.stat_labels[stat]+" ("+mf_units_print+")")
             
-    leg = ax[0].legend(ncol=3, borderpad=0.2, columnspacing=1.0, loc="upper center", bbox_to_anchor=(0.5, 1.1))
+    leg = ax[0].legend(ncol=3, borderpad=0.2, columnspacing=1.0, loc="upper center", bbox_to_anchor=(0.5, 1.25))
 
     species_info = config_data["species_info"][species]
     fig.suptitle(
         (
-            f'{species_info["species_print"]} model performance versus mole fraction observations'
+            f'{species_info["species_print"]} {type} model performance versus mole fraction observations{mf_str}'
         )
         + f" \n{start_date} to {end_date}"
     )
