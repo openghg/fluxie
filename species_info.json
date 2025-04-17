@@ -2,13 +2,13 @@
     "ch4":{
         "species_print":"CH$_4$",
         "period":"monthly",
-        "units_scaling":{"intem":1e9,
+        "units_scaling":{"intem":1e6,
                         "rhime":1e9,
                         "elris":1e9},
         "model_species":{"intem":"ch4",
                         "rhime":"ch4",
                         "elris":"CH4"},
-        "units_print":"T",
+        "units_print":"G",
         "dt_units":{"intem":"datetime64[M]",
                     "rhime":"datetime64[M]",
                     "elris":"datetime64[M]"},
@@ -23,7 +23,9 @@
         "mwt":16.0,
         "std_run":{"intem":"name_wetcharts_31sites",
                    "rhime":"name_wetcharts_31sites",
-                   "elris":"name_wetcharts_31sites"}
+                   "elris":"name_wetcharts_31sites"},
+        "start_date_used":"1989-01-01",
+        "std_prior":"EDGAR"
         },
 
     "hfc134a":{
@@ -52,7 +54,9 @@
                     "intem_NIR2024":"NIR2024_2year_inversion_A",
                     "intem_longrun":"name_edgar_longrun",
                    "rhime":"name_edgar",
-                   "elris":"name_edgar"}
+                   "elris":"name_edgar"},
+        "start_date_used":"1994-01-01",
+        "std_prior":"EDGAR"
         },
 
     "hfc143a":{
@@ -81,8 +85,10 @@
         "intem_NIR2024":"NIR2024_2year_inversion_A",
                    "intem_longrun":"name_edgar_longrun",
                    "rhime":"name_edgar",
-                   "elris":"name_edgar"}
-        },
+                   "elris":"name_edgar"},
+        "start_date_used":"2004-01-01",
+        "std_prior":"EDGAR"
+                   },
 
     "hfc125":{
         "species_print":"HFC-125",
@@ -110,8 +116,10 @@
         "intem_NIR2024":"NIR2024_2year_inversion_A",
                     "intem_longrun":"name_edgar_longrun",
                    "rhime":"name_edgar",
-                   "elris":"name_edgar"}
-        },     
+                   "elris":"name_edgar"},
+        "start_date_used":"1999-01-01",
+        "std_prior":"EDGAR"
+                   },     
 
     "hfc152a":{
         "species_print":"HFC-152a",
@@ -139,8 +147,10 @@
         "intem_NIR2024":"NIR2024_2year_inversion_A",
                     "intem_longrun":"name_flat_longrun",
                    "rhime":"name_flat",
-                   "elris":"name_flat"}
-        },
+                   "elris":"name_flat"},
+        "start_date_used":"1995-01-01",
+        "std_prior":"EDGAR"
+                   },
 
     "hfc32":{
         "species_print":"HFC-32",
@@ -168,8 +178,10 @@
         "intem_NIR2024":"NIR2024_2year_inversion_A",
                     "intem_longrun":"name_edgar_longrun",
                    "rhime":"name_edgar",
-                   "elris":"name_edgar"}
-        },    
+                   "elris":"name_edgar"},
+        "start_date_used":"2004-01-01",
+        "std_prior":"EDGAR"
+                   },    
 
     "hfc227ea":{
         "species_print":"HFC-227ea",
@@ -197,8 +209,10 @@
         "intem_NIR2024":"NIR2024_2year_inversion_A",
                     "intem_longrun":"name_flat_longrun",
                    "rhime":"name_flat",
-                   "elris":"name_flat"}
-        }, 
+                   "elris":"name_flat"},
+        "start_date_used":"2006-01-01",
+        "std_prior":"FLAT"
+                   }, 
 
     "hfc23":{
         "species_print":"HFC-23",
@@ -226,8 +240,10 @@
                 "intem_NIR2024":"NIR2024_2year_inversion_A",
                     "intem_longrun":"name_flat_longrun",
                    "rhime":"name_flat",
-                   "elris":"name_edgar"}
-    },
+                   "elris":"name_edgar"},
+        "start_date_used":"2009-01-01",
+        "std_prior":"FLAT"
+                   },
 
     "hfc245fa":{
         "species_print":"HFC-245fa",
@@ -255,8 +271,10 @@
                     "intem_NIR2024":"NIR2024_2year_inversion_A",
                     "intem_longrun":"name_flat_longrun",
                    "rhime":"name_flat",
-                   "elris":"name_flat"}
-        },   
+                   "elris":"name_flat"},
+        "start_date_used":"2008-01-01",
+        "std_prior":"FLAT"
+                   },   
 
     "hfc365mfc":{
         "species_print":"HFC-365mfc",
@@ -283,8 +301,10 @@
         "std_run":{"intem":"NID2025",
                     "intem_NIR2024":"NIR2024_2year_inversion_A",
                     "intem_longrun":"name_flat_longrun",
-                   "elris":"name_flat"}
-        },
+                   "elris":"name_flat"},
+        "start_date_used":"2004-01-01",
+        "std_prior":"FLAT"
+                   }, 
 
     "hfc4310mee":{
         "species_print":"HFC-4310mee",
@@ -311,8 +331,10 @@
         "std_run":{"intem":"NID2025",
                     "intem_NIR2024":"NIR2024_2year_inversion_A",
                     "intem_longrun":"name_flat_longrun",
-                   "elris":"name_flat"}
-        },   
+                   "elris":"name_flat"},
+        "start_date_used":"2011-01-01",
+        "std_prior":"FLAT"
+                   },    
 
     "pfc218":{
         "species_print":"PFC-218",
@@ -340,8 +362,10 @@
                     "intem_NIR2024":"NIR2024_2year_inversion_A",
                     "intem_longrun":"name_flat_longrun",
                    "rhime":"name_flat",
-                   "elris":"name_flat"}
-        },  
+                   "elris":"name_flat"},
+        "start_date_used":"2005-01-01",
+        "std_prior":"FLAT"
+                   },   
 
     "pfc318":{
             "species_print":"PFC-318",
@@ -369,8 +393,11 @@
                         "intem_NIR2024":"NIR2024_2year_inversion_A",
                         "intem_longrun":"name_flat_longrun",
                        "rhime":"name_flat",
-                       "elris":"name_flat"}
-            },   
+                       "elris":"name_flat"},
+            "start_date_used":"2011-01-01",
+            "std_prior":"FLAT"
+                   }, 
+
     "pfc116":{
             "species_print":"PFC-116",
             "period":"yearly",
@@ -397,8 +424,11 @@
                         "intem_NIR2024":"NIR2024_2year_inversion_A",
                         "intem_longrun":"name_edgarminval_longrun",
                        "rhime":"name_edgarminval",
-                       "elris":"name_edgarminval"}
-            },   
+                       "elris":"name_edgarminval"},
+            "start_date_used":"2005-01-01",
+            "std_prior":"EDGARMINVAL"
+                   }, 
+
     "cf4":{
             "species_print":"PFC-14",
             "period":"yearly",
@@ -425,8 +455,10 @@
                     "intem_NIR2024":"NIR2024_2year_inversion_A",
                         "intem_longrun":"name_edgarminval_longrun",
                        "rhime":"name_edgarminval",
-                       "elris":"name_edgarminval"}
-            },   
+                       "elris":"name_edgarminval"},
+            "start_date_used":"2005-01-01",
+            "std_prior":"EDGARMINVAL"
+                   },
 
     "sf6":{
         "species_print":"SF$_6$",
@@ -453,8 +485,10 @@
         "std_run":{"intem":"NID2025",
                     "intem_longrun":"name_flat_longrun",
                    "rhime":"name_flat",
-                   "elris":"name_flat"}
-        },    
+                   "elris":"name_flat"},
+        "start_date_used":"2007-01-01",
+        "std_prior":"FLAT"
+                   },     
 
     "nf3":{
             "species_print":"NF$_3$",
@@ -481,8 +515,10 @@
             "std_run":{"intem":"NID2025",
                         "intem_longrun":"name_flat_longrun",
                        "rhime":"name_flat",
-                       "elris":"name_flat"}
-            }, 
+                       "elris":"name_flat"},
+            "start_date_used":"1990-01-01",
+            "std_prior":"FLAT"
+                   },  
 
     "n2o":{
         "species_print":"N$_2$O",
@@ -508,8 +544,10 @@
         "mwt":44.0,
         "std_run":{"intem":"NID2025",
                    "rhime":"None",
-                   "elris":"None"}
-        },
+                   "elris":"None"},
+        "start_date_used":"1990-01-01",
+        "std_prior":"EDGAR"
+                   }, 
 
     "hfo1234yf":{
         "species_print":"HFO-1234yf",
@@ -532,8 +570,10 @@
         "difflim_kgkm2yr":[-0.1,0.1],
         "threshold_scale":1e-10,
         "gwp":1,
-        "mwt":114.0
-        },  
+        "mwt":114.0,
+        "start_date_used":"1990-01-01",
+        "std_prior":"FLAT"
+                   },   
 
     "hfo1234zee":{
         "species_print":"HFO-1234zee",
@@ -556,8 +596,10 @@
         "difflim_kgkm2yr":[-0.1,0.1],
         "threshold_scale":1e-10,
         "gwp":1,
-        "mwt":114.0
-        },      
+        "mwt":114.0,
+        "start_date_used":"1990-01-01",
+        "std_prior":"FLAT"
+                   },       
             
     "hcfo1233zde":{
         "species_print":"HCFO-1233zde",
@@ -580,8 +622,10 @@
         "difflim_kgkm2yr":[-0.1,0.1],
         "threshold_scale":1e-10,
         "mwt":130.49,
-        "gwp":1
-        },
+        "gwp":1,
+        "start_date_used":"1990-01-01",
+        "std_prior":"FLAT"
+                   }, 
 
     "clch2ch2cl":{
         "species_print":"DCA",
@@ -604,8 +648,10 @@
         "difflim_kgkm2yr":[-0.1,0.1],
         "threshold_scale":1e-10,
         "mwt":98.96,
-        "gwp":1        
-        },
+        "gwp":1,   
+        "start_date_used":"1990-01-01",
+        "std_prior":"FLAT"
+                   }, 
 
     "ch3br":{
         "species_print":"CH$_3$Br",
@@ -628,8 +674,10 @@
         "difflim_kgkm2yr":[-0.1,0.1],
         "threshold_scale":1e-10,
         "gwp":2,
-        "mwt":94.94
-        },
+        "mwt":94.94,
+        "start_date_used":"1990-01-01",
+        "std_prior":"FLAT"
+                   }, 
 
     "so2f2":{
         "species_print":"SO$_2$F$_2$",
@@ -652,8 +700,10 @@
         "difflim_kgkm2yr":[-0.1,0.1],
         "threshold_scale":1e-10,
         "gwp":4390,
-        "mwt":102.05
-        },
+        "mwt":102.05,
+        "start_date_used":"1990-01-01",
+        "std_prior":"FLAT"
+                   }, 
 
     "f11":{
             "species_print":"CFC-11",
@@ -676,8 +726,10 @@
             "difflim_kgkm2yr":[-0.1,0.1],
             "threshold_scale":1e-10,
             "gwp":6410,
-            "mwt":44.0
-            },
+            "mwt":44.0,
+            "start_date_used":"1990-01-01",
+            "std_prior":"FLAT"
+                   }, 
 
     "f12":{
             "species_print":"CFC-12",
@@ -700,8 +752,10 @@
             "difflim_kgkm2yr":[-0.1,0.1],
             "threshold_scale":1e-10,
             "gwp":12500,
-            "mwt":44.0
-            },
+            "mwt":44.0,
+            "start_date_used":"1990-01-01",
+        "std_prior":"FLAT"
+                   }, 
 
     "h22":{
         "species_print":"HCFC-22",
@@ -724,8 +778,10 @@
         "difflim_kgkm2yr":[-0.1,0.1],
         "threshold_scale":1e-10,
         "gwp":1910,
-        "mwt":86.45
-        },
+        "mwt":86.45,
+        "start_date_used":"1990-01-01",
+        "std_prior":"FLAT"
+                   }, 
 
     "h141b":{
         "species_print":"HCFC-141b",
@@ -748,8 +804,10 @@
         "difflim_kgkm2yr":[-0.1,0.1],
         "threshold_scale":1e-10,
         "gwp":808,
-        "mwt":116.9
-        },
+        "mwt":116.9,
+        "start_date_used":"1990-01-01",
+        "std_prior":"FLAT"
+                   }, 
         
     "h142b":{
         "species_print":"HCFC-142b",
@@ -772,8 +830,10 @@
         "difflim_kgkm2yr":[-0.1,0.1],
         "threshold_scale":1e-10,
         "gwp":2190,
-        "mwt":100.45
-        },
+        "mwt":100.45,
+        "start_date_used":"1990-01-01",
+        "std_prior":"FLAT"
+                   }, 
     
     "ct":{
         "species_print":"CCl$_4$",
@@ -796,8 +856,10 @@
         "difflim_kgkm2yr":[-0.1,0.1],
         "threshold_scale":1e-10,
         "gwp":2150,
-        "mwt":153.8
-        },    
+        "mwt":153.8,
+        "start_date_used":"1990-01-01",
+        "std_prior":"FLAT"
+                   },     
 
     "mc":{
         "species_print":"CH$_3$CCl$_3$",
@@ -820,8 +882,10 @@
         "difflim_kgkm2yr":[-0.1,0.1],
         "threshold_scale":1e-10,
         "gwp":164,
-        "mwt":133.35
-        },
+        "mwt":133.35,
+        "start_date_used":"1990-01-01",
+        "std_prior":"FLAT"
+                   }, 
 
     "h12b1":{
         "species_print":"Halon-1211",
@@ -844,8 +908,10 @@
         "difflim_kgkm2yr":[-0.1,0.1],
         "threshold_scale":1e-10,
         "gwp":1990,
-        "mwt":165.35
-        },
+        "mwt":165.35,
+        "start_date_used":"1995-01-01",
+        "std_prior":"FLAT"
+                   }, 
 
     "h13b1":{
             "species_print":"Halon-1301",
@@ -868,8 +934,10 @@
             "difflim_kgkm2yr":[-0.1,0.1],
             "threshold_scale":1e-10,
             "gwp":7430,
-            "mwt":148.9
-            },
+            "mwt":148.9,
+            "start_date_used":"1995-01-01",
+        "std_prior":"FLAT"
+                   }, 
 
     "h2402":{
             "species_print":"Halon-2402",
@@ -892,8 +960,10 @@
             "difflim_kgkm2yr":[-0.1,0.1],
             "threshold_scale":1e-10,
             "gwp":2260,
-            "mwt":259.8
-            },
+            "mwt":259.8,
+            "start_date_used":"1995-01-01",
+        "std_prior":"FLAT"
+                   }, 
 
     "all_hfc":{
             "species_print":"Total HFC",
