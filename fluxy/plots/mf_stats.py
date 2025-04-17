@@ -4,7 +4,7 @@ import pprint
 import numpy as np
 from fluxy.plots.utils import set_min_decimal_points
 from fluxy import config
-
+import pandas as pd
 
 def print_stats(stats_all: dict[str, dict], stats_to_print: list[str]) -> None:
     """
@@ -83,14 +83,14 @@ def plot_stats_mf(
             raise KeyError(
                 f"{stat} is not a valid key. Options are: pearson, nrmse, rmse, std."
             )
-
+        
         for i, site in enumerate(stats_all[stat].keys()):
             for m, model in enumerate(stats_all[stat][site]):
                 if i == 0:
                     label = model_labels[model]
                 else:
                     label = None
-
+                
                 # Make scatter plot
                 index = i + m * 0.2
                 ax[k].scatter(
@@ -140,6 +140,83 @@ def plot_stats_mf(
     )
 
     # Print stats to screen
-    print_stats(stats_all.copy(), stats_to_plot)
+#    print_stats(stats_all.copy(), stats_to_plot)
 
     return fig
+
+
+def plot_stats_pd_mf(
+    stats: pd.DataFrame,
+    stats_to_plot: list[str],
+    species: str,
+    model_colors,
+    model_labels,
+    config_data,
+    mf_units_print: str,
+    start_date=None,
+    end_date=None,
+) -> Figure:
+    """
+    Plots statistics for all sites, for all models.
+
+    Args:
+        stats_all (dictionary of dictionaries):
+            Statistical measures, for each site and for each model.
+        stats_to_plot (list of str):
+            Statistical measures to plot.
+        species (str):
+            Gas species, e.g. 'ch4'.
+        model_colors (dict of str):
+            Models and corresponding colours used to plot the model.
+        config_data (dict of dict):
+            Dictionary with settings read from json file.
+            Use json filenames as keys.
+        start_date (str) and end_date (str):
+            Dates used to title the plot.
+    Returns:
+        fig (figure):
+            Plot showing each model's fit statistics, for each site.
+    """
+    from fluxy import config
+    
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    models = np.unique(stats['model'].to_numpy())
+    colors = [None] * models.size
+    for i, model in enumerate(models):
+        colors[i] = model_colors[model][0]
+
+    long_stats = pd.melt(stats, id_vars=['model', 'site'], value_vars=stats_to_plot)
+    nrows = len(stats_to_plot)
+    fig, ax = plt.subplots(nrows, 1, figsize=(10, 3 * nrows), tight_layout=True)
+    for i, stat in enumerate(stats_to_plot): 
+        tmp = long_stats[long_stats['variable']==stat].pivot(index='site', columns='model', values='value')
+
+        tmp.plot(kind="bar", 
+             ax=ax[i], 
+             stacked=False, 
+             color=colors, 
+             grid=True, 
+             xlabel="", 
+             legend=False
+            )
+        if stat in ['pearson', 'nrmse', 'nn']:
+            ax[i].set_ylabel(config.stat_labels[stat])
+        else:
+            ax[i].set_ylabel(config.stat_labels[stat]+" ("+mf_units_print+")")
+            
+    leg = ax[0].legend(ncol=3, borderpad=0.2, columnspacing=1.0, loc="upper center", bbox_to_anchor=(0.5, 1.1))
+
+    species_info = config_data["species_info"][species]
+    fig.suptitle(
+        (
+            f'{species_info["species_print"]} model performance versus mole fraction observations'
+        )
+        + f" \n{start_date} to {end_date}"
+    )
+    
+    return fig
+
+
+

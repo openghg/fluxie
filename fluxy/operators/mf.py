@@ -1,5 +1,6 @@
 import numpy as np
 import xarray as xr
+import pandas as pd
 import logging
 from fluxy.operators.select import get_unique_sites, get_site_index
 from fluxy.operators.convert import get_variables
@@ -67,7 +68,7 @@ def compute_mf_difference(
     return ds_diff
 
 
-def stats_mf(ds_all: dict[str, dict]) -> dict[str, dict]:
+def stats_mf(ds_all: dict[str, dict], type='prior') -> pd.DataFrame:
     """
     Calculates multiple statistical measures of the fit between the posterior
     mean mf and the observed mole fraction.
@@ -78,17 +79,24 @@ def stats_mf(ds_all: dict[str, dict]) -> dict[str, dict]:
         ds_all (dictionary of datasets):
             xarray datasets from slice_mf(), sliced between chosen dates
             but still containing all sites.
+        type : 
+            type of statistics to be computed. One of 'prior', 'posterior' for 
+            statistics on the absolute mole fractions and 'prior_above_BC', 
+            'posterior_above_BC' for regional part of mole fraction, i.e. with 
+            BC contribution subtracted from both observation and simulation. 
     Returns:
-        stats (dictionary of dictionaries):
+        stats (pandas.DataFrame):
             Statistical measures, for each site and for each model.
     """
-
+    type_options = ['prior', 'posterior', 'prior_above_BC', 'posterior_above_BC']
+    assert type in type_options, f"'{type}' is not in {type_options}"
     sites_all = get_unique_sites(ds_all)
 
     # Implemented statistics
-    stat_vars = ["pearson", "rmse", "nrmse", "std"]
-
-    stats = {stat: {site: {} for site in sites_all} for stat in stat_vars}
+    stat_vars = ["pearson", "rmse", "bias", "nrmse", "std", "sd_sim", "sd_ref"]
+    
+    # init empty variable to hold DataFrame 
+    stats = None
 
     # Compute stats for all sites and all models
     for site in sites_all:
@@ -97,21 +105,47 @@ def stats_mf(ds_all: dict[str, dict]) -> dict[str, dict]:
             if (site_index is not None) and (
                 ds["Yobs"].isel(nsite=site_index).count() != 0
             ):
-                Yobs = ds["Yobs"].isel(nsite=site_index).dropna(dim="time")
-                Yapost = ds["Yapost"].isel(nsite=site_index).dropna(dim="time")
-
-                stats["pearson"][site][model] = np.corrcoef(Yobs, Yapost)[0, 1]
-                stats["rmse"][site][model] = np.sqrt(np.mean((Yapost - Yobs) ** 2))
-                stats["nrmse"][site][model] = stats["rmse"][site][model] / np.mean(Yobs)
-                stats["std"][site][model] = np.std(Yapost - Yobs)
-
-            else:
-                for stat in stat_vars:
-                    stats[stat][site][model] = np.nan
-
-        # Delete site from dict if first statistics is NaN
-        if all([np.isnan(v) for v in stats["pearson"][site].values()]) == True:
-            for stat in stat_vars:
-                del stats[stat][site]
-
+                # xarray for single site
+                dc = ds.isel(nsite=site_index).dropna(dim="time")
+                
+                # select what to compare
+                if (type=="prior"):
+                    obs = dc["Yobs"]
+                    sim = dc["Yapriori"]
+                elif (type=="posterior"):
+                    obs = dc["Yobs"]
+                    sim = dc["Yapost"]
+                elif (type=="prior_above_BC"):
+                    obs = dc["Yobs"]     - dc["YaprioriBC"]                    
+                    sim = dc["Yapriori"] - dc["YaprioriBC"]                    
+                elif (type=="posterior_above_BC"):
+                    obs = dc["Yobs"]   - dc["YapostBC"]
+                    sim = dc["Yapost"] - dc["YapostBC"]
+                    
+                # calculate stats
+                d = {
+                    'model': model, 
+                    'site': site, 
+                    'pearson': np.corrcoef(obs, sim)[0, 1], 
+                    'rmse': np.sqrt(np.mean((sim-obs)**2)).item(), 
+                    'crmse': np.sqrt(np.mean((sim-obs-np.mean(sim - obs))**2)).item(), 
+                    'bias': np.mean(sim-obs).item(), 
+                    'sd_sim': np.std(sim).item(), 
+                    'sd_ref': np.std(obs).item(), 
+                    'std': np.std(sim - obs).item(),
+                    'nn': np.size(sim)
+                    }            
+                
+                # create DataFrame
+                tmp = pd.DataFrame(data=d, index = [0])                
+                
+                # additional derived stats
+                tmp['nrmse'] = tmp['rmse'].values/np.mean(obs).item(0)                 
+                
+                # concatenate DataFrames after each iteration 
+                if stats is None:
+                    stats = tmp
+                else: 
+                    stats = pd.concat([stats, tmp], ignore_index=True)
+    
     return stats

@@ -59,8 +59,13 @@ flux_labels = {
 stat_labels = {
     "pearson": "Pearson correlation coefficient",
     "rmse": "RMSE",
+    "bias": "Bias",
+    "crmse": "Centered RMSE",
+    "sd_sim": "Simulated StDev",
+    "sd_ref": "Observed StDev",
     "nrmse": "Normalised RMSE",
     "std": "Standard deviation",
+    "nn": "Number of observations"
 }
 
 # Acceptable units and conversion factor to base unit
