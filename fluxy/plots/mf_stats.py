@@ -190,6 +190,9 @@ def plot_stats_pd_mf(
     import numpy as np
 
     models = np.unique(stats['model'].to_numpy())
+    # make sure model_labels remain in correct order
+    model_labels = [model_labels[k] for k in models]
+    
     colors = [None] * models.size
     for i, model in enumerate(models):
         colors[i] = model_colors[model][0]
@@ -222,8 +225,8 @@ def plot_stats_pd_mf(
             ax[i].set_ylabel(config.stat_labels[stat])
         else:
             ax[i].set_ylabel(config.stat_labels[stat]+" ("+mf_units_print+")")
-            
-    leg = ax[0].legend(ncol=3, borderpad=0.2, columnspacing=1.0, loc="upper center", bbox_to_anchor=(0.5, 1.25))
+    
+    leg = ax[0].legend(ncol=3, borderpad=0.2, columnspacing=1.0, loc="upper center", bbox_to_anchor=(0.5, 1.25), labels=model_labels)
 
     species_info = config_data["species_info"][species]
     fig.suptitle(
