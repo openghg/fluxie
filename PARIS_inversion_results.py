@@ -1390,8 +1390,6 @@ def extract_country_sector_flux(models,ds_all_flux_scaled,species,resample,perio
     else:
         ds_merged = ds_all_p.copy()
         
-    print(ds_merged)
-        
     ### extract region fluxes from merged, resampled and rolling-mean-ed datasets
     
     period_all = {}
@@ -1774,7 +1772,11 @@ def plot_country_flux(ds_all_flux_scaled,species,regions,
             inventory_time = None
             inventory_flux = None
             inventory_std = None
-                    
+            
+        if ('region_time_years' in locals()) == False:
+            region_time_years = np.arange(int(start_date[:4]),int(end_date[:4])+1,1)
+            region_time_years = [np.datetime64(f'{y}-01-01').astype('datetime64[Y]') for y in region_time_years]
+                                    
         if plot_separate == True:
             
             for m,model in enumerate(list(ds_merged.keys())):
@@ -1905,7 +1907,8 @@ def plot_country_flux(ds_all_flux_scaled,species,regions,
             ax.grid(visible=True,which='major',alpha=0.4)
         
         # x axis labels used for longer timeseries
-        region_time_years = sorted(np.unique(region_time_years))
+        if region_time_years is not None:
+            region_time_years = sorted(np.unique(region_time_years))
 
         #region_time_years = np.arange(np.datetime64('1998'),
         #                              np.datetime64('2025'),
@@ -1917,8 +1920,12 @@ def plot_country_flux(ds_all_flux_scaled,species,regions,
             ax.set_xlabel('Month')   
         
         elif (region_time_years[-1]-region_time_years[0]).astype('timedelta64[Y]') > 8:
-            ax.set_xticks(region_time_years[::2]+np.timedelta64(5,'M'))
-            ax.set_xticklabels(region_time_years[::2],rotation=90)
+            try:
+                ax.set_xticks(region_time_years[::2]+np.timedelta64(5,'M'))
+                ax.set_xticklabels(region_time_years[::2],rotation=90)
+            except: 
+                ax.set_xticks(region_time[model][region][sector][::2]+np.timedelta64(5,'M'))
+                ax.set_xticklabels(region_time[model][region][sector][::2],rotation=90)
             ax.xaxis.set_minor_formatter(NullFormatter())
 
         else:
@@ -2941,7 +2948,6 @@ def plot_spatial_flux_one_variable(ds_all,species,plot_area,s_data,m_data,var,
             try:
                 var_plot = np.mean(ds_all[m][f'{var}{var_append}'][:,:,:],axis=0)
                 #var_plot = np.sum(ds_all[m][f'{var}{var_append}'][:,:,:],axis=0)
-                print(np.max(var_plot*flux_units_scaling))
             except:
                 print(f'Cannot find inversion_grid variables for {m} so using standard flux output.')
                 var_plot = np.mean(ds_all[m][f'{var}'][:,:,:],axis=0)          
@@ -2980,6 +2986,8 @@ def plot_spatial_flux_one_variable(ds_all,species,plot_area,s_data,m_data,var,
                         lon_id = np.where(mask_lon == lo)[0]
                         if mask[lat_id,lon_id] == sea_code:
                             var_plot[a,b] = np.nan
+
+        print(f'\n{np.nanmax(var_plot*flux_units_scaling)}\n')
   
         ax_var.pcolormesh(lon,lat,var_plot*flux_units_scaling,cmap=cmap,vmin=lim[0],vmax=lim[1],shading='nearest')
 
