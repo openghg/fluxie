@@ -149,14 +149,14 @@ def plot_stats_pd_mf(
     stats: pd.DataFrame,
     stats_to_plot: list[str],
     species: str,
-    model_colors,
-    model_labels,
-    config_data,
+    model_colors: dict[str],
+    model_labels: dict[str],
+    config_data: dict[dict],
     mf_units_print: str,
-    type: str,
-    stats_ylim=None, 
-    start_date=None,
-    end_date=None,
+    stats_type: str,
+    stats_ylim: dict[list] = None, 
+    start_date: str = None,
+    end_date: str = None,
 ) -> Figure:
     """
     Plots statistics for all sites, for all models.
@@ -175,7 +175,7 @@ def plot_stats_pd_mf(
             Use json filenames as keys.
         mf_units_print (str):
             Mole fraction units used in plots
-        type (str):
+        stats_type (str):
             Type of statistics to be plotted. Should be the same as used in call to stats_mf().
         stats_ylim (dict of lists) limits for y-axis of individual statistic plots. Can be given for selected statistics only or passed as None for automatic axis range. 
         start_date (str) and end_date (str):
@@ -192,24 +192,23 @@ def plot_stats_pd_mf(
     models = np.unique(stats['model'].to_numpy())
     # make sure model_labels remain in correct order
     model_labels = [model_labels[k] for k in models]
-    
-    colors = [None] * models.size
-    for i, model in enumerate(models):
-        colors[i] = model_colors[model][0]
+    # plot colors from model names
+    colors = [model_colors[k][0] for k in models]
 
-    if type in ['prior', 'posterior']: 
+    # determine strings used for plot subtitle
+    if stats_type in ['prior', 'posterior']: 
         mf_str = ""
     else: 
         mf_str = " above BC"
-        type = type.split("_")[0]
+        stats_type = stats_type.split("_")[0]
         
     long_stats = pd.melt(stats, id_vars=['model', 'site'], value_vars=stats_to_plot)
     nrows = len(stats_to_plot)
     fig, ax = plt.subplots(nrows, 1, figsize=(10, 3 * nrows), tight_layout=True)
     for i, stat in enumerate(stats_to_plot): 
-        tmp = long_stats[long_stats['variable']==stat].pivot(index='site', columns='model', values='value')
+        df_this_stats = long_stats[long_stats['variable']==stat].pivot(index='site', columns='model', values='value')
 
-        tmp.plot(kind="bar", 
+        df_this_stats.plot(kind="bar", 
              ax=ax[i], 
              stacked=False, 
              color=colors,              
@@ -221,19 +220,21 @@ def plot_stats_pd_mf(
         if stats_ylim is not None:
             if stat in stats_ylim.keys():
                 ax[i].set_ylim(stats_ylim[stat][0], stats_ylim[stat][1])
-        if stat in ['pearson', 'nrmse', 'nn']:
-            ax[i].set_ylabel(config.stat_labels[stat])
-        else:
-            ax[i].set_ylabel(config.stat_labels[stat]+" ("+mf_units_print+")")
+                
+        ylabel = config.stat_labels[stat]
+        if stat not in ['pearson', 'nrmse', 'nn']:            
+            ylabel = ylabel+" ("+mf_units_print+")"
+        ax[i].set_ylabel(ylabel)
     
-    leg = ax[0].legend(ncol=3, borderpad=0.2, columnspacing=1.0, loc="upper center", bbox_to_anchor=(0.5, 1.25), labels=model_labels)
+    leg = ax[0].legend(ncol=3, borderpad=0.2, columnspacing=1.0, loc="upper center", 
+                       bbox_to_anchor=(0.5, 1.25), labels=model_labels)
 
     species_info = config_data["species_info"][species]
     fig.suptitle(
         (
-            f'{species_info["species_print"]} {type} model performance versus mole fraction observations{mf_str}'
+            f'{species_info["species_print"]} {stats_type} model performance versus mole fraction observations{mf_str}'        
+            f"\n{start_date} to {end_date}"
         )
-        + f" \n{start_date} to {end_date}"
     )
     
     return fig
