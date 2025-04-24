@@ -1,11 +1,12 @@
 import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
+from matplotlib.figure import Figure 
 import pprint
 import numpy as np
 from fluxy.plots.utils import set_min_decimal_points
 from fluxy import config
 import pandas as pd
 
+    
 def print_stats(stats_all: dict[str, dict], stats_to_print: list[str]) -> None:
     """
     Prints statistics to screen.
@@ -72,10 +73,6 @@ def plot_stats_mf(
         fig (figure):
             Plot showing each model's fit statistics, for each site.
     """
-    from fluxy import config
-    
-    import matplotlib.pyplot as plt
-    import numpy as np
 
     models = np.unique(stats['model'].to_numpy())
     # make sure model_labels are in the correct order
