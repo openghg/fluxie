@@ -30,6 +30,8 @@ def compute_mf_difference(
             by a minus sign (-).
     """
 
+    
+    
     models = list(ds_all.keys())
 
     if len(models_to_subtract) != 2:
@@ -99,6 +101,12 @@ def stats_mf(
             'nrmse': root mean square error normalised by observation mean,
             'nn': number of value pairs. Index: integer. 
     """
+    
+    # assure that stats_type in allowed options
+    type_options = ['prior', 'posterior', 'prior_above_BC', 'posterior_above_BC']
+    assert stats_type in type_options, f"'{stats_type}' is not in {type_options}"
+    
+    # names of sites
     sites_all = get_unique_sites(ds_all)
  
     # init empty list to hold results for individual sites 
