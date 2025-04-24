@@ -25,7 +25,11 @@ config_data = read_config_files()
 annotate_coords = set_print_settings()
 
 species = "hfc134a"  # options for individual species, or 'all_hfc' or 'all_pfc'
-models = ["InTEM_NAME_EDGAR_std", "ELRIS_NAME_EDGAR_std", "RHIME_NAME_EDGAR_std"]
+models = [
+    "InTEM_NAME_EUROPE_EDGAR_std",
+    "ELRIS_NAME_EUROPE_EDGAR_std",
+    "RHIME_NAME_EUROPE_EDGAR_std",
+]
 regions = ["GERMANY", "UK", "BENELUX", "NW_EU2"]
 period = "yearly"  # use to override standard inversion periods, must be a list the same length as models, e.g. ['monthly','yearly']
 country_flux_units_print = "Gg yr-1"

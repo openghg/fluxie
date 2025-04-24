@@ -13,7 +13,11 @@ def test_read_flux():
     config_data = read_config_files()
 
     species = "hfc134a"  # options for individual species, or 'all_hfc' or 'all_pfc'
-    models = ["InTEM_NAME_EDGAR_std", "ELRIS_NAME_EDGAR_std", "RHIME_NAME_EDGAR_std"]
+    models = [
+        "InTEM_NAME_EUROPE_EDGAR_std",
+        "ELRIS_NAME_EUROPE_EDGAR_std",
+        "RHIME_NAME_EUROPE_EDGAR_std",
+    ]
     period = "yearly"
     country_flux_units_print = "Gg yr-1"
     start_date = "2018-01-01"  # inclusive. Option to set as list of dates, e.g. ['2018-01-01','2019-01-01'] which is required for total fgases if one model is missing obs for a year

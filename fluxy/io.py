@@ -110,20 +110,16 @@ def get_filename(
     # Get file name tags
     name_tags = model.split("_")
     model_name = name_tags[0]
-    param_tags = name_tags[3:]
 
     # Replace parameter tags by dict values in config
     filename_tags = config_data["models_info"].get("filename_tags", None)
     if filename_tags is not None:
-        for i, param in enumerate(param_tags):
+        for i, param in enumerate(name_tags):
             string_in_file = filename_tags.get(param, None)
 
             if string_in_file is not None:
                 string_in_file = string_in_file.replace("<model>", model_name.lower())
-                name_tags[i + 3] = string_in_file
-
-    # Add domain to filename tags
-    name_tags.insert(2, config_data["regions_info"]["domain"])
+                name_tags[i] = string_in_file
 
     # Build filename
     model_filename = "_".join(name_tags)

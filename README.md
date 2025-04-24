@@ -20,14 +20,16 @@ Note: in the ICOS Jupyter Hub, you might need to restart the kernel so that pack
 Data format must be in agreement with the PARIS-AVENGERS-EYECLIMA template.
 
 Filenames should follow the following format:  
-`<inversionModel>_<transportModel>_<domain>_<prior>_<optional_tags>_<species>_<inversionFrequency>(_concentration).nc`
+`<inversionModel>_<optional_identifying_tags>_<species>_<inversionFrequency>(_concentration).nc`
 
 Note that the part within parenthesis refers to the concentration file only.
 `<inversionFrequency>` should be equal to "yearly" or "monthly".
 
+For easy traceability and nice automatic labels, consider replacing `<optional_identifying_tags>` by `<transportModel>_<domain>_<prior>`.
+
 e.g.:  
-InTEM_NAME_EUROPE_EDGAR_4sites_hfc134a_yearly.nc  
-InTEM_NAME_EUROPE_EDGAR_4sites_hfc134a_yearly_concentration.nc
+InTEM_NAME_EUROPE_EDGAR_hfc134a_yearly.nc  
+InTEM_NAME_EUROPE_EDGAR_hfc134a_yearly_concentration.nc
 
 The following folder structure is expected:
 `/path/to/data/<inversionModel>/<species>/`
@@ -38,7 +40,6 @@ Example file located in folder configs/.
 
 | Variables     | Type                      | Description  |
 |:--------------|:--------------------------|:-------------|
-| domain        | str                       | Domain name tag used in the filename (e.g. "EUROPE"). |
 | country_codes | dict[str,str]             | Country names and respective ISO 3166-1 alpha-3 codes. |
 | regions       | dict[str,str]             | Regions corresponding to aggregation of countries. |
 | point_source  | dict[str,list]            | Latitude/longitude coordinates of points of interest. |
@@ -102,11 +103,10 @@ The notebook that allows you plot the different variables of interest is located
 
 1. In the first notebook cell, specify the path to the data and the `experiments` dictionary which points to the model runs you want to plot.
 
-The model runs are identified by providing the following sequence of name tags:
-`<inversionModel>_<transportModel>_<prior>_<optional_tags>` (e.g.: "InTEM_NAME_EDGAR_4sites")
+The model runs are identified by providing the output name tags:
+`<inversionModel>_<optional_identifying_tags>` (e.g.: "InTEM_NAME_EUROPE_EDGAR")
 
-Note that `<domain>` is not specified in the name of the model run because it is defined in regions_info.json (see #2).
-`<species>` and `<inversionFrequency>` are not specified in the model run name because they are defined in designated variables in the notebook.
+Note that `<species>` and `<inversionFrequency>` are not specified in the model run name because they are defined in designated variables in the notebook.
 If the sequence of name tags is too long, a simplified name tag can be defined in `filename_tags` in models_info.json (see #3).
 
 2. The notebook is organized in 3 sections numbered 1 to 3. At the top of each section, specify the models you want to plot, species name, start/end dates, etc (plotting options are described in front of each variable). Run the top cell to read in the data and select values between the chosen dates.
