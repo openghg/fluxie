@@ -779,10 +779,9 @@ def convert_new_format_mf(m0: str, ds: xr.Dataset):
             }
         )
 
-    # Model specific corrections
-    if m0 == "cif-4dvar":
-        ds_assimilated["platform"] = ds_assimilated["platform"].astype("str")
+    ds_assimilated["platform"] = ds_assimilated["platform"].astype("str")
 
+    if m0 == "cif-4dvar":
         # Fix mf units to ppb (WARNING! ONLY FOR N2O!)
         var_names, x = get_variables(ds_assimilated, "mf")
         for var in var_names:
