@@ -18,6 +18,7 @@ authors = [
   {name = "Daniela Brito Melo", email = "daniela.britomelo@empa.ch"},
   {name = "Hélène De Longueville", email = "helene.delongueville@bristol.ac.uk"},
   {name = "Lionel Constantin", email = "lionel.constantin@empa.ch"},
+  {name = "Stephan Henne", email = "stephan.henne@empa.ch"},
 ]
 maintainers = [
   {name = "Alexandre Danjou", email = "alexandre.danjou@bristol.ac.uk"},
