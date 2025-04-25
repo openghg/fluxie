@@ -1077,19 +1077,26 @@ def extract_region_inventory_flux(country,data_dir,species,
                 
         try:
             try:
-                with xr.open_dataset(sorted(glob.glob(os.path.join(data_dir,'inventory',f'{filename}_{species}_*.nc')))[-1]) as f:
+                i_file = sorted(glob.glob(os.path.join(data_dir,'inventory',f'{filename}_{species}_*.nc')))[-1]
+                with xr.open_dataset(i_file) as f:
                     inv_ds = f
             except:
-                with xr.open_dataset(os.path.join(data_dir,'inventory',f'{filename}_{s_data[species]["model_species"]["intem"]}.nc')) as f:
+                i_file = os.path.join(data_dir,'inventory',f'{filename}_{s_data[species]["model_species"]["intem"]}.nc')
+                with xr.open_dataset(i_file) as f:
                     inv_ds = f
+            print(f'Using inventory data from {i_file}')
+               
         except:
             inventory_flux = None
             inventory_time = None
             
     else:
         try:
-            with xr.open_dataset(sorted(glob.glob(os.path.join(data_dir,'inventory',f'{filename}_{species}_{inventory_year}.nc')))[-1]) as f:
+            i_file = sorted(glob.glob(os.path.join(data_dir,'inventory',f'{filename}_{species}_{inventory_year}.nc')))[-1]
+            with xr.open_dataset(i_file) as f:
                     inv_ds = f
+            print(f'Using inventory data from {i_file}')
+
         except:
             print(f'No {species} inventory data available for year {inventory_year}.')
             inventory_flux = None
@@ -1099,7 +1106,6 @@ def extract_region_inventory_flux(country,data_dir,species,
         inv_ds = inv_ds.sel(time=slice(start_date,end_date))
         inv_c_index = np.where(inv_ds['country'].values == country)[0][0]
         
-
         if sector == 'total' and filename == 'UNFCCC_inventory':
             inventory_flux = inv_ds['inventory'].values[:,inv_c_index]/scale_factor * gwp
         else:
@@ -1442,7 +1448,7 @@ def extract_country_sector_flux(models,ds_all_flux_scaled,species,resample,perio
                 region_flux_lower[model][region][sector],region_flux_upper[model][region][sector],\
                 region_flux_prior_lower[model][region][sector],\
                 region_flux_prior_upper[model][region][sector] = extract_region_flux(ds_merged,model,m0,region,sector=sector)
-                        
+                                                
                 if ('region_time_years' in locals()) == False:
                     region_time_years = region_time[model][region][sector].astype('datetime64[Y]')
                 else:
@@ -2531,7 +2537,7 @@ def create_annual_report_tables(ds_all_flux_scaled,models,models_priority,period
                                                                     filename=filename)
             if inventory_time_all[region][sector] is not None:
                 inventory_time_all[region][sector] = [str(t.astype('datetime64[Y]')) for t in inventory_time_all[region][sector]]
-        
+
     ### create table header and footer
     
     m0 = models[0].split('_')[0]
@@ -2541,16 +2547,18 @@ def create_annual_report_tables(ds_all_flux_scaled,models,models_priority,period
     units_scaling = s_data[species]["units_scaling"][m0]
     
     if units_scaling == 1e3:
-        units_caption = 'Mg'
+        units_caption = 'Mg yr$^{-1}$'
     elif units_scaling == 1e6:
-        units_caption = 'Gg'
+        units_caption = 'Gg yr$^{-1}$'
     elif units_scaling == 1e9:
-        units_caption = 'Tg'
+        units_caption = 'Tg yr$^{-1}$'
+    elif 'all' in species:
+        units_caption = 'Tg yr$^{-1}$ CO$_2$-eq'
 
     latexheaderitems = ['\\begin{table}[H]',
                         '\captionsetup{width=0.9\linewidth}',
                         '\centering',
-                        f'\caption{{{s_data[species]["species_print"]} emission ({units_caption} yr$^{{-1}}$) estimates with 1-$\sigma$ uncertainty.}}',
+                        f'\caption{{{s_data[species]["species_print"]} emission ({units_caption}) estimates with 1-$\sigma$ uncertainty.}}',
                         f'\label{{table:{species}_emit}}',
                         '{\\begin{tabular}{|l|'+col_setup+'}',
                         '\hline',
@@ -2559,6 +2567,9 @@ def create_annual_report_tables(ds_all_flux_scaled,models,models_priority,period
     header_line2 = '& '
     header_line3 = 'Years & '
     header_line5 = '& '
+    
+    if len(regions) == 1:
+        header_line5 += '& '
                        
     if sectors == ['total']:
         
@@ -2590,17 +2601,17 @@ def create_annual_report_tables(ds_all_flux_scaled,models,models_priority,period
                 if r == len(regions)-1 and s == len(sectors)-1:
                     header_line2 += r'\\'
                     header_line3 += r'\\'
-                   #header_line5 += r'\\'
+                    header_line5 += r'\\'
                     
                 else:
                     header_line2 += '& '
                     header_line3 += '& '
-                    #header_line5 += '& & & '
+                    header_line5 += '& & & '
             
     latexheaderitems.append(header_line2)
     latexheaderitems.append(header_line3)
     latexheaderitems.append('\hline')
-    #latexheaderitems.append(header_line5)
+    latexheaderitems.append(header_line5)
     
     latexfooteritems = ['\hline',
                         '\end{tabular}',
@@ -2643,19 +2654,19 @@ def create_annual_report_tables(ds_all_flux_scaled,models,models_priority,period
 
     print(f'If the units table are not correct, edit the units_scaling variable in species_info.json to adjust this.\n')
 
-
     latexlines = []
     txtlines = []
     
     for m,model in enumerate(list(region_time.keys())):
-        for t,data_time in enumerate (region_time[model][regions[-1]][sectors[0]]):
+        for t,data_time in enumerate (region_time[model][regions[0]][sectors[0]]):
             dataline = str(data_time)
             dataline_txt = str(data_time)
-            if inventory_time_all[region] is not None:
-                if data_time in inventory_time_all[region][sectors[0]]:
-                    if data_time == inventory_time_all[region][sectors[0]][t]:
-                        for s,sector in enumerate(sectors):
-                            for r,region in enumerate(regions):
+            for s,sector in enumerate(sectors):
+                for r,region in enumerate(regions):
+                    if inventory_time_all[region][sectors[0]] is not None:
+                        if data_time in inventory_time_all[region][sectors[0]]:
+                            if data_time == inventory_time_all[region][sectors[0]][t]:
+                        
                                 if all(a == 0 for a in inventory_flux_uncert_all[region][sector]):
                                     dataline += f'& {inventory_flux_all[region][sector][t]:6.{inv_str_chars}f}'
                                     dataline_txt += f',{inventory_flux_all[region][sector][t]:6.{inv_str_chars}f}'
@@ -2676,13 +2687,14 @@ def create_annual_report_tables(ds_all_flux_scaled,models,models_priority,period
                                 
                                 if r == len(regions)-1 and s == len(sectors)-1:
                                     dataline += r' \\'
-                        latexlines.append(dataline)
-                        txtlines.append(dataline_txt)
-                    else:
-                        print('Inventory and InTEM timestamps do not match, check read in of data.')
-                else:
-                    for r,region in enumerate(regions):
-                        for s,sector in enumerate(sectors):
+                                #latexlines.append(dataline)
+                                #txtlines.append(dataline_txt)
+                            else:   #data_time == inventory_time_all[region][sectors[0]][t]
+                                print('Inventory and InTEM timestamps do not match, check read in of data.')
+                        
+                        else:   #data_time in inventory_time_all[region][sectors[0]]:
+                            #for r,region in enumerate(regions):
+                            #    for s,sector in enumerate(sectors):
                             dataline += f'& '
                             if include_uncert == True:
                                 dataline_txt += f',,'                            
@@ -2697,12 +2709,12 @@ def create_annual_report_tables(ds_all_flux_scaled,models,models_priority,period
                                 
                             if r == len(regions)-1 and s == len(sectors)-1:
                                 dataline += r' \\'
-                    latexlines.append(dataline)
-                    txtlines.append(dataline_txt)
+                            #latexlines.append(dataline)
+                            #txtlines.append(dataline_txt)
 
-            else:
-                for r,region in enumerate(regions):
-                    for s,sector in enumerate(sectors):
+                    else:   #if inventory_time_all[region] is not None:
+                        #for r,region in enumerate(regions):
+                        #    for s,sector in enumerate(sectors):
                         dataline += f'& '
                         dataline_txt += f',,'
                         if include_uncert == True:
@@ -5137,5 +5149,116 @@ def plot_inventory_sector_flux(start_date,end_date,inv_sectors,inv_labels,inv_co
         if fix_y_axes is not None:
             ax.set_ylim(fix_y_axes)
     
+    return fig
+
+def plot_combined_gases(species_all, ds_all_flux_scaled, inventory_year, region,
+                        s_data,data_dir='/data/users/intem_ghg/inversion/PARIS_results_sharing',
+                        start_date='2013-01-01',end_date='2025-01-01'):
+    
+    means = {}
+    stds = {}
+    inv_uncert = {}
+    inventory = {}
+    means_time = {}
+    inventory_time = {}
+    
+    resample = [None]
+    rolling_mean = [3]
+    period_override = ['yearly']
+    
+    for s,species in enumerate(species_all):
+        
+        if species == 'n2o':
+            resample = ['year']
+            rolling_mean = [None]
+            period_override = ['monthly']
+        else:
+            resample = [None]
+            rolling_mean = [3]
+            period_override = ['yearly']
+        
+        models = list(ds_all_flux_scaled[species].keys())
+        print(models[0])
+        
+        ds_all_p,ds_merged,period_all,\
+        region_time,region_flux,region_flux_lower,region_flux_upper,region_flux_prior,\
+        region_flux_prior_lower,region_flux_prior_upper,plot_prior_adjusted,\
+        region_time_combined,\
+        region_flux_combined,region_flux_prior_combined,region_flux_lower_combined,\
+        region_flux_upper_combined = extract_country_sector_flux(models,
+                                                                 ds_all_flux_scaled[species],species,resample,period_override,
+                                                s_data,resample_uncert_correlation=False,rolling_mean=rolling_mean,
+                                                plot_resample_and_original=False,combine_to_one_timeseries=False,
+                                                models_priority=[0],regions=region,sectors=['total'])
+
+        means[species] = region_flux[models[0]][region[0]]['total']
+        stds[species] = region_flux_upper[models[0]][region[0]]['total'] - region_flux[models[0]][region[0]]['total']
+        means_time[species] = region_time[models[0]][region[0]]['total'].astype('datetime64[Y]').astype('datetime64[D]')
+    
+        inventory_flux,inventory_flux_uncert,\
+        inventory_time_in = extract_region_inventory_flux(country=region,data_dir=data_dir,
+                                                                        species=species,s_data=s_data,
+                                                                        scale_co2eq=True,start_date=start_date,
+                                                                        end_date=end_date,
+                                                                        inventory_year=inventory_year,sector='total',
+                                                                        filename='UNFCCC_inventory')
+    
+        inventory[species] = np.array(inventory_flux)
+        inv_uncert[species] = np.array(inventory_flux_uncert)
+        inventory_time[species] = inventory_time_in
+        
+        print(inventory_flux)
+        print(inventory[species])
+        
+        
+        if s == 0:
+            total_std = (stds[species])**2
+            inventory_total_std = inventory_flux_uncert**2
+        else:
+            total_std = total_std + (stds[species])**2
+            inventory_total_std = inventory_total_std + (inventory_flux_uncert)**2
+            
+    total_std = np.sqrt(total_std)
+    inventory_total_std = np.sqrt(inventory_total_std)
+        
+    fig,ax = plt.subplots(1,1,figsize=(15,7))
+    
+    width = 150
+    colors = ['darkblue','turquoise','firebrick','darkorchid','darkorange','dodgerblue']
+    
+    for s,species in enumerate(species_all):
+
+        if s == 0:
+            
+            ax.bar(means_time[species]-np.timedelta64(int(width/2),'D'),means[species],color=colors[s],
+                   label=s_data[species]['species_print'],width=width,alpha=0.7)
+            ax.bar(inventory_time[species]+np.timedelta64(int(width/2),'D'),inventory[species],color='grey',
+                   label=f'{inventory_year} inventory',width=np.timedelta64(width,'D'),alpha=0.7,edgecolor='black')
+            
+            total_flux = means[species]
+            total_inventory = inventory[species]
+            
+        else:
+            
+            ax.bar(means_time[species]-np.timedelta64(int(width/2),'D'),means[species],color=colors[s],
+                   label=s_data[species]['species_print'],bottom=total_flux,width=width,alpha=0.7)
+            ax.bar(inventory_time[species]+np.timedelta64(int(width/2),'D'),inventory[species],color='grey',
+                   bottom=total_inventory,width=np.timedelta64(width,'D'),alpha=0.7,edgecolor='black')
+                        
+            total_flux += means[species]
+            total_inventory += inventory[species]
+            
+    ax.errorbar(means_time[species]-np.timedelta64(int(width/2),'D'),total_flux,yerr=total_std,marker="",
+                color='none',ecolor='black',capsize=3)
+    ax.errorbar(inventory_time[species]+np.timedelta64(int(width/2),'D'),total_inventory,yerr=inventory_total_std,marker="",
+                color='none',ecolor='black',capsize=3)
+    
+    ax.set_ylabel("UK emissions Tg y$^{-1}$ CO$_2$-eq")
+    ax.legend(loc=9,ncols=3)
+    ax.set_ylim([0,150])
+    
+    ax.set_xticks(means_time[species])
+    ax.set_xticklabels(means_time[species].astype('datetime64[Y]'))
+        
     return fig
     
