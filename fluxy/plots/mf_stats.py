@@ -22,7 +22,7 @@ def plot_stats_mf(
     Plots statistics for all sites, for all models.
 
     Args:
-        stats_all (dictionary of dictionaries):
+        stats (pandas.DataFrame):
             Statistical measures, for each site and for each model.
         stats_to_plot (list of str):
             Statistical measures to plot.
@@ -30,6 +30,8 @@ def plot_stats_mf(
             Gas species, e.g. 'ch4'.
         model_colors (dict of str):
             Models and corresponding colours used to plot the model.
+        model_labels (dict of str):
+            Models and corresponding labels used to plot the stats.
         config_data (dict of dict):
             Dictionary with settings read from json file.
             Use json filenames as keys.
