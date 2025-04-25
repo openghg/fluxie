@@ -16,6 +16,7 @@ from fluxy import config
 from fluxy.operators.regions import extract_region_flux
 from fluxy.operators.select import slice_flux
 from fluxy.operators.flux_align_dataset import align_time
+from fluxy.operators.convert import get_variables
 
 logger = logging.getLogger(__name__)
 
@@ -540,8 +541,11 @@ def edit_vars_and_attributes(
         ds.attrs["frequency"] = frequency
 
     # Temporary conversion from new format to old format
-    if m0 == "cif":
-        ds = convert_new_format(ds, file_type)
+    if m0 in ["cif-enks","cif-4dvar"]:
+        if file_type == "flux":
+            ds = convert_new_format_flux(m0, ds)
+        elif file_type == "concentration":
+            ds = convert_new_format_mf(m0, ds)
 
     # Fix flux dataset
     if file_type == "flux":
@@ -677,20 +681,23 @@ def edit_vars_and_attributes(
     return ds
 
 
-def convert_new_format(ds: xr.Dataset, file_type: str):
+def convert_new_format_flux(m0: str, ds: xr.Dataset):
 
-    if file_type == "flux":
-        # Rename variables
-        ds = ds.rename(
-            {
-                "flux_total_prior_country": "country_flux_total_prior",
-                "flux_total_posterior_country": "country_flux_total_posterior",
-                "covariance_flux_total_posterior_country": "covariance_country_flux_total_posterior",
-                "covariance_flux_total_prior_country": "covariance_country_flux_total_prior",
-            }
-        )
+    # Rename variables
+    # NOTE: no covariance for EYE-CLIMA (25 Apr)
+    vars_to_rename = {"flux_total_prior_country": "country_flux_total_prior",
+                      "flux_total_posterior_country": "country_flux_total_posterior",
+                      "covariance_flux_total_posterior_country": "covariance_country_flux_total_posterior",
+                      "covariance_flux_total_prior_country": "covariance_country_flux_total_prior",
+                      }
+    
+    for var, new_name in vars_to_rename.items():
+        if var in ds.variables:
+            ds = ds.rename({var: new_name})
 
-        # Convert stdev into percentile
+    # Convert stdev into percentile
+    # NOTE: no stdev for EYE-CLIMA (25 Apr)
+    if "stdev_flux_total_posterior_country" in ds.keys():
         ds["percentile_country_flux_total_posterior"] = xr.concat(
             [
                 ds["country_flux_total_posterior"]
@@ -701,6 +708,12 @@ def convert_new_format(ds: xr.Dataset, file_type: str):
             pd.Index([0, 1], name="percentile"),
         )
 
+        # Update units
+        ds["percentile_country_flux_total_posterior"].attrs["units"] = ds[
+            "stdev_flux_total_posterior_country"
+        ].attrs["units"]
+
+    if "stdev_flux_total_prior_country" in ds.variables:
         ds["percentile_country_flux_total_prior"] = xr.concat(
             [
                 ds["country_flux_total_prior"] - ds["stdev_flux_total_prior_country"],
@@ -709,18 +722,29 @@ def convert_new_format(ds: xr.Dataset, file_type: str):
             pd.Index([0, 1], name="percentile"),
         )
 
-        # Update units of percentile variables
-        ds["percentile_country_flux_total_posterior"].attrs["units"] = ds[
-            "stdev_flux_total_posterior_country"
-        ].attrs["units"]
+        # Update units
         ds["percentile_country_flux_total_prior"].attrs["units"] = ds[
             "stdev_flux_total_prior_country"
         ].attrs["units"]
 
+    # Model specific corrections
+    if m0 == "cif-enks":
         # Move time variable to center of the month
         ds["time"] = ds.time.values + np.timedelta64(15, "D")
 
-    elif file_type == "concentration":
+    elif m0 == "cif-4dvar":
+        # Set country to string and rename
+        ds["country"] = ds["country"].astype("str")
+        ds = ds.set_index(countrynumber="country").rename(
+            {"countrynumber": "country"}
+        )
+
+    return ds
+
+
+def convert_new_format_mf(m0: str, ds: xr.Dataset):
+
+    if "assimilation_flag" in ds.keys():
         # Create filtered dataset with renamed variables
         mask = ds["assimilation_flag"] == 1
         ds_assimilated = xr.Dataset(
@@ -737,39 +761,63 @@ def convert_new_format(ds: xr.Dataset, file_type: str):
                 "index": ds["index"].where(mask, drop=True),
             }
         )
-
-        # Set time and platform as dimensions
-        ds_assimilated = ds_assimilated.set_coords(["time", "platform"])
-        ds_assimilated = ds_assimilated.set_index(index=["time", "platform"])
-
-        # Create reshaped dataset
-        ds_reshaped = xr.Dataset(
+    else:
+        # Rename variables only
+        # NOTE: I have created a new dataset to simplify reshaping
+        ds_assimilated = xr.Dataset(
             {
-                "Yobs": ds_assimilated["Yobs"].unstack(),
-                "Yapriori": ds_assimilated["Yapriori"].unstack(),
-                "Yapost": ds_assimilated["Yapost"].unstack(),
-                "YaprioriBC": ds_assimilated["YaprioriBC"].unstack(),
-                "YapostBC": ds_assimilated["YapostBC"].unstack(),
-                "uYmod": ds_assimilated["uYmod"].unstack(),
-                "uYtotal": ds_assimilated["uYtotal"].unstack(),
+                "Yobs": ds["mf_observed"],
+                "Yapriori": ds["mf_prior"],
+                "Yapost": ds["mf_posterior"],
+                "YaprioriBC": ds["mf_bc_prior"],
+                "YapostBC": ds["mf_bc_posterior"],
+                "uYmod": ds["stdev_mf_model"],
+                "uYtotal": ds["stdev_mf_total"],
+                "platform": ds["platform"],
+                "time": ds["time"],
+                "index": ds["index"],
             }
         )
 
-        # Create sitenames variable and convert to upper case
-        sitenames = ds_reshaped["platform"].values
+    # Model specific corrections
+    if m0 == "cif-4dvar":
+        ds_assimilated["platform"] = ds_assimilated["platform"].astype("str")
+
+        # Fix mf units to ppb (WARNING! ONLY FOR N2O!)
+        var_names, x = get_variables(ds_assimilated, "mf")
+        for var in var_names:
+            ds_assimilated[var].attrs["units"] = "ppb"
+
+    # Set time and platform as dimensions
+    ds_assimilated = ds_assimilated.set_coords(["time", "platform"])
+    ds_assimilated = ds_assimilated.set_index(index=["time", "platform"])
+
+    # Create reshaped dataset
+    ds_reshaped = xr.Dataset(
+        {
+            "Yobs": ds_assimilated["Yobs"].unstack(),
+            "Yapriori": ds_assimilated["Yapriori"].unstack(),
+            "Yapost": ds_assimilated["Yapost"].unstack(),
+            "YaprioriBC": ds_assimilated["YaprioriBC"].unstack(),
+            "YapostBC": ds_assimilated["YapostBC"].unstack(),
+            "uYmod": ds_assimilated["uYmod"].unstack(),
+            "uYtotal": ds_assimilated["uYtotal"].unstack(),
+        }
+    )
+
+    # Create sitenames variable
+    sitenames = ds_reshaped["platform"].values
+    if m0 == "cif-enks":
+        # Convert to upper case and drop "_C" for continuos data
         sitenames = [site.upper() for site in sitenames]
         for i, site in enumerate(sitenames):
-            # Drop "_C" for continuos data
             site_id, dtype = site.split("_")
             if dtype == "C":
                 sitenames[i] = site_id
 
-        ds_reshaped["sitenames"] = xr.DataArray(sitenames, dims=["nsite"])
+    ds_reshaped["sitenames"] = xr.DataArray(sitenames, dims=["nsite"])
 
-        # Rename platform to nsite
-        ds_reshaped = ds_reshaped.rename({"platform": "nsite"}).drop_vars("nsite")
+    # Rename platform to nsite
+    ds_reshaped = ds_reshaped.rename({"platform": "nsite"}).drop_vars("nsite")
 
-        # Update ds
-        ds = ds_reshaped
-
-    return ds
+    return ds_reshaped

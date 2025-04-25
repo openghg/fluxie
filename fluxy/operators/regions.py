@@ -61,6 +61,7 @@ def extract_region_flux(
         # search for existing region names
         available_countries = ds["country"].values.astype(str)
 
+        # get region data from country aggregates
         if (
             country_search not in available_countries
             and country in regions_info["regions"].keys()
@@ -73,24 +74,33 @@ def extract_region_flux(
 
             country_list = region_search.split("-")
             ds_region = ds.sel({"country": country_list})
-            if "country_2" in ds_region.dims:
-                ds_region = ds_region.sel({"country_2": country_list})
+            if "country2" in ds_region.dims:
+                ds_region = ds_region.sel({"country2": country_list})
 
             for v in ["posterior", "prior"]:
                 ds_region[v] = ds_region[f"country_flux_total_{v}"].sum(dim="country")
 
-            ds_region["sigma_prior"] = np.sqrt(
-                (
+            # Compute sigma prior
+            if "percentile_country_flux_total_prior" in ds.variables:
+                ds_region["sigma_prior"] = np.sqrt(
                     (
-                        ds.country_flux_total_prior
-                        - ds.percentile_country_flux_total_prior.isel(
-                            percentile=min_percentile_index
+                        (
+                            ds.country_flux_total_prior
+                            - ds.percentile_country_flux_total_prior.isel(
+                                percentile=min_percentile_index
+                            )
                         )
-                    )
-                    ** 2
-                ).sum(dim="country")
-            )
+                        ** 2
+                    ).sum(dim="country")
+                )
 
+            else:
+                logger.warning(
+                    f"Prior country flux percentiles are not available for {m}. A priori uncertainty of {country} emissions will not be plotted."
+                )
+                ds_region["sigma_prior"] = np.nan * ds_region["prior"]
+
+            # Compute sigma posterior
             if "covariance_country_flux_total_posterior" in ds.variables:
                 ds_region["sigma_posterior"] = np.sqrt(
                     ds_region["covariance_country_flux_total_posterior"]
@@ -108,18 +118,27 @@ def extract_region_flux(
                 ds_region[f"{v}_lower"] = ds_region[v] - ds_region[f"sigma_{v}"]
                 ds_region[f"{v}_upper"] = ds_region[v] + ds_region[f"sigma_{v}"]
 
+        # get region data from dataset
         elif country_search in available_countries:
             ds_region = ds.sel({"country": country_search})
 
             for v in ["posterior", "prior"]:
                 ds_region[v] = ds_region[f"country_flux_total_{v}"]
 
-                ds_region[f"{v}_lower"] = ds_region[
-                    f"percentile_country_flux_total_{v}"
-                ].isel(percentile=min_percentile_index)
-                ds_region[f"{v}_upper"] = ds_region[
-                    f"percentile_country_flux_total_{v}"
-                ].isel(percentile=max_percentile_index)
+                if f"percentile_country_flux_total_{v}" in ds.variables:
+                    ds_region[f"{v}_lower"] = ds_region[
+                        f"percentile_country_flux_total_{v}"
+                    ].isel(percentile=min_percentile_index)
+                    ds_region[f"{v}_upper"] = ds_region[
+                        f"percentile_country_flux_total_{v}"
+                    ].isel(percentile=max_percentile_index)
+                
+                else:
+                    logger.warning(
+                        f"{v} country flux percentiles are not available for {m}. {v} uncertainty of {country} emissions will not be plotted."
+                    )
+                    ds_region[f"{v}_lower"] = np.nan * ds_region[v]
+                    ds_region[f"{v}_upper"] = np.nan * ds_region[v]
 
         else:
             raise ValueError(f"{country_search} ({country}) is not available for {m}")

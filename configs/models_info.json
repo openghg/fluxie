@@ -30,8 +30,7 @@
                   "pfc116": "PFC_116",
                   "cf4": "CF4",
                   "clch2ch2cl": "ClCH2CH2Cl"
-                },
-        "CIF": {"n2o": "N2O"}
+                }
     },
 
     "standard_run":{
