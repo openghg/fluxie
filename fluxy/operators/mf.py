@@ -121,7 +121,7 @@ def stats_mf(
                 ds["Yobs"].isel(nsite=site_index).count() != 0
             ):
                 # xarray for single site
-                ds_site = ds.isel(nsite=site_index).dropna(dim="time")
+                ds_site = ds.isel(nsite=site_index).dropna(dim="time", subset=["Yobs"])
 
                 # select what to compare
                 if stats_type == "prior":
