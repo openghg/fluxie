@@ -103,7 +103,9 @@ set_fluxlim = "auto"
 set_fluxlim_percentile = None
 plot_inversion_grid_flux = False
 
-stats_to_plot = ["pearson", "nrmse", "rmse"]
+stats_to_plot = ["pearson", "bias", "crmse"]
+what_to_compare = "posterior_above_BC"
+stats_ylim = {"pearson": [0, 1], "bias": [-1.5, 0.5], "crmse": [0, 1.5]}
 
 
 def test_flux_timeseries():
@@ -224,15 +226,18 @@ def test_plot_stats():
         mf_units_print=mf_units_print,
     )
 
-    stats = stats_mf(ds_all_allsites)
+    stats = stats_mf(ds_all_allsites, stats_type=what_to_compare)
 
     fig = plot_stats_mf(
-        stats,
-        stats_to_plot,
-        species,
-        model_colors,
-        model_labels,
-        config_data,
+        stats=stats,
+        stats_to_plot=stats_to_plot,
+        species=species,
+        model_colors=model_colors,
+        model_labels=model_labels,
+        config_data=config_data,
+        mf_units_print=mf_units_print,
+        stats_type=what_to_compare,
+        stats_ylim=stats_ylim,
         start_date=start_date,
         end_date=end_date,
     )

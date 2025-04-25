@@ -16,14 +16,14 @@ lux_pop = np.array([0.602, 0.614, 0.626, 0.635, 0.645, 0.661])
 bel_pop_r = np.round(np.mean(bel_pop / (bel_pop + lux_pop)), 3)
 
 mf_labels = {
-    "Yapriori": "prior mf",
-    "Yapost": "posterior mean mf",
+    "Yapriori": "prior",
+    "Yapost": "posterior",
     "YaprioriBC": "prior baseline",
-    "YapostBC": "posterior mean baseline",
+    "YapostBC": "posterior baseline",
     "Yapost_bias": "posterior bias",
     "YaprioriOUTER": "prior outer region mf",
     "YapostOUTER": "posterior outer region mf",
-    "Yobs": "observed mf",
+    "Yobs": "observed",
     "uYobs_repeatability": "obs repeatability mf uncertainty",
     "uYobs_variability": "obs variability mf uncertainty",
     "uYmod": "model uncertainty",
@@ -59,8 +59,13 @@ flux_labels = {
 stat_labels = {
     "pearson": "Pearson correlation coefficient",
     "rmse": "RMSE",
+    "bias": "Bias",
+    "crmse": "Centered RMSE",
+    "sd_sim": "Simulated StDev",
+    "sd_obs": "Observed StDev",
     "nrmse": "Normalised RMSE",
-    "std": "Standard deviation",
+    "sd_res": "Standard deviation of residuals",
+    "nn": "Number of observations",
 }
 
 # Acceptable units and conversion factor to base unit
@@ -220,7 +225,6 @@ def set_model_labels(
 
         if label is None:
             label = " ".join(name_tags)
-
         model_labels[m] = label
 
     return model_labels
