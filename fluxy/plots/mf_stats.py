@@ -1,37 +1,8 @@
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
-import pprint
 import numpy as np
-from fluxy.plots.utils import set_min_decimal_points
 from fluxy import config
 import pandas as pd
-
-
-def print_stats(stats_all: dict[str, dict], stats_to_print: list[str]) -> None:
-    """
-    Prints statistics to screen.
-
-    Args:
-        stats_all (dictionary of dictionaries):
-            Statistical measures, for each site and for each model.
-        stats_to_print (list of str):
-            Statistical measures to print.
-    """
-
-    # Round values
-    for stat in stats_to_print:
-        for site in stats_all[stat].keys():
-            for m in stats_all[stat][site]:
-                stats_all[stat][site][m] = set_min_decimal_points(
-                    stats_all[stat][site][m], sig_fig=3, dec_points=2
-                )
-
-    # Print dictionary to screen
-    for stat in stats_to_print:
-        print(f"\n{config.stat_labels[stat]}:")
-        pprint.pprint(stats_all[stat])
-
-    return None
 
 
 def plot_stats_mf(
