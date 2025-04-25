@@ -65,7 +65,7 @@ stat_labels = {
     "sd_obs": "Observed StDev",
     "nrmse": "Normalised RMSE",
     "sd_res": "Standard deviation of residuals",
-    "nn": "Number of observations"
+    "nn": "Number of observations",
 }
 
 # Acceptable units and conversion factor to base unit

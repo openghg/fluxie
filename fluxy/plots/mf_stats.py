@@ -1,12 +1,12 @@
 import matplotlib.pyplot as plt
-from matplotlib.figure import Figure 
+from matplotlib.figure import Figure
 import pprint
 import numpy as np
 from fluxy.plots.utils import set_min_decimal_points
 from fluxy import config
 import pandas as pd
 
-    
+
 def print_stats(stats_all: dict[str, dict], stats_to_print: list[str]) -> None:
     """
     Prints statistics to screen.
@@ -43,7 +43,7 @@ def plot_stats_mf(
     config_data: dict[dict],
     mf_units_print: str,
     stats_type: str,
-    stats_ylim: dict[list] = None, 
+    stats_ylim: dict[list] = None,
     start_date: str = None,
     end_date: str = None,
 ) -> Figure:
@@ -66,7 +66,7 @@ def plot_stats_mf(
             Mole fraction units used in plots
         stats_type (str):
             Type of statistics to be plotted. Should be the same as used in call to stats_mf().
-        stats_ylim (dict of lists) limits for y-axis of individual statistic plots. Can be given for selected statistics only or passed as None for automatic axis range. 
+        stats_ylim (dict of lists) limits for y-axis of individual statistic plots. Can be given for selected statistics only or passed as None for automatic axis range.
         start_date (str) and end_date (str):
             Dates used to title the plot.
     Returns:
@@ -74,7 +74,7 @@ def plot_stats_mf(
             Plot showing each model's fit statistics, for each site.
     """
 
-    models = np.unique(stats['model'].to_numpy())
+    models = np.unique(stats["model"].to_numpy())
     # make sure model_labels are in the correct order
     model_str = [model_labels[k] for k in models]
     # plot colors from model names
@@ -82,48 +82,53 @@ def plot_stats_mf(
 
     # determine strings used for plot subtitle
     stats_str = stats_type
-    mf_str    = ""
-    if stats_type not in ['prior', 'posterior']: 
+    mf_str = ""
+    if stats_type not in ["prior", "posterior"]:
         mf_str = " above BC"
         stats_str = stats_type.split("_")[0]
-        
-    long_stats = pd.melt(stats, id_vars=['model', 'site'], value_vars=stats_to_plot)
+
+    long_stats = pd.melt(stats, id_vars=["model", "site"], value_vars=stats_to_plot)
     nrows = len(stats_to_plot)
     fig, ax = plt.subplots(nrows, 1, figsize=(10, 3 * nrows), tight_layout=True)
-    for i, stat in enumerate(stats_to_plot): 
-        df_this_stats = long_stats[long_stats['variable']==stat].pivot(index='site',
-                            columns='model', values='value')
+    for i, stat in enumerate(stats_to_plot):
+        df_this_stats = long_stats[long_stats["variable"] == stat].pivot(
+            index="site", columns="model", values="value"
+        )
 
-        df_this_stats.plot(kind="bar", 
-             ax=ax[i], 
-             stacked=False, 
-             color=colors,              
-             xlabel="", 
-             legend=False,
-             zorder=3
-            )
+        df_this_stats.plot(
+            kind="bar",
+            ax=ax[i],
+            stacked=False,
+            color=colors,
+            xlabel="",
+            legend=False,
+            zorder=3,
+        )
         ax[i].grid(zorder=0)
         if stats_ylim is not None:
             if stat in stats_ylim.keys():
                 ax[i].set_ylim(stats_ylim[stat][0], stats_ylim[stat][1])
-                
+
         ylabel = config.stat_labels[stat]
-        if stat not in ['pearson', 'nrmse', 'nn']:            
-            ylabel = ylabel+" ("+mf_units_print+")"
+        if stat not in ["pearson", "nrmse", "nn"]:
+            ylabel = ylabel + " (" + mf_units_print + ")"
         ax[i].set_ylabel(ylabel)
-    
-    leg = ax[0].legend(ncol=3, borderpad=0.2, columnspacing=1.0, loc="upper center", 
-                       bbox_to_anchor=(0.5, 1.25), labels=model_str)
+
+    leg = ax[0].legend(
+        ncol=3,
+        borderpad=0.2,
+        columnspacing=1.0,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 1.25),
+        labels=model_str,
+    )
 
     species_info = config_data["species_info"][species]
     fig.suptitle(
         (
-            f'{species_info["species_print"]} {stats_str} model performance versus mole fraction observations{mf_str}'        
+            f'{species_info["species_print"]} {stats_str} model performance versus mole fraction observations{mf_str}'
             f"\n{start_date} to {end_date}"
         )
     )
-    
+
     return fig
-
-
-
