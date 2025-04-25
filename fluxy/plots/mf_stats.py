@@ -37,7 +37,9 @@ def plot_stats_mf(
             Mole fraction units used in plots
         stats_type (str):
             Type of statistics to be plotted. Should be the same as used in call to stats_mf().
-        stats_ylim (dict of lists) limits for y-axis of individual statistic plots. Can be given for selected statistics only or passed as None for automatic axis range.
+        stats_ylim (dict of lists):
+            Limits for y-axis of individual statistic plots. Can be given for selected
+            statistics only or passed as None for automatic axis range.
         start_date (str) and end_date (str):
             Dates used to title the plot.
     Returns:
