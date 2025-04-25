@@ -8,6 +8,9 @@ color_palette = {
     0: [["blue", "dodgerblue"], ["dodgerblue", "skyblue"], ["deepskyblue", "cyan"]],
     1: [["purple", "mediumpurple"], ["deeppink", "pink"], ["darkorange", "red"]],
     2: [["darkgreen", "green"], ["limegreen", "palegreen"], ["olive", "lightgreen"]],
+    3: [["red", "darkorange"]],
+    4: [["deeppink", "pink"]],
+    5: [["limegreen", "palegreen"]],
 }
 
 # population from 2018 to 2023 (at Jan 1 each year)
