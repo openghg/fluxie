@@ -452,7 +452,7 @@ def get_map_bounds(
         map_bounds = get_region_coordinates(
             region, config_data["regions_info"], zoom_degree=zoom_degree
         )
-    elif isinstance(region, list | tuple) and all(
+    elif isinstance(region, (list, tuple)) and all(
         isinstance(coord, (int, float)) for coord in region
     ):
         map_bounds = tuple(region)
