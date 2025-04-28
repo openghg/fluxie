@@ -112,7 +112,8 @@ def get_filename(
     model_name = name_tags[0]
 
     # Replace parameter tags by dict values in config
-    filename_tags = config_data["models_info"].get("filename_tags", None)
+    models_info = config_data.get("models_info", {})
+    filename_tags = models_info.get("filename_tags", None)
     if filename_tags is not None:
         for i, param in enumerate(name_tags):
             string_in_file = filename_tags.get(param, None)
@@ -127,7 +128,7 @@ def get_filename(
     # Get species name
     species_print = species
     if (
-        (species_names := config_data["models_info"].get("species_name"))
+        (species_names := models_info.get("species_name"))
         and (model_species := species_names.get(model_name))
         and (species_tag := model_species.get(species))
     ):
@@ -150,7 +151,7 @@ def read_model_output(
     file_type: Literal["concentration", "flux"],
     species: str,
     models: list[str],
-    config_data: dict[str, dict],
+    config_data: dict[str, dict] = {},
     period: str | list[str] = "yearly",
 ) -> dict[str, xr.Dataset]:
     """
@@ -209,7 +210,7 @@ def read_model_output(
 
         # Fix variables and attributes
         ds_all[m] = edit_vars_and_attributes(
-            ds_all[m], m, period[i], file_type, config_data["regions_info"]
+            ds_all[m], m, period[i], file_type, config_data.get("regions_info", {})
         )
 
     return ds_all
