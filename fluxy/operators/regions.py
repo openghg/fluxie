@@ -40,7 +40,8 @@ def extract_region_flux(
             - 'prior_upper'
     """
     ds_output = dict()
-    country_search = regions_info["country_codes"][country]
+    country_codes = regions_info.get("country_codes", {})
+    country_search = country_codes.get(country, country)
     min_percentile_index = 0
     max_percentile_index = 1
 
@@ -57,15 +58,17 @@ def extract_region_flux(
         "prior_upper",
     ]
 
+    dict_regions: dict[str, str] = regions_info.get("regions", {})
+
     for m, ds in ds_all.items():
         # search for existing region names
         available_countries = ds["country"].values.astype(str)
 
         if (
             country_search not in available_countries
-            and country in regions_info["regions"].keys()
+            and country in dict_regions.keys()
         ):
-            region_search = regions_info["regions"][country]
+            region_search = dict_regions[country]
 
             logger.info(
                 f"{country} emissions are not present in {m}. Considering covariance matrix and sum of individual countries: {region_search}."

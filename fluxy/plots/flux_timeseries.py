@@ -80,10 +80,15 @@ def prepare_data_to_plot(
         expected_size=len(ds_all_region.keys()),
     )
 
+    model_colors = model_colors.copy()
     # Assign default color list and label to input dataset
+
     for m in ds_all_region.keys():
-        ds_all_region[m].attrs["model_label"] = model_labels[m]
-        ds_all_region[m].attrs["model_colors"] = model_colors[m]
+        ds_all_region[m].attrs["model_label"] = model_labels.get(m, m)
+        if m not in model_colors.keys():
+            # Get a color from the matplotlib color cycler 
+            model_colors[m] = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+        ds_all_region[m].attrs["model_colors"] = model_colors[m] 
     map_model_colors = {f"c{i}": m for i, m in enumerate(model_colors.values())}
 
     # Prepare list of dataset to plot
@@ -150,12 +155,12 @@ def prepare_data_to_plot(
 def plot_country_flux(
     ds_all: dict[str, xr.Dataset],
     species: str,
-    plot_regions: list[str],
-    config_data: dict[str, dict],
-    model_colors: dict[str, str],
-    model_labels: list[str] | None,
-    start_date: str,
-    end_date: str,
+    plot_regions: list[str] = [],
+    config_data: dict[str, dict] = {},
+    model_colors: dict[str, str] = {},
+    model_labels: dict[str, str] = {},
+    start_date: str | None = None,
+    end_date: str | None = None,
     annex_mode: bool = False,
     plot_inventory: bool = True,
     inventory_years: list[str] | None = None,
@@ -214,8 +219,14 @@ def plot_country_flux(
         res_dict : If return_res, return also a dictionnary containaing the plotted results
 
     """
-    s_data = config_data["species_info"]
-    r_data = config_data["regions_info"]
+    s_data = config_data.get("species_info", {})
+    r_data = config_data.get("regions_info", {})
+
+    if not plot_regions:
+        # Read all countries given in the dss
+        plot_regions = set(
+            sum((ds["country"].values.tolist() for ds in ds_all.values()), [])
+        )
 
     if return_res:
         res_dict: dict[str, dict] = {country: dict() for country in plot_regions}
@@ -349,14 +360,15 @@ def plot_country_flux(
                 )
 
         ax.set_ylabel(
-            f"{s_data[species]['species_print']} ({unit.replace('-1','$^{{-1}}$')})"
+            f"{s_data.get(species, {}).get('species_print', species)}"
+            f"({unit.replace('-1','$^{{-1}}$')})"
         )
 
         # set legend if needed
         if not set_global_leg:
             ncol = 3 if annex_mode else 2
             leg = ax.legend(ncol=ncol, borderpad=0.4, columnspacing=1.0)
-            for l in leg.legendHandles[: (-1 if plot_inventory else None)]:
+            for l in leg.legend_handles[: (-1 if plot_inventory else None)]:
                 l.set_linewidth(3.0)
 
         # set title
