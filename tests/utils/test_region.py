@@ -14,9 +14,7 @@ def test_get_map_bounds_tuple():
 
 
 def test_get_map_bounds_list():
-    """Test the get_map_bounds function with a tuple."""
-
-    bounds = [0, 1, 2, 3]
+    """Test the get_map_bounds function with a list."""
     map_bounds = get_map_bounds(region=bounds)
 
     assert isinstance(map_bounds, tuple)
