@@ -970,13 +970,17 @@ def extract_region_flux(ds_all,m,m0,country,verbose=True,sector='total'):
         region_time = ds_all[m].time.values
         region_flux_posterior = ds_all[m][f'country_flux_{sector}_posterior'].values[:,country_index]*r
         region_flux_prior = ds_all[m][f'country_flux_{sector}_prior'].values[:,country_index]*r
-        region_flux_posterior_lower = ds_all[m][f'percentile_country_flux_{sector}_posterior'].values[:,model_q_indices[m0][0],country_index]*r
-        region_flux_posterior_upper = ds_all[m][f'percentile_country_flux_{sector}_posterior'].values[:,model_q_indices[m0][1],country_index]*r
-        region_flux_prior_lower = ds_all[m][f'percentile_country_flux_{sector}_prior'].values[:,model_q_indices[m0][0],country_index]*r
-        region_flux_prior_upper = ds_all[m][f'percentile_country_flux_{sector}_prior'].values[:,model_q_indices[m0][1],country_index]*r
+        try:
+            region_flux_posterior_lower = ds_all[m][f'percentile_country_flux_{sector}_posterior'].values[:,model_q_indices[m0][0],country_index]*r
+            region_flux_posterior_upper = ds_all[m][f'percentile_country_flux_{sector}_posterior'].values[:,model_q_indices[m0][1],country_index]*r
+            region_flux_prior_lower = ds_all[m][f'percentile_country_flux_{sector}_prior'].values[:,model_q_indices[m0][0],country_index]*r
+            region_flux_prior_upper = ds_all[m][f'percentile_country_flux_{sector}_prior'].values[:,model_q_indices[m0][1],country_index]*r
         
-        region_flux_posterior_lower[region_flux_posterior_lower < 0.] = 0.
-        region_flux_prior_lower[region_flux_prior_lower < 0.] = 0.
+            region_flux_posterior_lower[region_flux_posterior_lower < 0.] = 0.
+            region_flux_prior_lower[region_flux_prior_lower < 0.] = 0.
+        except:
+            region_flux_posterior_lower,region_flux_posterior_upper = None,None
+            region_flux_prior_lower,region_flux_prior_upper = None,None
     
     #calculate values for region names that don't exist in the file
     except:
@@ -1030,13 +1034,17 @@ def extract_region_flux(ds_all,m,m0,country,verbose=True,sector='total'):
                 sigma_region_flux_posterior = np.zeros(ds_all[m].time.values.shape[0])
                 
             region_time = ds_all[m].time.values
-            region_flux_posterior_lower = region_flux_posterior - sigma_region_flux_posterior
-            region_flux_posterior_upper = region_flux_posterior + sigma_region_flux_posterior
-            region_flux_prior_lower = region_flux_prior - sigma_region_flux_prior
-            region_flux_prior_upper = region_flux_prior + sigma_region_flux_prior
+            try:
+                region_flux_posterior_lower = region_flux_posterior - sigma_region_flux_posterior
+                region_flux_posterior_upper = region_flux_posterior + sigma_region_flux_posterior
+                region_flux_prior_lower = region_flux_prior - sigma_region_flux_prior
+                region_flux_prior_upper = region_flux_prior + sigma_region_flux_prior
 
-            region_flux_posterior_lower[region_flux_posterior_lower < 0.] = 0.
-            region_flux_prior_lower[region_flux_prior_lower < 0.] = 0.
+                region_flux_posterior_lower[region_flux_posterior_lower < 0.] = 0.
+                region_flux_prior_lower[region_flux_prior_lower < 0.] = 0.
+            except:
+                region_flux_posterior_lower,region_flux_posterior_upper = None,None
+                region_flux_prior_lower,region_flux_prior_upper = None,None
 
         except:
             print(f'ERROR: Could not find {country} emissions for {m}.')
@@ -3024,7 +3032,7 @@ def plot_spatial_flux_one_variable(ds_all,species,plot_area,s_data,m_data,var,
                         if mask[lat_id,lon_id] == sea_code:
                             var_plot[a,b] = np.nan
 
-        print(f'\n{np.nanmax(var_plot*flux_units_scaling)}\n')
+        print(f'\nMaximum emission in single grid cell = {np.nanmax(var_plot*flux_units_scaling)}\n')
   
         ax_var.pcolormesh(lon,lat,var_plot*flux_units_scaling,cmap=cmap,vmin=lim[0],vmax=lim[1],shading='nearest')
 
@@ -5193,17 +5201,20 @@ def plot_combined_gases(species_all, ds_all_flux_scaled, inventory_year, region,
     
     for s,species in enumerate(species_all):
         
-        if species == 'n2o' or species == 'ch4':
+        if 'monthly' in list(ds_all_flux_scaled[species].keys())[0]: #species == 'n2o' or species == 'ch4' or species == 'sf6':            
             resample = ['year']
             rolling_mean = [None]
             period_override = ['monthly']
+            
+            #resample = [None]
+            #rolling_mean = [3]
+            #period_override = ['yearly']
         else:
             resample = [None]
             rolling_mean = [3]
             period_override = ['yearly']
         
         models = list(ds_all_flux_scaled[species].keys())
-        print(models[0])
         
         ds_all_p,ds_merged,period_all,\
         region_time,region_flux,region_flux_lower,region_flux_upper,region_flux_prior,\
@@ -5236,8 +5247,8 @@ def plot_combined_gases(species_all, ds_all_flux_scaled, inventory_year, region,
             total_std = (stds[species])**2
             inventory_total_std = inventory_flux_uncert**2
         else:
-            total_std = total_std + (stds[species])**2
-            inventory_total_std = inventory_total_std + (inventory_flux_uncert)**2
+            total_std += (stds[species])**2
+            inventory_total_std += (inventory_flux_uncert)**2
             
     total_std = np.sqrt(total_std)
     inventory_total_std = np.sqrt(inventory_total_std)
@@ -5276,7 +5287,7 @@ def plot_combined_gases(species_all, ds_all_flux_scaled, inventory_year, region,
     
     ax.set_ylabel("UK emissions Tg y$^{-1}$ CO$_2$-eq")
     ax.legend(loc=9,ncols=3,fontsize=14,reverse=True)
-    ax.set_ylim([0,150])
+    ax.set_ylim([0,155])
     
     ax.set_xticks(means_time[species])
     ax.set_xticklabels(means_time[species].astype('datetime64[Y]'))
@@ -5300,10 +5311,11 @@ def create_combined_gases_table(species_all, ds_all_flux_scaled, inventory_year,
     
     for s,species in enumerate(species_all):
         
-        if species == 'n2o' or species == 'ch4':
-            resample = ['year']
-            rolling_mean = [None]
-            period_override = ['monthly']
+        if species == 'n2o' or species == 'ch4' or species == 'sf6':
+            resample = [None]
+            rolling_mean = [3]
+            period_override = ['yearly']
+            
         else:
             resample = [None]
             rolling_mean = [3]
