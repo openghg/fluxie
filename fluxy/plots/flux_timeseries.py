@@ -186,7 +186,6 @@ def plot_country_flux(
         model_colors: Models and corresponding colours used to plot the model.
         start_date: Start dates of the data to plot (used to slice inventory data).
         end_date: Start dates of the data to plot (used to slice inventory data).
-        ppt_mode: If True, adjust global legend position to accomodate bigger fonts.
         annex_mode: If True, replace the labels with more concise versions for National Inventory Report Annexes.
         scale_co2eq: If True, adapt y-axis label to CO2-eq.
         plot_inventory: If True, plots inventory flux estimates as bars in each plot.
