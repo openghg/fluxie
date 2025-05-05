@@ -88,7 +88,7 @@ def set_print_settings(presentation_mode: bool = False) -> dict[int, list]:
     Sets font size and annotation coordinates.
 
     Args:
-        ppt_mode (logical) (optional):
+        presentation_mode (logical) (optional):
             If True, use bigger fonts (ideal for presentation slides)
 
     Returns:
