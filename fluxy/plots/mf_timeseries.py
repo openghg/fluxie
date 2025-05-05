@@ -20,7 +20,7 @@ def plot_mf_timeseries(
     model_labels: dict[str, dict],
     config_data: dict[str, dict],
     annotate_coords: dict[int, list],
-    ppt_mode: bool = False,
+    presentation_mode: bool = False,
     plot_type: Literal["separate", "together", "diff"] = "separate",
     include: dict[str, str | None] = {"Yobs": None, "Yapost": "qYapost"},
     diff_include: list[str] | None = None,
@@ -47,7 +47,7 @@ def plot_mf_timeseries(
             Use json filenames as keys.
         annotate_coords (dict of lists):
             Coordinates to annotate histogram.
-        ppt_mode (logical) (optional):
+        presentation_mode (logical) (optional):
             If True, adjust annotation position and xlabel rotation to accomodate bigger fonts.
         include (dict of str):
             Dictionary keys are variables to include in the plot.
@@ -188,7 +188,7 @@ def plot_mf_timeseries(
             vars_to_plot,
             diff_include,
             model_color,
-            ppt_mode,
+            presentation_mode,
             annotate_coords,
             annotate_index=i,
             plot_type=plot_type,
@@ -237,7 +237,7 @@ def plot_mf_timeseries(
             ax[iax, 0].xaxis.set_major_locator(YearLocator())
         else:
             ax[iax, 0].xaxis.set_major_locator(MonthLocator())
-            if ppt_mode:
+            if presentation_mode:
                 ax[iax, 0].tick_params(axis="x", rotation=70)
 
     # Set timeseries y-axis min/max
