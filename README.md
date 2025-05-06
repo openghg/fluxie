@@ -17,12 +17,74 @@ Note: in the ICOS Jupyter Hub, you might need to restart the kernel so that pack
 ## Prepare input files
 ### 1. Flux and concentration netCDF files with model results
 
-Data format must be in agreement with the PARIS-AVENGERS-EYECLIMA template.
+Data format must be in agreement with the PARIS-AVENGERS-EYECLIMA template. Mandatory variables are described below. The full variable list can be found in the cdl files in folder templates/.
+
+#### a) Flux file
+
+| Dimension variables | Type   | Units                          | Description                                      |
+|:--------------------|:-------|:-------------------------------|:-------------------------------------------------|
+| longitude           | double | degrees_east                   | Longitude of grid cell centre
+| latitude            | double | degrees_north                  | Latitude of grid cell centre
+| time                | double | days since 1970-01-01 00:00:00 | Mid of flux interval in UTC
+| time_bnds           | double | days since 1970-01-01 00:00:00 | Start and end points of each flux interval in UTC
+| country             | string | -                              | Country ISO 3166-1 alpha-3 code
+
+| Grid variables             | Type  | Units (1)   | Dimensions                | Description                                  |
+|:---------------------------|:------|:------------|:--------------------------|:---------------------------------------------|
+| flux_total_prior           | float | mol m-2 s-1 | time, latitude, longitude | Prior total `<species>` fluxes
+| flux_total_posterior       | float | mol m-2 s-1 | time, latitude, longitude | Posterior total `<species>` fluxes
+| stdev_flux_total_prior     | float | mol m-2 s-1 | time, latitude, longitude | Standard deviation of prior total `<species>` fluxes
+| stdev_flux_total_posterior | float | mol m-2 s-1 | time, latitude, longitude | Standard deviation of posterior total `<species>` fluxes
+
+(1) Any SI unit of the type "amount length-2 time-1" and "mass length-2 time-1" is valid. All grid variables should have the same units.
+
+| By-country variables               | Type  | Units (2) | Dimensions    | Description                                      |
+|:-----------------------------------|:------|:----------|:--------------|:-------------------------------------------------|
+| flux_total_prior_country           | float | kg yr-1   | time, country | Country-total prior `<species>` fluxes
+| flux_total_posterior_country       | float | kg yr-1   | time, country | Country-total posterior `<species>` fluxes
+| stdev_flux_total_prior_country     | float | kg yr-1   | time, country | Standard deviation of country-total prior `<species>` fluxes
+| stdev_flux_total_posterior_country | float | kg yr-1   | time, country | Standard deviation of country-total posterior `<species>` fluxes
+
+(2) Any SI unit of the type "mass time-1" is valid. All by-country variables should have the same units.
+
+| Auxiliary variables | Type  | Units  |  Dimensions                  | Description                                |
+|:--------------------|:------|:-------|:-----------------------------|:-------------------------------------------|
+| country_fraction    | float | -      | country, latitude, longitude | Fraction of grid cell associated to country
+| cell_area           | float | m2     | latitude, longitude          | Surface area of gird cell
+
+#### b) Concentration file
+
+| Characterising variables | Type   | Units                          | Dimensions | Description                                      |
+|:-------------------------|:-------|:-------------------------------|:-----------|:-------------------------------------------------|
+| longitude                | double | degrees_east                   | index      | Sample longitude in decimal degrees
+| latitude                 | double | degrees_north                  | index      | Sample latitude in decimal degrees
+| time                     | double | days since 1970-01-01 00:00:00 | index      | Time of mid of observation interval in UTC
+| time_bnds                | double | days since 1970-01-01 00:00:00 | index      | Start and end points of each time step
+| altitude                 | float  | m                              | index      | Sample altitude in meters above sea level
+| number_of_identifier     | short  | -                              | index      | Index of identifier of observing platform
+| assimilation_flag        | short  | -                              | index      | Flag indicating whether observation was used in inversion/assimilation (0: not used; 1: used)
+
+| Observation variables | Type   | Units (3) | Dimensions | Description                                      |
+|:----------------------|:-------|:----------|:-----------|:-------------------------------------------------|
+| platform              | string | -         | index      | Identifier of observing platform
+| mf_observed           | float  | mol mol-1 | index      | Observed mole fraction of `<species>` in dry air
+| stdev_mf_total        | float  | mol mol-1 | index      | Total model-data-mismatch uncertainty applied in inversion
+
+| Simulated variables | Type  | Units (3) | Dimensions | Description                                      |
+|:--------------------|:------|:----------|:-----------|:-------------------------------------------------|
+| mf_prior            | float | mol mol-1 | index      | Prior simulated mole fraction of `<species>` in dry air
+| mf_posterior        | float | mol mol-1 | index      | Posterior simulated mole fraction of `<species>` in dry air
+| mf_bc_prior         | float | mol mol-1 | index      | Prior simulated boundary condition mole fraction including site bias
+| mf_bc_posterior     | float | mol mol-1 | index      | Posterior simulated boundary condition mole fraction including site bias
+
+(3) ppm, ppb and ppt are also valid units.
+
+#### c) File naming
 
 Filenames should follow the following format:  
-`<inversionModel>_<optional_identifying_tags>_<species>_<inversionFrequency>(_concentration).nc`
+- Flux file: `<inversionModel>_<optional_identifying_tags>_<species>_<inversionFrequency>.nc`  
+- Concentration file: `<inversionModel>_<optional_identifying_tags>_<species>_<inversionFrequency>_concentration.nc`  
 
-Note that the part within parenthesis refers to the concentration file only.
 `<inversionFrequency>` should be equal to "yearly" or "monthly".
 
 For easy traceability and nice automatic labels, consider replacing `<optional_identifying_tags>` by `<transportModel>_<domain>_<prior>`.
