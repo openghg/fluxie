@@ -359,7 +359,7 @@ def plot_flux_map_model_comparison(
         var_plot = get_flux_mean(var_plot, season)
 
         # Determine plot settings
-        is_diff = "diff" in model
+        is_diff = ("diff" in var) or ("diff" in model)
         cmap_i = cmap_diff if is_diff else cmap
         border_color = c_border_diff if is_diff else c_border
         vlim_i = (-fluxlim[1], fluxlim[1]) if is_diff else fluxlim
