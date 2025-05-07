@@ -491,7 +491,7 @@ def get_region_coordinates(
             The bounding coordinates of the region (lon_min, lon_max, lat_min, lat_max), after zooming.
     """
     world = load_countries_shape()
-    region_code = regions_info["country_codes"]
+    region_code = regions_info.get("country_codes", {})
 
     region_name_title = region_name.title()
 
