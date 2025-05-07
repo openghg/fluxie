@@ -1,0 +1,201 @@
+// 
+// placeholders to be replaced in long_name attributes and variable names
+// <species>:	species name in lower case no separators (e.g., ch4, n2o, hfc13a)
+netcdf InversionSystem_TransportModel_Domain_Experiment_Compound_Frequency_concentrations {
+dimensions:
+	index = 1 ;			// mandatory
+	percentile = 2 ;	// optional for systems that report non-Gaussian uncertainty
+	platform = 10 ; 	// mandatory
+	sector = 1 ;	// optional  
+	nbnds = 2 ; 		// mandatory
+variables:
+// characterising observation 
+	double time(index) ;						// mandatory
+		time:units = "days since 1970-01-01 00:00:00" ;
+		time:long_name = "time of mid of observation interval; UTC" ;
+		time:calendar = "proleptic_gregorian" ;
+        time:bounds = "time_bnds" ;
+		time:standard_name = "time" ; 
+    double time_bnds(index, nbnds) ; 		// mandatory 
+		time_bnds:long_name = "start and end points of each time step" ; 
+		time_bnds:calendar = "proleptic_gregorian" ;
+		time_bnds:units = "days since 1970-01-01 00:00:00" ;
+	double longitude(index) ; 				//mandatory
+        longitude:_FillValue = NaNf ;
+        longitude:long_name = "sample_longitude_in_decimal_degrees" ;
+        longitude:units = "degrees_east" ;
+        longitude:comment = "Longitude at which air sample was collected." ;
+		longitude:standard_name = "longitude" ; 
+	double latitude(index) ; 				// mandatory
+        latitude:_FillValue = NaNf ;
+        latitude:long_name = "sample_latitude_in_decimal_degrees" ;
+        latitude:units = "degrees_north" ;
+        latitude:comment = "Latitude at which air sample was collected." ;
+		latitude:standard_name = "latitude" ; 
+	float altitude(index) ; 				// mandatory 
+		altitude:_FillValue = NaNf ;
+        altitude:long_name = "sample_altitude_in_meters_above_sea_level" ;
+        altitude:units = "m" ;
+        altitude:comment = "Altitude (surface elevation plus sample intake height) at which air sample was collected" ;
+		altitude:standard_name = "altitude" ; 
+    float intake_height(index) ;			// optional 
+        intake_height:_FillValue = NaNf ;
+        intake_height:long_name = "Height above ground at which air sample was collected" ;
+        intake_height:units = "m" ;
+        intake_height:comment = "Sample intake height in meters above ground level (magl)" ;
+	float altitude_model(index) ; 				// optional 
+		altitude_model:_FillValue = NaNf ;
+        altitude_model:long_name = "altitude_in_meters_above_sea_level_in_model" ;
+        altitude_model:units = "m" ;
+        altitude_model:comment = "Altitude (surface elevation plus sample intake height) at which model was evaluated" ;
+		altitude_model:standard_name = "altitude" ; 
+    float intake_height_model(index) ;			// optional 
+        intake_height_model:_FillValue = NaNf ;
+        intake_height_model:long_name = "Height above model ground at which model concentrations were evaluated" ;
+        intake_height_model:units = "m" ;
+        intake_height_model:comment = "Model intake (release) height in meters above model ground level (magl) at which model fields were evaluated or Lagrangian trajectories were initialised (released). May differ from sample intake_height for sites in complex terrain." ;
+	short number_of_identifier(index) ; 
+		number_of_identifier:_FillValue = -9 ;
+		number_of_identifier:long_name = "Index of identifier of observing platform" ;
+		number_of_identifier:units = "1" ;
+	short assimilation_flag(index) ; 					// optional 
+		assimilation_flag:units = "1" ; 
+		assimilation_flag:_FillValue = -9 ; 
+		assimilation_flag:long_name = "indicating whether observation was used in inversion/assimilation. 0: not used; 1: used" ; 
+		assimilation_flag:comment = "Valid values: 0: not used; 1: used" ; 
+
+// observation and uncertainty
+	float mf_observed(index) ;				// mandatory 
+		mf_observed:units = "mol mol-1" ;
+		mf_observed:_FillValue = NaNf ;
+		mf_observed:long_name = "observed mole fraction of <species> in dry air" ;
+	float stdev_mf_observed_repeatability(index) ;		// optional
+		stdev_mf_observed_repeatability:units = "mol mol-1" ;
+		stdev_mf_observed_repeatability:_FillValue = NaNf ;
+		stdev_mf_observed_repeatability:long_name = "repeatability uncertainty of observed mole fraction" ;
+		stdev_mf_observed_repeatability:comment = "understood as combined analytical uncertainty";
+	float stdev_mf_observed_variability(index) ;		// optional 
+		stdev_mf_observed_variability:units = "mol mol-1" ;
+		stdev_mf_observed_variability:_FillValue = NaNf ;
+		stdev_mf_observed_variability:long_name = "variability of observed mole fraction within aggregation interval" ;
+	float stdev_mf_model(index) ;						// optional 
+		stdev_mf_model:units = "mol mol-1" ;
+		stdev_mf_model:_FillValue = NaNf ;
+		stdev_mf_model:long_name = "model uncertainty of simulated mole fraction" ;
+	float stdev_mf_total(index) ;						// mandatory 
+		stdev_mf_total:units = "mol mol-1" ;
+		stdev_mf_total:_FillValue = NaNf ;
+		stdev_mf_total:long_name = "total model-data-mismatch uncertainty applied in inversion" ;
+// simulated mole fractions
+	// mf_prior and mf_posterior contain the complete simulated concentration, this is the sum of 
+	// the regional contribution within the transport domain (mf_posterior_regional, not given 
+	// in file) and a boundary (baseline) concentration (given as mf_prior_bc and mf_posterior_bc), 
+	// i.e. mf_posterior = mf_posterior_regional + mf_posterior_bc.
+	float mf_prior(index) ;				// mandatory
+		mf_prior:units = "mol mol-1" ;
+		mf_prior:_FillValue = NaNf ;
+		mf_prior:long_name = "prior simulated mole fraction of <species> in dry air" ;
+	float mf_posterior(index) ;			// mandatory
+		mf_posterior:units = "mol mol-1" ;
+		mf_posterior:_FillValue = NaNf ;
+		mf_posterior:long_name = "posterior simulated mole fraction of <species> in dry air" ;
+
+	//  individual sector contributions	(optional); the sum should add up to mf_posterior_regional, which is not included in file
+	float mf_sector_name_prior(index) ;				// optional 
+		mf_sector_name_prior:units = "mol mol-1" ;
+		mf_sector_name_prior:_FillValue = NaNf ;
+		mf_sector_name_prior:long_name = "prior simulated mole fraction of <species> in dry air from <sector_name>" ;
+	float mf_sector_name_posterior(index) ;			// optional
+		mf_sector_name_posterior:units = "mol mol-1" ;
+		mf_sector_name_posterior:_FillValue = NaNf ;
+		mf_sector_name_posterior:long_name = "posterior simulated mole fraction of <species> in dry air from <sector_name>" ;
+
+	// mf_bc_prior and mf_bc_posterior should contain boundary condition (baseline) concentrations 
+	// and a concentration bias by site for systems that solve for it, 
+	// i.e. mf_bc_posterior = mf_bias_posterior + mf_boundary_posterior (the latter not given in file)
+	float mf_bc_prior(index) ;			// mandatory
+		mf_bc_prior:units = "mol mol-1" ;
+		mf_bc_prior:_FillValue = NaNf ;
+		mf_bc_prior:long_name = "prior simulated boundary condition mole fraction including site bias" ;
+	float mf_bc_posterior(index) ;		// mandatory
+		mf_bc_posterior:units = "mol mol-1" ;
+		mf_bc_posterior:_FillValue = NaNf ;
+		mf_bc_posterior:long_name = "posterior simulated boundary condition mole fraction including site bias" ;
+	// mf_prior_bias is an optional variable used in systems that solve for a concentration bias by site
+    float mf_bias_prior(index) ;			// optional
+        mf_bias_prior:units = "mol mol-1" ;
+        mf_bias_prior:_FillValue = NaNf ;
+        mf_bias_prior:long_name = "prior simulated mole fraction site bias" ;
+	// mf_posterior_bias is an optional variable used in systems that solve for a concentration bias by site
+	float mf_bias_posterior(index) ;		// optional 
+        mf_bias_posterior:units = "mol mol-1" ;
+        mf_bias_posterior:_FillValue = NaNf ;
+        mf_bias_posterior:long_name = "posterior simulated mole fraction site bias" ;
+	// mf_prior_outer and mf_posterior_outer should contain concentration contributions 
+	// for regions outside the main inversion domain but included in the transport domain. 
+	// Optionally given for systems that solve for such contributions (e.g., InTEM, ELRIS, RHIME). 
+	// mf_prior_outer and mf_posterior_outer are part of mf_prior_regional 
+	// and mf_posterior_regional, respectively, 
+	// i.e. mf_posterior_regional = mf_posterior_outer + mf_posterior_inversionDomain (the latter not given in file)
+	float mf_outer_prior(index) ;			// optional 
+		mf_outer_prior:units = "mol mol-1" ;
+		mf_outer_prior:_FillValue = NaNf ;
+		mf_outer_prior:long_name = "prior simulated mole fraction contribution from distant regions" ;
+	float mf_outer_posterior(index) ;		// optional 
+		mf_outer_posterior:units = "mol mol-1" ;
+		mf_outer_posterior:_FillValue = NaNf ;
+		mf_outer_posterior:long_name = "posterior simulated mole fraction contribution from distant regions" ;
+
+	// Simulated uncertainty propagated from state vector uncertainy only (does not include transport uncertainy)
+	// Either given as standard deviation or percentile range for non-Gaussian state vectors. 
+	float stdev_mf_prior(index) ;			// optional 
+		stdev_mf_prior:units = "mol mol-1" ;
+		stdev_mf_prior:_FillValue = NaNf ;
+		stdev_mf_prior:long_name = "standard deviation of prior simulated mole fractions due to state vector uncertainty" ;
+	float stdev_mf_posterior(index) ;		// optional 
+		stdev_mf_posterior:units = "mol mol-1" ;
+		stdev_mf_posterior:_FillValue = NaNf ;
+		stdev_mf_posterior:long_name = "standard deviation of posterior simulated mole fractions due to state vector uncertainty" ;
+
+	float percentile_mf_prior(index, percentile) ;	// optional
+		percentile_mf_prior:units = "mol mol-1" ;
+		percentile_mf_prior:_FillValue = NaNf ;
+		percentile_mf_prior:long_name = "percentile of prior simulated mole fraction due to state vector uncertainty" ;
+	float percentile_mf_posterior(index, percentile) ;	// optional
+		percentile_mf_posterior:units = "mol mol-1" ;
+		percentile_mf_posterior:_FillValue = NaNf ;
+		percentile_mf_posterior:long_name = "percentile of posterior simulated mole fraction due to state vector uncertainty" ;
+
+// AUXILIARY VARIABLES 
+	// alternatively to string variables use character array. String variables require netcdf 4!
+	string platform(platform) ;		// mandatory
+		platform:long_name = "identifier of observing platform; e.g., 3 letter ID for surface in-situ sites plus inlet height above ground: MHD-10" ;
+	// sector names should only contain lower case letters (no separator characters), since they should be used in variable names
+	// optional when reporting separate fluxes by sector
+	string sector(sector) ;	// optional
+		sector:long_name = "short name of flux sector" ;
+		sector:comment ="brief definition of which emissions each sector contains" ; 
+	double percentile(percentile) ;			// optional if non-Gassian uncertainties are used
+		percentile:units = "1" ;
+		percentile:long_name = "reported percentiles for non-Gaussian probability distribution functions" ;
+
+// global attributes:
+		:Conventions = "CF-1.8" ;
+		:title = "In-situ mole fractions at sites: observed and simulated" ;
+		:institution = "Empa, Switzerland" ;
+		:source = "Trace gas concentrations from observations and transport simulations / inverse estimation." ;
+		:creator = "Stephan Henne" ;
+		:creation_date = "2024-01-11" ;
+		:contact = "stephan.henne@empa.ch" ; 
+		:transport_model = "NAME" ;
+		:transport_model_version = "" ;
+		:inversion_system = "ELRIS" ;
+		:inversion_system_version = "1.2.0" ;
+		:experiment = "EDGARprior" ;
+        :project = "Process Attribution of Regional emISsions (PARIS)" ;
+		:references = "" ;
+		:comment = "" ; //	use "comment" for a comprehensive description of the dataset (like abstract for a paper) or use "summary" for this description and "comment" for any other comment and information  
+		:summary = "" ; 
+		:license = "CC-BY-4.0" ;
+        :history = "2024-01-11 21:35:03 saved from ELRIS R package" ;
+}

@@ -1,0 +1,404 @@
+// 
+// placeholders to be replaced in long_name attributes and variable names
+// <species>:	species name in lower case no separators (e.g., ch4, n2o, hfc13a)
+// <sector_name>:	name of flux sector (lower case no separators), (e.g., agriculture, waste, energy, industry); Given without '<>' in variable names!
+// 
+netcdf PARIS_Lagrangian_inversion_flux {
+dimensions:
+	longitude = 391 ;	// mandatory
+	latitude = 293 ;	// mandatory
+	time = 1 ;			// mandatory
+// percentile is optional for systems that report non-Gaussian uncertainty
+	percentile = 2 ;	// optional
+	country = 22 ;	    // mandatory
+	sector = 1 ;	    // optional  
+    nbnds = 2 ; 		// mandatory
+variables:
+	double longitude(longitude) ;	// mandatory
+		longitude:units = "degrees_east" ;
+		longitude:long_name = "longitude of grid cell centre" ;
+		longitude:standard_name = "longitude" ; 
+		longitude:axis = "X" ; 
+	double latitude(latitude) ;		// mandatory
+		latitude:units = "degrees_north" ;
+		latitude:long_name = "latitude of grid cell centre" ;
+		latitude:standard_name = "latitude" ;
+		latitude:axis = "Y" ; 
+	double time(time) ;				// mandatory
+		time:units = "days since 1970-01-01 00:00:00" ;
+		time:long_name = "mid of flux interval in UTC" ;
+        time:standard_name = "time" ; 
+		time:calendar = "proleptic_gregorian" ;
+        time:axis = "T" ; 
+        time:bounds = "time_bnds";
+// percentile is optional for systems that report non-Gaussian uncertainty
+	double percentile(percentile) ;	// optional 
+		percentile:units = "1" ;
+		percentile:long_name = "percentile of flux pdf" ;
+    double time_bnds(time, nbnds) ; // mandatory
+		time_bnds:long_name = "start and end points of each time step" ; 
+		time_bnds:calendar = "proleptic_gregorian" ;
+		time_bnds:units = "days since 1970-01-01 00:00:00" ;
+//
+// TOTAL FLUX ON SPATIAL GRID
+//	'total' variables should be present even if fluxes by sector are given separately
+	float flux_total_prior(time, latitude, longitude) ;	// mandatory
+		flux_total_prior:units = "mol m-2 s-1" ;
+		flux_total_prior:_FillValue = NaNf ;
+		flux_total_prior:long_name = "prior total <species> fluxes" ;
+		flux_total_prior:cell_methods = "time:mean area:mean" ;
+	float flux_total_posterior(time, latitude, longitude) ;	// mandatory
+		flux_total_posterior:units = "mol m-2 s-1" ;
+		flux_total_posterior:_FillValue = NaNf ;
+		flux_total_posterior:long_name = "posterior total <species> fluxes" ;
+		flux_total_posterior:cell_methods = "time:mean area:mean" ;
+// UNCERTAINTY OF TOTAL FLUX ON SPATIAL GRID
+	// by default, uncertainty should be reported as standard deviation (1-sigma) around the mean, alternatively percentiles can be given in 'percentile' variables
+	float stdev_flux_total_prior(time, latitude, longitude) ;	// conditional (mandatory if percentile_flux_total_prior missing)
+		stdev_flux_total_prior:units = "mol m-2 s-1" ;
+		stdev_flux_total_prior:_FillValue = NaNf ;
+		stdev_flux_total_prior:long_name = "standard deviation of prior total <species> fluxes" ;
+		stdev_flux_total_prior:cell_methods = "time:mean area:mean" ;
+	float stdev_flux_total_posterior(time, latitude, longitude) ;	// conditional (mandatory if percentile_flux_total_posterior missing)
+		stdev_flux_total_posterior:units = "mol m-2 s-1" ;
+		stdev_flux_total_posterior:_FillValue = NaNf ;
+		stdev_flux_total_posterior:long_name = "standard deviation of posterior total <species> fluxes" ;
+		stdev_flux_total_posterior:cell_methods = "time:mean area:mean" ;
+	// 'percentile' variables are optional for systems that report non-Gaussian uncertainty and do not report 'stdev' variables
+	float percentile_flux_total_prior(time, percentile, latitude, longitude) ;	// conditional (mandatory if stdev_flux_total_prior missing)
+		percentile_flux_total_prior:units = "mol m-2 s-1" ;
+		percentile_flux_total_prior:_FillValue = NaNf ;
+		percentile_flux_total_prior:long_name = "percentiles of prior total <species> fluxes" ;
+		percentile_flux_total_prior:cell_methods = "time:mean percentile:point area:mean" ;
+	float percentile_flux_total_posterior(time, percentile, latitude, longitude) ; // conditional (mandatory if stdev_flux_total_posterior missing)
+		percentile_flux_total_posterior:units = "mol m-2 s-1" ;
+		percentile_flux_total_posterior:_FillValue = NaNf ;
+		percentile_flux_total_posterior:long_name = "percentiles of posterior total <species> fluxes" ;
+		percentile_flux_total_posterior:cell_methods = "time:mean percentile:point area:mean" ;
+//
+// FLUX ON SPATIAL GRID BY SECTOR (one set of variables per sector)
+	//  all sector variables are optional. However, if a sector is given the same variables as for the total are mandatory.
+	//	'sector' variables are optional for systems that give fluxes by sector ; 
+	//  sector names should be given in the sector_names variable: typical names may be 'agriculture', 'energy' 'waste', 'industry'
+	//	'sector' needs to be replaced by the individual names 
+	float flux_sector_name_prior(time, latitude, longitude) ;		
+		flux_sector_name_prior:units = "mol m-2 s-1" ;
+		flux_sector_name_prior:_FillValue = NaNf ;
+		flux_sector_name_prior:long_name = "prior <species> fluxes from sector_name" ;
+		flux_sector_name_prior:cell_methods = "time:mean area:mean" ;
+	float flux_sector_name_posterior(time, latitude, longitude) ;
+		flux_sector_name_posterior:units = "mol m-2 s-1" ;
+		flux_sector_name_posterior:_FillValue = NaNf ;
+		flux_sector_name_posterior:long_name = "posterior <species> fluxes from <sector_name>" ;
+		flux_sector_name_posterior:cell_methods = "time:mean area:mean" ;
+// UNCERTAINTY OF FLUX ON SPATIAL GRID BY SECTOR
+	// by default, uncertainty should be reported as standard deviation (1-sigma) around the mean, alternatively percentiles can be given in 'percentile' variables
+	float stdev_flux_sector_name_prior(time, latitude, longitude) ;
+		stdev_flux_sector_name_prior:units = "mol m-2 s-1" ;
+		stdev_flux_sector_name_prior:_FillValue = NaNf ;
+		stdev_flux_sector_name_prior:long_name = "standard deviation prior <species> fluxes from <sector_name>" ;
+		stdev_flux_sector_name_prior:cell_methods = "time:mean area:mean" ;
+	float stdev_flux_sector_name_posterior(time, latitude, longitude) ;
+		stdev_flux_sector_name_posterior:units = "mol m-2 s-1" ;
+		stdev_flux_sector_name_posterior:_FillValue = NaNf ;
+		stdev_flux_sector_name_posterior:long_name = "standard deviation posterior <species> fluxes from <sector_name>" ;
+		stdev_flux_sector_name_posterior:cell_methods = "time:mean area:mean" ;
+	float percentile_flux_sector_name_prior(time, percentile, latitude, longitude) ;
+		percentile_flux_sector_name_prior:units = "mol m-2 s-1" ;
+		percentile_flux_sector_name_prior:_FillValue = NaNf ;
+		percentile_flux_sector_name_prior:long_name = "percentiles of prior <species> fluxes from <sector_name>" ;
+		percentile_flux_sector_name_prior:cell_methods = "time:mean percentile:point area:mean" ;
+	float percentile_flux_sector_name_posterior(time, percentile, latitude, longitude) ;
+		percentile_flux_sector_name_posterior:units = "mol m-2 s-1" ;
+		percentile_flux_sector_name_posterior:_FillValue = NaNf ;
+		percentile_flux_sector_name_posterior:long_name = "percentiles of posterior <species> fluxes from <sector_name>" ;
+		percentile_flux_sector_name_posterior:cell_methods = "time:mean percentile:point area:mean" ;
+//
+// TOTAL FLUX AND UNCERTAINTY ON REDUCED SPATIAL GRID
+	// optional for inversions that solve the state vector on a reduced grid
+	float flux_total_prior_inversion_grid(time, latitude, longitude) ;
+		flux_total_prior_inversion_grid:units = "mol m-2 s-1" ;
+		flux_total_prior_inversion_grid:_FillValue = NaNf ;
+		flux_total_prior_inversion_grid:long_name = "prior total <species> fluxes on the inversion grid" ;
+		flux_total_prior_inversion_grid:cell_methods = "time:mean area:mean" ; 
+    float flux_total_posterior_inversion_grid(time, latitude, longitude) ;
+		flux_total_posterior_inversion_grid:units = "mol m-2 s-1" ;
+		flux_total_posterior_inversion_grid:_FillValue = NaNf ;
+		flux_total_posterior_inversion_grid:long_name = "posterior total <species> fluxes on the inversion grid" ;
+		flux_total_posterior_inversion_grid:cell_methods = "time:mean area:mean" ;
+	// by default, uncertainty should be reported as standard deviation (1-sigma) around the mean, alternatively percentiles can be given in 'percentile' variables
+	float stdev_flux_total_prior_inversion_grid(time, latitude, longitude) ;
+		stdev_flux_total_prior_inversion_grid:units = "mol m-2 s-1" ;
+		stdev_flux_total_prior_inversion_grid:_FillValue = NaNf ;
+		stdev_flux_total_prior_inversion_grid:long_name = "standard deviation of prior total <species> fluxes on the inversion grid" ;
+		stdev_flux_total_prior_inversion_grid:cell_methods = "time:mean area:mean" ; 
+    float stdev_flux_total_posterior_inversion_grid(time, latitude, longitude) ;
+		stdev_flux_total_posterior_inversion_grid:units = "mol m-2 s-1" ;
+		stdev_flux_total_posterior_inversion_grid:_FillValue = NaNf ;
+		stdev_flux_total_posterior_inversion_grid:long_name = "standard deviation of posterior total <species> fluxes on the inversion grid" ;
+		stdev_flux_total_posterior_inversion_grid:cell_methods = "time:mean area:mean" ;
+
+	float percentile_flux_total_prior_inversion_grid(time, percentile, latitude, longitude) ;
+		percentile_flux_total_prior_inversion_grid:units = "mol m-2 s-1" ;
+		percentile_flux_total_prior_inversion_grid:_FillValue = NaNf ;
+		percentile_flux_total_prior_inversion_grid:long_name = "percentiles of prior total <species> fluxes on the inversion grid" ;
+		percentile_flux_total_prior_inversion_grid:cell_methods = "time:mean percentile:point area:mean" ;
+	float percentile_flux_total_posterior_inversion_grid(time, percentile, latitude, longitude) ;
+		percentile_flux_total_posterior_inversion_grid:units = "mol m-2 s-1" ;
+		percentile_flux_total_posterior_inversion_grid:_FillValue = NaNf ;
+		percentile_flux_total_posterior_inversion_grid:long_name = "percentiles of posterior total <species> fluxes on the inversion grid" ;
+		percentile_flux_total_posterior_inversion_grid:cell_methods = "time:mean percentile:point area:mean" ;
+//
+// FLUX AND UNCERTAINTY ON REDUCED SPATIAL GRID BY SECTOR
+	// optional for inversions that solve the state vector on a reduced grid 
+	float flux_sector_name_prior_inversion_grid(time, latitude, longitude) ;
+		flux_sector_name_prior_inversion_grid:units = "mol m-2 s-1" ;
+		flux_sector_name_prior_inversion_grid:_FillValue = NaNf ;
+		flux_sector_name_prior_inversion_grid:long_name = "prior flux of <species> for <sector_name> on the inversion grid" ;
+		flux_sector_name_prior_inversion_grid:cell_methods = "time:mean area:mean" ; 
+    float flux_sector_name_posterior_inversion_grid(time, latitude, longitude) ;
+		flux_sector_name_posterior_inversion_grid:units = "mol m-2 s-1" ;
+		flux_sector_name_posterior_inversion_grid:_FillValue = NaNf ;
+		flux_sector_name_posterior_inversion_grid:long_name = "posterior flux of  <species> for <sector_name> on the inversion grid" ;
+		flux_sector_name_posterior_inversion_grid:cell_methods = "time:mean area:mean" ;
+	// by default, uncertainty should be reported as standard deviation (1-sigma) around the mean, alternatively percentiles can be given in 'percentile' variables
+	float stdev_flux_sector_name_prior_inversion_grid(time, latitude, longitude) ;
+		stdev_flux_sector_name_prior_inversion_grid:units = "mol m-2 s-1" ;
+		stdev_flux_sector_name_prior_inversion_grid:_FillValue = NaNf ;
+		stdev_flux_sector_name_prior_inversion_grid:long_name = "standard deviation of prior flux of <species> for <sector_name> on the inversion grid" ;
+		stdev_flux_sector_name_prior_inversion_grid:cell_methods = "time:mean area:mean" ; 
+    float stdev_flux_sector_name_posterior_inversion_grid(time, latitude, longitude) ;
+		stdev_flux_sector_name_posterior_inversion_grid:units = "mol m-2 s-1" ;
+		stdev_flux_sector_name_posterior_inversion_grid:_FillValue = NaNf ;
+		stdev_flux_sector_name_posterior_inversion_grid:long_name = "standard deviation of posterior flux of <species> for <sector_name> on the inversion grid" ;
+		stdev_flux_sector_name_posterior_inversion_grid:cell_methods = "time:mean area:mean" ;
+
+	float percentile_flux_sector_name_prior_inversion_grid(time, percentile, latitude, longitude) ;
+		percentile_flux_sector_name_prior_inversion_grid:units = "mol m-2 s-1" ;
+		percentile_flux_sector_name_prior_inversion_grid:_FillValue = NaNf ;
+		percentile_flux_sector_name_prior_inversion_grid:long_name = "percentiles of prior flux of <species> for <sector_name> on the inversion grid" ;
+		percentile_flux_sector_name_prior_inversion_grid:cell_methods = "time:mean percentile:point area:mean" ;
+	float percentile_flux_sector_name_posterior_inversion_grid(time, percentile, latitude, longitude) ;
+		percentile_flux_sector_name_posterior_inversion_grid:units = "mol m-2 s-1" ;
+		percentile_flux_sector_name_posterior_inversion_grid:_FillValue = NaNf ;
+		percentile_flux_sector_name_posterior_inversion_grid:long_name = "percentiles of posterior flux of <species> for <sector_name> on the inversion grid" ;
+		percentile_flux_sector_name_posterior_inversion_grid:cell_methods = "time:mean percentile:point area:mean" ;
+
+//	TOTAL FLUX BY COUNTRY
+	float flux_total_prior_country(time, country) ;	// mandatory
+		flux_total_prior_country:units = "kg yr-1" ;
+		flux_total_prior_country:_FillValue = NaNf ;
+		flux_total_prior_country:long_name = "country-total prior <species> fluxes" ;
+		flux_total_prior_country:cell_methods = "time:mean country:point" ;
+	float flux_total_posterior_country(time, country) ;	// mandatory
+		flux_total_posterior_country:units = "kg yr-1" ;
+		flux_total_posterior_country:_FillValue = NaNf ;
+		flux_total_posterior_country:long_name = "country-total posterior <species> fluxes" ;
+		flux_total_posterior_country:cell_methods = "time:mean country:point" ;
+	float stdev_flux_total_prior_country(time, country) ;	// conditional (mandatory if percentile_flux_total_prior_country missing)
+		stdev_flux_total_prior_country:units = "kg yr-1" ;
+		stdev_flux_total_prior_country:_FillValue = NaNf ;
+		stdev_flux_total_prior_country:long_name = "standard deviation of country-total prior <species> fluxes" ;
+		stdev_flux_total_prior_country:cell_methods = "time:mean country:point" ;
+	float stdev_flux_total_posterior_country(time, country) ; // conditional (mandatory if percentile_flux_total_posterior_country missing)
+		stdev_flux_total_posterior_country:units = "kg yr-1" ;
+		stdev_flux_total_posterior_country:_FillValue = NaNf ;
+		stdev_flux_total_posterior_country:long_name = "standard deviation of country-total posterior <species> fluxes" ;
+		stdev_flux_total_posterior_country:cell_methods = "time:mean country:point" ;
+	// covariance between countries 
+	float covariance_flux_total_posterior_country(time, country, country) ;	// mandatory
+		covariance_flux_total_posterior_country:units = "kg2 yr-2" ;
+		covariance_flux_total_posterior_country:_FillValue = NaNf ;
+		covariance_flux_total_posterior_country:long_name = "covariance of country-total posterior <species> fluxes" ;
+		covariance_flux_total_posterior_country:cell_methods = "time:mean country:point country:point" ;
+	float percentile_flux_total_prior_country(time, percentile, country) ;
+		percentile_flux_total_prior_country:units = "kg yr-1" ;
+		percentile_flux_total_prior_country:_FillValue = NaNf ;
+		percentile_flux_total_prior_country:long_name = "percentiles of country-total prior <species> fluxes" ;
+		percentile_flux_total_prior_country:cell_methods = "time:mean percentile:point country:point" ;
+	float percentile_flux_total_posterior_country(time, percentile, country) ;
+		percentile_flux_total_posterior_country:units = "kg yr-1" ;
+		percentile_flux_total_posterior_country:_FillValue = NaNf ;
+		percentile_flux_total_posterior_country:long_name = "percentiles of country-total posterior <species> fluxes" ;
+		percentile_flux_total_posterior_country:cell_methods = "time:mean percentile:point country:point" ;
+//	FLUX BY SECTOR AND COUNTRY
+	float flux_sector_name_prior_country(time, country) ; // optional
+		flux_sector_name_prior_country:units = "kg yr-1" ;
+		flux_sector_name_prior_country:_FillValue = NaNf ;
+		flux_sector_name_prior_country:long_name = "country-<sector_name> prior <species> fluxes" ;
+		flux_sector_name_prior_country:cell_methods = "time:mean country:point" ;
+	float flux_sector_name_posterior_country(time, country) ; // optional
+		flux_sector_name_posterior_country:units = "kg yr-1" ;
+		flux_sector_name_posterior_country:_FillValue = NaNf ;
+		flux_sector_name_posterior_country:long_name = "country-<sector_name> posterior <species> fluxes" ;
+		flux_sector_name_posterior_country:cell_methods = "time:mean country:point" ;
+	float stdev_flux_sector_name_prior_country(time, country) ; // optional
+		stdev_flux_sector_name_prior_country:units = "kg yr-1" ;
+		stdev_flux_sector_name_prior_country:_FillValue = NaNf ;
+		stdev_flux_sector_name_prior_country:long_name = "standard deviation of country-<sector_name> prior <species> fluxes" ;
+		stdev_flux_sector_name_prior_country:cell_methods = "time:mean country:point" ;
+	float stdev_flux_sector_name_posterior_country(time, country) ; // optional
+		stdev_flux_sector_name_posterior_country:units = "kg yr-1" ;
+		stdev_flux_sector_name_posterior_country:_FillValue = NaNf ;
+		stdev_flux_sector_name_posterior_country:long_name = "standard deviation of country-<sector_name> posterior <species> fluxes" ;
+		stdev_flux_sector_name_posterior_country:cell_methods = "time:mean country:point" ;
+	// covariance within each sector between countries
+	float covariance_flux_sector_name_posterior_country(time, country, country) ; // optional
+		covariance_flux_sector_name_posterior_country:units = "kg2 yr-2" ;
+		covariance_flux_sector_name_posterior_country:_FillValue = NaNf ;
+		covariance_flux_sector_name_posterior_country:long_name = "covariance of posterior <species> fluxes of <sector_name> between countries" ;
+		covariance_flux_sector_name_posterior_country:cell_methods = "time:mean country:point country:point" ;
+	float percentile_flux_sector_name_prior_country(time, percentile, country) ; // optional
+		percentile_flux_sector_name_prior_country:units = "kg yr-1" ;
+		percentile_flux_sector_name_prior_country:_FillValue = NaNf ;
+		percentile_flux_sector_name_prior_country:long_name = "percentiles of country-<sector_name> prior <species> fluxes" ;
+		percentile_flux_sector_name_prior_country:cell_methods = "time:mean percentile:point country:point" ;
+	float percentile_flux_sector_name_posterior_country(time, percentile, country) ; // optional
+		percentile_flux_sector_name_posterior_country:units = "kg yr-1" ;
+		percentile_flux_sector_name_posterior_country:_FillValue = NaNf ;
+		percentile_flux_sector_name_posterior_country:long_name = "percentiles of country-<sector_name> posterior <species> fluxes" ;
+		percentile_flux_sector_name_posterior_country:cell_methods = "time:mean percentile:point country:point" ;
+	// covariance within each country between sectors
+	float covariance_flux_sectors_posterior_country(time, country, sector, sector) ; // optional
+		covariance_flux_sectors_posterior_country:units = "kg2 yr-2" ;
+		covariance_flux_sectors_posterior_country:_FillValue = NaNf ;
+		covariance_flux_sectors_posterior_country:long_name = "covariance of posterior <species> fluxes within each country between sectors " ;
+		covariance_flux_sectors_posterior_country:cell_methods = "time:mean country:point sector:point sector:point" ;
+
+
+//	AUXILIARY VARIABLES
+	// Country abbreviation 
+	// alternatively to string variables use character array. String variables require netcdf 4!
+	string country(country) ;	// mandatory 
+		country:long_name = "country_ISO_3166_1_alpha3" ;
+	// sector names should only contain lower case letters (no separator characters), since they should be used in variable names
+	// optional when reporting separate fluxes by sector
+	string sector(sector) ;	// optional
+		sector:long_name = "short name of flux sector" ;
+		sector:comment ="brief definition of which emissions each sector contains" ; 
+	//	
+	float country_fraction(country, latitude, longitude) ;	// mandatory
+		country_fraction:units = "1" ;
+		country_fraction:_FillValue = NaNf ;
+		country_fraction:long_name = "fraction of grid cell associated to country" ;
+		country_fraction:standard_name = "area_fraction" ; 
+	//
+	float cell_area(latitude, longitude) ;	// mandatory
+		cell_area:units = "m2" ;
+		cell_area:_FillValue = NaNf ;
+		cell_area:long_name = "surface area of grid cell" ;
+		cell_area:standard_name = "cell_area" ;
+
+
+// global attributes:
+        :title = "GHG flux distribution and country totals" ;
+		:institution = "Empa, Switzerland" ;
+		:source = "Estimated flux from trace gas observations transport simulations and inversion code." ;
+		:creator = "Stephan Henne" ;
+		:creation_date = "2024-01-11" ;
+		:contact = "stephan.henne@empa.ch" ; 
+        :frequency = "yearly" ; 
+		:geospatial_lat_resolution = "0.234 degree" ; 
+        :geospatial_lon_resolution = "0.352 degree" ;
+		:transport_model = "NAME" ;
+        :transport_model_version = "" ; 
+        :inversion_system = "ELRIS" ; 
+        :inversion_system_version ="1.2.0" ;
+		:experiment = "EDGARprior" ;
+        :project = "Process Attribution of Regional emISsions (PARIS)" ;
+        :Conventions = "CF-1.8" ; 
+		:references = "Inversion code based on\n",
+			" Stohl et al., Atmos. Chem. Phys., 2009, doi:10.5194/acp-9-1597-2009\n",
+			" Henne et al., Atmos. Chem. Phys., 2016, doi:10.5194/acp-16-3683-2016" ;
+		:comment = "" ; //	use "comment" for a comprehensive description of the dataset (like abstract for a paper) or use "summary" for this description and "comment" for any other comment and information  
+		:summary = "" ; 
+        :license = "CC-BY-4.0" ;
+        :history = "2024-01-11 21:35:03 saved from ELRIS R package" ;
+
+data: 
+        percentile = 0.025, 0.975 ;
+        country = "AUT", "BEL", "CHE", "CZE", "DEU", "DNK", "ESP", "FIN", "FRA", "GBR", "HRV", "HUN", 
+                  "IRL", "ITA", "LUX", "NLD", "NOR", "POL", "PRT", "SVK", "SVN", "SWE" ;
+        longitude = -97.9, -97.548, -97.196, -96.844, -96.492, -96.14, -95.788, -95.436, 
+                    -95.084, -94.732, -94.38, -94.028, -93.676, -93.324, -92.972, -92.62, 
+                    -92.268, -91.916, -91.564, -91.212, -90.86, -90.508, -90.156, -89.804, 
+                    -89.452, -89.1, -88.748, -88.396, -88.044, -87.692, -87.34, -86.988, 
+                    -86.636, -86.284, -85.932, -85.58, -85.228, -84.876, -84.524, -84.172, 
+                    -83.82, -83.468, -83.116, -82.764, -82.412, -82.06, -81.708, -81.356, 
+                    -81.004, -80.652, -80.3, -79.948, -79.596, -79.244, -78.892, -78.54, 
+                    -78.188, -77.836, -77.484, -77.132, -76.78, -76.428, -76.076, -75.724, 
+                    -75.372, -75.02, -74.668, -74.316, -73.964, -73.612, -73.26, -72.908, 
+                    -72.556, -72.204, -71.852, -71.5, -71.148, -70.796, -70.444, -70.092, 
+                    -69.74, -69.388, -69.036, -68.684, -68.332, -67.98, -67.628, -67.276, 
+                    -66.924, -66.572, -66.22, -65.868, -65.516, -65.164, -64.812, -64.46, 
+                    -64.108, -63.756, -63.404, -63.052, -62.7, -62.348, -61.996, -61.644, 
+                    -61.292, -60.94, -60.588, -60.236, -59.884, -59.532, -59.18, -58.828, 
+                    -58.476, -58.124, -57.772, -57.42, -57.068, -56.716, -56.364, -56.012, 
+                    -55.66, -55.308, -54.956, -54.604, -54.252, -53.9, -53.548, -53.196, 
+                    -52.844, -52.492, -52.14, -51.788, -51.436, -51.084, -50.732, -50.38, 
+                    -50.028, -49.676, -49.324, -48.972, -48.62, -48.268, -47.916, -47.564, 
+                    -47.212, -46.86, -46.508, -46.156, -45.804, -45.452, -45.1, -44.748, 
+                    -44.396, -44.044, -43.692, -43.34, -42.988, -42.636, -42.284, -41.932, 
+                    -41.58, -41.228, -40.876, -40.524, -40.172, -39.82, -39.468, -39.116, 
+                    -38.764, -38.412, -38.06, -37.708, -37.356, -37.004, -36.652, -36.3, 
+                    -35.948, -35.596, -35.244, -34.892, -34.54, -34.188, -33.836, -33.484, 
+                    -33.132, -32.78, -32.428, -32.076, -31.724, -31.372, -31.02, -30.668, 
+                    -30.316, -29.964, -29.612, -29.26, -28.908, -28.556, -28.204, -27.852, 
+                    -27.5, -27.148, -26.796, -26.444, -26.092, -25.74, -25.388, -25.036, 
+                    -24.684, -24.332, -23.98, -23.628, -23.276, -22.924, -22.572, -22.22, 
+                    -21.868, -21.516, -21.164, -20.812, -20.46, -20.108, -19.756, -19.404, 
+                    -19.052, -18.7, -18.348, -17.996, -17.644, -17.292, -16.94, -16.588, 
+                    -16.236, -15.884, -15.532, -15.18, -14.828, -14.476, -14.124, -13.772, 
+                    -13.42, -13.068, -12.716, -12.364, -12.012, -11.66, -11.308, -10.956, 
+                    -10.604, -10.252, -9.900, -9.548, -9.196, -8.844, -8.492, -8.140, 
+                    -7.788, -7.436, -7.084, -6.732, -6.380, -6.028, -5.676, -5.324, 
+                    -4.972, -4.62, -4.268, -3.916, -3.564, -3.212, -2.860, -2.508, 
+                    -2.156, -1.804, -1.452, -1.100, -0.748, -0.396, -0.044, 0.308, 0.660, 
+                    1.012, 1.364, 1.716, 2.068, 2.42, 2.772, 3.124, 3.476, 
+                    3.828, 4.18, 4.532, 4.884, 5.236, 5.588, 5.94, 6.292, 
+                    6.644, 6.996, 7.348, 7.7, 8.052, 8.404, 8.756, 9.108, 
+                    9.46, 9.812, 10.164, 10.516, 10.868, 11.22, 
+                    11.572, 11.924, 12.276, 12.628, 12.98, 13.332, 13.684, 14.036, 14.388, 
+                    14.74, 15.092, 15.444, 15.796, 16.148, 16.5, 16.852, 17.204, 17.556, 
+                    17.908, 18.26, 18.612, 18.964, 19.316, 19.668, 20.02, 20.372, 20.724, 
+                    21.076, 21.428, 21.78, 22.132, 22.484, 22.836, 23.188, 23.54, 23.892, 
+                    24.244, 24.596, 24.948, 25.3, 25.652, 26.004, 26.356, 26.708, 27.06, 
+                    27.412, 27.764, 28.116, 28.468, 28.82, 29.172, 29.524, 29.876, 30.228, 
+                    30.58, 30.932, 31.284, 31.636, 31.988, 32.34, 32.692, 33.044, 33.396, 
+                    33.748, 34.1, 34.452, 34.804, 35.156, 35.508, 35.86, 36.212, 36.564, 
+                    36.916, 37.268, 37.62, 37.972, 38.324, 38.676, 39.028, 39.38 ;
+        latitude = 10.729, 10.963, 11.197, 11.431, 11.665, 11.899, 12.133, 12.367, 
+                  12.601, 12.835, 13.069, 13.303, 13.537, 13.771, 14.005, 14.239, 14.473, 
+                  14.707, 14.941, 15.175, 15.409, 15.643, 15.877, 16.111, 16.345, 16.579, 
+                  16.813, 17.047, 17.281, 17.515, 17.749, 17.983, 18.217, 18.451, 18.685, 
+                  18.919, 19.153, 19.387, 19.621, 19.855, 20.089, 20.323, 20.557, 20.791, 
+                  21.025, 21.259, 21.493, 21.727, 21.961, 22.195, 22.429, 22.663, 22.897, 
+                  23.131, 23.365, 23.599, 23.833, 24.067, 24.301, 24.535, 24.769, 25.003, 
+                  25.237, 25.471, 25.705, 25.939, 26.173, 26.407, 26.641, 26.875, 27.109, 
+                  27.343, 27.577, 27.811, 28.045, 28.279, 28.513, 28.747, 28.981, 29.215, 
+                  29.449, 29.683, 29.917, 30.151, 30.385, 30.619, 30.853, 31.087, 31.321, 
+                  31.555, 31.789, 32.023, 32.257, 32.491, 32.725, 32.959, 33.193, 33.427, 
+                  33.661, 33.895, 34.129, 34.363, 34.597, 34.831, 35.065, 35.299, 35.533, 
+                  35.767, 36.001, 36.235, 36.469, 36.703, 36.937, 37.171, 37.405, 37.639, 
+                  37.873, 38.107, 38.341, 38.575, 38.809, 39.043, 39.277, 39.511, 39.745, 
+                  39.979, 40.213, 40.447, 40.681, 40.915, 41.149, 41.383, 41.617, 41.851, 
+                  42.085, 42.319, 42.553, 42.787, 43.021, 43.255, 43.489, 43.723, 43.957, 
+                  44.191, 44.425, 44.659, 44.893, 45.127, 45.361, 45.595, 45.829, 46.063, 
+                  46.297, 46.531, 46.765, 46.999, 47.233, 47.467, 47.701, 47.935, 48.169, 
+                  48.403, 48.637, 48.871, 49.105, 49.339, 49.573, 49.807, 50.041, 50.275, 
+                  50.509, 50.743, 50.977, 51.211, 51.445, 51.679, 51.913, 52.147, 52.381, 
+                  52.615, 52.849, 53.083, 53.317, 53.551, 53.785, 54.019, 54.253, 54.487, 
+                  54.721, 54.955, 55.189, 55.423, 55.657, 55.891, 56.125, 56.359, 56.593, 
+                  56.827, 57.061, 57.295, 57.529, 57.763, 57.997, 58.231, 58.465, 58.699, 
+                  58.933, 59.167, 59.401, 59.635, 59.869, 60.103, 60.337, 60.571, 60.805, 
+                  61.039, 61.273, 61.507, 61.741, 61.975, 62.209, 62.443, 62.677, 62.911, 
+                  63.145, 63.379, 63.613, 63.847, 64.081, 64.315, 64.549, 64.783, 65.017, 
+                  65.251, 65.485, 65.719, 65.953, 66.187, 66.421, 66.655, 66.889, 67.123, 
+                  67.357, 67.591, 67.825, 68.059, 68.293, 68.527, 68.761, 68.995, 69.229, 
+                  69.463, 69.697, 69.931, 70.165, 70.399, 70.633, 70.867, 71.101, 71.335, 
+                  71.569, 71.803, 72.037, 72.271, 72.505, 72.739, 72.973, 73.207, 73.441, 
+                  73.675, 73.909, 74.143, 74.377, 74.611, 74.845, 75.079, 75.313, 75.547, 
+                  75.781, 76.015, 76.249, 76.483, 76.717, 76.951, 77.185, 77.419, 77.653, 
+                  77.887, 78.121, 78.355, 78.589, 78.823, 79.057 ;
+
+}
