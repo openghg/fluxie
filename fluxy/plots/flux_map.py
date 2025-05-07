@@ -142,14 +142,14 @@ def plot_flux_map(
     n_rows = len(vars_list)
     n_cols = len(ds_all)
     figsize = define_map_figsize(
-        map_bounds, n_rows, n_cols, fixed_value=3*n_rows, fixed_dimension="height"
+        map_bounds, n_rows, n_cols, fixed_value=3 * n_rows, fixed_dimension="height"
     )
     fig, ax = plt.subplots(n_rows, n_cols, figsize=figsize, constrained_layout=True)
 
     for col, (model, ds) in enumerate(ds_all.items()):
         lon, lat = ds.longitude, ds.latitude
 
-        model_axes = ax if n_cols == 1 else ax[:, col]
+        model_axes = ax if n_cols == 1 else (ax[:, col] if n_rows > 1 else ax[col])
 
         for row, var in enumerate(vars_list):
             ax_i = model_axes if n_rows == 1 else model_axes[row]
