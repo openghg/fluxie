@@ -222,9 +222,9 @@ def plot_country_flux(
     r_data = config_data.get("regions_info", {})
 
     if not plot_regions:
-        # Read all countries given in the dss
-        plot_regions = set(
-            sum((ds["country"].values.tolist() for ds in ds_all.values()), [])
+        # Read all countries given in the dss and take the intersection of models
+        plot_regions = set.intersection(
+            *(set(ds["country"].values) for ds in ds_all.values())
         )
 
     if return_res:
