@@ -86,8 +86,7 @@ def prepare_data_to_plot(
     for m in ds_all_region.keys():
         ds_all_region[m].attrs["model_label"] = model_labels.get(m, m)
         if m not in model_colors.keys():
-            # Get a color from the matplotlib color cycler 
-            model_colors[m] = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+            model_colors[m] = config.get_default_colors()
         ds_all_region[m].attrs["model_colors"] = model_colors[m] 
     map_model_colors = {f"c{i}": m for i, m in enumerate(model_colors.values())}
 
