@@ -142,7 +142,7 @@ def plot_flux_map(
     n_rows = len(vars_list)
     n_cols = len(ds_all)
     figsize = define_map_figsize(
-        map_bounds, n_rows, n_cols, fixed_value=9, fixed_dimension="height"
+        map_bounds, n_rows, n_cols, fixed_value=3*n_rows, fixed_dimension="height"
     )
     fig, ax = plt.subplots(n_rows, n_cols, figsize=figsize, constrained_layout=True)
 
