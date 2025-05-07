@@ -43,7 +43,9 @@ def read_json(filepath: os.PathLike) -> dict[str, dict]:
     return json_data
 
 
-def read_config_files() -> dict[str, dict]:
+def read_config_files(
+    configs_dir: os.PathLike | None = None,
+) -> dict[str, dict]:
     """
     Reads all configuration json files.
 
@@ -53,9 +55,10 @@ def read_config_files() -> dict[str, dict]:
             Each key points to a dictionary with the data from each json file.
     """
 
-    # Get location of json files
-    parent_dir = Path(__file__).parent.parent
-    configs_dir = parent_dir / "configs"
+    if configs_dir is None:
+        # Get location of json files
+        parent_dir = Path(__file__).parent.parent
+        configs_dir = parent_dir / "configs"
 
     # List of json files to be read
     json_files = configs_dir.glob("*.json")
@@ -68,10 +71,11 @@ def read_config_files() -> dict[str, dict]:
         data_dict[filename] = data
 
     # Join dictionaries from regions_info.json
-    if "regions" in data_dict["regions_info"].keys():
-        data_dict["regions_info"]["country_codes"].update(
-            data_dict["regions_info"]["regions"]
-        )
+    regions_info = data_dict.get("regions_info", {})
+    if "regions" in regions_info.keys():
+        if "country_codes" not in regions_info.keys():
+            regions_info["country_codes"] = {}
+        regions_info["country_codes"].update(regions_info["regions"])
 
     return data_dict
 
