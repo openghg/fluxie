@@ -185,10 +185,10 @@ def plot_flux_map(
             # Add titles
             # Column titles
             if row == 0:
-                ax_i.set_title(model_labels.get(model, model), fontsize=12)
+                ax_i.set_title(model_labels.get(model, model))
             # Row titles
             if col == 0:
-                ax_i.set_ylabel(config.flux_labels[var], fontsize=12)
+                ax_i.set_ylabel(config.flux_labels[var])
 
             # Add sites and markers if specified
             if add_sites and model in sites_info:
