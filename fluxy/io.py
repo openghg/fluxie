@@ -554,6 +554,8 @@ def edit_vars_and_attributes(
         ]
 
         for var in vars_to_check:
+            if var not in ds:
+                continue
             if "units" not in ds[var].attrs.keys() and "unit" in ds[var].attrs.keys():
                 ds[var].attrs["units"] = ds[var].attrs["unit"]
 
