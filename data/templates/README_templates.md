@@ -64,7 +64,7 @@ The most important variables are described below. Please refer to the cdl files 
 
 | Observation variables | Old name  | Units (3) | Dimensions | Description                                      |
 |:----------------------|:----------|:----------|:-----------|:-------------------------------------------------|
-| platform              | sitenames | -         | index      | Identifier of observing platform
+| platform              | sitenames | -         | platform   | Identifier of observing platform
 | mf_observed           | Yobs      | mol mol-1 | index      | Observed mole fraction of `<species>` in dry air
 
 | Simulated variables     | Old name      | Units (3) | Dimensions | Description                                      |
