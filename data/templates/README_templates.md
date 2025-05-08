@@ -78,11 +78,11 @@ The most important variables are described below. Please refer to the cdl files 
 | stdev_mf_posterior      | None          | mol mol-1 | index      | Standard deviation of posterior simulated mole fractions due to state vector uncertainty
 | mf_bias_prior	          | Yaprior_bias  | mol mol-1 | index      | Prior simulated mole fraction site bias
 | mf_bias_posterior	      | Yapost_bias   | mol mol-1 | index      | Posterior simulated mole fraction site bias
-| mf_outer_prior	      | YaprioriOUTER | mol mol-1 | index      | Prior simulated mole fraction contribution from distant regions
-| mf_outer_posterior	  | YapostOUTER   | mol mol-1 | index      | Posterior simulated mole fraction contribution from distant regions
+| mf_outer_prior	        | YaprioriOUTER | mol mol-1 | index      | Prior simulated mole fraction contribution from distant regions
+| mf_outer_posterior	    | YapostOUTER   | mol mol-1 | index      | Posterior simulated mole fraction contribution from distant regions
 | *Alternative to stdev for non-Gaussian PDFs*
-| percentile_mf_prior     | qYapriori     | mol mol-1 | index, percentile      | Percentile of prior simulated mole fraction due to state vector uncertainty uncertainty
-| percentile_mf_posterior | qYapost       | mol mol-1 | index, percentile      | Percentile of posterior simulated mole fraction due to state vector uncertainty
+| percentile_mf_prior     | qYapriori     | mol mol-1 | index, percentile | Percentile of prior simulated mole fraction due to state vector uncertainty uncertainty
+| percentile_mf_posterior | qYapost       | mol mol-1 | index, percentile | Percentile of posterior simulated mole fraction due to state vector uncertainty
 
 | Uncertainty variables           | Old name            | Units (3) | Dimensions | Description                                      |
 |:--------------------------------|:--------------------|:----------|:-----------|:-------------------------------------------------|
@@ -90,6 +90,6 @@ The most important variables are described below. Please refer to the cdl files 
 | *Optional*
 | stdev_mf_observed_repeatability | uYobs_repeatability | mol mol-1 | index      | Repeatability uncertainty of observed mole fraction
 | stdev_mf_observed_variability	  | uYobs_variability   | mol mol-1 | index      | Variability of observed mole fraction within aggregation interval
-| stdev_mf_model	              | uYmod               | mol mol-1 | index      | Model uncertainty of simulated mole fraction
+| stdev_mf_model	                | uYmod               | mol mol-1 | index      | Model uncertainty of simulated mole fraction
 
 (3) fluxy also accepts ppm, ppb and ppt. However, please make sure that all variables have the same units.
