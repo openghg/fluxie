@@ -92,4 +92,4 @@ The most important variables are described below. Please refer to the cdl files 
 | stdev_mf_observed_variability	  | uYobs_variability   | mol mol-1 | index      | Variability of observed mole fraction within aggregation interval
 | stdev_mf_model	              | uYmod               | mol mol-1 | index      | Model uncertainty of simulated mole fraction
 
-(3) fluxy also accepts ppm, ppb and ppt.
+(3) fluxy also accepts ppm, ppb and ppt. However, please make sure that all variables have the same units.
