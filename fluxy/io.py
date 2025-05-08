@@ -567,6 +567,8 @@ def edit_vars_and_attributes(
             ds = ds.set_index(countrynumber="country").rename(
                 {"countrynumber": "country"}
             )
+        
+        if m0 in ["elris","elris-new"]:
             var_to_change = "covariance_country_flux_total_posterior"
             if var_to_change in ds and ds[var_to_change].dims == (
                 "time",
