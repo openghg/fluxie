@@ -19,7 +19,7 @@ Note: in the ICOS Jupyter Hub, you might need to restart the kernel so that pack
 
 Data format must be in agreement with the PARIS-AVENGERS-EYECLIMA template available in folder data/templates/. You can find a summary of the most important variables  in data/templates/README_templates.md
 
-Filenames should follow the following format:  
+Please note that the filenames should follow the following format:  
 - Flux file: `<inversionModel>_<optional_identifying_tags>_<species>_<inversionFrequency>.nc`  
 - Concentration file: `<inversionModel>_<optional_identifying_tags>_<species>_<inversionFrequency>_concentration.nc`  
 
@@ -34,9 +34,9 @@ InTEM_NAME_EUROPE_EDGAR_hfc134a_yearly_concentration.nc
 The following folder structure is expected:
 `/path/to/data/<inversionModel>/<species>/`
 
-### 2. Regions information (file "regions_info.json")
+### 2. Regions information (optional)
 
-Example file located in folder configs/.
+Example file located in folder configs/regions_info.json.
 
 | Variables     | Type                      | Description  |
 |:--------------|:--------------------------|:-------------|
@@ -44,9 +44,9 @@ Example file located in folder configs/.
 | regions       | dict[str,str]             | Regions corresponding to aggregation of countries. |
 | point_source  | dict[str,list]            | Latitude/longitude coordinates of points of interest. |
 
-### 3. Models information (file "models_info.json")
+### 3. Models information (optional)
 
-Example file located in folder configs/.
+Example file located in folder configs/models_info.json.
 
 | Variables     | Type                      | Description  |
 |:--------------|:--------------------------|:-------------|
@@ -55,9 +55,9 @@ Example file located in folder configs/.
 | species_name  | dict[str,dict] (optional) | Species name that should replace `<species>` in the filename. <br> By default, `<species>` is assumed equal to the value specified in the notebook (e.g. "hfc134a"). <br> Use this dictionary to specify model specific species name. Dictionary keys should correspond to `<inversionModel>`. |
 | standard_run  | dict[str,dict]            | Name tags (`<transportModel>_<prior>_<optional_tags>`) that identify the standard run for all models and each gas. <br> These runs are considered when summing country fluxes from all HFCs or PFCs (e.g. option species="all_hfc"). <br> To use the name tags specified under "default", specify only the `<inversionModel>` name in the notebook (e.g. models=["InTEM","RHIME"]). <br> Define other dictionary keys (e.g. "longrun") to specify a different set of model runs. You can point to these runs by specifying `<inversionModel>_<key_name>` (e.g. models=["InTEM_longrun"]). Missing species will be taken from the "default" dictionary. |
 
-### 4. Species information (file "species_info.json")
+### 4. Species information (optional)
 
-Example file located in folder configs/.
+Example file located in folder configs/species_info.json.
 
 It contains a dictionary of species (or group of species) pointing to various properties/print settings.
 
@@ -68,9 +68,9 @@ It contains a dictionary of species (or group of species) pointing to various pr
 | molar_mass    | float (optional)       | Species molar mass (g mol-1). <br> Used to apply mol<->g conversion to fluxes.                                      |
 | list_species  | list of str (optional) | List of species which define a given group of species. <br> Used to plot sum of country fluxes over various species.|
 
-### 5. Sites information (file "site_info.json")
+### 5. Sites information (optional)
 
-Example file located in folder configs/.
+Example file located in folder configs/site_info.json.
 
 It contains a dictionary of stations (station designation code) pointing to the respective observation network (e.g. ICOS).  
 For each pair station/observation network, there is a dictionary of station specifications:
