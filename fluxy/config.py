@@ -88,7 +88,7 @@ def set_print_settings(presentation_mode: bool = False) -> dict[int, list]:
     Sets font size and annotation coordinates.
 
     Args:
-        ppt_mode (logical) (optional):
+        presentation_mode (logical) (optional):
             If True, use bigger fonts (ideal for presentation slides)
 
     Returns:
@@ -228,3 +228,15 @@ def set_model_labels(
         model_labels[m] = label
 
     return model_labels
+
+
+def get_default_colors() -> list[str]:
+    """
+    Returns the colors from the current matplotlib color cycle.
+
+    Returns:
+        color (str):
+            Color to be used in plot.
+    """
+
+    return plt.rcParams["axes.prop_cycle"].by_key()["color"]

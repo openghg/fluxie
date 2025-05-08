@@ -69,3 +69,15 @@ def test_read_mf():
         data_dir=data_dir,
         mf_units_print=mf_units_print,
     )
+
+
+def test_read_config_default():
+    config_data = read_config_files()
+    assert isinstance(config_data, dict), "Config data should be a dictionary"
+    assert len(config_data) > 0, "Config data should not be empty"
+
+
+def test_read_empty_configs():
+    fake_dir = Path("/nowhere/is/this")
+    config_data = read_config_files(fake_dir)
+    assert config_data == {}, "Config data should be an empty dictionary when no config files are found"

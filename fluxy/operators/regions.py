@@ -40,7 +40,8 @@ def extract_region_flux(
             - 'prior_upper'
     """
     ds_output = dict()
-    country_search = regions_info["country_codes"][country]
+    country_codes = regions_info.get("country_codes", {})
+    country_search = country_codes.get(country, country)
     min_percentile_index = 0
     max_percentile_index = 1
 
@@ -57,15 +58,17 @@ def extract_region_flux(
         "prior_upper",
     ]
 
+    dict_regions: dict[str, str] = regions_info.get("regions", {})
+
     for m, ds in ds_all.items():
         # search for existing region names
         available_countries = ds["country"].values.astype(str)
 
         if (
             country_search not in available_countries
-            and country in regions_info["regions"].keys()
+            and country in dict_regions.keys()
         ):
-            region_search = regions_info["regions"][country]
+            region_search = dict_regions[country]
 
             logger.info(
                 f"{country} emissions are not present in {m}. Considering covariance matrix and sum of individual countries: {region_search}."
@@ -114,12 +117,15 @@ def extract_region_flux(
             for v in ["posterior", "prior"]:
                 ds_region[v] = ds_region[f"country_flux_total_{v}"]
 
-                ds_region[f"{v}_lower"] = ds_region[
-                    f"percentile_country_flux_total_{v}"
-                ].isel(percentile=min_percentile_index)
-                ds_region[f"{v}_upper"] = ds_region[
-                    f"percentile_country_flux_total_{v}"
-                ].isel(percentile=max_percentile_index)
+                var_percentile = f"percentile_country_flux_total_{v}"
+                if var_percentile in ds_region.variables:
+                    da = ds_region[var_percentile]
+                    ds_region[f"{v}_lower"] = da.isel(percentile=min_percentile_index)
+                    ds_region[f"{v}_upper"] = da.isel(percentile=max_percentile_index)
+                else:
+                    da = ds_region[f"country_flux_total_{v}"]
+                    ds_region[f"{v}_lower"] = da
+                    ds_region[f"{v}_upper"] = da
 
         else:
             raise ValueError(f"{country_search} ({country}) is not available for {m}")

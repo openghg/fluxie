@@ -1,37 +1,34 @@
-import numpy as np
-import xarray as xr
-import matplotlib.pyplot as plt
-import geopandas as gpd
+from typing import Literal
 
-from pandas import to_datetime
+import matplotlib.pyplot as plt
+import xarray as xr
 
 from fluxy import config
-from fluxy.plots.utils import (
-    extract_site_info,
-    set_flux_limits,
-    print_cbar_label,
-    get_marker_coordinates,
-    get_sites_coordinates,
-    get_region_coordinates,
-    add_site_markers,
-    add_custom_markers,
-    add_colorbar,
-    define_map_figsize,
-    compute_boundary_geometry,
-    plot_country_borders,
-)
-from fluxy.operators.flux_map_diff import define_var_plot
 from fluxy.operators.flux_align_dataset import align_map_data
 from fluxy.operators.flux_combine import combine_map_dataset
-from fluxy.operators.flux_map_resample import get_flux_mean, average_over_period
+from fluxy.operators.flux_map_diff import define_var_plot
+from fluxy.operators.flux_map_resample import average_over_period, get_flux_mean
+from fluxy.plots.utils import (
+    Region,
+    add_colorbar,
+    add_custom_markers,
+    add_site_markers,
+    compute_boundary_geometry,
+    define_map_figsize,
+    get_map_bounds,
+    get_sites_coordinates,
+    plot_country_borders,
+    print_cbar_label,
+    set_flux_limits,
+)
 
 
 def plot_flux_map(
     ds_all: dict[xr.Dataset],
     species: str,
-    region: str | list[float],
-    config_data: dict,
-    model_labels: list[str],
+    region: Region = None,
+    config_data: dict[str, any] = {},
+    model_labels: dict[str, str] = {},
     cmap: str = "viridis",
     cmap_diff: str = "coolwarm",
     c_border: str = "floralwhite",
@@ -43,6 +40,7 @@ def plot_flux_map(
     set_fluxlim_percentile: float = None,
     plot_inversion_grid_flux: bool = False,
     zoom_degree: float = 1,
+    only: Literal["posterior", "prior", "diff"] | None = None,
 ) -> plt.Figure:
     """
     Plot posterior and prior fluxes and the difference between them for all models, time averaged.
@@ -95,18 +93,12 @@ def plot_flux_map(
     """
 
     # Determine geographical boundaries
-    if isinstance(region, str):
-        map_bounds = get_region_coordinates(
-            region, config_data["regions_info"], zoom_degree=zoom_degree
-        )
-    elif isinstance(region, list) and all(
-        isinstance(coord, (int, float)) for coord in region
-    ):
-        map_bounds = tuple(region)
-    else:
-        raise ValueError(
-            "Invalid input: 'region' must be a string or a list of numbers."
-        )
+    map_bounds = get_map_bounds(
+        region,
+        ds_all.values(),
+        config_data,
+        zoom_degree=zoom_degree,
+    )
 
     # Define variables
     var_prior = "flux_total_prior"
@@ -120,11 +112,18 @@ def plot_flux_map(
         if plot_inversion_grid_flux
         else "posterior_prior_diff"
     )
-    vars_list = [var_prior, var_posterior, var_diff]
+    if only == "posterior":
+        vars_list = [var_posterior]
+    elif only == "prior":
+        vars_list = [var_prior]
+    elif only == "diff":
+        vars_list = [var_diff]
+    else:
+        vars_list = [var_prior, var_posterior, var_diff]
 
     # Load country lines, species and sites information
     country_lines = compute_boundary_geometry(map_bounds)
-    species_info = config_data["species_info"][species]
+    species_info = config_data.get("species_info", {}).get(species, {})
     sites_info = (
         get_sites_coordinates(ds_all, config_data) if add_sites else ""
     )  # TODO move in the for loop once the info comes from the concentration files
@@ -140,18 +139,20 @@ def plot_flux_map(
     )
 
     # Initialize figure
-    n_rows = 3
+    n_rows = len(vars_list)
     n_cols = len(ds_all)
     figsize = define_map_figsize(
-        map_bounds, n_rows, n_cols, fixed_value=9, fixed_dimension="height"
+        map_bounds, n_rows, n_cols, fixed_value=3 * n_rows, fixed_dimension="height"
     )
     fig, ax = plt.subplots(n_rows, n_cols, figsize=figsize, constrained_layout=True)
 
     for col, (model, ds) in enumerate(ds_all.items()):
         lon, lat = ds.longitude, ds.latitude
 
+        model_axes = ax if n_cols == 1 else (ax[:, col] if n_rows > 1 else ax[col])
+
         for row, var in enumerate(vars_list):
-            ax_i = ax[row] if n_cols == 1 else ax[row, col]
+            ax_i = model_axes if n_rows == 1 else model_axes[row]
 
             var_plot = define_var_plot(ds, var)
             var_plot = get_flux_mean(var_plot, season)
@@ -182,14 +183,12 @@ def plot_flux_map(
             ax_i.set_aspect(1)
 
             # Add titles
-            (
-                ax_i.set_title(model_labels[model], fontsize=12) if row == 0 else ""
-            )  # Column titles
-            (
-                ax_i.set_ylabel(config.flux_labels[var], fontsize=12)
-                if col == 0
-                else ""
-            )  # Row titles
+            # Column titles
+            if row == 0:
+                ax_i.set_title(model_labels.get(model, model))
+            # Row titles
+            if col == 0:
+                ax_i.set_ylabel(config.flux_labels[var])
 
             # Add sites and markers if specified
             if add_sites and model in sites_info:
@@ -226,9 +225,9 @@ def plot_flux_map_model_comparison(
     var: str,
     models: list[str],
     species: str,
-    region: str | list[float],
-    config_data: dict,
-    model_labels: list[str],
+    region: Region = None,
+    config_data: dict = {},
+    model_labels: dict[str, str] = {},
     cmap: str = "viridis",
     cmap_diff: str = "coolwarm",
     c_border: str = "floralwhite",
@@ -305,18 +304,12 @@ def plot_flux_map_model_comparison(
         raise ValueError("Models must be a list of exactly two strings.")
 
     # Determine geographical boundaries
-    if isinstance(region, str):
-        map_bounds = get_region_coordinates(
-            region, config_data["regions_info"], zoom_degree=zoom_degree
-        )
-    elif isinstance(region, list) and all(
-        isinstance(coord, (int, float)) for coord in region
-    ):
-        map_bounds = tuple(region)
-    else:
-        raise ValueError(
-            "Invalid input: 'region' must be a string or a list of numbers."
-        )
+    map_bounds = get_map_bounds(
+        region,
+        ds_all.values(),
+        config_data,
+        zoom_degree=zoom_degree,
+    )
 
     # Prepare datasets
     ds_dict = {k: v for k, v in ds_all.items() if k in models}
@@ -359,7 +352,7 @@ def plot_flux_map_model_comparison(
         var_plot = get_flux_mean(var_plot, season)
 
         # Determine plot settings
-        is_diff = "diff" in var
+        is_diff = ("diff" in var) or ("diff" in model)
         cmap_i = cmap_diff if is_diff else cmap
         border_color = c_border_diff if is_diff else c_border
         vlim_i = (-fluxlim[1], fluxlim[1]) if is_diff else fluxlim
@@ -424,9 +417,9 @@ def plot_flux_map_over_time(
     ds_all: dict[xr.Dataset],
     var: str,
     species: str,
-    region: str | list[float],
-    config_data: dict,
-    model_labels: list[str],
+    region: Region = None,
+    config_data: dict = {},
+    model_labels: dict[str] = {},
     chop_by: str | list[str] | list[float] | list[list[float]] = "year",
     dt: float = 1,
     plot_combined: bool = False,
@@ -493,19 +486,12 @@ def plot_flux_map_over_time(
             averaged over the number of time steps specified in dt.
     """
     # Determine geographical boundaries
-    if isinstance(region, str):
-        map_bounds = get_region_coordinates(
-            region, config_data["regions_info"], zoom_degree=zoom_degree
-        )
-    elif isinstance(region, list) and all(
-        isinstance(coord, (int, float)) for coord in region
-    ):
-        map_bounds = tuple(region)
-    else:
-        raise ValueError(
-            "Invalid input: 'region' must be a string or a list of numbers."
-        )
-
+    map_bounds = get_map_bounds(
+        region,
+        ds_all.values(),
+        config_data,
+        zoom_degree=zoom_degree,
+    )
     # Prepare datasets and average over given periods
     if plot_combined:
         ds_dict = align_map_data(ds_all)
@@ -519,7 +505,7 @@ def plot_flux_map_over_time(
 
     # Load country lines, species and sites information
     country_lines = compute_boundary_geometry(map_bounds)
-    species_info = config_data["species_info"][species]
+    species_info = config_data.get("species_info", {}).get(species, {})
     sites_info = (
         get_sites_coordinates(ds_all, config_data) if add_sites else ""
     )  # TODO move in the for loop once the info comes from the concentration files
@@ -581,9 +567,12 @@ def plot_flux_map_over_time(
             ax_i.set_aspect(1)
 
             # Add titles
-            ax_i.set_title(time_label) if row == 0 else ""  # Column titles
-            if not plot_combined:
-                ax_i.set_ylabel(model_labels[model]) if col == 0 else ""  # Row titles
+            if row == 0:
+                # Column titles
+                ax_i.set_title(time_label)
+            if not plot_combined and col == 0:
+                # Row titles
+                ax_i.set_ylabel(model_labels.get(model, model))
 
             # Add sites and markers if specified
             if add_sites:

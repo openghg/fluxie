@@ -401,6 +401,74 @@ def extract_site_info(
 
     return site_data
 
+def get_bounds_from_datasets(ds_list: list[xr.Dataset]) -> tuple[float, float, float, float]:
+    """
+    Get the bounds of a list of xarray datasets.
+
+    Args:
+        ds_list: list of xarray datasets to be bounded
+    Returns:
+        bounds: tuple of min and max values for latitude and longitude
+    """
+    lat_min = min([ds.latitude.min() for ds in ds_list])
+    lat_max = max([ds.latitude.max() for ds in ds_list])
+    lon_min = min([ds.longitude.min() for ds in ds_list])
+    lon_max = max([ds.longitude.max() for ds in ds_list])
+
+    return lon_min, lon_max, lat_min, lat_max
+
+# Region type 
+Region = str | list[float] | tuple[float] | None
+
+def get_map_bounds(
+    region: Region = None,
+    ds_all: list[xr.Dataset] = [],
+    config_data: dict[str, any] = {},
+    zoom_degree: float = 1,
+) -> tuple[float, float, float, float]:
+    """
+    Get the bounding coordinates for a specified region or dataset.
+    
+    Three options for specifying the bounds based on the 'region' argument:
+    1. A string representing a country, continent, or region name.
+    2. A list of four floats representing the bounding box coordinates (lon_min, lon_max, lat_min, lat_max).
+    3. None, in which case the bounds are read from the datasets.
+
+    Args:
+        ds_all (list[xr.Dataset]):
+            A list of xarray datasets to get the bounds from.
+        region (str | list[float] | None):
+            The region name or bounding box coordinates. See above for details.
+        config_data (dict[str, any]):
+            Configuration data containing regions information.
+
+    Returns:
+        map_bounds (tuple[float, float, float, float]):
+            The bounding coordinates of the region or dataset (lon_min, lon_max, lat_min, lat_max).
+
+    
+    """
+    if isinstance(region, str):
+        map_bounds = get_region_coordinates(
+            region, config_data.get("regions_info",{}), zoom_degree=zoom_degree
+        )
+    elif isinstance(region, (list, tuple)) and all(
+        isinstance(coord, (int, float)) for coord in region
+    ):
+        map_bounds = tuple(region)
+    elif region is None:
+        if len(ds_all) == 0:
+            raise ValueError("No datasets provided to determine bounds.")
+        # Read the bounds from the dataset
+        map_bounds = get_bounds_from_datasets(ds_all)
+    else:
+        if not isinstance(region, str):
+            raise ValueError(
+                "Invalid input: 'region' must be a string or a list of numbers."
+            )
+
+    return map_bounds
+
 
 def get_region_coordinates(
     region_name: str,
@@ -423,7 +491,7 @@ def get_region_coordinates(
             The bounding coordinates of the region (lon_min, lon_max, lat_min, lat_max), after zooming.
     """
     world = load_countries_shape()
-    region_code = regions_info["country_codes"]
+    region_code = regions_info.get("country_codes", {})
 
     region_name_title = region_name.title()
 
@@ -553,7 +621,7 @@ def set_flux_limits(
     ds_all: dict[xr.Dataset],
     var: str,
     region_plot: tuple[float, float, float, float],
-    species_info: dict,
+    species_info: dict = {},
     option: Literal["auto"] | list[float] | tuple[float, float] = "auto",
     custom_percentile: float = None,
 ) -> tuple[float, float]:

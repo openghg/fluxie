@@ -43,7 +43,9 @@ def read_json(filepath: os.PathLike) -> dict[str, dict]:
     return json_data
 
 
-def read_config_files() -> dict[str, dict]:
+def read_config_files(
+    configs_dir: os.PathLike | None = None,
+) -> dict[str, dict]:
     """
     Reads all configuration json files.
 
@@ -53,9 +55,10 @@ def read_config_files() -> dict[str, dict]:
             Each key points to a dictionary with the data from each json file.
     """
 
-    # Get location of json files
-    parent_dir = Path(__file__).parent.parent
-    configs_dir = parent_dir / "configs"
+    if configs_dir is None:
+        # Get location of json files
+        parent_dir = Path(__file__).parent.parent
+        configs_dir = parent_dir / "configs"
 
     # List of json files to be read
     json_files = configs_dir.glob("*.json")
@@ -68,10 +71,11 @@ def read_config_files() -> dict[str, dict]:
         data_dict[filename] = data
 
     # Join dictionaries from regions_info.json
-    if "regions" in data_dict["regions_info"].keys():
-        data_dict["regions_info"]["country_codes"].update(
-            data_dict["regions_info"]["regions"]
-        )
+    regions_info = data_dict.get("regions_info", {})
+    if "regions" in regions_info.keys():
+        if "country_codes" not in regions_info.keys():
+            regions_info["country_codes"] = {}
+        regions_info["country_codes"].update(regions_info["regions"])
 
     return data_dict
 
@@ -112,7 +116,8 @@ def get_filename(
     model_name = name_tags[0]
 
     # Replace parameter tags by dict values in config
-    filename_tags = config_data["models_info"].get("filename_tags", None)
+    models_info = config_data.get("models_info", {})
+    filename_tags = models_info.get("filename_tags", None)
     if filename_tags is not None:
         for i, param in enumerate(name_tags):
             string_in_file = filename_tags.get(param, None)
@@ -127,7 +132,7 @@ def get_filename(
     # Get species name
     species_print = species
     if (
-        (species_names := config_data["models_info"].get("species_name"))
+        (species_names := models_info.get("species_name"))
         and (model_species := species_names.get(model_name))
         and (species_tag := model_species.get(species))
     ):
@@ -150,7 +155,7 @@ def read_model_output(
     file_type: Literal["concentration", "flux"],
     species: str,
     models: list[str],
-    config_data: dict[str, dict],
+    config_data: dict[str, dict] = {},
     period: str | list[str] = "yearly",
 ) -> dict[str, xr.Dataset]:
     """
@@ -209,7 +214,7 @@ def read_model_output(
 
         # Fix variables and attributes
         ds_all[m] = edit_vars_and_attributes(
-            ds_all[m], m, period[i], file_type, config_data["regions_info"]
+            ds_all[m], m, period[i], file_type, config_data.get("regions_info", {})
         )
 
     return ds_all
@@ -549,6 +554,8 @@ def edit_vars_and_attributes(
         ]
 
         for var in vars_to_check:
+            if var not in ds:
+                continue
             if "units" not in ds[var].attrs.keys() and "unit" in ds[var].attrs.keys():
                 ds[var].attrs["units"] = ds[var].attrs["unit"]
 
