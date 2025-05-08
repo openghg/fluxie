@@ -77,7 +77,7 @@ The most important variables are described below. Please refer to the cdl files 
 | stdev_mf_prior          | None          | mol mol-1 | index      | Standard deviation of prior simulated mole fractions due to state vector uncertainty
 | stdev_mf_posterior      | None          | mol mol-1 | index      | Standard deviation of posterior simulated mole fractions due to state vector uncertainty
 | mf_bias_prior	          | Yaprior_bias  | mol mol-1 | index      | Prior simulated mole fraction site bias
-| mf_bias_posterior	      | Yapost_bias   | mol mol-1 | index      | Posterior simulated mole fraction site bias
+| mf_bias_posterior       | Yapost_bias   | mol mol-1 | index      | Posterior simulated mole fraction site bias
 | mf_outer_prior          | YaprioriOUTER | mol mol-1 | index      | Prior simulated mole fraction contribution from distant regions
 | mf_outer_posterior      | YapostOUTER   | mol mol-1 | index      | Posterior simulated mole fraction contribution from distant regions
 | *Alternative to stdev for non-Gaussian PDFs*
