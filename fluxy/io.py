@@ -739,6 +739,17 @@ def convert_new_format_flux(m0: str, ds: xr.Dataset):
             {"countrynumber": "country"}
         )
 
+        # Save attributes
+        units_prior = ds["country_flux_total_prior"].attrs["units"]
+        units_post = ds["country_flux_total_posterior"].attrs["units"]
+        
+        # Apply conversion factor (mass of N to mass of N2O)
+        # WARNING: For N2O only!
+        ds["country_flux_total_prior"] = ds["country_flux_total_prior"]*44/28
+        ds["country_flux_total_posterior"] = ds["country_flux_total_posterior"]*44/28
+        ds["country_flux_total_prior"].attrs["units"] = units_prior
+        ds["country_flux_total_posterior"].attrs["units"] = units_post
+
     return ds
 
 
