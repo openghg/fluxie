@@ -20,6 +20,15 @@ from fluxy.operators.flux_align_dataset import align_time
 logger = logging.getLogger(__name__)
 
 
+# Naming of variables that might have changed in the past
+legacy_names: dict[str, str] = {
+    "country_flux_total_prior": "flux_total_prior_country",
+    "country_flux_total_posterior": "flux_total_posterior_country",
+    "percentile_country_flux_total_prior": "percentile_flux_total_prior_country",
+    "percentile_country_flux_total_posterior": "percentile_flux_total_posterior_country",
+}
+
+
 def read_json(filepath: os.PathLike) -> dict[str, dict]:
     """
     Reads json file.
@@ -542,15 +551,21 @@ def edit_vars_and_attributes(
     if "frequency" not in ds.attrs:
         ds.attrs["frequency"] = frequency
 
+    name_dict = {
+        var: legacy_names[var] for var in ds.data_vars if var in legacy_names.keys()
+    }
+    
+    ds = ds.rename(name_dict)
+
     # Fix flux dataset
     if file_type == "flux":
 
         # Easy fix for InTEM ("units" attribute is wrongly set to "unit")
         vars_to_check = [
-            "country_flux_total_prior",
-            "country_flux_total_posterior",
-            "percentile_country_flux_total_prior",
-            "percentile_country_flux_total_posterior",
+            "flux_total_prior_country",
+            "flux_total_posterior_country",
+            "percentile_flux_total_prior_country",
+            "percentile_flux_total_posterior_country",
         ]
 
         for var in vars_to_check:
@@ -656,20 +671,20 @@ def edit_vars_and_attributes(
             ]
 
         elif m0 == "flexinvert":
-            ds["percentile_country_flux_total_posterior"] = xr.concat(
+            ds["percentile_flux_total_posterior_country"] = xr.concat(
                 [
-                    ds["country_flux_total_posterior"]
+                    ds["flux_total_posterior_country"]
                     - ds["country_flux_error_posterior"],
-                    ds["country_flux_total_posterior"]
+                    ds["flux_total_posterior_country"]
                     + ds["country_flux_error_posterior"],
                 ],
                 pd.Index([0, 1], name="percentile"),
             )
 
-            ds["percentile_country_flux_total_prior"] = xr.concat(
+            ds["percentile_flux_total_prior_country"] = xr.concat(
                 [
-                    ds["country_flux_total_prior"] - ds["country_flux_error_prior"],
-                    ds["country_flux_total_prior"] + ds["country_flux_error_prior"],
+                    ds["flux_total_prior_country"] - ds["country_flux_error_prior"],
+                    ds["flux_total_prior_country"] + ds["country_flux_error_prior"],
                 ],
                 pd.Index([0, 1], name="percentile"),
             )

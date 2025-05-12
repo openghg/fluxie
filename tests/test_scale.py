@@ -42,7 +42,7 @@ ds_all_mf = read_model_output(
 )
 def test_scale_flux(m, original_country_flux_unit, original_flux_unit):
     # Define test variables and indexes
-    test_country_flux_var = "country_flux_total_posterior"
+    test_country_flux_var = "flux_total_posterior_country"
     itime_country_flux = 0
     icountry = 0
     test_flux_var = "flux_total_posterior"

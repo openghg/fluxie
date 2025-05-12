@@ -239,7 +239,7 @@ def plot_country_flux(
     if "all" in species:
         units = {ds.posterior.units for ds in ds_all.values()}
     else:
-        units = {ds.country_flux_total_posterior.units for ds in ds_all.values()}
+        units = {ds["flux_total_posterior_country"].units for ds in ds_all.values()}
     if len(units) == 1:
         unit = list(units)[0]
     else:
