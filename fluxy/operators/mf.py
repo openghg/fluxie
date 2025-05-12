@@ -35,35 +35,70 @@ def compute_mf_difference(
 
     if len(models_to_subtract) != 2:
         raise ValueError("List of models to subtract must be of size 2.")
+    
+    model_left, model_right = models_to_subtract
 
     for m in models_to_subtract:
         if m not in models:
             raise KeyError(f"{m} not found in the dataset.")
 
     # Reduce datasets to timestamps/sites common to both models
-    ds0, ds1 = xr.align(
-        ds_all[models_to_subtract[0]], ds_all[models_to_subtract[1]], join="inner"
+    ds_left = ds_all[model_left]
+    ds_right = ds_all[model_right]
+    # Get the common time and site indices
+    make_index = lambda ds: pd.MultiIndex.from_arrays(
+        [ds["time"].values, ds["platform"].values[ds["number_of_identifier"].values]],
+        names=["time", "platform"],
     )
+    ds_left_index = make_index(ds_left)
+    ds_right_index = make_index(ds_right)
+    # Get the common index
+    common_index: pd.MultiIndex = ds_left_index.intersection(ds_right_index)
+
+    # Get the common time and site indices
+    get_common_index = lambda ds, indices: ds.assign_coords(
+        xr.Coordinates.from_pandas_multiindex(
+            indices,
+            "index",
+        )
+    ).sel(index=common_index)
+    ds_left = get_common_index(ds_left, ds_left_index)
+    ds_right = get_common_index(ds_right, ds_right_index)
 
     ds_diff = {}
-    key_name = f"{models_to_subtract[0]}-{models_to_subtract[1]}"
-    ds_diff[key_name] = xr.Dataset()
+    key_name = f"{model_left}-{model_right}"
+
+    common_platforms = common_index.get_level_values("platform").values
+    unique_platforms, platform_indices = np.unique(
+        common_platforms, return_inverse=True
+    )
+    ds_diff[key_name] = xr.Dataset(
+        coords={
+            "time": ("index", common_index.get_level_values("time").values),
+            "platform": ("platform", unique_platforms),
+            "number_of_identifier": ("index", platform_indices),
+        },
+        attrs={
+            "description": f"Difference between {model_left} and {model_right}",
+        },
+    )
 
     # Compute difference between the two datasets (mole fraction variables only)
-    var_names0, x = get_variables(ds0, "mf")
-    var_names1, x = get_variables(ds1, "mf")
+    var_names0, x = get_variables(ds_left, "mf")
+    var_names1, x = get_variables(ds_right, "mf")
     common_mf_vars = list(set(var_names0) & set(var_names1))
 
     for v in common_mf_vars:
-        units_0 = ds0[v].attrs["units"]
-        units_1 = ds1[v].attrs["units"]
+        units_0 = ds_left[v].attrs["units"]
+        units_1 = ds_right[v].attrs["units"]
         if units_0 != units_1:
             logger.warning(
-                f"{v} in {models_to_subtract[0]} and {models_to_subtract[1]} have different units. {v} will not be included in the diff dataset."
+                f"{v} in {model_left} and {model_right} have different units. "
+                f"{v} will not be included in the diff dataset."
             )
             continue
 
-        ds_diff[key_name][v] = ds0[v] - ds1[v]
+        ds_diff[key_name][v] = ds_left[v] - ds_right[v]
         ds_diff[key_name][v].attrs["units"] = units_0
 
     return ds_diff
@@ -134,8 +169,14 @@ def stats_mf(
                     obs = ds_site["mf_observed"].values - ds_site["YaprioriBC"].values
                     sim = ds_site["mf_prior"].values - ds_site["YaprioriBC"].values
                 elif stats_type == "posterior_above_BC":
-                    obs = ds_site["mf_observed"].values - ds_site["mf_bc_posterior"].values
-                    sim = ds_site["mf_posterior"].values - ds_site["mf_bc_posterior"].values
+                    obs = (
+                        ds_site["mf_observed"].values
+                        - ds_site["mf_bc_posterior"].values
+                    )
+                    sim = (
+                        ds_site["mf_posterior"].values
+                        - ds_site["mf_bc_posterior"].values
+                    )
                 else:
                     raise ValueError()
 

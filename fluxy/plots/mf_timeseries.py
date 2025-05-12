@@ -131,7 +131,7 @@ def plot_mf_timeseries(
             if var == "mf_observed" or plot_type == "diff":
                 # Make scatter plot
                 ax[iax, 0].scatter(
-                    ds_all[m].time.values,
+                    ds_all[m]['time'].values,
                     ds_all[m][var].values,
                     color=plot_color,
                     label=f"{model_label} {config.mf_labels[var]}",
@@ -143,7 +143,7 @@ def plot_mf_timeseries(
             else:
                 # Make line plot
                 ax[iax, 0].plot(
-                    ds_all[m].time.values,
+                    ds_all[m]['time'].values,
                     ds_all[m][var].values,
                     color=plot_color,
                     alpha=0.8,

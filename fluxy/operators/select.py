@@ -152,25 +152,24 @@ def slice_mf(
             offset = int(np.mean(ds_all[m]["Yav"]))
         else:
             offset = (
-                ds_all[m].time.values[1].astype("datetime64[h]")
-                - ds_all[m].time.values[0].astype("datetime64[h]")
+                ds_all[m]['time'].values[1].astype("datetime64[h]")
+                - ds_all[m]['time'].values[0].astype("datetime64[h]")
             ).astype(int)
+            print(f"Offset: {offset}")
 
         # Round time to seconds (for consistency between models)
         ds_all[m]["time"] = ds_all[m]["time"].dt.round("s")
 
-        var_time = ds_all[m]["time"]
-        mask_time = (var_time >= start_date) & (var_time <= end_date)
+        mask_time = (ds_all[m]['time'] >= start_date) & (ds_all[m]['time'] <= end_date)
         ds_all[m] = ds_all[m].where(mask_time, drop=True)
-
+        
         # Slice data according to site and time window
         if site is not None:
             site_index = get_site_index(ds_all[m], site)
 
             if site_index is not None:
-                mask_site = ds_all[m]['number_of_identifier'] == site_index
+                mask_site = ds_all[m]["number_of_identifier"] == site_index
                 ds_all[m] = ds_all[m].where(mask_site, drop=True)
-
                 if len(ds_all[m]["time"]) == 0:
                     logger.warning(
                         f"No {m} obs found for {site} between {start_date} and {end_date}."
