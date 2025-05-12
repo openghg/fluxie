@@ -122,12 +122,12 @@ def test_scale_flux(m, original_country_flux_unit, original_flux_unit):
 )
 def test_scale_mf(m, original_mf_unit):
     # Define test variable and indexes
-    test_var = "Yapost"
+    test_var = "mf_posterior"
     itime = 0
     isite = 0
 
     # Save old value
-    ds = ds_all_mf[m][test_var].isel(time=itime, nsite=isite)
+    ds = ds_all_mf[m][test_var].isel(time=itime, number_of_identifier=isite)
 
     if ds.values == 0:
         raise ValueError("Please select an index with non-zero mole fractions.")
@@ -140,7 +140,7 @@ def test_scale_mf(m, original_mf_unit):
     )
 
     # Save scaled value
-    ds_scaled = ds_all_mf[m][test_var].isel(time=itime, nsite=isite)
+    ds_scaled = ds_all_mf[m][test_var].isel(time=itime, number_of_identifier=isite)
 
     # Check conversion
     assert ds_scaled.units == mf_units_print

@@ -147,7 +147,7 @@ def get_variables(ds_model: xr.Dataset, unit_type: str) -> tuple[list[str], str 
             # Particular case of mole fractions:
             if unit_type == "mf":
                 if unit in config.units_scale["mf"].keys():
-                    if var == "sitenames":
+                    if var == "platform":
                         # Correction for InTEM (units are wrongly set to mol mol-1)
                         continue
 

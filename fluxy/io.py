@@ -26,6 +26,26 @@ legacy_names: dict[str, str] = {
     "country_flux_total_posterior": "flux_total_posterior_country",
     "percentile_country_flux_total_prior": "percentile_flux_total_prior_country",
     "percentile_country_flux_total_posterior": "percentile_flux_total_posterior_country",
+    "nsite": "number_of_identifier",
+    "nsites": "number_of_identifier",
+    "sitenames": "platform",
+    "Yobs": "mf_observed",
+    "Yapriori":"mf_prior",
+    "Yapost":"mf_posterior",
+    "YapriorBC":"mf_bc_prior",
+    "YaprioriBC":"mf_bc_prior",
+    "YapostBC":"mf_bc_posterior",
+    "Yaprior_bias":"mf_bias_prior",
+    "Yapriori_bias":"mf_bias_prior",
+    "Yapost_bias":"mf_bias_posterior",
+    "YaprioriOUTER":"mf_outer_prior",
+    "YapostOUTER":"mf_outer_posterior",
+    "qYapriori":"percentile_mf_prior",
+    "qYapost":"percentile_mf_posterior",
+    "uYtotal":"stdev_mf_total",
+    "uYobs_repeatability":"stdev_mf_observed_repeatability",
+    "uYobs_variability":"stdev_mf_observed_variability",
+    "uYmod":"stdev_mf_model",
 }
 
 
@@ -521,7 +541,7 @@ def edit_vars_and_attributes(
     ds: xr.Dataset,
     model: str,
     frequency: str,
-    file_type: str,
+    file_type: Literal["flux", "concentration"],
     regions_info: dict[str, str],
 ) -> xr.Dataset:
     """
@@ -552,7 +572,7 @@ def edit_vars_and_attributes(
         ds.attrs["frequency"] = frequency
 
     name_dict = {
-        var: legacy_names[var] for var in ds.data_vars if var in legacy_names.keys()
+        var: legacy_names[var] for var in ds if var in legacy_names.keys()
     }
     
     ds = ds.rename(name_dict)
@@ -691,5 +711,14 @@ def edit_vars_and_attributes(
             ds["countrynumber"] = ds["country"].astype(str)
             del ds["country"]
             ds = ds.rename({"countrynumber": "country"})
+
+    elif file_type == "concentration":
+        # Fix old format vs new format 
+        if 'index' not in ds.dims:
+            if 'nsite' in ds.dims:
+                ds = ds.rename({"nsite": "number_of_identifier"})
+            ds = ds.stack({'index': ['number_of_identifier', 'time']})
+
+
 
     return ds

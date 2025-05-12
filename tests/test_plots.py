@@ -155,7 +155,7 @@ def test_mf_timeseries():
 
     fig = plot_sites_timeseries(
         ds_all_mf,
-        "Yapost",
+        "mf_posterior",
         start_date,
         end_date,
         model_colors,
@@ -173,8 +173,8 @@ def test_obs_modelled_separate():
         config_data,
         annotate_coords,
         plot_type="separate",
-        include={"Yobs": None, "Yapost": "qYapost"},
-        diff_include=["Yapost"],
+        include={"mf_observed": None, "mf_posterior": "percentile_mf_posterior"},
+        diff_include=["mf_posterior"],
         y_lim=None,
     )
 
@@ -190,8 +190,8 @@ def test_obs_modelled_together():
         config_data,
         annotate_coords,
         plot_type="together",
-        include={"Yapost": "qYapost"},
-        diff_include=["Yapost"],
+        include={"mf_posterior": "percentile_mf_posterior"},
+        diff_include=["mf_posterior"],
         y_lim=None,
     )
 
@@ -209,7 +209,7 @@ def test_mole_fraction_diff():
         config_data,
         annotate_coords,
         plot_type="diff",
-        include={"Yobs": None},
+        include={"mf_observed": None},
         diff_include=None,
         y_lim=None,
     )

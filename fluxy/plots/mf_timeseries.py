@@ -22,7 +22,7 @@ def plot_mf_timeseries(
     annotate_coords: dict[int, list],
     presentation_mode: bool = False,
     plot_type: Literal["separate", "together", "diff"] = "separate",
-    include: dict[str, str | None] = {"Yobs": None, "Yapost": "qYapost"},
+    include: dict[str, str | None] = {"mf_observed": None, "mf_posterior": "percentile_mf_posterior"},
     diff_include: list[str] | None = None,
     y_lim: None | list[float] = None,
 ):
@@ -122,10 +122,10 @@ def plot_mf_timeseries(
 
             # Define plotting color
             plot_color = model_color[config.mf_color_index[var]]
-            if var == "Yobs" and len(vars_to_plot) > 1:
+            if var == "mf_observed" and len(vars_to_plot) > 1:
                 plot_color = "black"
 
-            if var == "Yobs" or plot_type == "diff":
+            if var == "mf_observed" or plot_type == "diff":
                 # Make scatter plot
                 ax[iax, 0].scatter(
                     ds_all[m].time.values,
@@ -306,7 +306,7 @@ def plot_sites_timeseries(
                 label = model_labels_copy[m]
 
                 # Make scatter plot
-                data = ds_all[m].isel(nsite=site_index)[var].dropna(dim="time").time
+                data = ds_all[m].isel(number_of_identifier=site_index)[var].dropna(dim="time").time
                 ax.scatter(
                     (iSite + 0.2 * (i - 1)) * np.ones(data.size),
                     data,
@@ -401,7 +401,7 @@ def plot_histogram(
             raise KeyError(f"Variable {var} not found in {model}.")
 
         if diff_include:
-            var_to_plot = ds["Yobs"] - ds[var]
+            var_to_plot = ds["mf_observed"] - ds[var]
         else:
             var_to_plot = ds[var]
 
@@ -439,7 +439,7 @@ def plot_histogram(
 
     # Write number of obs
     if plot_type == "separate":
-        n_obs = ds["Yobs"].count().values
+        n_obs = ds["mf_observed"].count().values
         if presentation_mode:
             pos_xy = [0.57, 1.05]
         else:

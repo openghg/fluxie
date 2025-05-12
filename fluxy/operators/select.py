@@ -161,7 +161,7 @@ def slice_mf(
 
             if site_index is not None:
                 ds_all[m] = ds_all[m].sel(
-                    time=slice(start_date, end_date), nsite=site_index
+                    time=slice(start_date, end_date), number_of_identifier=site_index
                 )
 
                 if len(ds_all[m]["time"]) == 0:
@@ -221,11 +221,11 @@ def get_site_index(ds: xr.Dataset, site: str) -> int | None:
     """
 
     # Get all sites
-    sites = ds["sitenames"].astype(str)
+    sites = ds["platform"].astype(str)
 
     # Get site index
     if site in sites:
-        index = np.where(ds["sitenames"].astype(str) == site)[0][0]
+        index = np.where(ds["platform"].astype(str) == site)[0][0]
         return index
 
     return None
@@ -245,7 +245,7 @@ def get_unique_sites(ds_all: dict[str, xr.Dataset]) -> list[str]:
 
     sites = []
     for ds in ds_all.values():
-        sites = np.concatenate([sites, ds["sitenames"].astype(str).values])
+        sites = np.concatenate([sites, ds["platform"].astype(str).values])
 
     sites = np.sort(np.unique(sites))
 

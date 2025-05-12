@@ -118,24 +118,24 @@ def stats_mf(
         for model, ds in ds_all.items():
             site_index = get_site_index(ds, site)
             if (site_index is not None) and (
-                ds["Yobs"].isel(nsite=site_index).count() != 0
+                ds["mf_observed"].isel(number_of_identifier=site_index).count() != 0
             ):
                 # xarray for single site
-                ds_site = ds.isel(nsite=site_index).dropna(dim="time")
+                ds_site = ds.isel(number_of_identifier=site_index).dropna(dim="time")
 
                 # select what to compare
                 if stats_type == "prior":
-                    obs = ds_site["Yobs"].values
-                    sim = ds_site["Yapriori"].values
+                    obs = ds_site["mf_observed"].values
+                    sim = ds_site["mf_prior"].values
                 elif stats_type == "posterior":
-                    obs = ds_site["Yobs"].values
-                    sim = ds_site["Yapost"].values
+                    obs = ds_site["mf_observed"].values
+                    sim = ds_site["mf_posterior"].values
                 elif stats_type == "prior_above_BC":
-                    obs = ds_site["Yobs"].values - ds_site["YaprioriBC"].values
-                    sim = ds_site["Yapriori"].values - ds_site["YaprioriBC"].values
+                    obs = ds_site["mf_observed"].values - ds_site["YaprioriBC"].values
+                    sim = ds_site["mf_prior"].values - ds_site["YaprioriBC"].values
                 elif stats_type == "posterior_above_BC":
-                    obs = ds_site["Yobs"].values - ds_site["YapostBC"].values
-                    sim = ds_site["Yapost"].values - ds_site["YapostBC"].values
+                    obs = ds_site["mf_observed"].values - ds_site["mf_bc_posterior"].values
+                    sim = ds_site["mf_posterior"].values - ds_site["mf_bc_posterior"].values
                 else:
                     raise ValueError()
 
