@@ -575,7 +575,7 @@ def edit_vars_and_attributes(
     name_dict = {
         var: legacy_names[var]
         for var in itertools.chain(
-            ds.data_vars.keys(), ds.coords.keys(), ds.dims.keys()
+            ds.data_vars.keys(), ds.coords.keys(), ds.sizes.keys()
         )
         if var in legacy_names
     }
@@ -718,6 +718,8 @@ def edit_vars_and_attributes(
             ds = ds.rename({"countrynumber": "country"})
 
     elif file_type == "concentration":
+        # Ensure integer dtype
+        ds['number_of_identifier'] = ds['number_of_identifier'].astype(int)
         # Fix old format vs new format
         if "index" not in ds.dims:
             platforms = ds["platform"].values
