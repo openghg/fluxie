@@ -22,7 +22,10 @@ def plot_mf_timeseries(
     annotate_coords: dict[int, list],
     presentation_mode: bool = False,
     plot_type: Literal["separate", "together", "diff"] = "separate",
-    include: dict[str, str | None] = {"mf_observed": None, "mf_posterior": "percentile_mf_posterior"},
+    include: dict[str, str | None] = {
+        "mf_observed": None,
+        "mf_posterior": "percentile_mf_posterior",
+    },
     diff_include: list[str] | None = None,
     y_lim: None | list[float] = None,
 ):
@@ -256,7 +259,7 @@ def plot_mf_timeseries(
 
 
 def plot_sites_timeseries(
-    ds_all, var, start_date, end_date, model_colors, model_labels
+    ds_all, var, start_date, end_date, model_colors, model_labels, margin: float = 0.1
 ):
     """
     Plot the timeseries of data available for each site and model.
@@ -286,11 +289,16 @@ def plot_sites_timeseries(
     # Create figure
     fig, ax = plt.subplots(1, 1, figsize=(0.7 * len(siteList), 8))
 
-    for iSite, site in enumerate(siteList):
-        if iSite != 0:
+    assert margin < 0.5, "Margin must be smaller than 0.5"
+    assert margin > 0, "Margin must be positive"
+
+    model_offset = (1 - 2 * margin) / (len(models) - 1)
+    print(model_offset)
+    for site_iter, site in enumerate(siteList):
+        if site_iter != 0:
             # Add grey vertical line between sites
             ax.plot(
-                [iSite - 0.5, iSite - 0.5],
+                [site_iter - 0.5, site_iter - 0.5],
                 [dt_start_date, dt_end_date],
                 c="gray",
                 ls="-",
@@ -301,23 +309,23 @@ def plot_sites_timeseries(
 
             site_index = get_site_index(ds_all[m], site)
 
-            if site_index is not None:
-                # Define label
-                label = model_labels_copy[m]
-
-                # Make scatter plot
-                data = ds_all[m].isel(number_of_identifier=site_index)[var].dropna(dim="time").time
-                ax.scatter(
-                    (iSite + 0.2 * (i - 1)) * np.ones(data.size),
-                    data,
-                    c=model_colors[m][0],
-                    s=2,
-                    label=label,
-                )
-                model_labels_copy[m] = None
-
-            else:
+            if site_index is None:
                 continue
+            # Scatter a vertical line at times where data is available
+            mask = (ds_all[m]["number_of_identifier"] == site_index) & (
+                ds_all[m][var].notnull()
+            )
+            data = ds_all[m]["time"].where(mask, drop=True)
+            ax.scatter(
+                (site_iter + model_offset * i - 0.5 + margin) * np.ones(data.size),
+                data,
+                c=model_colors[m][0],
+                s=2,
+                label=model_labels_copy[m],
+            )
+
+            # Erase label so it shows only once
+            model_labels_copy[m] = None
 
     # Define plot settings
     ax.set_ylim(
@@ -338,7 +346,7 @@ def plot_sites_timeseries(
         ax.yaxis.set_major_locator(MonthLocator())
     ax.yaxis.grid(True, which="major")
 
-    ax.set_xlim(-1, siteList.size)
+    ax.set_xlim(-0.5, siteList.size - 0.5)
 
     plt.legend(loc="lower right", markerscale=4, bbox_to_anchor=(1, 1))
 
@@ -431,7 +439,7 @@ def plot_histogram(
         # If plot_type = togehter, print only mean/std of the first variable
         if not (plot_type == "together" and v != 0):
             axis.annotate(
-                f"$\mu$: {str_mean}\n$\sigma$: {str_std}",
+                f"$\\mu$: {str_mean}\n$\\sigma$: {str_std}",
                 xy=annotate_coords[index],
                 xycoords="axes fraction",
                 color=model_color[config.mf_color_index[var]],
