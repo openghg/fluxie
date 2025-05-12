@@ -286,6 +286,7 @@ def plot_sites_timeseries(
     # Create figure
     fig, ax = plt.subplots(1, 1, figsize=(0.7 * len(siteList), 8))
 
+    step = 1/(len(models)+2)
     for iSite, site in enumerate(siteList):
         if iSite != 0:
             # Add grey vertical line between sites
@@ -308,7 +309,7 @@ def plot_sites_timeseries(
                 # Make scatter plot
                 data = ds_all[m].isel(nsite=site_index)[var].dropna(dim="time").time
                 ax.scatter(
-                    (iSite + 0.2 * (i - 1)) * np.ones(data.size),
+                    (iSite - 0.5 + step*(i+1)) * np.ones(data.size),
                     data,
                     c=model_colors[m][0],
                     s=2,
