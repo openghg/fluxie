@@ -720,11 +720,15 @@ def edit_vars_and_attributes(
     elif file_type == "concentration":
         # Fix old format vs new format
         if "index" not in ds.dims:
-            ds = ds.stack({"index": ["number_of_identifier", "time"]})
-            # Assign time as a variable
-            ds = ds
-
-            ds = ds.reset_index("index")
+            platforms = ds["platform"].values
+            ds = (
+                # Remove the old platform dimension and replace with a new coordinate
+                ds.drop("platform")
+                .assign_coords({"platform": ("platform", platforms)})
+                # Restack the dataset to have a single index dimension
+                .stack({"index": ["number_of_identifier", "time"]})
+                .reset_index("index")
+            )
 
         # Set time as a coordinate
         ds = ds.assign_coords({"time": ds["time"]})
