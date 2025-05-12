@@ -2350,8 +2350,12 @@ def plot_country_flux(ds_all,species,plot_regions,model_labels,
         if set_global_leg == False:
             leg = ax[a,b].legend(ncol=ncol,borderpad=.4,columnspacing=1.0,fontsize=10)
             if plot_inventory == True:
-                for l in leg.legendHandles[:-1]:
-                    l.set_linewidth(3.0)
+                try:
+                    for l in leg.legend_handles[:-1]:
+                        l.set_linewidth(3.0)
+                except:
+                    for l in leg.legendHandles[:-1]:
+                        l.set_linewidth(3.0)
             else:
                 for l in leg.legendHandles:
                     l.set_linewidth(3.0)
@@ -2388,8 +2392,12 @@ def plot_country_flux(ds_all,species,plot_regions,model_labels,
         leg = fig.legend(handles, labels, loc='upper center',ncol=ncol,borderpad=.4,columnspacing=1.0,
                          fontsize=10,bbox_to_anchor=(0.5, 1.10))
         if plot_inventory == True:
-            for l in leg.legendHandles:
-                l.set_linewidth(5.0)
+            try:
+                for l in leg.legendHandles:
+                    l.set_linewidth(5.0)
+            except:
+                for l in leg.legend_handles:
+                    l.set_linewidth(5.0)
         else:
             for l in leg.legendHandles:
                 l.set_linewidth(5.0)
