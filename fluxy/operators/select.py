@@ -1,3 +1,4 @@
+import pandas as pd
 import xarray as xr
 import numpy as np
 import os
@@ -122,6 +123,9 @@ def slice_mf(
     data_dir = Path(data_dir)
     models = list(ds_all.keys())
 
+    start_date = pd.to_datetime(start_date)
+    end_date = pd.to_datetime(end_date)
+
     # Get logical array with baseline timestamps
     if baseline_site is not None:
         baseline_file = (
@@ -155,14 +159,17 @@ def slice_mf(
         # Round time to seconds (for consistency between models)
         ds_all[m]["time"] = ds_all[m]["time"].dt.round("s")
 
+        var_time = ds_all[m]["time"]
+        mask_time = (var_time >= start_date) & (var_time <= end_date)
+        ds_all[m] = ds_all[m].where(mask_time, drop=True)
+
         # Slice data according to site and time window
         if site is not None:
             site_index = get_site_index(ds_all[m], site)
 
             if site_index is not None:
-                ds_all[m] = ds_all[m].sel(
-                    time=slice(start_date, end_date), number_of_identifier=site_index
-                )
+                mask_site = ds_all[m]['number_of_identifier'] == site_index
+                ds_all[m] = ds_all[m].where(mask_site, drop=True)
 
                 if len(ds_all[m]["time"]) == 0:
                     logger.warning(
@@ -176,7 +183,6 @@ def slice_mf(
                 ds_all.pop(m)
                 continue
         else:
-            ds_all[m] = ds_all[m].sel(time=slice(start_date, end_date))
 
             if len(ds_all[m]["time"]) == 0:
                 logger.warning(f"No {m} obs found between {start_date} and {end_date}.")

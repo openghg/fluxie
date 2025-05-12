@@ -1,3 +1,4 @@
+import itertools
 import os
 import xarray as xr
 import numpy as np
@@ -30,22 +31,22 @@ legacy_names: dict[str, str] = {
     "nsites": "number_of_identifier",
     "sitenames": "platform",
     "Yobs": "mf_observed",
-    "Yapriori":"mf_prior",
-    "Yapost":"mf_posterior",
-    "YapriorBC":"mf_bc_prior",
-    "YaprioriBC":"mf_bc_prior",
-    "YapostBC":"mf_bc_posterior",
-    "Yaprior_bias":"mf_bias_prior",
-    "Yapriori_bias":"mf_bias_prior",
-    "Yapost_bias":"mf_bias_posterior",
-    "YaprioriOUTER":"mf_outer_prior",
-    "YapostOUTER":"mf_outer_posterior",
-    "qYapriori":"percentile_mf_prior",
-    "qYapost":"percentile_mf_posterior",
-    "uYtotal":"stdev_mf_total",
-    "uYobs_repeatability":"stdev_mf_observed_repeatability",
-    "uYobs_variability":"stdev_mf_observed_variability",
-    "uYmod":"stdev_mf_model",
+    "Yapriori": "mf_prior",
+    "Yapost": "mf_posterior",
+    "YapriorBC": "mf_bc_prior",
+    "YaprioriBC": "mf_bc_prior",
+    "YapostBC": "mf_bc_posterior",
+    "Yaprior_bias": "mf_bias_prior",
+    "Yapriori_bias": "mf_bias_prior",
+    "Yapost_bias": "mf_bias_posterior",
+    "YaprioriOUTER": "mf_outer_prior",
+    "YapostOUTER": "mf_outer_posterior",
+    "qYapriori": "percentile_mf_prior",
+    "qYapost": "percentile_mf_posterior",
+    "uYtotal": "stdev_mf_total",
+    "uYobs_repeatability": "stdev_mf_observed_repeatability",
+    "uYobs_variability": "stdev_mf_observed_variability",
+    "uYmod": "stdev_mf_model",
 }
 
 
@@ -572,9 +573,13 @@ def edit_vars_and_attributes(
         ds.attrs["frequency"] = frequency
 
     name_dict = {
-        var: legacy_names[var] for var in ds if var in legacy_names.keys()
+        var: legacy_names[var]
+        for var in itertools.chain(
+            ds.data_vars.keys(), ds.coords.keys(), ds.dims.keys()
+        )
+        if var in legacy_names
     }
-    
+
     ds = ds.rename(name_dict)
 
     # Fix flux dataset
@@ -602,8 +607,8 @@ def edit_vars_and_attributes(
             ds = ds.set_index(countrynumber="country").rename(
                 {"countrynumber": "country"}
             )
-        
-        if m0 in ["elris","elris-new"]:
+
+        if m0 in ["elris", "elris-new"]:
             var_to_change = "covariance_country_flux_total_posterior"
             if var_to_change in ds and ds[var_to_change].dims == (
                 "time",
@@ -713,12 +718,15 @@ def edit_vars_and_attributes(
             ds = ds.rename({"countrynumber": "country"})
 
     elif file_type == "concentration":
-        # Fix old format vs new format 
-        if 'index' not in ds.dims:
-            if 'nsite' in ds.dims:
-                ds = ds.rename({"nsite": "number_of_identifier"})
-            ds = ds.stack({'index': ['number_of_identifier', 'time']})
+        # Fix old format vs new format
+        if "index" not in ds.dims:
+            ds = ds.stack({"index": ["number_of_identifier", "time"]})
+            # Assign time as a variable
+            ds = ds
 
+            ds = ds.reset_index("index")
 
+        # Set time as a coordinate
+        ds = ds.assign_coords({"time": ds["time"]})
 
     return ds
