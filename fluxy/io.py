@@ -732,7 +732,7 @@ def edit_vars_and_attributes(
                 .reset_index("index")
             )
 
-        # Set time as a coordinate
-        ds = ds.assign_coords({"time": ds["time"]})
+        # Set coordinates
+        ds = ds.assign_coords({var: ds[var] for var in ["number_of_identifier", "time", "platform"]})
 
     return ds
