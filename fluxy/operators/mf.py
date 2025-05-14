@@ -97,6 +97,9 @@ def compute_mf_difference(
                 f"{v} will not be included in the diff dataset."
             )
             continue
+        if 'percentile' in ds_left[v].dims:
+            # Ignore variables with percentile dimension
+            continue
 
         ds_diff[key_name][v] = ds_left[v] - ds_right[v]
         ds_diff[key_name][v].attrs["units"] = units_0

@@ -89,7 +89,7 @@ def slice_mf(
     end_date: str = None,
     site: str = None,
     baseline_site: str = None,
-    data_dir: os.PathLike = None,
+    data_dir: os.PathLike | None = None,
     mf_units_print: str = None,
 ) -> dict[str, xr.Dataset]:
     """
@@ -120,7 +120,6 @@ def slice_mf(
             chosen site.
     """
 
-    data_dir = Path(data_dir)
     models = list(ds_all.keys())
 
     start_date = pd.to_datetime(start_date)
@@ -128,6 +127,12 @@ def slice_mf(
 
     # Get logical array with baseline timestamps
     if baseline_site is not None:
+        if data_dir is None:
+            raise ValueError(
+                "Baseline site is set, but no data_dir provided. "
+                "Please provide a data_dir to read baseline timestamps."
+            )
+        data_dir = Path(data_dir)
         baseline_file = (
             data_dir
             / "intem_baseline_timestamps"

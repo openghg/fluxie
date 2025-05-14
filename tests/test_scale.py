@@ -65,7 +65,8 @@ def test_scale_flux(m, original_country_flux_unit, original_flux_unit):
         raise ValueError("Please select an index with non-zero fluxes.")
 
     # Apply scaling
-    ds_all_flux[m] = scale_variables(
+    dss_scaled = {}
+    dss_scaled[m] = scale_variables(
         m,
         ds_all_flux[m],
         config_data["species_info"][species],
@@ -74,10 +75,10 @@ def test_scale_flux(m, original_country_flux_unit, original_flux_unit):
     )
 
     # Save scaled values
-    ds_scaled_country_flux = ds_all_flux[m][test_country_flux_var].isel(
+    ds_scaled_country_flux = dss_scaled[m][test_country_flux_var].isel(
         time=itime_country_flux, country=icountry
     )
-    ds_scaled_flux = ds_all_flux[m][test_flux_var].isel(
+    ds_scaled_flux = dss_scaled[m][test_flux_var].isel(
         time=itime_flux, latitude=ilat, longitude=ilon
     )
 
@@ -123,24 +124,24 @@ def test_scale_flux(m, original_country_flux_unit, original_flux_unit):
 def test_scale_mf(m, original_mf_unit):
     # Define test variable and indexes
     test_var = "mf_posterior"
-    itime = 0
-    isite = 0
+    index = 0
 
     # Save old value
-    ds = ds_all_mf[m][test_var].isel(time=itime, number_of_identifier=isite)
+    ds = ds_all_mf[m][test_var].isel(index=index)
 
     if ds.values == 0:
         raise ValueError("Please select an index with non-zero mole fractions.")
 
     # Apply scaling
-    ds_all_mf[m] = scale_variables(
+    dss_scaled = {}
+    dss_scaled[m] = scale_variables(
         m,
         ds_all_mf[m],
         mf_unit=mf_units_print,
     )
 
     # Save scaled value
-    ds_scaled = ds_all_mf[m][test_var].isel(time=itime, number_of_identifier=isite)
+    ds_scaled = dss_scaled[m][test_var].isel(index=index)
 
     # Check conversion
     assert ds_scaled.units == mf_units_print

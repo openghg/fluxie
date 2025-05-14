@@ -227,11 +227,16 @@ def plot_mf_timeseries(
             for l in leg.legendHandles:
                 l.set_linewidth(5.0)
 
+        if len(ds_all[m]['time']) <= 1:
+            continue
+        start_date = ds_all[m]['time'].values.min()
+        end_date = ds_all[m]['time'].values.max()
+        
         # Set timeseries x-axis ticks
         if (
             int(
-                ds_all[m].time.values[-1].astype("datetime64[M]")
-                - ds_all[m].time.values[0].astype("datetime64[M]")
+                end_date.astype("datetime64[M]")
+                - start_date.astype("datetime64[M]")
             )
             > 12
         ):
