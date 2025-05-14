@@ -750,4 +750,13 @@ def edit_vars_and_attributes(
         # Set coordinates
         ds = ds.assign_coords({var: ds[var] for var in ["number_of_identifier", "time", "platform"]})
 
+    if 'covariance_flux_total_posterior_country' in ds:
+        # Drop for now 
+        ds = ds.drop_vars("covariance_flux_total_posterior_country")
+        logger.warning(
+            "covariance_flux_total_posterior_country is not supported yet. "
+            "The issue is that the duplicated dimension 'country' is not supported in xarray.\n"
+            "Please check the input data."
+        )
+
     return ds
