@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 def slice_flux(
     ds_all: dict[str, xr.Dataset],
-    config_data: dict[str, str | float],
+    config_data: dict[str, str | float] = {},
     start_date: str | list[str] = None,
     end_date: str | list[str] = None,
     species: str = None,
