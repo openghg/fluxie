@@ -725,11 +725,26 @@ def edit_vars_and_attributes(
             platforms = ds["platform"].values
             ds = (
                 # Remove the old platform dimension and replace with a new coordinate
-                ds.drop("platform")
+                ds.drop_vars("platform")
                 .assign_coords({"platform": ("platform", platforms)})
                 # Restack the dataset to have a single index dimension
                 .stack({"index": ["number_of_identifier", "time"]})
                 .reset_index("index")
+            )
+
+        # Test that the number of identifiers had valid values 
+        max_num_id, min_num_id = ds["number_of_identifier"].max(), ds["number_of_identifier"].min()
+        if min_num_id == 1 and max_num_id == len(ds["platform"]):
+            # 1 based (also called as retarded) indexing, so we need to shift the values
+            ds["number_of_identifier"] -= 1
+        elif min_num_id < 0:
+            raise ValueError(
+                "The number of identifiers should be positive. Please check the input data."
+            )
+        elif max_num_id >= len(ds["platform"]):
+            raise ValueError(
+                f"The max number of identifiers should be less than the number of platform. "
+                "Please check the input data."
             )
 
         # Set coordinates
