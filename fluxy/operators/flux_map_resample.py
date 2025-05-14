@@ -265,8 +265,8 @@ def average_over_months(
 
 def average_over_period(
     ds: xr.Dataset,
-    N: int,
-    chop_by: Literal["year", "month", "season"] | List,
+    N: int = 1,
+    chop_by: Literal["year", "month", "season"] | List = "year",
 ) -> Tuple[xr.Dataset, List[str]]:
     """
     Average a dataset over a specified time period or custom intervals.
