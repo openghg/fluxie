@@ -382,7 +382,7 @@ def plot_flux_map_model_comparison(
 
         # Add sites and markers if specified
         if add_sites:
-            add_site_markers(ax_i, sites_info[model], marker_color)
+            add_site_markers(ax_i, sites_info.get(model, {}), marker_color)
         if add_markers:
             add_custom_markers(
                 ax_i, add_markers, marker_color, config_data["regions_info"]

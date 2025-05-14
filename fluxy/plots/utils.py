@@ -322,6 +322,7 @@ def add_site_markers(ax, site_info, color):
 def get_sites_coordinates(
     ds_all: dict[xr.Dataset],
     config_data: dict,
+    fallback_sites: list[str]  | None = None,
 ) -> dict:
     # TODO DODGY FUNCTION!!! Modify this function once 'sites' is included in all the attributes.
     """
@@ -340,7 +341,7 @@ def get_sites_coordinates(
     """
 
     sites_list = {}
-    fallback_sites = None
+
 
     # First pass: Extract 'sites' where available
     for key, ds in ds_all.items():
@@ -348,19 +349,28 @@ def get_sites_coordinates(
             # Parse the 'sites' attribute if it exists
             if hasattr(ds, "sites"):
                 sites = eval(ds.sites)
-                sites_list[key] = sites
+                this_sites = sites
                 # Store fallback sites if not already set
                 if fallback_sites is None:
                     fallback_sites = sites
             else:
-                sites_list[key] = None
+                this_sites = None
         except (ValueError, SyntaxError) as e:
             logger.warning(f"Could not parse 'sites' for {key}: {e}")
-            sites_list[key] = None
+            this_sites = None
+        sites_list[key] = this_sites
+
+    if fallback_sites is None:
+        # If no 'sites' attribute is found in any dataset, raise an error
+        logger.warning(
+            "No 'sites' attribute found in any dataset. "
+            "Please ensure at least one dataset has the 'sites' attribute."
+        )
+        return {}
 
     # Second pass: Fill in missing 'sites' using the fallback
-    for key in sites_list.keys():
-        if sites_list[key] is None and fallback_sites is not None:
+    for key, sites in sites_list.items():
+        if sites_list[key] is None:
             logger.warning(
                 f"No 'sites' attribute in {key}, using fallback from another dataset."
             )
