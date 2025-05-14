@@ -155,7 +155,6 @@ def slice_mf(
                 ds_all[m]['time'].values[1].astype("datetime64[h]")
                 - ds_all[m]['time'].values[0].astype("datetime64[h]")
             ).astype(int)
-            print(f"Offset: {offset}")
 
         # Round time to seconds (for consistency between models)
         ds_all[m]["time"] = ds_all[m]["time"].dt.round("s")
