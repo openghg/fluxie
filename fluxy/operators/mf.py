@@ -35,7 +35,7 @@ def compute_mf_difference(
 
     if len(models_to_subtract) != 2:
         raise ValueError("List of models to subtract must be of size 2.")
-    
+
     model_left, model_right = models_to_subtract
 
     for m in models_to_subtract:
@@ -152,56 +152,53 @@ def stats_mf(
     for site in sites_all:
         for model, ds in ds_all.items():
             site_index = get_site_index(ds, site)
-            if (site_index is not None) and (
-                ds["mf_observed"].isel(number_of_identifier=site_index).count() != 0
-            ):
-                # xarray for single site
-                ds_site = ds.isel(number_of_identifier=site_index).dropna(dim="time")
+            if site_index is None:
+                continue
+            mask_site = ds["number_of_identifier"] == site_index
+            if not mask_site.any():
+                continue
+            ds_site = ds.where(mask_site, drop=True)
 
-                # select what to compare
-                if stats_type == "prior":
-                    obs = ds_site["mf_observed"].values
-                    sim = ds_site["mf_prior"].values
-                elif stats_type == "posterior":
-                    obs = ds_site["mf_observed"].values
-                    sim = ds_site["mf_posterior"].values
-                elif stats_type == "prior_above_BC":
-                    obs = ds_site["mf_observed"].values - ds_site["YaprioriBC"].values
-                    sim = ds_site["mf_prior"].values - ds_site["YaprioriBC"].values
-                elif stats_type == "posterior_above_BC":
-                    obs = (
-                        ds_site["mf_observed"].values
-                        - ds_site["mf_bc_posterior"].values
-                    )
-                    sim = (
-                        ds_site["mf_posterior"].values
-                        - ds_site["mf_bc_posterior"].values
-                    )
-                else:
-                    raise ValueError()
+            # select what to compare
+            if stats_type == "prior":
+                obs = ds_site["mf_observed"]
+                sim = ds_site["mf_prior"]
+            elif stats_type == "posterior":
+                obs = ds_site["mf_observed"]
+                sim = ds_site["mf_posterior"]
+            elif stats_type == "prior_above_BC":
+                obs = ds_site["mf_observed"] - ds_site["mf_bc_prior"]
+                sim = ds_site["mf_prior"] - ds_site["mf_bc_prior"]
+            elif stats_type == "posterior_above_BC":
+                obs = ds_site["mf_observed"] - ds_site["mf_bc_posterior"]
+                sim = ds_site["mf_posterior"] - ds_site["mf_bc_posterior"]
+            else:
+                raise ValueError()
+            
+            obs, sim = obs.values, sim.values
 
-                # calculate stats
-                stats_site = {
-                    "model": model,
-                    "site": site,
-                    "pearson": np.corrcoef(obs, sim)[0, 1],
-                    "rmse": np.sqrt(np.mean((sim - obs) ** 2)),
-                    "crmse": np.sqrt(np.mean((sim - obs - np.mean(sim - obs)) ** 2)),
-                    "bias": np.mean(sim - obs),
-                    "sd_sim": np.std(sim),
-                    "sd_obs": np.std(obs),
-                    "sd_res": np.std(sim - obs),
-                    "nn": np.size(sim),
-                }
+            # calculate stats
+            stats_site = {
+                "model": model,
+                "site": site,
+                "pearson": np.corrcoef(obs, sim)[0, 1],
+                "rmse": np.sqrt(np.mean((sim - obs) ** 2)),
+                "crmse": np.sqrt(np.mean((sim - obs - np.mean(sim - obs)) ** 2)),
+                "bias": np.mean(sim - obs),
+                "sd_sim": np.std(sim),
+                "sd_obs": np.std(obs),
+                "sd_res": np.std(sim - obs),
+                "nn": np.size(sim),
+            }
 
-                # change to DataFrame
-                stats_site = pd.DataFrame(data=stats_site, index=[0])
+            # change to DataFrame
+            stats_site = pd.DataFrame(data=stats_site, index=[0])
 
-                # additional derived stats
-                stats_site["nrmse"] = stats_site["rmse"].values / np.mean(obs)
+            # additional derived stats
+            stats_site["nrmse"] = stats_site["rmse"].values / np.mean(obs)
 
-                # append to list of all stats
-                stats.append(stats_site)
+            # append to list of all stats
+            stats.append(stats_site)
 
     # fold list of DataFrames into a single DataFrame
     stats = pd.concat(stats, ignore_index=True)
