@@ -8,7 +8,7 @@ test_models = [
     "InTEM_NAME_EUROPE_EDGAR_std",
     "ELRIS_NAME_EUROPE_EDGAR_std",
     "RHIME_NAME_EUROPE_EDGAR_std",
-    "ELRIS-NEW_NAME_EUROPE_EDGAR",
+    "ELRIS_NAME_EUROPE_EDGAR_new_format",
 ]
 
 

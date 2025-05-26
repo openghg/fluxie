@@ -27,16 +27,14 @@ legacy_names: dict[str, str] = {
     "country_flux_total_posterior": "flux_total_posterior_country",
     "percentile_country_flux_total_prior": "percentile_flux_total_prior_country",
     "percentile_country_flux_total_posterior": "percentile_flux_total_posterior_country",
+    "covariance_country_flux_total_posterior": "covariance_flux_total_posterior_country",
     "nsite": "number_of_identifier",
-    "nsites": "number_of_identifier",
     "sitenames": "platform",
     "Yobs": "mf_observed",
     "Yapriori": "mf_prior",
     "Yapost": "mf_posterior",
-    "YapriorBC": "mf_bc_prior",
     "YaprioriBC": "mf_bc_prior",
     "YapostBC": "mf_bc_posterior",
-    "Yaprior_bias": "mf_bias_prior",
     "Yapriori_bias": "mf_bias_prior",
     "Yapost_bias": "mf_bias_posterior",
     "YaprioriOUTER": "mf_outer_prior",
@@ -572,6 +570,7 @@ def edit_vars_and_attributes(
     if "frequency" not in ds.attrs:
         ds.attrs["frequency"] = frequency
 
+    # Rename legacy variables
     name_dict = {
         var: legacy_names[var]
         for var in itertools.chain(
@@ -585,45 +584,15 @@ def edit_vars_and_attributes(
     # Fix flux dataset
     if file_type == "flux":
 
-        # Easy fix for InTEM ("units" attribute is wrongly set to "unit")
-        vars_to_check = [
-            "flux_total_prior_country",
-            "flux_total_posterior_country",
-            "percentile_flux_total_prior_country",
-            "percentile_flux_total_posterior_country",
-        ]
-
-        for var in vars_to_check:
-            if var not in ds:
-                continue
-            if "units" not in ds[var].attrs.keys() and "unit" in ds[var].attrs.keys():
-                ds[var].attrs["units"] = ds[var].attrs["unit"]
-
-        # Aply model specific corrections
+        # Apply model specific corrections
         m0 = model.split("_")[0].lower()
 
         if m0 == "elris":
-            ds["country"] = ds["country"].astype("str")
-            ds = ds.set_index(countrynumber="country").rename(
-                {"countrynumber": "country"}
-            )
-
-        if m0 in ["elris", "elris-new"]:
-            var_to_change = "covariance_country_flux_total_posterior"
-            if var_to_change in ds and ds[var_to_change].dims == (
-                "time",
-                "country",
-                "country",
-            ):
-                ds[var_to_change] = xr.DataArray(
-                    data=ds[var_to_change].data,
-                    dims=["time", "country", "country_2"],
-                    coords=dict(
-                        time=(["time"], ds[var_to_change].time.data),
-                        country=(["country"], ds[var_to_change].country.data),
-                        country_2=(["country_2"], ds[var_to_change].country.data),
-                    ),
-                    attrs=ds[var_to_change].attrs,
+            # Fix for legacy files
+            if "countrynumber" in ds.dims.keys():
+                ds["country"] = ds["country"].astype("str")
+                ds = ds.set_index(countrynumber="country").rename(
+                    {"countrynumber": "country"}
                 )
 
         elif m0 == "enkf":
@@ -634,6 +603,21 @@ def edit_vars_and_attributes(
                 ds["time"] = ds.time.values + np.timedelta64(15, "D")
 
         elif m0 == "intem":
+            # Easy fix for InTEM ("units" attribute is wrongly set to "unit")
+            vars_to_check = [
+                "flux_total_prior_country",
+                "flux_total_posterior_country",
+                "percentile_flux_total_prior_country",
+                "percentile_flux_total_posterior_country",
+            ]
+
+            for var in vars_to_check:
+                if var not in ds:
+                    continue
+                if "units" not in ds[var].attrs.keys() and "unit" in ds[var].attrs.keys():
+                    ds[var].attrs["units"] = ds[var].attrs["unit"]
+                    ds[var].attrs.pop("unit")
+
             ds = ds.rename({"countrynumber": "country"})
 
             if "BEL-LUX" in ds.country and (
@@ -717,6 +701,24 @@ def edit_vars_and_attributes(
             del ds["country"]
             ds = ds.rename({"countrynumber": "country"})
 
+        # Rename second country dimension in covariance matrix (xarray requirement)
+        var_to_change = "covariance_flux_total_posterior_country"
+        if var_to_change in ds and ds[var_to_change].dims == (
+            "time",
+            "country",
+            "country",
+        ):
+            ds[var_to_change] = xr.DataArray(
+                data=ds[var_to_change].data,
+                dims=["time", "country", "country_2"],
+                coords=dict(
+                    time=(["time"], ds[var_to_change].time.data),
+                    country=(["country"], ds[var_to_change].country.data),
+                    country_2=(["country_2"], ds[var_to_change].country.data),
+                ),
+                attrs=ds[var_to_change].attrs,
+            )
+
     elif file_type == "concentration":
         # Ensure integer dtype
         ds['number_of_identifier'] = ds['number_of_identifier'].astype(int)
@@ -750,13 +752,7 @@ def edit_vars_and_attributes(
         # Set coordinates
         ds = ds.assign_coords({var: ds[var] for var in ["number_of_identifier", "time", "platform"]})
 
-    if 'covariance_flux_total_posterior_country' in ds:
-        # Drop for now 
-        ds = ds.drop_vars("covariance_flux_total_posterior_country")
-        logger.warning(
-            "covariance_flux_total_posterior_country is not supported yet. "
-            "The issue is that the duplicated dimension 'country' is not supported in xarray.\n"
-            "Please check the input data."
-        )
+        # Fix for InTEM (units of platform are wrongly set to mol mol-1)
+        ds["platform"].attrs.pop("units", None)
 
     return ds

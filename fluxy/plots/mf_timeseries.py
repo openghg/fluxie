@@ -162,12 +162,12 @@ def plot_mf_timeseries(
                 if unc_var not in ds_all[m].keys():
                     raise KeyError(f"Variable {unc_var} not found in {m}.")
 
-                if unc_var[0] == "q":
+                if unc_var.split("_")[0] == "percentile":
                     # Add uncertainty band
                     ax[iax, 0].fill_between(
                         ds_all[m].time.values,
-                        ds_all[m][unc_var][:, 0].values,
-                        ds_all[m][unc_var][:, 1].values,
+                        ds_all[m][unc_var][0, :].values,
+                        ds_all[m][unc_var][1, :].values,
                         color=plot_color,
                         alpha=0.2,
                     )
