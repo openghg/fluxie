@@ -171,26 +171,21 @@ def slice_mf(
         if site is not None:
             site_index = get_site_index(ds_all[m], site)
 
-            if site_index is not None:
-                mask_site = ds_all[m]["number_of_identifier"] == site_index
-                ds_all[m] = ds_all[m].where(mask_site, drop=True)
-                if len(ds_all[m]["time"]) == 0:
-                    logger.warning(
-                        f"No {m} obs found for {site} between {start_date} and {end_date}."
-                    )
-                    ds_all.pop(m)
-                    continue
-
-            else:
+            if site_index is None:
                 logger.warning(f"No {m} obs found for {site}.")
                 ds_all.pop(m)
                 continue
-        else:
 
-            if len(ds_all[m]["time"]) == 0:
-                logger.warning(f"No {m} obs found between {start_date} and {end_date}.")
-                ds_all.pop(m)
-                continue
+            mask_site = ds_all[m]["number_of_identifier"] == site_index
+            ds_all[m] = ds_all[m].where(mask_site, drop=True)
+
+        if len(ds_all[m]["time"]) == 0:
+        # Remove model if no data left after time slicing
+            logger.warning(
+                f"No {m} obs found for {site=} between {start_date} and {end_date}."
+            )
+            ds_all.pop(m)
+            continue
 
         # Scale mole fractions
         ds_all[m] = scale_variables(m, ds_all[m], mf_unit=mf_units_print)
