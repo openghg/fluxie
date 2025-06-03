@@ -26,9 +26,9 @@ annotate_coords = set_print_settings()
 
 species = "hfc134a"  # options for individual species, or 'all_hfc' or 'all_pfc'
 models = [
-    "InTEM_NAME_EUROPE_EDGAR_std",
-    "ELRIS_NAME_EUROPE_EDGAR_std",
-    "RHIME_NAME_EUROPE_EDGAR_std",
+    "InTEM_NAME_EUROPE_EDGAR_old_format",
+    "ELRIS_NAME_EUROPE_EDGAR_old_format",
+    "RHIME_NAME_EUROPE_EDGAR_old_format",
 ]
 regions = ["GERMANY", "UK", "BENELUX", "NW_EU2"]
 period = "yearly"  # use to override standard inversion periods, must be a list the same length as models, e.g. ['monthly','yearly']

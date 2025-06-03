@@ -42,8 +42,10 @@ The most important variables are described below. Please refer to the cdl files 
 | *Alternative to stdev for non-Gaussian PDFs*
 | percentile_flux_total_prior_country     | percentile_country_flux_total_prior     | kg yr-1   | time, percentile, country | Percentiles of country-total prior `<species>` fluxes
 | percentile_flux_total_posterior_country | percentile_country_flux_total_posterior | kg yr-1   | time, percentile, country | Percentiles of country-total posterior `<species>` fluxes
+| *Optional*
+| covariance_flux_total_posterior_country | covariance_country_flux_total_posterior | kg2 yr-2  | time, country, country    | Covariance of country-total posterior `<species>` fluxes
 
-(2) fluxy accepts any SI unit of the type "mass time-1". However, please make sure that all by-country variables have the same units.
+(2) fluxy accepts any SI unit of the type "mass time-1" for country flux variables and "mass2 time-2" for the covariance variable. However, please make sure that all by-country variables have the same units and that the covariance variable has the respective squared units.
 
 | Auxiliary variables | Old name | Units  |  Dimensions                  | Description                                |
 |:--------------------|:---------|:-------|:-----------------------------|:-------------------------------------------|

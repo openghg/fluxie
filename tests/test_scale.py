@@ -12,9 +12,9 @@ period = "yearly"
 
 # NOTE: if you change the models list, update the decorator
 models = [
-    "InTEM_NAME_EUROPE_EDGAR_std",
-    "ELRIS_NAME_EUROPE_EDGAR_std",
-    "RHIME_NAME_EUROPE_EDGAR_std",
+    "InTEM_NAME_EUROPE_EDGAR_old_format",
+    "ELRIS_NAME_EUROPE_EDGAR_old_format",
+    "RHIME_NAME_EUROPE_EDGAR_old_format",
 ]
 
 # NOTE: if you change the target units, update the HARD-CODED scaling
@@ -35,9 +35,9 @@ ds_all_mf = read_model_output(
 @pytest.mark.parametrize(
     "m, original_country_flux_unit, original_flux_unit",
     [
-        ("InTEM_NAME_EUROPE_EDGAR_std", "kg a-1", "mol m-2 s-1"),
-        ("ELRIS_NAME_EUROPE_EDGAR_std", "kg yr-1", "mol m-2 s-1"),
-        ("RHIME_NAME_EUROPE_EDGAR_std", "kg a-1", "mol m-2 s-1"),
+        ("InTEM_NAME_EUROPE_EDGAR_old_format", "kg a-1", "mol m-2 s-1"),
+        ("ELRIS_NAME_EUROPE_EDGAR_old_format", "kg yr-1", "mol m-2 s-1"),
+        ("RHIME_NAME_EUROPE_EDGAR_old_format", "kg a-1", "mol m-2 s-1"),
     ],
 )
 def test_scale_flux(m, original_country_flux_unit, original_flux_unit):
@@ -116,9 +116,9 @@ def test_scale_flux(m, original_country_flux_unit, original_flux_unit):
 @pytest.mark.parametrize(
     "m, original_mf_unit",
     [
-        ("InTEM_NAME_EUROPE_EDGAR_std", "mol mol-1"),
-        ("ELRIS_NAME_EUROPE_EDGAR_std", "mol mol-1"),
-        ("RHIME_NAME_EUROPE_EDGAR_std", "mol mol-1"),
+        ("InTEM_NAME_EUROPE_EDGAR_old_format", "mol mol-1"),
+        ("ELRIS_NAME_EUROPE_EDGAR_old_format", "mol mol-1"),
+        ("RHIME_NAME_EUROPE_EDGAR_old_format", "mol mol-1"),
     ],
 )
 def test_scale_mf(m, original_mf_unit):

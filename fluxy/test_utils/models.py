@@ -5,10 +5,10 @@ from fluxy.io import read_config_files, read_model_output
 from fluxy.test_utils import data_dir
 
 test_models = [
-    "InTEM_NAME_EUROPE_EDGAR_std",
-    "ELRIS_NAME_EUROPE_EDGAR_std",
-    "RHIME_NAME_EUROPE_EDGAR_std",
-    "ELRIS-NEW_NAME_EUROPE_EDGAR",
+    "InTEM_NAME_EUROPE_EDGAR_old_format",
+    "ELRIS_NAME_EUROPE_EDGAR_old_format",
+    "RHIME_NAME_EUROPE_EDGAR_old_format",
+    "ELRIS_NAME_EUROPE_EDGAR",
 ]
 
 

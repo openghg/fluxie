@@ -110,7 +110,7 @@ def scale_variables(
 
             # Apply scaling to covariance matrix
             # NOTE: covariance units are assumed consistent with country flux units (see issue #35)
-            cov_var = "covariance_country_flux_total_posterior"
+            cov_var = "covariance_flux_total_posterior_country"
             if (scale_var == "country_flux_unit") and (cov_var in ds_model.keys()):
                 cov_scaling_factor = scaling_factor**2 * gwp**2
                 ds_scaled[cov_var] = ds_model[cov_var] * cov_scaling_factor
@@ -147,10 +147,6 @@ def get_variables(ds_model: xr.Dataset, unit_type: str) -> tuple[list[str], str 
             # Particular case of mole fractions:
             if unit_type == "mf":
                 if unit in config.units_scale["mf"].keys():
-                    if var == "platform":
-                        # Correction for InTEM (units are wrongly set to mol mol-1)
-                        continue
-
                     var_names.append(var)
                     var_units.append(unit)
 
