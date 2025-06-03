@@ -334,6 +334,9 @@ def get_sites_coordinates(
             Dictionary of xarray datasets.
         config_data (dict):
             Dictionary of sites with information for plotting (read from json file).
+        fallback_sites (list[str] | None):
+            A list of site names to use as a fallback if 'sites' is not found in any dataset.
+            If None, the first available 'sites' in the datasets will be used as fallback.
 
     Returns:
         dict:
