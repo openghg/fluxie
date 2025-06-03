@@ -164,10 +164,11 @@ def slice_mf(
         # Round time to seconds (for consistency between models)
         ds_all[m]["time"] = ds_all[m]["time"].dt.round("s")
 
+        # Slice data according to time window
         mask_time = (ds_all[m]['time'] >= start_date) & (ds_all[m]['time'] <= end_date)
         ds_all[m] = ds_all[m].where(mask_time, drop=True)
         
-        # Slice data according to site and time window
+        # Slice data according to site
         if site is not None:
             site_index = get_site_index(ds_all[m], site)
 
