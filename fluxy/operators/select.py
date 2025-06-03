@@ -225,12 +225,8 @@ def get_site_index(ds: xr.Dataset, site: str) -> int | None:
             Returns None if site does not exist.
     """
 
-    # Get all sites
-    sites = ds["platform"].astype(str)
-
-    # Get site index
-    if site in sites:
-        index = np.where(ds["platform"].astype(str) == site)[0][0]
+    if site in ds["platform"]:
+        index = np.where(ds["platform"] == site)[0][0]
         return index
 
     return None
@@ -250,7 +246,7 @@ def get_unique_sites(ds_all: dict[str, xr.Dataset]) -> list[str]:
 
     sites = []
     for ds in ds_all.values():
-        sites = np.concatenate([sites, ds["platform"].astype(str).values])
+        sites = np.concatenate([sites, ds["platform"].values])
 
     sites = np.sort(np.unique(sites))
 
