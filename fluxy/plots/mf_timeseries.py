@@ -298,7 +298,7 @@ def plot_sites_timeseries(
     assert margin > 0, "Margin must be positive"
 
     model_offset = (1 - 2 * margin) / (len(models) - 1)
-    print(model_offset)
+
     for site_iter, site in enumerate(siteList):
         if site_iter != 0:
             # Add grey vertical line between sites
