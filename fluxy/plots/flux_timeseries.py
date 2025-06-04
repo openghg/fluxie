@@ -395,6 +395,7 @@ def plot_country_flux(
     if max_x - min_x > np.timedelta64(8, "Y"):
         step = int(max_x - min_x) // 8 + 1
         xticks = np.arange(min_x, max_x, step=np.timedelta64(step, "Y"))
+        xticks = np.append(xticks,max_x)
         ax.set_xticks(xticks)
         ax.set_xticklabels(xticks.astype("datetime64[Y]"))
         ax.xaxis.set_major_locator(YearLocator())
