@@ -61,12 +61,12 @@ Example file located in folder configs/species_info.json.
 
 It contains a dictionary of species (or group of species) pointing to various properties/print settings.
 
-| Keys          | Type        | Description                                                                                                         |
-|:--------------|:------------|:--------------------------------------------------------------------------------------------------------------------|
-| species_print | str         | Species name used in the plot axis (LaTeX format).                                                                  |
-| gwp           | float       | Global Warming Potential. <br> Used to convert country fluxes to mass of CO2 equivalent.                            |
-| molar_mass    | float       | Species molar mass (g mol-1). <br> Used to apply mol<->g conversion to fluxes.                                      |
-| list_species  | list of str | List of species which define a given group of species. <br> Used to plot sum of country fluxes over various species.|
+| Keys          | Type        | Description                                                                                                           |
+|:--------------|:------------|:----------------------------------------------------------------------------------------------------------------------|
+| species_print | str         | Species name used in the plot axis (LaTeX format).                                                                    |
+| gwp           | float       | Global Warming Potential. <br> GWP-100 values from IPCC AR5, used to convert country fluxes to mass of CO2 equivalent.|
+| molar_mass    | float       | Species molar mass (g mol-1). <br> Used to apply mol<->g conversion to fluxes.                                        |
+| list_species  | list of str | List of species which define a given group of species. <br> Used to plot sum of country fluxes over various species.  |
 
 ### 5. Sites information (optional)
 
