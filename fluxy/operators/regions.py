@@ -206,7 +206,7 @@ def extract_region_inventory_flux(
     # Find filename
     if inventory_year is not None:
         filepath = (
-            Path(data_dir) / "inventory"
+            Path(data_dir) / "inventory" /
             f"UNFCCC_inventory_{species}_{inventory_year}.nc"
         )
     else:
