@@ -722,6 +722,10 @@ def edit_vars_and_attributes(
     elif file_type == "concentration":
         # Ensure integer dtype
         ds['number_of_identifier'] = ds['number_of_identifier'].astype(int)
+
+        # Ensure string dtype
+        ds['platform'] = ds['platform'].astype(str)
+
         # Fix old format vs new format
         if "index" not in ds.dims:
             platforms = ds["platform"].values
