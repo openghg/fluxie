@@ -581,12 +581,13 @@ def edit_vars_and_attributes(
 
     ds = ds.rename(name_dict)
 
+    # Get model name
+    m0 = model.split("_")[0].lower()
+
     # Fix flux dataset
     if file_type == "flux":
 
         # Apply model specific corrections
-        m0 = model.split("_")[0].lower()
-
         if m0 == "elris":
             # Fix for legacy files
             if "countrynumber" in ds.dims.keys():
@@ -766,5 +767,20 @@ def edit_vars_and_attributes(
 
         # Fix for InTEM (units of platform are wrongly set to mol mol-1)
         ds["platform"].attrs.pop("units", None)
+
+        # Apply model specific corrections
+        if m0 == "cif-enks":
+            # Convert platform names to upper case and drop "_C" for continuos data
+            platform_in_caps = [platform.upper() for platform in ds["platform"].values]
+            for i, platform in enumerate(platform_in_caps):
+                platform_id, dtype = platform.split("_")
+                if dtype == "C":
+                    platform_in_caps[i] = platform_id
+
+            ds["platform"] = xr.DataArray(
+                data=platform_in_caps,
+                dims=ds["platform"].dims,
+                coords=ds["platform"].coords,
+            )
 
     return ds
