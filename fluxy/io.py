@@ -701,6 +701,10 @@ def edit_vars_and_attributes(
             del ds["country"]
             ds = ds.rename({"countrynumber": "country"})
 
+        elif m0 == "cif-enks":
+            # Add "_" to second country dimension in covariance matrix
+            ds = ds.rename({'country2': 'country_2'})
+
         # Rename second country dimension in covariance matrix (xarray requirement)
         var_to_change = "covariance_flux_total_posterior_country"
         if var_to_change in ds and ds[var_to_change].dims == (
