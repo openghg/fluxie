@@ -733,6 +733,10 @@ def edit_vars_and_attributes(
                 .stack({"index": ["number_of_identifier", "time"]})
                 .reset_index("index")
             )
+        
+        if "assimilation_flag" not in ds:
+            # Add assimilation_flag if not present
+            ds = ds.assign(assimilation_flag=('index', np.ones(ds['index'].size, dtype=int)))
 
         # Test that the number of identifiers had valid values 
         max_num_id, min_num_id = ds["number_of_identifier"].max(), ds["number_of_identifier"].min()
