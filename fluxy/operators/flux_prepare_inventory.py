@@ -40,7 +40,7 @@ def retrieve_inventories(
         inventory_years = [None]
 
     inv_cmap = get_cmap("Greys")
-    inv_colors = [inv_cmap(i) for i in np.linspace(0.9, 0.5, len(inventory_years))]
+    inv_colors = [inv_cmap(i) for i in np.linspace(0.5, 0.9, len(inventory_years))]
 
     for year, inv_color in zip(inventory_years, inv_colors):
         ds_inv = extract_region_inventory_flux(
