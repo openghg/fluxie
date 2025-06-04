@@ -286,6 +286,7 @@ def plot_country_flux(
                         "time": inventory.time.values,
                         "value": inventory.values,
                     }
+                max_cf[i] = np.nanmax((max_cf[i], inventory.max(skipna=True)))
 
         ds_all_region = extract_region_flux(ds_all, country, r_data)
         ds_to_plot = prepare_data_to_plot(
