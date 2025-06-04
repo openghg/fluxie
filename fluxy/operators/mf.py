@@ -66,7 +66,7 @@ def compute_mf_difference(
     ds_right = get_common_index(ds_right, ds_right_index)
 
     ds_diff = {}
-    key_name = f"{model_left}-{model_right}"
+    key_name = f"{model_left}--{model_right}"
 
     common_platforms = common_index.get_level_values("platform").values
     unique_platforms, platform_indices = np.unique(

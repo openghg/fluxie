@@ -110,7 +110,7 @@ def plot_mf_timeseries(
             model_color = model_colors[m]
         elif plot_type == "diff":
             iax = 0
-            mdiff0, mdiff1 = m.split("-")
+            mdiff0, mdiff1 = m.split("--")
             model_label = f"{model_labels[mdiff0]} - {model_labels[mdiff1]}"
             model_color = model_colors[mdiff0]
 
