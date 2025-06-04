@@ -703,6 +703,9 @@ def edit_vars_and_attributes(
             ds = ds.rename({"countrynumber": "country"})
 
         elif m0 == "cif-enks":
+            # Move time variable to center of the month
+            ds["time"] = ds.time.values + np.timedelta64(15, "D")
+
             # Add "_" to second country dimension in covariance matrix
             ds = ds.rename({'country2': 'country_2'})
 
