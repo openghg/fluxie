@@ -91,6 +91,7 @@ def slice_mf(
     baseline_site: str = None,
     data_dir: os.PathLike | None = None,
     mf_units_print: str = None,
+    keep_unassimilated: bool = False,
 ) -> dict[str, xr.Dataset]:
     """
     Slices down the mole fraction timeseries data, to within the
@@ -114,6 +115,9 @@ def slice_mf(
         mf_units_print (str):
             Units to which mole fractions should be converted to.
             Expected format: "<letters><(-)integer>" separated by spaces (e.g. "mol mol-1")
+        keep_unassimilated (bool):
+            If True, keeps unassimilated data (assimilation_flag != 1).
+            If False, only keeps assimilated data (assimilation_flag == 1).
     Returns:
         ds_all (dictionary of datasets):
             xarray datasets, scaled and sliced between chosen dates and for
@@ -157,17 +161,20 @@ def slice_mf(
             offset = int(np.mean(ds_all[m]["Yav"]))
         else:
             offset = (
-                ds_all[m]['time'].values[1].astype("datetime64[h]")
-                - ds_all[m]['time'].values[0].astype("datetime64[h]")
+                ds_all[m]["time"].values[1].astype("datetime64[h]")
+                - ds_all[m]["time"].values[0].astype("datetime64[h]")
             ).astype(int)
 
         # Round time to seconds (for consistency between models)
         ds_all[m]["time"] = ds_all[m]["time"].dt.round("s")
 
         # Slice data according to time window
-        mask_time = (ds_all[m]['time'] >= start_date) & (ds_all[m]['time'] <= end_date)
-        ds_all[m] = ds_all[m].where(mask_time, drop=True)
-        
+        mask = (ds_all[m]["time"] >= start_date) & (ds_all[m]["time"] <= end_date)
+        if not keep_unassimilated:
+            # Mask assimilated data only
+            mask &= ds_all[m]["assimilation_flag"] == 1
+        ds_all[m] = ds_all[m].where(mask, drop=True)
+
         # Slice data according to site
         if site is not None:
             site_index = get_site_index(ds_all[m], site)
@@ -181,7 +188,7 @@ def slice_mf(
             ds_all[m] = ds_all[m].where(mask_site, drop=True)
 
         if len(ds_all[m]["time"]) == 0:
-        # Remove model if no data left after time slicing
+            # Remove model if no data left after time slicing
             logger.warning(
                 f"No {m} obs found for {site=} between {start_date} and {end_date}."
             )
