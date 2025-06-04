@@ -154,6 +154,8 @@ def stats_mf(
     # Compute stats for all sites and all models
     for site in sites_all:
         for model, ds in ds_all.items():
+            # Remove the NaNs
+            ds = ds.dropna('index')
             site_index = get_site_index(ds, site)
             if site_index is None:
                 continue
