@@ -25,6 +25,7 @@
                   "hfc245fa": "HFC_245fa",
                   "hfc365mfc": "HFC_365mfc",
                   "hfc4310mee": "HFC_4310mee",
+                  "hfc236fa": "HFC_236fa",
                   "pfc218": "PFC_218",
                   "pfc318": "PFC_318",
                   "pfc116": "PFC_116",
@@ -34,31 +35,32 @@
     },
 
     "standard_run":{
-        "default": {"ch4": "NAME_EDGARWETCHARTS_31sites",
-                    "n2o": "NAME_EDGAR_26sites",
-                    "sf6": "NAME_FLAT_std",
-                    "hfc134a": "NAME_EDGAR_std",
-                    "hfc143a": "NAME_EDGAR_std",
-                    "hfc125": "NAME_EDGAR_std",
-                    "hfc152a": "NAME_FLAT_std",
-                    "hfc32": "NAME_EDGAR_std",
-                    "hfc227ea": "NAME_FLAT_std",
-                    "hfc23": "NAME_FLAT_std",
-                    "hfc245fa": "NAME_FLAT_std",
-                    "hfc365mfc": "NAME_FLAT_std",
-                    "hfc4310mee": "NAME_FLAT_std",
-                    "pfc218": "NAME_FLAT_std",
-                    "pfc318": "NAME_FLAT_std",
-                    "pfc116": "NAME_EDGARMINVAL_std",
-                    "cf4": "NAME_EDGARMINVAL_std",
-                    "hfo1234yf": "NAME_POPULATION",
-                    "hfo1234zee": "NAME_POPULATION",
-                    "hcfo1233zde": "NAME_POPULATION",
-                    "clch2ch2cl": "NAME_POPULATION"
+        "default": {"ch4": "NAME_EUROPE_EDGARWETCHARTS_31sites",
+                    "n2o": "NAME_EUROPE_EDGAR_26sites",
+                    "sf6": "NAME_EUROPE_FLAT_std",
+                    "hfc134a": "NAME_EUROPE_EDGAR_std",
+                    "hfc143a": "NAME_EUROPE_EDGAR_std",
+                    "hfc125": "NAME_EUROPE_EDGAR_std",
+                    "hfc152a": "NAME_EUROPE_FLAT_std",
+                    "hfc32": "NAME_EUROPE_EDGAR_std",
+                    "hfc227ea": "NAME_EUROPE_FLAT_std",
+                    "hfc23": "NAME_EUROPE_FLAT_std",
+                    "hfc245fa": "NAME_EUROPE_FLAT_std",
+                    "hfc365mfc": "NAME_EUROPE_FLAT_std",
+                    "hfc4310mee": "NAME_EUROPE_FLAT_std",
+                    "hfc236fa": "NAME_EUROPE_FLAT_std",
+                    "pfc218": "NAME_EUROPE_FLAT_std",
+                    "pfc318": "NAME_EUROPE_FLAT_std",
+                    "pfc116": "NAME_EUROPE_EDGARMINVAL_std",
+                    "cf4": "NAME_EUROPE_EDGARMINVAL_std",
+                    "hfo1234yf": "NAME_EUROPE_POPULATION",
+                    "hfo1234zee": "NAME_EUROPE_POPULATION",
+                    "hcfo1233zde": "NAME_EUROPE_POPULATION",
+                    "clch2ch2cl": "NAME_EUROPE_POPULATION"
     },
-        "flexinvert-dca": {"clch2ch2cl": "FLEXPART_POPULATION"
+        "flexinvert-dca": {"clch2ch2cl": "FLEXPART_EUROPE_POPULATION"
     },
-        "elris-n2o": {"n2o": "NAME_EDGAR_28sites"
+        "elris-n2o": {"n2o": "NAME_EUROPE_EDGAR_28sites"
     }
     }
 }

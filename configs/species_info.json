@@ -75,6 +75,11 @@
         "gwp": 1650,
         "molar_mass": 252.04
     },
+    "hfc236fa": {
+        "species_print": "HFC-236fa",
+        "gwp": 8060,
+        "molar_mass": 152.04
+    },
     "pfc218": {
         "species_print": "PFC-218",
         "gwp": 8900,
@@ -114,7 +119,7 @@
         "molar_mass": 102.06
     },
     "all_hfc": {
-        "list_species": ["hfc125","hfc134a","hfc143a","hfc152a","hfc23","hfc227ea","hfc245fa","hfc32","hfc365mfc"],
+        "list_species": ["hfc125","hfc134a","hfc143a","hfc152a","hfc23","hfc227ea","hfc245fa","hfc32","hfc365mfc","hfc236fa"],
         "species_print": "Total HFC"
     },
     "all_pfc": {
