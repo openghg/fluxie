@@ -12,6 +12,9 @@ from fluxy.operators.convert import scale_variables
 logger = logging.getLogger(__name__)
 
 
+FrequencyType = timedelta | str | None
+
+
 def slice_flux(
     ds_all: dict[str, xr.Dataset],
     config_data: dict[str, str | float] = {},
@@ -286,7 +289,7 @@ def get_unique_sites(ds_all: dict[str, xr.Dataset]) -> list[str]:
 
 def clean_timeseries_missing_data(
     ds: xr.Dataset,
-    min_freq: timedelta | None = None,
+    min_freq: FrequencyType = None,
     variables_nans: list[str] = [],
 ) -> xr.Dataset:
     """Reorganise nan values in dataset based on time.
@@ -327,6 +330,9 @@ def clean_timeseries_missing_data(
         # of the time difference between data points.
         # 2x is a good value for data gaps, 1.9x is used to avoid approximation errors.
         min_freq = 1.9 * dt_median
+    elif isinstance(min_freq, str):
+        # From pandas freq string
+        min_freq = pd.to_timedelta(min_freq).to_numpy().astype(dtime.dtype)
     else:
         # Comvert timedelta to numpy timedelta64 for consistency
         min_freq = np.timedelta64(min_freq).astype(dtime.dtype)

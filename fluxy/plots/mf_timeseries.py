@@ -1,5 +1,4 @@
 import logging
-from datetime import timedelta
 from typing import Literal
 
 import matplotlib.pyplot as plt
@@ -10,6 +9,7 @@ from matplotlib.ticker import NullFormatter
 
 from fluxy import config
 from fluxy.operators.select import (
+    FrequencyType,
     clean_timeseries_missing_data,
     get_site_index,
     get_unique_sites,
@@ -36,7 +36,7 @@ def plot_mf_timeseries(
     },
     diff_include: list[str] | None = None,
     y_lim: None | list[float] = None,
-    time_freq_min: timedelta | None = None,
+    time_freq_min: FrequencyType = None,
 ):
     """
     Timeseries plots of observations, modelled mole fractions, baseline mf and/or
