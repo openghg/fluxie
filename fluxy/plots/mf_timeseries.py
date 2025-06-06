@@ -13,19 +13,27 @@ logger = logging.getLogger(__name__)
 
 
 def plot_mf_timeseries(
+        *args, **kwargs
+) -> plt.Figure:
+    if "include" not in kwargs:
+        kwargs["include"] = {
+            "mf_observed": None,
+            "mf_posterior": "percentile_mf_posterior",
+        }
+    return plot_timeseries(*args, **kwargs)
+
+
+def plot_timeseries(
     ds_all: dict[str, xr.Dataset],
-    species: str,
-    site: str,
-    model_colors: dict[str, str],
-    model_labels: dict[str, dict],
-    config_data: dict[str, dict],
-    annotate_coords: dict[int, list],
+    species: str | None = None,
+    site: str | None = None,
+    model_colors: dict[str, str] | None = None,
+    model_labels: dict[str, dict] = {},
+    config_data: dict[str, dict] = {},
+    annotate_coords: dict[int, list] = {},
     presentation_mode: bool = False,
     plot_type: Literal["separate", "together", "diff"] = "separate",
-    include: dict[str, str | None] = {
-        "mf_observed": None,
-        "mf_posterior": "percentile_mf_posterior",
-    },
+    include: dict[str, str | None] = {},
     diff_include: list[str] | None = None,
     y_lim: None | list[float] = None,
 ):
@@ -66,7 +74,10 @@ def plot_mf_timeseries(
     """
 
     models = ds_all.keys()
-    species_info = config_data["species_info"][species]
+    if model_colors is None:
+        model_colors = config.set_model_colors(models)
+
+    species_info = config_data.get("species_info", {}).get(species, {})
     vars_to_plot = include.keys()
     plot_units = []
 
@@ -100,19 +111,15 @@ def plot_mf_timeseries(
     for i, m in enumerate(models):
 
         # Define plot_type specific settings
-        if plot_type == "separate":
-            iax = i  # axis index
-            model_label = model_labels[m]
-            model_color = model_colors[m]
-        elif plot_type == "together":
-            iax = 0
-            model_label = model_labels[m]
-            model_color = model_colors[m]
-        elif plot_type == "diff":
-            iax = 0
+        iax = i if plot_type == "separate" else 0
+
+        if plot_type == "diff":
             mdiff0, mdiff1 = m.split("--")
             model_label = f"{model_labels[mdiff0]} - {model_labels[mdiff1]}"
             model_color = model_colors[mdiff0]
+        else:
+            model_label = model_labels.get(m, {"label": m})
+            model_color = model_colors[m]
 
         # Loop over all variables to plot
         for var in vars_to_plot:
@@ -131,7 +138,7 @@ def plot_mf_timeseries(
             if var == "mf_observed" or plot_type == "diff":
                 # Make scatter plot
                 ax[iax, 0].scatter(
-                    ds_all[m]['time'].values,
+                    ds_all[m]["time"].values,
                     ds_all[m][var].values,
                     color=plot_color,
                     label=f"{model_label} {config.mf_labels[var]}",
@@ -143,7 +150,7 @@ def plot_mf_timeseries(
             else:
                 # Make line plot
                 ax[iax, 0].plot(
-                    ds_all[m]['time'].values,
+                    ds_all[m]["time"].values,
                     ds_all[m][var].values,
                     color=plot_color,
                     alpha=0.8,
@@ -217,7 +224,13 @@ def plot_mf_timeseries(
 
         # Set timeseries y-axis label and legend
         ax[iax, 0].set_ylabel(
-            f'{species_info["species_print"]} {site} ({plot_units[0]})'
+            " ".join(
+                [
+                    species_info.get("species_print", ""),
+                    site if site else "",
+                    f"({plot_units[0]})'",
+                ]
+            )
         )
         leg = ax[iax, 0].legend(ncol=2, borderpad=0.2, columnspacing=1.0)
         try:
@@ -227,17 +240,14 @@ def plot_mf_timeseries(
             for l in leg.legendHandles:
                 l.set_linewidth(5.0)
 
-        if len(ds_all[m]['time']) <= 1:
+        if len(ds_all[m]["time"]) <= 1:
             continue
-        start_date = ds_all[m]['time'].values.min()
-        end_date = ds_all[m]['time'].values.max()
-        
+        start_date = ds_all[m]["time"].values.min()
+        end_date = ds_all[m]["time"].values.max()
+
         # Set timeseries x-axis ticks
         if (
-            int(
-                end_date.astype("datetime64[M]")
-                - start_date.astype("datetime64[M]")
-            )
+            int(end_date.astype("datetime64[M]") - start_date.astype("datetime64[M]"))
             > 12
         ):
             ax[iax, 0].xaxis.set_minor_locator(MonthLocator())
