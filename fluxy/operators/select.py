@@ -322,14 +322,15 @@ def clean_timeseries_missing_data(
     # Define threshold for data gap
     time = ds.time.values
     dtime = np.diff(time)
-    dt_median = np.median(dtime)
 
     if min_freq is None:
         # Calcuate a minimum frequency based on the median time difference
         # between data points, assuming that the median is a good representation
         # of the time difference between data points.
         # 2x is a good value for data gaps, 1.9x is used to avoid approximation errors.
+        dt_median = np.median(dtime)
         min_freq = 1.9 * dt_median
+        logger.info(f"Using median time difference 1.9 * {dt_median=} as min_freq.")
     elif isinstance(min_freq, str):
         # From pandas freq string
         min_freq = pd.to_timedelta(min_freq).to_numpy().astype(dtime.dtype)
@@ -342,7 +343,7 @@ def clean_timeseries_missing_data(
         return ds
 
     logger.info(
-        f"Adding NaN between data gaps using dt={dt_median.astype('timedelta64[h]')}."
+        f"Adding NaN between data gaps using dt={min_freq.astype('timedelta64[h]')} hours."
     )
     new_times = []
 
