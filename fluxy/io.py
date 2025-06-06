@@ -730,7 +730,7 @@ def edit_vars_and_attributes(
                 attrs=ds[var_to_change].attrs,
             )
 
-    elif file_type == DataTypes.CONCENTRATION:
+    elif file_type in (DataTypes.CONCENTRATION, DataTypes.EDDY_FLUX):
         # Ensure integer dtype
         ds["number_of_identifier"] = ds["number_of_identifier"].astype(int)
 
