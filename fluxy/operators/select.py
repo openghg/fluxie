@@ -329,7 +329,6 @@ def clean_timeseries_missing_data(
         # of the time difference between data points.
         dt_median = np.median(dtime)
         min_freq = dt_median
-        logger.info(f"Using median time difference {dt_median=} as min_freq.")
     elif isinstance(min_freq, str):
         # From pandas freq string
         min_freq = pd.to_timedelta(min_freq).to_numpy().astype(dtime.dtype)
