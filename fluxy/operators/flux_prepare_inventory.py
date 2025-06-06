@@ -15,7 +15,7 @@ def retrieve_inventories(
     unit: str,
     s_data: dict[str, dict],
     r_data: dict[str, dict],
-    inventory_years: list[str] | None = None,
+    inventory_years: list[str] | list[float] | str | float | None = None,
 ) -> list[xr.Dataset]:
     """
     Load (in a list) inventories data to be plotted.
@@ -36,8 +36,8 @@ def retrieve_inventories(
     """
     inventories_list = list()
 
-    if inventory_years is None:
-        inventory_years = [None]
+    if inventory_years is None or not isinstance(inventory_years, list):
+        inventory_years = [inventory_years]
 
     inv_cmap = get_cmap("Greys")
     inv_colors = [inv_cmap(i) for i in np.linspace(0.5, 0.9, len(inventory_years))]

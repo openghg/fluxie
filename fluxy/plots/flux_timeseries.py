@@ -154,7 +154,7 @@ def prepare_data_to_plot(
 def plot_country_flux(
     ds_all: dict[str, xr.Dataset],
     species: str,
-    plot_regions: list[str] = [],
+    plot_regions: list[str] | str = [],
     config_data: dict[str, dict] = {},
     model_colors: dict[str, str] = {},
     model_labels: dict[str, str] = {},
@@ -209,7 +209,6 @@ def plot_country_flux(
         resample_uncert_correlation: If True, calculates the resampled uncertainty as the mean from all averaged periods.
             If False, recalculates uncertainty assuming no correlation between all averaged periods, by taking the square root of the summed variances, divided by the number of averaging periods.
         plot_resample_and_original: If True, plots both the resampled data and the data as its original frequency. If False, only plots the resampled data.
-        period_override: Inversion periods to include, to override the standards in species_info.json. Must be the same length as models, e.g. ['monthly',None,'yearly']
         return_res: Wheter or not including a dictionnary with the results as output
         rolling_mean : If True, calculates a rolling mean (xx years) for each of the data to plot.
     Returns:
@@ -225,6 +224,8 @@ def plot_country_flux(
         plot_regions = set.intersection(
             *(set(ds["country"].values) for ds in ds_all.values())
         )
+    if not isinstance(plot_regions,list): 
+        plot_regions = [plot_regions]
 
     if return_res:
         res_dict: dict[str, dict] = {country: dict() for country in plot_regions}
@@ -364,13 +365,14 @@ def plot_country_flux(
             f"{s_data.get(species, {}).get('species_print', species)}"
             f" ({unit.replace('2','$_{{2}}$').replace('-1','$^{{-1}}$')})"
         )
-
+        
+       
         # set legend if needed
         if not set_global_leg:
-            ncol = 3 if annex_mode else 2
+            ncol = len(ds_to_plot) + 1 if annex_mode else 2
             leg = ax.legend(ncol=ncol, borderpad=0.4, columnspacing=1.0)
-            for l in leg.legend_handles[: (-1 if plot_inventory else None)]:
-                l.set_linewidth(3.0)
+            # for l in leg.legend_handles[: (-1 if plot_inventory else None)]:
+            #     l.set_linewidth(3.0)
 
         # set title
         country_equivalent = {
