@@ -287,8 +287,8 @@ def plot_country_flux(
                         "time": inventory.time.values,
                         "value": inventory.values,
                     }
-                min_x = min(inventory.time.min(skipna=True), min_x)
-                max_x = max(inventory.time.max(skipna=True), max_x)
+                min_x = min(inventory.time.min(skipna=True).values, min_x)
+                max_x = max(inventory.time.max(skipna=True).values, max_x)
                 max_cf[i] = np.nanmax((max_cf[i], inventory.max(skipna=True)))
 
         ds_all_region = extract_region_flux(ds_all, country, r_data)
@@ -326,8 +326,8 @@ def plot_country_flux(
                     ds_region.posterior.max(skipna=True),
                 )
             )
-            min_x = min(ds_region.time.min(skipna=True), min_x)
-            max_x = max(ds_region.time.max(skipna=True), max_x)
+            min_x = min(ds_region.time.min(skipna=True).values, min_x)
+            max_x = max(ds_region.time.max(skipna=True).values, max_x)
 
             if return_res:
                 res_dict[country][m] = {
@@ -393,8 +393,8 @@ def plot_country_flux(
     # set xticks
     if max_x.astype("datetime64[Y]") != max_x:
         max_x = max_x.astype("datetime64[Y]") + np.timedelta64(366, "D")
-    min_x = min_x.values.astype("datetime64[Y]")
-    max_x = max_x.values.astype("datetime64[Y]")
+    min_x = min_x.astype("datetime64[Y]")
+    max_x = max_x.astype("datetime64[Y]")
     xlim = [min_x - np.timedelta64(60, "D"), max_x + np.timedelta64(60, "D")]
 
     if max_x - min_x > np.timedelta64(8, "Y"):

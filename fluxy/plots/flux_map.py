@@ -557,7 +557,7 @@ def plot_flux_map_over_time(
 
             # Plot the data
             im = ax_i.pcolormesh(
-                lon, lat, var_i, cmap=cmap, vmin=lim[0], vmax=lim[1], shading="nearest"
+                lon, lat, var_i, cmap=cmap, vmin=lim[0], vmax=lim[1], shading="nearest",
             )
             plot_country_borders(
                 ax=ax_i, lines=country_lines, border_color=border_color

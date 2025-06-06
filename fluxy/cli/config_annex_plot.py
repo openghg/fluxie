@@ -1,4 +1,4 @@
-monthly_species = ["ch4", "n2o"
+monthly_species = ["ch4"#, "n2o"
                   ]
 
 annual_species = [
@@ -19,7 +19,8 @@ annual_species = [
     "sf6",
 ]
 
-combined_species = ["all_hfc", "all_pfc"]
+combined_species = [#"all_hfc", "all_pfc"
+                    ]
 
 # Cities to plot
 point_markers = {
@@ -39,7 +40,7 @@ point_markers["BENELUX"] = (
 )
 
 # Path to results directory
-data_dir = "/project/paris/inverse_modelling/"
+data_dir = "/user/work/bq24992/workingDir/PARIS/fluxy_data/"
 
 # Set ppt_mode to True for bigger fonts
 ppt_mode = False
