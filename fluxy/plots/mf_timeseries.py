@@ -129,8 +129,13 @@ def plot_mf_timeseries(
             model_color = model_colors[mdiff0]
 
         ds_plot = ds_all[m]
-        # Select only the site to plot
-        ds_plot = slice_site(ds_plot, site)
+        # Check there is only one site in the dataset 
+        if len(np.unique(ds_plot['number_of_identifier'])) > 1:
+            raise ValueError(
+                f"Dataset {m} contains more than one site. "
+                "Use slice_site to select a single site."
+            )
+        
         # Clean the time dimension
         ds_plot = clean_timeseries_missing_data(
             ds_plot, variables_nans=vars_to_plot, min_freq=time_freq_min
