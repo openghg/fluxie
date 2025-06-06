@@ -170,6 +170,8 @@ def plot_mf_timeseries(
                     color=plot_color,
                     alpha=0.8,
                     linewidth=2.0,
+                    marker="o",
+                    markersize=1.5,
                     label=f"{model_label} {config.mf_labels[var]}",
                 )
 
