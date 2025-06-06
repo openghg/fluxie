@@ -11,10 +11,9 @@ from matplotlib.ticker import NullFormatter
 from fluxy import config
 from fluxy.operators.select import get_site_index, get_unique_sites
 from fluxy.plots.utils import set_min_decimal_points
+from fluxy.types import VariableType
 
 logger = logging.getLogger(__name__)
-
-VariableType = str | dict[str, str | None] | list[str]
 
 
 def plot_mf_timeseries(*args, **kwargs) -> plt.Figure:
@@ -250,7 +249,7 @@ def plot_timeseries(
             annotate_coords,
             annotate_index=i,
             plot_type=plot_type,
-            n_bins=n_bins
+            n_bins=n_bins,
         )
 
         # Get timeseries y-axis minimum and maximum

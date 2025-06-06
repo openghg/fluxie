@@ -4,6 +4,7 @@ from typing import Literal, NewType, Union
 
 class DataTypes(Enum):
     """Enum for different data types used in fluxy."""
+
     # Flux data (emission maps)
     FLUX = "flux"
     # Concentration data (measurements, model outputs)
@@ -22,4 +23,7 @@ def file_pattern(file_type: DataTypes) -> str:
     else:
         return f"{file_type.value}.nc"
 
+
 DataType = DataTypes | Literal["flux", "concentration", "eddy_flux"]
+
+VariableType = str | dict[str, str | None] | list[str]
