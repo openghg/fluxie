@@ -1,13 +1,16 @@
+import logging
+from typing import Literal
+
+import matplotlib.axes
+import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 from matplotlib.dates import MonthLocator, YearLocator
 from matplotlib.ticker import NullFormatter
-import matplotlib.pyplot as plt
-from typing import Literal
+
 from fluxy import config
+from fluxy.operators.select import get_site_index, get_unique_sites
 from fluxy.plots.utils import set_min_decimal_points
-from fluxy.operators.select import get_unique_sites, get_site_index
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +59,7 @@ def plot_timeseries(
     plot_type: Literal["separate", "together", "diff"] = "separate",
     diff_include: list[str] | None = None,
     y_lim: None | list[float] = None,
+    n_bins: int = 30,
 ):
     """
     Timeseries plots of observations, modelled mole fractions, baseline mf and/or
@@ -88,6 +92,8 @@ def plot_timeseries(
             If None, plots the histogram of the variables specified in include.
         y_lim (list of float, optional):
             Mix/max y axis limits to apply to all plots.
+        n_bins (int):
+            Number of bins to use in the histogram.
     Returns:
         fig (figure):
             A timeseries and histogram plot for each model included.
@@ -138,6 +144,10 @@ def plot_timeseries(
     if nrows == 1:
         ax = np.expand_dims(ax, axis=0)
 
+    logger.info(
+        f"Plotting {len(models)} models with {len(vars_to_plot)} variables in {plot_type} mode."
+    )
+
     # Loop over all models
     for i, m in enumerate(models):
 
@@ -149,7 +159,7 @@ def plot_timeseries(
             model_label = f"{model_labels[mdiff0]} - {model_labels[mdiff1]}"
             model_color = model_colors[mdiff0]
         else:
-            model_label = model_labels.get(m, {"label": m})
+            model_label = model_labels.get(m, m)
             model_color = model_colors[m]
 
         # Loop over all variables to plot
@@ -166,6 +176,7 @@ def plot_timeseries(
             if var == "mf_observed" and len(vars_to_plot) > 1:
                 plot_color = "black"
 
+            x, y = ds_all[m]["time"].values, ds_all[m][var].values
             kwargs = {
                 "label": f"{model_label} {config.mf_labels.get(var, var)}",
                 "color": plot_color,
@@ -175,8 +186,8 @@ def plot_timeseries(
             if var == "mf_observed" or plot_type == "diff":
                 # Make scatter plot
                 ax[iax, 0].scatter(
-                    ds_all[m]["time"].values,
-                    ds_all[m][var].values,
+                    x,
+                    y,
                     s=8,
                     marker="s",
                     **kwargs,
@@ -185,8 +196,8 @@ def plot_timeseries(
             else:
                 # Make line plot
                 ax[iax, 0].plot(
-                    ds_all[m]["time"].values,
-                    ds_all[m][var].values,
+                    x,
+                    y,
                     linewidth=2.0,
                     **kwargs,
                 )
@@ -202,25 +213,29 @@ def plot_timeseries(
                 if unc_var not in ds_all[m].keys():
                     raise KeyError(f"Variable {unc_var} not found in {m}.")
 
+                kwargs = {
+                    "color": plot_color,
+                }
+
                 if unc_var.split("_")[0] == "percentile":
                     # Add uncertainty band
                     ax[iax, 0].fill_between(
-                        ds_all[m].time.values,
-                        ds_all[m][unc_var][0, :].values,
-                        ds_all[m][unc_var][1, :].values,
-                        color=plot_color,
+                        x,
+                        y1=ds_all[m][unc_var][0, :].values,
+                        y2=ds_all[m][unc_var][1, :].values,
                         alpha=0.2,
+                        **kwargs,
                     )
 
                 else:
                     # Add error bar
                     ax[iax, 0].errorbar(
-                        ds_all[m].time.values,
-                        ds_all[m][var].values,
-                        ds_all[m][unc_var].values,
-                        color=plot_color,
+                        x,
+                        y=ds_all[m][var].values,
+                        yerr=ds_all[m][unc_var].values,
                         alpha=0.4,
                         fmt="none",
+                        **kwargs,
                     )
 
         # Plot histogram
@@ -235,6 +250,7 @@ def plot_timeseries(
             annotate_coords,
             annotate_index=i,
             plot_type=plot_type,
+            n_bins=n_bins
         )
 
         # Get timeseries y-axis minimum and maximum
@@ -402,7 +418,7 @@ def plot_sites_timeseries(
 
 
 def plot_histogram(
-    axis: plt.axes,
+    ax: matplotlib.axes.Axes,
     ds: xr.Dataset,
     model: str,
     vars_to_plot: list[str],
@@ -412,6 +428,7 @@ def plot_histogram(
     annotate_coords: dict[int, list],
     annotate_index: int,
     plot_type: Literal["separate", "together", "diff"],
+    n_bins: int = 30,
 ) -> None:
     """
     Plots a histogram on a specified axis.
@@ -465,15 +482,15 @@ def plot_histogram(
             var_to_plot = ds[var]
 
         # Plot histogram
-        a, b, c = axis.hist(
+        a, b, c = ax.hist(
             var_to_plot.values,
-            bins=30,
+            bins=n_bins,
             color=model_color[config.mf_color_index.get(var, 0)],
             density=1,
         )
 
         if diff_include:
-            axis.vlines(0, 0, np.max(a), color="dimgrey", linewidth=3.0)
+            ax.vlines(0, 0, np.max(a), color="dimgrey", linewidth=3.0)
 
         if plot_type in ["separate", "diff"]:
             index = v
@@ -489,7 +506,7 @@ def plot_histogram(
         # Write mean/std to histogram
         # If plot_type = togehter, print only mean/std of the first variable
         if not (plot_type == "together" and v != 0):
-            axis.annotate(
+            ax.annotate(
                 f"$\\mu$: {str_mean}\n$\\sigma$: {str_std}",
                 xy=annotate_coords[index],
                 xycoords="axes fraction",
@@ -498,17 +515,17 @@ def plot_histogram(
 
     # Write number of obs
     if plot_type == "separate":
-        n_obs = ds["mf_observed"].count().values
+        n_obs = ds["time"].count().values
         if presentation_mode:
             pos_xy = [0.57, 1.05]
         else:
             pos_xy = [0.65, 1.05]
 
-        axis.annotate(
+        ax.annotate(
             "$N_{obs}$: " + str(n_obs), xy=pos_xy, xycoords="axes fraction", color="k"
         )
 
     # Set histogram x-axis label
-    axis.set_xlabel(legend_hist)
+    ax.set_xlabel(legend_hist)
 
     return None
