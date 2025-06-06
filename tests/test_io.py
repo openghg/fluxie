@@ -21,6 +21,8 @@ def test_read_flux(model):
         data_dir, "flux", species, [model], config_data, period=period
     )
 
+    assert model in ds_all_flux, f"Model {model} not found in the loaded flux datasets"
+
 
 @pytest.mark.parametrize("model", test_models)
 def test_read_mf(model):
@@ -34,6 +36,8 @@ def test_read_mf(model):
     ds_all_mf = read_model_output(
         data_dir, "concentration", species, [model], config_data, period=period
     )
+
+    assert model in ds_all_mf, f"Model {model} not found in the loaded mole fraction datasets"
 
 
 def test_read_config_default():
