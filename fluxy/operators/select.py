@@ -340,7 +340,7 @@ def clean_timeseries_missing_data(
         return ds
 
     logger.info(
-        f"Adding NaN between data gaps using dt={min_freq.astype('timedelta64[h]')} hours."
+        f"Adding NaN between data gaps using dt={min_freq.astype('timedelta64[h]')}."
     )
     new_times = []
 
