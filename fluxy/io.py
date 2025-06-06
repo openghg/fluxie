@@ -184,7 +184,7 @@ def read_model_output(
     species: str,
     models: list[str],
     config_data: dict[str, dict] = {},
-    period: str | list[str] = "yearly",
+    period: str | list[str] | None = None,
 ) -> dict[str, xr.Dataset]:
     """
     Extracts mole fraction or flux timeseries data from each model.
@@ -207,27 +207,31 @@ def read_model_output(
         ds_all (dictionary of datasets):
             xarray dataset read directly from each model's mole fraction netCDF.
     """
+    file_type = DataTypes(file_type)
+
+    if period is None and file_type in (DataTypes.FLUX, DataTypes.CONCENTRATION):
+        # Default period
+        period = "yearly"
 
     if isinstance(period, str):
         period = [period] * len(models)
 
-    if len(period) != len(models):
+    if period is not None and len(period) != len(models):
         raise ValueError(
-            f"period must be a string or a list of the same length as models."
+            f"period must be None, a string or a list of the same length as models."
         )
-
-    file_type = DataTypes(file_type)
 
     ds_all = {}
 
     for i, m in enumerate(models):
+        period_str = period[i] if period is not None else ""
         filepath = get_filename(
-            m, species, period[i], file_pattern(file_type), config_data, data_dir
+            m, species, period_str, file_pattern(file_type), config_data, data_dir
         )
 
         # Check if files exists
         if not filepath.is_file():
-            logger.warning(f"Cannot find {file_type} file: {filepath}.")
+            logger.warning(f"Cannot find {file_type.value} file: {filepath}.")
             continue
 
         # Read file
@@ -236,7 +240,7 @@ def read_model_output(
 
         # Fix variables and attributes
         ds_all[m] = edit_vars_and_attributes(
-            ds_all[m], m, period[i], file_type, config_data.get("regions_info", {})
+            ds_all[m], m, period_str, file_type, config_data.get("regions_info", {})
         )
 
     return ds_all
