@@ -11,20 +11,41 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+VariableType = str | dict[str, str | None] | list[str]
 
-def plot_mf_timeseries(
-        *args, **kwargs
-) -> plt.Figure:
-    if "include" not in kwargs:
-        kwargs["include"] = {
-            "mf_observed": None,
-            "mf_posterior": "percentile_mf_posterior",
-        }
+
+def plot_mf_timeseries(*args, **kwargs) -> plt.Figure:
+    # Solve the legacy position of the include argument
+    LEGACY_INCLUDE_POSITION = 9
+    NEW_INCLUDE_POSITION = 1
+    default_include = {
+        "mf_observed": None,
+        "mf_posterior": "percentile_mf_posterior",
+    }
+    args = list(args)
+    if len(args) > LEGACY_INCLUDE_POSITION:
+        # Move the include to the correct position
+        include_arg = args.pop(LEGACY_INCLUDE_POSITION)
+        args.insert(NEW_INCLUDE_POSITION, include_arg)
+    elif len(args) > NEW_INCLUDE_POSITION:
+        # Need to add the include back to args
+        args.insert(
+            NEW_INCLUDE_POSITION,
+            kwargs["include"] if "include" in kwargs else default_include,
+        )
+        if "include" in kwargs:
+            kwargs.pop("include")
+    else:
+        # Only kwargs
+        if "include" not in kwargs:
+            kwargs["include"] = default_include
+
     return plot_timeseries(*args, **kwargs)
 
 
 def plot_timeseries(
     ds_all: dict[str, xr.Dataset],
+    include: VariableType,
     species: str | None = None,
     site: str | None = None,
     model_colors: dict[str, str] | None = None,
@@ -33,7 +54,6 @@ def plot_timeseries(
     annotate_coords: dict[int, list] = {},
     presentation_mode: bool = False,
     plot_type: Literal["separate", "together", "diff"] = "separate",
-    include: dict[str, str | None] = {},
     diff_include: list[str] | None = None,
     y_lim: None | list[float] = None,
 ):
@@ -47,6 +67,9 @@ def plot_timeseries(
         ds_all (dictionary of datasets):
             xarray datasets, scaled and sliced between chosen dates and for
             chosen site.
+        include (dict of str):
+            Dictionary keys are variables to include in the plot.
+            The respective values are the uncertainty variables to plot as error bar/uncertainty band.
         species (str):
             Gas species, e.g. 'ch4'.
         site (str):
@@ -60,9 +83,6 @@ def plot_timeseries(
             Coordinates to annotate histogram.
         presentation_mode (logical) (optional):
             If True, adjust annotation position and xlabel rotation to accomodate bigger fonts.
-        include (dict of str):
-            Dictionary keys are variables to include in the plot.
-            The respective values are the uncertainty variables to plot as error bar/uncertainty band.
         diff_include (list of str):
             Variables included in the 'obs - variable' difference histogram.
             If None, plots the histogram of the variables specified in include.
@@ -78,6 +98,17 @@ def plot_timeseries(
         model_colors = config.set_model_colors(models)
 
     species_info = config_data.get("species_info", {}).get(species, {})
+
+    # Check the include dictionary
+    if not include:
+        raise ValueError(
+            "The include dictionary is empty. Please provide variables to include in the plot."
+        )
+    if isinstance(include, str):
+        include = {include: None}
+    if isinstance(include, (list, tuple)):
+        include = {var: None for var in include}
+
     vars_to_plot = include.keys()
     plot_units = []
 
@@ -131,20 +162,24 @@ def plot_timeseries(
             plot_units.append(ds_all[m][var].attrs["units"])
 
             # Define plotting color
-            plot_color = model_color[config.mf_color_index[var]]
+            plot_color = model_color[config.mf_color_index.get(var, 0)]
             if var == "mf_observed" and len(vars_to_plot) > 1:
                 plot_color = "black"
+
+            kwargs = {
+                "label": f"{model_label} {config.mf_labels.get(var, var)}",
+                "color": plot_color,
+                "alpha": 0.8,
+            }
 
             if var == "mf_observed" or plot_type == "diff":
                 # Make scatter plot
                 ax[iax, 0].scatter(
                     ds_all[m]["time"].values,
                     ds_all[m][var].values,
-                    color=plot_color,
-                    label=f"{model_label} {config.mf_labels[var]}",
                     s=8,
-                    alpha=0.8,
                     marker="s",
+                    **kwargs,
                 )
 
             else:
@@ -152,10 +187,8 @@ def plot_timeseries(
                 ax[iax, 0].plot(
                     ds_all[m]["time"].values,
                     ds_all[m][var].values,
-                    color=plot_color,
-                    alpha=0.8,
                     linewidth=2.0,
-                    label=f"{model_label} {config.mf_labels[var]}",
+                    **kwargs,
                 )
 
             unc_var = include[var]
@@ -409,6 +442,9 @@ def plot_histogram(
             Options for "separate", "together" and "diff".
     """
 
+    if not annotate_coords:
+        annotate_coords = config.set_print_settings(presentation_mode)
+
     # Get histogram variables and legend
     if diff_include:
         hist_to_plot = diff_include
@@ -432,7 +468,7 @@ def plot_histogram(
         a, b, c = axis.hist(
             var_to_plot.values,
             bins=30,
-            color=model_color[config.mf_color_index[var]],
+            color=model_color[config.mf_color_index.get(var, 0)],
             density=1,
         )
 
@@ -457,7 +493,7 @@ def plot_histogram(
                 f"$\\mu$: {str_mean}\n$\\sigma$: {str_std}",
                 xy=annotate_coords[index],
                 xycoords="axes fraction",
-                color=model_color[config.mf_color_index[var]],
+                color=model_color[config.mf_color_index.get(var, 0)],
             )
 
     # Write number of obs
