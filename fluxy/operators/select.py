@@ -347,7 +347,7 @@ def clean_timeseries_missing_data(
     )
     new_times = []
 
-    wrong_times = time[np.where(dtime > min_freq)[0] + 1]
+    wrong_times = time[np.where(dtime > min_freq)[0]]
     new_times = wrong_times + min_freq
 
     max_index = len(ds.index.values)
