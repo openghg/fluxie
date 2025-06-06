@@ -301,11 +301,11 @@ def clean_timeseries_missing_data(
         ds (xarray dataset):
             Original dataset with mf data.
         min_freq (str, optional):
-            Minimum frequency of the time series, e.g. '1H' for hourly data.
+            Minimum frequency of the time series, e.g. '1h' for hourly data.
             If provided, will add NaN values to the dataset to fill in gaps.
             If None, a default frequency will be used based on the median time difference.
-        max_freq (str, optional):
-            Maximum frequency of the time series. Similar to min_freq, but for the upper limit.
+            This can be given either as a string compatible with pandas frequency strings
+            or as a timedelta object.
     Returns:
         ds (xarray dataset):
             Modified dataset with NaN in data gaps.

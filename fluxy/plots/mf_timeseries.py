@@ -69,6 +69,11 @@ def plot_mf_timeseries(
             If None, plots the histogram of the variables specified in include.
         y_lim (list of float, optional):
             Mix/max y axis limits to apply to all plots.
+        time_freq_min (FrequencyType, optional):
+            Time frequency minimum of the timeserie that should be shown as continous 
+            line. If the frequency is lower than this, the line will be discontinous.
+            see :py:func:`fluxy.operators.select.clean_timeseries_missing_data`
+            for more information.
     Returns:
         fig (figure):
             A timeseries and histogram plot for each model included.
