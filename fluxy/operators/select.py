@@ -327,8 +327,7 @@ def clean_timeseries_missing_data(
         # Calcuate a minimum frequency based on the median time difference
         # between data points, assuming that the median is a good representation
         # of the time difference between data points.
-        dt_median = np.median(dtime)
-        min_freq = dt_median
+        min_freq = np.median(dtime)
     elif isinstance(min_freq, str):
         # From pandas freq string
         min_freq = pd.to_timedelta(min_freq).to_numpy().astype(dtime.dtype)
