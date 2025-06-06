@@ -1,22 +1,22 @@
 import itertools
+import json
+import logging
 import os
-import xarray as xr
+from io import BytesIO
+from pathlib import Path
+from urllib.request import urlopen
+from zipfile import ZipFile
+
+import geopandas as gpd
 import numpy as np
 import pandas as pd
-import json
-import geopandas as gpd
-import logging
-
-from io import BytesIO
-from zipfile import ZipFile
-from urllib.request import urlopen
-from pathlib import Path
-from typing import Literal
+import xarray as xr
 
 from fluxy import config
+from fluxy.operators.flux_align_dataset import align_time
 from fluxy.operators.regions import extract_region_flux
 from fluxy.operators.select import slice_flux
-from fluxy.operators.flux_align_dataset import align_time
+from fluxy.types import DataType, DataTypes, file_pattern
 
 logger = logging.getLogger(__name__)
 
@@ -180,7 +180,7 @@ def get_filename(
 
 def read_model_output(
     data_dir: os.PathLike,
-    file_type: Literal["concentration", "flux"],
+    file_type: DataType,
     species: str,
     models: list[str],
     config_data: dict[str, dict] = {},
@@ -216,19 +216,13 @@ def read_model_output(
             f"period must be a string or a list of the same length as models."
         )
 
-    # Define file pattern
-    if file_type == "flux":
-        file_pattern = ".nc"
-    elif file_type == "concentration":
-        file_pattern = "_concentrations.nc"
-    else:
-        raise ValueError(f'file_pattern must be equal to "concentration" or "flux".')
+    file_type = DataTypes(file_type)
 
     ds_all = {}
 
     for i, m in enumerate(models):
         filepath = get_filename(
-            m, species, period[i], file_pattern, config_data, data_dir
+            m, species, period[i], file_pattern(file_type), config_data, data_dir
         )
 
         # Check if files exists
@@ -540,7 +534,7 @@ def edit_vars_and_attributes(
     ds: xr.Dataset,
     model: str,
     frequency: str,
-    file_type: Literal["flux", "concentration"],
+    file_type: DataType,
     regions_info: dict[str, str],
 ) -> xr.Dataset:
     """
@@ -557,7 +551,7 @@ def edit_vars_and_attributes(
             Options for "monthly" and "yearly".
         file_type (str):
             Output file type.
-            Options for "flux" and "concentration".
+            See :py:class:`fluxy.types.DataType` for options.
         regions_info (dict of str):
             Dictionary with country and region names (read from json file).
 
@@ -584,8 +578,10 @@ def edit_vars_and_attributes(
     # Get model name
     m0 = model.split("_")[0].lower()
 
+    file_type = DataTypes(file_type)
+
     # Fix flux dataset
-    if file_type == "flux":
+    if file_type == DataTypes.FLUX:
 
         # Apply model specific corrections
         if m0 == "elris":
@@ -615,7 +611,10 @@ def edit_vars_and_attributes(
             for var in vars_to_check:
                 if var not in ds:
                     continue
-                if "units" not in ds[var].attrs.keys() and "unit" in ds[var].attrs.keys():
+                if (
+                    "units" not in ds[var].attrs.keys()
+                    and "unit" in ds[var].attrs.keys()
+                ):
                     ds[var].attrs["units"] = ds[var].attrs["unit"]
                     ds[var].attrs.pop("unit")
 
@@ -707,7 +706,7 @@ def edit_vars_and_attributes(
             ds["time"] = ds.time.values + np.timedelta64(15, "D")
 
             # Add "_" to second country dimension in covariance matrix
-            ds = ds.rename({'country2': 'country_2'})
+            ds = ds.rename({"country2": "country_2"})
 
         # Rename second country dimension in covariance matrix (xarray requirement)
         var_to_change = "covariance_flux_total_posterior_country"
@@ -727,12 +726,12 @@ def edit_vars_and_attributes(
                 attrs=ds[var_to_change].attrs,
             )
 
-    elif file_type == "concentration":
+    elif file_type == DataTypes.CONCENTRATION:
         # Ensure integer dtype
-        ds['number_of_identifier'] = ds['number_of_identifier'].astype(int)
+        ds["number_of_identifier"] = ds["number_of_identifier"].astype(int)
 
         # Ensure string dtype
-        ds['platform'] = ds['platform'].astype(str)
+        ds["platform"] = ds["platform"].astype(str)
 
         # Fix old format vs new format
         if "index" not in ds.dims:
@@ -745,13 +744,18 @@ def edit_vars_and_attributes(
                 .stack({"index": ["number_of_identifier", "time"]})
                 .reset_index("index")
             )
-        
+
         if "assimilation_flag" not in ds:
             # Add assimilation_flag if not present
-            ds = ds.assign(assimilation_flag=('index', np.ones(ds['index'].size, dtype=int)))
+            ds = ds.assign(
+                assimilation_flag=("index", np.ones(ds["index"].size, dtype=int))
+            )
 
-        # Test that the number of identifiers had valid values 
-        max_num_id, min_num_id = ds["number_of_identifier"].max(), ds["number_of_identifier"].min()
+        # Test that the number of identifiers had valid values
+        max_num_id, min_num_id = (
+            ds["number_of_identifier"].max(),
+            ds["number_of_identifier"].min(),
+        )
         if min_num_id == 1 and max_num_id == len(ds["platform"]):
             # 1 based (also called as retarded) indexing, so we need to shift the values
             ds["number_of_identifier"] -= 1
@@ -766,7 +770,9 @@ def edit_vars_and_attributes(
             )
 
         # Set coordinates
-        ds = ds.assign_coords({var: ds[var] for var in ["number_of_identifier", "time", "platform"]})
+        ds = ds.assign_coords(
+            {var: ds[var] for var in ["number_of_identifier", "time", "platform"]}
+        )
 
         # Fix for InTEM (units of platform are wrongly set to mol mol-1)
         ds["platform"].attrs.pop("units", None)

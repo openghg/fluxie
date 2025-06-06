@@ -1,7 +1,7 @@
-from typing import Literal
 import xarray as xr
 
 from fluxy.io import read_config_files, read_model_output
+from fluxy.types import DataTypes, DataType
 from fluxy.test_utils import data_dir
 
 test_models = [
@@ -13,7 +13,7 @@ test_models = [
 
 
 def get_loaded_models(
-    file_type: Literal["concentration", "flux"],
+    file_type: DataType,
 ) -> dict[str, xr.Dataset]:
     """
     Returns a list of loaded models.
