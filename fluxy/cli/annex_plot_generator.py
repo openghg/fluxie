@@ -129,27 +129,47 @@ def produce_plots(region, output_path, inventory_years, json_exp_to_use = None):
     
     ### Settings for spatial maps
     models_spatial_maps = ["InTEM", "ELRIS", "RHIME"]
-    plot_area = region
-    add_sites = True
-    add_markers = annex_config.point_markers[region]
     flux_units_print = "kg km-2 yr-1"
-    set_fluxlim = "auto"
 
-    ### CH4 and N2O
+    # Settings for seasonal difference to the mean
+    kwargs_maps_general = dict(
+        config_data = config_data,
+        region = region,
+        set_fluxlim = "auto",
+        plot_combined = True,
+        add_sites=True, 
+        add_markers = annex_config.point_markers[region])
+
+    kwargs_maps_mean = dict(
+        var = "flux_total_posterior_inversion_grid",
+        cmap = "viridis",
+        c_border = "floralwhite",
+        chop_by = "year")
+
+    kwargs_maps_seasonnal = dict(        
+        var = "posterior_mean_diff_inversion_grid",
+        cmap = "coolwarm",
+        c_border = "dimgrey",
+        chop_by = "season",
+        dt = [[12, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]])
+
+    #### CH4 and N2O
     print("\n--- PLOTTING COUNTRY FLUXES FOR CH4/N2O ---")
     for species in annex_config.monthly_species:
 
-        # Long time window
+        ### Country fluxes
+        ## Long time window
         start_date = ["2008-01-01","2018-01-01","2018-01-01","2018-01-01"]
         end_date = "2024-01-01"
         
         models_std = define_model_list(models_monthly_species, species, config_data, json_exp_to_use)
         period = ["monthly" if "longrun" not in m else "yearly" for m in models_monthly_species]
         
+        # Read and slice data
         ds_all_flux = read_model_output(annex_config.data_dir,"flux",species,models_std,config_data,period=period)
         ds_all_flux_scaled = slice_flux(ds_all_flux,config_data,start_date,end_date,species=species,country_flux_units_print=country_flux_units_print)
 
-        ### Define plotting colors
+        # Define plotting colors and labels
         model_colors = set_model_colors(models_std)
         model_labels = {model: model.split("_")[0] for model in models_std}
 
@@ -164,19 +184,19 @@ def produce_plots(region, output_path, inventory_years, json_exp_to_use = None):
                         resample_uncert_correlation = False,
                         **kwargs_country_flux_general,
                         **kwargs_country_flux_monthly_species)
-
-        plot_name = f"{species}_country_flux_annual_longrun_{region}.png"
-        full_path = os.path.join(output_path, plot_name)
+        full_path = os.path.join(output_path, f"{species}_country_flux_annual_longrun_{region}.png")
         fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
         plt.close()
 
-        # PARIS time window
+        ## PARIS time window
         start_date = "2018-01-01"
         end_date = "2024-01-01"
 
-        ### Re-slice the data
-        print(start_date,end_date,species,country_flux_units_print)
-        ds_all_flux_scaled = slice_flux(ds_all_flux,config_data,start_date,end_date,species=species,country_flux_units_print=country_flux_units_print)
+        # Re-slice the data
+        ds_all_flux_scaled = slice_flux(ds_all_flux,config_data,start_date,end_date,
+                                        species = species,
+                                        country_flux_units_print = country_flux_units_print,
+                                        flux_units_print = flux_units_print)
 
         # 1.2) Plot annual country fluxes from 2018 to 2023 from intem_longrun and combined from 3 std_run  
         fig, res_dict = plot_country_flux(ds_all_flux_scaled,
@@ -189,17 +209,13 @@ def produce_plots(region, output_path, inventory_years, json_exp_to_use = None):
                         resample_uncert_correlation = False,
                         **kwargs_country_flux_general,
                         **kwargs_country_flux_monthly_species)
-
-        plot_name = f"{species}_country_flux_annual_parisonly_{region}.png"
-        full_path = os.path.join(output_path, plot_name)
+        full_path = os.path.join(output_path, f"{species}_country_flux_annual_parisonly_{region}.png")
         fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
         plt.close()
 
         # Store results for .csv and table
         annual_res = dict_to_str_dataframe(res_dict[region],inventory_years,species)
         annual_res_list.append(annual_res)
-
-        # Monthly country fluxes
 
         # 2) Plot monthly country fluxes from 2018 to 2023 from intem_longrun and combined from 3 std_run
         fig, res_dict = plot_country_flux(ds_all_flux_scaled,
@@ -211,15 +227,120 @@ def produce_plots(region, output_path, inventory_years, json_exp_to_use = None):
                         resample = None,
                         **kwargs_country_flux_general,
                         **kwargs_country_flux_monthly_species)
+        full_path = os.path.join(output_path, f"{species}_country_flux_monthly_parisonly_{region}.png")
+        fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
+        plt.close()
+        
+        ### Spatial maps
+        # Select datasets to plot
+        models_std = define_model_list(models_spatial_maps, species, config_data, json_exp_to_use)
+        ds_all_flux_scaled = {m: ds_all_flux_scaled[m] for m in models_std}
 
-        plot_name = f"{species}_country_flux_monthly_parisonly_{region}.png"
-        full_path = os.path.join(output_path, plot_name)
+        # Define plotting labels
+        model_labels = {model: model.split("_")[0] for model in models_std}
+
+        set_fluxlim_percentile = annex_config.fluxlim_percentiles.get(region, dict()).get(species, None)
+
+        # 3) Plot spatial map of the posterior fluxes averaged between 2018 and 2023 (combined from 3 std_run)    
+        dt = int(end_date[:4]) - int(start_date[:4])
+        fig = plot_flux_map_over_time(ds_all_flux_scaled, species = species, 
+                                      model_labels = model_labels, dt=dt,
+                                      set_fluxlim_percentile=set_fluxlim_percentile,
+                                      **kwargs_maps_general,
+                                      **kwargs_maps_mean)
+        full_path = os.path.join(output_path, f"{species}_posterior_map_{region}.png")
         fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
         plt.close()
 
-    ### Total HFCs/PFCs (w/o HFC-4310mee)
+        # 4) Seasonnal maps
+        fig = plot_flux_map_over_time(ds_all_flux_scaled, species = species, 
+                                      model_labels = model_labels, 
+                                      set_fluxlim_percentile=set_fluxlim_percentile, 
+                                     **kwargs_maps_general,
+                                     **kwargs_maps_seasonnal)
+        full_path = os.path.join(output_path, f"{species}_seasonal_map_{region}.png")
+        fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
+        plt.close()
+
+    #### F-gases
+    end_date = "2024-01-01"
+
+    print("\n--- PLOTTING COUNTRY FLUXES FOR ALL F-GASES ---")
+    for species in annex_config.annual_species:
+
+        ### Country fluxes
+        ## Long time window
+        start_date = annex_config.start_date_fgases[region]
+        start_year = start_date.split("-")[0]
+        if species == "hfc4310mee" and int(start_year) < 2011:
+            start_date = "2011-01-01"  # Fix for InTEM longrun which is zero in 2010
+        
+        models_std = define_model_list(models_yearly_species, species, config_data, json_exp_to_use)
+
+        # Read and slice data
+        ds_all_flux = read_model_output(annex_config.data_dir,"flux",species,models_std,config_data,period="yearly")
+        ds_all_flux_scaled = slice_flux(ds_all_flux,config_data,start_date,end_date,
+                                        species = species,
+                                        country_flux_units_print = country_flux_units_print)
+        
+        # Define plotting colors and labels
+        model_colors = set_model_colors(models_std)
+        model_labels = {model: model.split("_")[0] for model in models_std}
+
+        # 1) Plot annual country fluxes from 2008 to 2023 from intem_longrun and combined from 3 std_run
+        fig, res_dict = plot_country_flux(ds_all_flux_scaled,
+                        species = species,
+                        model_colors = model_colors,
+                        model_labels = model_labels,
+                        start_date = start_date,
+                        end_date = end_date,
+                        resample = None,
+                        **kwargs_country_flux_general,
+                        **kwargs_country_flux_yearly_species)
+        full_path = os.path.join(output_path, f"{species}_country_flux_annual_longrun_{region}.png")
+        fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
+        plt.close()
+
+        # Store results for .csv and table
+        annual_res = dict_to_str_dataframe(res_dict[region],inventory_years,species)
+        annual_res_list.append(annual_res)
+        
+        ### Spatial maps
+        start_date = "2018-01-01"
+        if species == "hfc4310mee":
+            end_date = "2023-01-01"  # NOTE: no 2023 results for HFC-4310mee
+        else:
+            end_date = "2024-01-01"
+        period = "monthly" if species in ["ch4", "n2o"] else "yearly"
+
+        set_fluxlim_percentile = annex_config.fluxlim_percentiles.get(region, dict()).get(species, None)
+        dt = int(end_date[:4]) - int(start_date[:4])
+
+        # Select and reslice the data
+        models_std = define_model_list(models_spatial_maps, species, config_data, json_exp_to_use)
+        ds_all_flux = {m: ds_all_flux[m] for m in models_std}
+        ds_all_flux_scaled = slice_flux(ds_all_flux,config_data,start_date,end_date,
+                                        species = species,
+                                        country_flux_units_print = country_flux_units_print,
+                                        flux_units_print = flux_units_print)
+
+        ### Define plotting labels
+        model_labels = {model: model.split("_")[0] for model in models_std}
+
+        # 3) Plot spatial map of the posterior fluxes averaged between 2018 and 2023 (combined from 3 std_run)    
+        fig = plot_flux_map_over_time(ds_all_flux_scaled, species = species, 
+                                      model_labels = model_labels, dt=dt,
+                                      set_fluxlim_percentile=set_fluxlim_percentile,
+                                      **kwargs_maps_general,
+                                      **kwargs_maps_mean)
+        full_path = os.path.join(output_path, f"{species}_posterior_map_{region}.png")
+        fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
+        plt.close()
+
+
+    #### Total HFCs/PFCs (w/o HFC-4310mee)
     start_date = [
-        annex_config.start_date_fgases[plot_area],
+        annex_config.start_date_fgases[region],
         "2018-01-01",
         "2018-01-01",
         "2018-01-01",
@@ -249,148 +370,13 @@ def produce_plots(region, output_path, inventory_years, json_exp_to_use = None):
                         resample = None,
                         **kwargs_country_flux_general,
                         **kwargs_country_flux_yearly_species)
-        
-        plot_name = f"{species}_country_flux_annual_longrun_{region}.png"
-        full_path = os.path.join(output_path, plot_name)
+        full_path = os.path.join(output_path, f"{species}_country_flux_annual_longrun_{region}.png")
         fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
         plt.close()
 
         # Store results for .csv and table
         annual_res = dict_to_str_dataframe(res_dict[region],inventory_years,species)
         annual_res_list.append(annual_res)
-
-    ### F-gases
-    end_date = "2024-01-01"
-
-    print("\n--- PLOTTING COUNTRY FLUXES FOR ALL F-GASES ---")
-    for species in annex_config.annual_species:
-
-        start_date = annex_config.start_date_fgases[plot_area]
-        start_year = start_date.split("-")[0]
-        if species == "hfc4310mee" and int(start_year) < 2011:
-            start_date = "2011-01-01"  # Fix for InTEM longrun which is zero in 2010
-        
-        models_std = define_model_list(models_yearly_species, species, config_data, json_exp_to_use)
-
-        ds_all_flux = read_model_output(annex_config.data_dir,"flux",species,models_std,config_data,period="yearly")
-        ds_all_flux_scaled = slice_flux(ds_all_flux,config_data,start_date,end_date,species=species,country_flux_units_print=country_flux_units_print)
-        
-        ### Define plotting colors
-        model_colors = set_model_colors(models_std)
-        model_labels = {model: model.split("_")[0] for model in models_std}
-
-        # 4) Plot annual country fluxes from 2008 to 2023 from intem_longrun and combined from 3 std_run
-        print(species)
-        fig, res_dict = plot_country_flux(ds_all_flux_scaled,
-                        species = species,
-                        model_colors = model_colors,
-                        model_labels = model_labels,
-                        start_date = start_date,
-                        end_date = end_date,
-                        resample = None,
-                        **kwargs_country_flux_general,
-                        **kwargs_country_flux_yearly_species)
-
-        plot_name = f"{species}_country_flux_annual_longrun_{region}.png"
-        full_path = os.path.join(output_path, plot_name)
-        fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
-        plt.close()
-
-        # Store results for .csv and table
-        annual_res = dict_to_str_dataframe(res_dict[region],inventory_years,species)
-        annual_res_list.append(annual_res)
-
-    ### Spatial maps
-
-    # Settings for average posterior
-    cmap = "viridis"
-    c_border = "floralwhite"
-    var = "flux_total_posterior_inversion_grid"
-    plot_combined = True
-    chop_by = "year"
-
-    start_date = "2018-01-01"
-    all_species = annex_config.monthly_species + annex_config.annual_species
-
-    # All species
-    print("\n--- PLOTTING MEAN POSTERIOR MAP FOR ALL SPECIES ---")
-    for species in all_species:
-
-        if species in annex_config.fluxlim_percentiles[plot_area].keys():
-            set_fluxlim_percentile = annex_config.fluxlim_percentiles[plot_area][species]
-        else:
-            set_fluxlim_percentile = None
-
-        if species == "hfc4310mee":
-            end_date = "2023-01-01"  # NOTE: no 2023 results for HFC-4310mee
-            dt = 5
-        else:
-            end_date = "2024-01-01"
-            dt = 6
-
-        period = "monthly" if species in ["ch4", "n2o"] else "yearly"
-
-        ### Read and scale fluxes
-        models_std = define_model_list(models_spatial_maps, species, config_data, json_exp_to_use)
-        ds_all_flux = read_model_output(annex_config.data_dir,"flux",species,models_std,config_data,period=period)
-        ds_all_flux_scaled = slice_flux(ds_all_flux,config_data,start_date,end_date,species=species,
-                                        country_flux_units_print=country_flux_units_print,
-                                        flux_units_print = flux_units_print)
-
-        ### Define plotting labels
-        model_labels = {model: model.split("_")[0] for model in models_std}
-
-        # 5) Plot spatial map of the posterior fluxes averaged between 2018 and 2023 (combined from 3 std_run)
-        
-        fig = plot_flux_map_over_time(ds_all_flux_scaled, var, species, region, config_data, model_labels, chop_by=chop_by, dt=dt,
-                                     plot_combined=plot_combined, add_sites=add_sites, add_markers=add_markers, set_fluxlim = set_fluxlim,
-                                     set_fluxlim_percentile=set_fluxlim_percentile, cmap =cmap, c_border = c_border)
-
-        plot_name = f"{species}_posterior_map_{region}.png"
-        full_path = os.path.join(output_path, plot_name)
-        fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
-        plt.close()
-
-    # Settings for seasonal difference to the mean
-    cmap = "coolwarm"
-    c_border = "dimgrey"
-    chop_by = "season"
-    dt = [[12, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]]
-    var = "posterior_mean_diff_inversion_grid"
-    plot_combined = True
-
-    # CH4 and N2O
-    start_date = "2018-01-01"
-    end_date = "2024-01-01"
-
-    print("\n--- PLOTTING SEASONAL POSTERIOR MAP FOR CH4/N2O ---")
-    for species in annex_config.monthly_species:
-
-        if species in annex_config.fluxlim_percentiles[plot_area].keys():
-            set_fluxlim_percentile = annex_config.fluxlim_percentiles[plot_area][species]
-        else:
-            set_fluxlim_percentile = None
-
-        ### Read and scale fluxes
-        models_std = define_model_list(models_spatial_maps, species, config_data, json_exp_to_use)
-        ds_all_flux = read_model_output(annex_config.data_dir,"flux",species,models_std,config_data,period="monthly")
-        ds_all_flux_scaled = slice_flux(ds_all_flux,config_data,start_date,end_date,species=species,
-                                        country_flux_units_print=country_flux_units_print,
-                                        flux_units_print = flux_units_print)
-
-        ### Define plotting labels
-        model_labels = {model: model.split("_")[0] for model in models_std}
-
-        # 6) Plot spatial maps of the seasonal posterior fluxes (averaged between 2018 and 2023) subtracted by the mean (combined from 3 std_run)
-        
-        fig = plot_flux_map_over_time(ds_all_flux_scaled, var, species, region, config_data, model_labels, chop_by=chop_by, dt=dt,
-                                     plot_combined=plot_combined, add_sites=add_sites, add_markers=add_markers, set_fluxlim = set_fluxlim,
-                                     set_fluxlim_percentile=set_fluxlim_percentile, cmap =cmap, c_border = c_border)
-
-        plot_name = f"{species}_seasonal_map_{region}.png"
-        full_path = os.path.join(output_path, plot_name)
-        fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
-        plt.close()
 
     print("\n--- ALL PLOTS GENERATED SUCCESSFULLY! ---")
 

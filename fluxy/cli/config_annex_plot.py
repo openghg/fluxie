@@ -1,4 +1,9 @@
-monthly_species = ["ch4"#, "n2o"
+# Path to results directory
+data_dir = "/user/work/bq24992/workingDir/PARIS/fluxy_data/"
+
+# Species
+monthly_species = [#"ch4", 
+                   "n2o"
                   ]
 
 annual_species = [
@@ -38,15 +43,6 @@ point_markers = {
 point_markers["BENELUX"] = (
     point_markers["NETHERLANDS"] + point_markers["BELGIUM"] + ["luxembourg"]
 )
-
-# Path to results directory
-data_dir = "/user/work/bq24992/workingDir/PARIS/fluxy_data/"
-
-# Set ppt_mode to True for bigger fonts
-ppt_mode = False
-
-# Set annex_mode to True for shorter labels
-annex_mode = True
 
 # Start date of F-gases country fluxes
 start_date_fgases = {
