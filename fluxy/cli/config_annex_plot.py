@@ -2,8 +2,7 @@
 data_dir = "/user/work/bq24992/workingDir/PARIS/fluxy_data/"
 
 # Species
-monthly_species = [#"ch4", 
-                   "n2o"
+monthly_species = ["ch4", "n2o"
                   ]
 
 annual_species = [
