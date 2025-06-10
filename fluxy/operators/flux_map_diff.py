@@ -2,7 +2,7 @@ import xarray as xr
 
 
 def define_var_plot(
-    ds: xr.Dataset,
+    ds: xr.DataArray,
     var: str,
 ) -> xr.DataArray:
     """
@@ -13,7 +13,7 @@ def define_var_plot(
     or directly returns a variable from the dataset.
 
     Args:
-        ds (xarray.Dataset):
+        ds (xarray.DataArray):
             The input dataset containing various flux variables.
         var (str):
             The variable name or difference type to be plotted. Options for difference include:
@@ -27,19 +27,25 @@ def define_var_plot(
 
     if var == "posterior_prior_diff":
         var_plot = ds["flux_total_posterior"] - ds["flux_total_prior"]
+        var_plot.attrs["units"] = ds['flux_total_posterior'].attrs.get("units")
     elif var == "posterior_mean_diff":
         var_plot = ds["flux_total_posterior"] - ds["flux_total_posterior"].mean(
             dim="time"
         )
+        var_plot.attrs["units"] = ds['flux_total_posterior'].attrs.get("units")
     elif var == "posterior_prior_diff_inversion_grid":
         var_plot = ds["flux_total_posterior_inversion_grid"] - ds["flux_total_prior"]
+        var_plot.attrs["units"] = ds['flux_total_posterior_inversion_grid'].attrs.get("units")
     elif var == "posterior_mean_diff_inversion_grid":
         var_plot = ds["flux_total_posterior_inversion_grid"] - ds[
             "flux_total_posterior_inversion_grid"
         ].mean(dim="time")
+        var_plot.attrs["units"] = ds['flux_total_posterior_inversion_grid'].attrs.get("units")
     else:
         if var not in ds:
             raise ValueError(f"'{var}' not found in dataset(s)")
         var_plot = ds[var]
 
+    var_plot.name = var
+    
     return var_plot

@@ -12,17 +12,24 @@ def align_time(ds_list: list[xr.Dataset]) -> list[xr.Dataset]:
     Returns:
         aligned_ds_list: list of xarray datasets time-aligned
     """
+    
     time_dim_equal = [ds_list[0].time.equals(x.time) for x in ds_list[1:]]
-
+    
     if all(time_dim_equal):
         return ds_list
-
+    
     # Infer period of first dataset
     dtime = ds_list[0].time.values[1:] - ds_list[0].time.values[:-1]
     if any(abs(dtime - np.median(dtime)) > 0.1 * np.median(dtime)):
         raise ValueError("Unable to infer period from dataset")
     period = np.median(dtime)
 
+    # Select the data
+    if np.unique([ds.time.size for ds in ds_list]).size != 1:
+        min_date = max([x.time.min() for x in ds_list]) - period/2
+        max_date = min([x.time.max() for x in ds_list]) + period/2 
+        ds_list = [ds.sel(time = slice(min_date, max_date)) for ds in ds_list]
+        
     aligned_ds_list = [ds_list[0]]
 
     for ds_p in ds_list[1:]:
@@ -83,33 +90,34 @@ def align_lat_lon(
     return aligned_ds_list
 
 
-def align_map_data(ds_all: dict[xr.Dataset]) -> dict[xr.Dataset]:
+def align_map_data(ds_all: dict[xr.Dataset | xr.DataArray]) -> dict[xr.Dataset | xr.DataArray]:
     """
     Prepare flux datasets for flux maps by filtering variables, removing unused dimensions, and aligning time and spatial coordinates.
 
     Args:
-        ds_all (dict[xr.Dataset]):
-            Dictionary of model names and corresponding xarray datasets.
+        ds_all (dict[xr.Dataset | xr.DataArray]):
+            Dictionary of model names and corresponding xarray Datasets/DataArrays.
 
     Returns:
-        dict[xr.Dataset]:
-            Aligned datasets, after removing non-geographic variables.
+        dict[xr.Dataset | xr.DataArray]:
+            Aligned Datasets/DataArrays, after removing non-geographic variables.
     """
 
     for key, ds in ds_all.items():
-        # Step 1: Remove variables without 'time', 'latitude' and 'longitude'
-        ds = ds.drop_vars(
-            [
-                var
-                for var in ds.data_vars
-                if not {"time", "latitude", "longitude"}.issubset(ds[var].dims)
-            ]
-        )
-        # Step 2: Remove unused coordinates (dimensions that are no longer used)
-        unused_dims = set(ds.dims) - set(
-            dim for var_i in ds.data_vars for dim in ds[var_i].dims
-        )
-        ds_all[key] = ds.drop_dims(unused_dims)
+        if type(ds) == xr.Dataset: # Applied only if Dataset and not DataArray
+            # Step 1: Remove variables without 'time', 'latitude' and 'longitude'
+            ds = ds.drop_vars(
+                [
+                    var
+                    for var in ds.data_vars
+                    if not {"time", "latitude", "longitude"}.issubset(ds[var].dims)
+                ]
+            )
+            # Step 2: Remove unused coordinates (dimensions that are no longer used)
+            unused_dims = set(ds.dims) - set(
+                dim for var_i in ds.data_vars for dim in ds[var_i].dims
+            )
+            ds_all[key] = ds.drop_dims(unused_dims)
 
     # Align dataset coordinates
     models = list(ds_all.keys())

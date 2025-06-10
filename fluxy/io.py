@@ -327,6 +327,9 @@ def read_flux_total_fgases(
         raise ValueError(
             f"period must be a string or a list of the same length as models."
         )
+        
+    if isinstance(regions, str):
+        regions = [regions]
 
     # Assign key to find file for each species and model according to the config file
     missing_species = {model: list() for model in models}

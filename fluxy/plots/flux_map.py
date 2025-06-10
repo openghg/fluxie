@@ -130,10 +130,8 @@ def plot_flux_map(
 
     # Set flux limits #TODO Based on posterior, is this the right way to do?
     fluxlim = set_flux_limits(
-        ds_all,
-        var_posterior,
+        {m: ds[var_posterior] for m,ds in ds_all.items()},
         map_bounds,
-        species_info,
         option=set_fluxlim,
         custom_percentile=set_fluxlim_percentile,
     )
@@ -312,7 +310,7 @@ def plot_flux_map_model_comparison(
     )
 
     # Prepare datasets
-    ds_dict = {k: v for k, v in ds_all.items() if k in models}
+    ds_dict = {m: define_var_plot(ds, var) for m, ds in ds_all.items() if k in models}
     ds_dict = align_map_data(ds_dict)
     ds_dict["diff"] = ds_dict[models[1]] - ds_dict[models[0]]
     ds_dict["diff"].attrs["frequency"] = ds_dict[models[0]].attrs[
@@ -329,11 +327,9 @@ def plot_flux_map_model_comparison(
     )  # TODO move in the for loop once the info comes from the concentration files
 
     # Set flux limits
-    fluxlim = set_flux_limits(
+    lim = set_flux_limits(
         ds_dict,
-        var,
         map_bounds,
-        species_info,
         option=set_fluxlim,
         custom_percentile=set_fluxlim_percentile,
     )
@@ -344,11 +340,10 @@ def plot_flux_map_model_comparison(
     fig, ax = plt.subplots(
         n_rows, n_cols, constrained_layout=True, figsize=(n_cols * 5, 9)
     )
-    for col, (model, ds) in enumerate(ds_dict.items()):
+    for col, (model, var_plot) in enumerate(ds_dict.items()):
         ax_i = ax[col]
-        lon, lat = ds.longitude, ds.latitude
+        lon, lat = var_plot.longitude, var_plot.latitude
 
-        var_plot = define_var_plot(ds, var)
         var_plot = get_flux_mean(var_plot, season)
 
         # Determine plot settings
@@ -390,10 +385,8 @@ def plot_flux_map_model_comparison(
 
         # Add colorbar
         cbar_label = print_cbar_label(
-            ds,
-            species_info,
-            var,
-            season,
+            var_plot, species_info, 
+            season = season,
             format=["variable", "species", "units", "time"],
         )
         if model == "diff":
@@ -492,16 +485,19 @@ def plot_flux_map_over_time(
         config_data,
         zoom_degree=zoom_degree,
     )
+    
     # Prepare datasets and average over given periods
-    if plot_combined:
-        ds_dict = align_map_data(ds_all)
-        ds_dict = combine_map_dataset(ds_dict)
-    else:
-        ds_dict = ds_all
-
+    ds_dict = {m: define_var_plot(ds, var) for m,ds in ds_all.items()}
+    
     ds_chopby = {}
     for key, ds in ds_dict.items():
         ds_chopby[key], time_labels = average_over_period(ds, dt, chop_by)
+    print(dt, time_labels)
+    print({m: ds.time.size for m,ds in ds_chopby.items()})
+        
+    if plot_combined:
+        ds_chopby = align_map_data(ds_chopby)
+        ds_chopby = combine_map_dataset(ds_chopby)
 
     # Load country lines, species and sites information
     country_lines = compute_boundary_geometry(map_bounds)
@@ -513,9 +509,7 @@ def plot_flux_map_over_time(
     # Set flux limits
     lim = set_flux_limits(
         ds_chopby,
-        var,
         map_bounds,
-        species_info,
         option=set_fluxlim,
         custom_percentile=set_fluxlim_percentile,
     )
@@ -538,10 +532,9 @@ def plot_flux_map_over_time(
     else:
         fig, ax = plt.subplots(n_rows, n_cols, figsize=(n_cols * 4, n_rows * 3))
 
-    for row, (model, ds) in enumerate(ds_chopby.items()):
+    for row, (model, var_plot) in enumerate(ds_chopby.items()):
 
-        lon, lat = ds.longitude, ds.latitude
-        var_plot = define_var_plot(ds, var)
+        lon, lat = var_plot.longitude, var_plot.latitude
 
         for col, time_label in enumerate(time_labels):
             if n_rows == 1 and n_cols == 1:
@@ -593,7 +586,7 @@ def plot_flux_map_over_time(
 
     # Add colorbar
     cbar_label = print_cbar_label(
-        ds, species_info, var, format=["variable", "species", "units"]
+        var_plot, species_info, format=["variable", "species", "units"]
     )
     add_colorbar(
         fig,

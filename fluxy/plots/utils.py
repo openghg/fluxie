@@ -85,9 +85,8 @@ def add_colorbar(fig, ax, im, extend, label, n_cbar, idx_cbar, colorbar_type="ro
 
 
 def print_cbar_label(
-    ds: xr.Dataset,
+    var: xr.DataArray,
     species_info: dict,
-    var: str = None,
     season: str = None,
     format: list[str] = ["variable", "species", "units", "time"],
 ) -> str:
@@ -95,8 +94,9 @@ def print_cbar_label(
     Generate a colorbar label for a dataset variable.
 
     Args:
-        ds (xr.Dataset):
-            The dataset containing the variable.
+        ds (xr.DataArray):
+            The DataArray containing the variable. The DataArray should be named with the name of the variable^M
++            (e.g. "posterior_prior_diff", "flux_total_prior", ...)
         species_info (dict):
             A dictionary with metadata for species, including display names.
         var (str, optional):
@@ -112,18 +112,13 @@ def print_cbar_label(
             A formatted colorbar label including variable, species, units, and period.
     """
 
-    var_label = f"{config.flux_labels[var]}" if "variable" in format else ""
+    var_label = f"{config.flux_labels[var.name]}" if "variable" in format else ""
 
     species_label = (
         f"{species_info.get('species_print')}" if "species" in format else ""
     )
 
-    units_label = ""
-    if "units" in format:
-        if "diff" in var:
-            units_label = f"({get_units(ds['flux_total_posterior'])})"
-        else:
-            units_label = f"({get_units(ds[var])})"
+    units_label = f"({get_units(var)})" if "units" in format else ""
 
     middle_label = " ".join(filter(None, [species_label, units_label]))
 
@@ -131,7 +126,7 @@ def print_cbar_label(
     if "time" in format:
         freq = get_frequency(ds)
         period = print_period(
-            ds, freq, season
+            var, freq, season
         )  # TODO Here, based on the last iteration. Check if consistent for all models?
         time_label = f"{period}"
 
@@ -631,10 +626,8 @@ def plot_country_borders(ax, lines, border_color):
 
 
 def set_flux_limits(
-    ds_all: dict[xr.Dataset],
-    var: str,
+    ds_all: dict[xr.DataArray],
     region_plot: tuple[float, float, float, float],
-    species_info: dict = {},
     option: Literal["auto"] | list[float] | tuple[float, float] = "auto",
     custom_percentile: float = None,
 ) -> tuple[float, float]:
@@ -645,14 +638,10 @@ def set_flux_limits(
     2. 'auto' - auto-calculate limits based on data percentiles.
 
     Args:
-        ds_all (dict[xr.Dataset]):
-            A dictionary of datasets containing the flux variables.
-        var (str):
-            The variable name to compute limits for.
+        ds_all (dict[xr.DataArray]):^M
+            A dictionary of DataArrays containing the flux variables
         region_plot (tuple[float, float, float, float]):
             Coordinates [lon_min, lon_max, lat_min, lat_max].
-        species_info (dict):
-            Contains default limit values.
         option ('auto', [lower_lim, upper_lim]):
             The option for setting limits.
                 - A list or tuple with two elements (lower_lim, upper_lim) for specified limits.
@@ -672,34 +661,16 @@ def set_flux_limits(
     # Case 2: Auto-calculate limits based on percentiles
     elif option == "auto":
         models_var = []
-        for model, ds in ds_all.items():
-            if var == "posterior_prior_diff":
-                var_i = ds["flux_total_posterior"] - ds["flux_total_prior"]
-            elif var == "posterior_mean_diff":
-                var_i = ds["flux_total_posterior"] - ds["flux_total_posterior"].mean(
-                    dim="time"
-                )
-            elif var == "posterior_prior_diff_inversion_grid":
-                var_i = (
-                    ds["flux_total_posterior_inversion_grid"]
-                    - ds["flux_total_prior_inversion_grid"]
-                )
-            elif var == "posterior_mean_diff_inversion_grid":
-                var_i = ds["flux_total_posterior_inversion_grid"] - ds[
-                    "flux_total_posterior_inversion_grid"
-                ].mean(dim="time")
-            else:
-                var_i = ds[var]
-
+        for model, var in ds_all.items():
             # Filter based on longitude and latitude of region_plot
             mask_region = (
-                (ds.longitude > region_plot[0])
-                & (ds.longitude < region_plot[1])
-                & (ds.latitude > region_plot[2])
-                & (ds.latitude < region_plot[3])
+                (var.longitude > region_plot[0])
+                & (var.longitude < region_plot[1])
+                & (var.latitude > region_plot[2])
+                & (var.latitude < region_plot[3])
             )
-            var_i = var_i.where(mask_region, drop=True)
-            models_var.append(var_i)
+            var = var.where(mask_region, drop=True)
+            models_var.append(var)
 
         models_var = xr.concat(models_var, dim="time")
 
@@ -708,7 +679,7 @@ def set_flux_limits(
             custom_percentile if custom_percentile else 0.99
         ).item()
 
-        if "diff" in var:
+        if "diff" in models_var.name:
             flux_lim = (-upper_lim, upper_lim)
         else:
             flux_lim = (0, upper_lim)
