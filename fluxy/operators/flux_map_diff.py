@@ -46,6 +46,8 @@ def define_var_plot(
             raise ValueError(f"'{var}' not found in dataset(s)")
         var_plot = ds[var]
 
+    var_plot.attrs = {**ds.attrs, **var_plot.attrs} # Add dataset attributes to var ones
+
     var_plot.name = var
     
     return var_plot

@@ -309,14 +309,11 @@ def plot_flux_map_model_comparison(
     )
 
     # Prepare datasets
-    ds_dict = {m: define_var_plot(ds, var) for m, ds in ds_all.items() if k in models}
+    ds_dict = {m: define_var_plot(ds, var) for m, ds in ds_all.items() if m in models}
     ds_dict = align_map_data(ds_dict)
     ds_dict["diff"] = ds_dict[models[1]] - ds_dict[models[0]]
-    ds_dict["diff"].attrs["frequency"] = ds_dict[models[0]].attrs[
-        "frequency"
-    ]  # Copy attributes from models[0]
-    for v in ds_dict["diff"].data_vars:
-        ds_dict["diff"][v].attrs = ds_dict[models[0]][v].attrs
+    # Copy attributes from models[0]
+    ds_dict["diff"].attrs = ds_dict[models[0]].attrs
 
     # Load country lines, species and sites information
     country_lines = compute_boundary_geometry(map_bounds)
@@ -349,7 +346,7 @@ def plot_flux_map_model_comparison(
         is_diff = ("diff" in var) or ("diff" in model)
         cmap_i = cmap_diff if is_diff else cmap
         border_color = c_border_diff if is_diff else c_border
-        vlim_i = (-fluxlim[1], fluxlim[1]) if is_diff else fluxlim
+        vlim_i = (-lim[1], lim[1]) if is_diff else lim
         marker_color = "black" if is_diff else "red"
         extend_i = "both" if is_diff else "max"
 

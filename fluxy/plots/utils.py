@@ -124,7 +124,7 @@ def print_cbar_label(
 
     time_label = ""
     if "time" in format:
-        freq = get_frequency(ds)
+        freq = get_frequency(var)
         period = print_period(
             var, freq, season
         )  # TODO Here, based on the last iteration. Check if consistent for all models?
@@ -235,11 +235,16 @@ def print_period(
             A formatted string representing the dataset's time period, optionally including a season.
     """
 
-    time = ds.time
     datetime_format = f"datetime64[{freq}]" if season is None else "datetime64[Y]"
 
-    start_date = time.values[0].astype(datetime_format)
-    end_date = time.values[-1].astype(datetime_format)
+    if "time" in ds.dims:
+        start_date, end_date = ds.time.values[0,-1]
+    elif "start_date" in ds.attrs and "end_date" in ds.attrs:
+        start_date, end_date = ds.attrs["start_date"], ds.attrs["end_date"]
+    else:
+        raise ValueError("Cannot infer start and end dates from dataset")
+    start_date = start_date.astype(datetime_format)
+    end_date = end_date.astype(datetime_format)
 
     if start_date == end_date:
         period = f"{start_date}"
