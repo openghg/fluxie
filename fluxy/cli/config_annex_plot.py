@@ -2,25 +2,25 @@
 data_dir = '/project/paris/inverse_modelling/'
 
 # Species
-monthly_species = ["ch4", #"n2o"
+monthly_species = ["ch4", "n2o"
                   ]
 
 annual_species = [
-    # "hfc23",
-    # "hfc32",
-    # "hfc125",
-    # "hfc134a",
-    # "hfc143a",
-    # "hfc152a",
-    # "hfc227ea",
-    # "hfc245fa",
-    # "hfc365mfc",
-    # "hfc4310mee",
-    # "cf4",
-    # "pfc116",
-    # "pfc218",
-    # "pfc318",
-    # "sf6",
+    "hfc23",
+    "hfc32",
+    "hfc125",
+    "hfc134a",
+    "hfc143a",
+    "hfc152a",
+    "hfc227ea",
+    "hfc245fa",
+    "hfc365mfc",
+    "hfc4310mee",
+    "cf4",
+    "pfc116",
+    "pfc218",
+    "pfc318",
+    "sf6",
 ]
 
 combined_species = ["all_hfc", "all_pfc"

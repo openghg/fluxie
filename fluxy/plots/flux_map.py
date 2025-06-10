@@ -199,10 +199,9 @@ def plot_flux_map(
             # Add colorbar (only for the last column)
             if col == n_cols - 1:
                 cbar_label = print_cbar_label(
-                    ds,
+                    var_plot,
                     species_info,
-                    var,
-                    season,
+                    season = season,
                     format=["variable", "species", "units", "time"],
                 )
                 add_colorbar(
@@ -492,9 +491,7 @@ def plot_flux_map_over_time(
     ds_chopby = {}
     for key, ds in ds_dict.items():
         ds_chopby[key], time_labels = average_over_period(ds, dt, chop_by)
-    print(dt, time_labels)
-    print({m: ds.time.size for m,ds in ds_chopby.items()})
-        
+
     if plot_combined:
         ds_chopby = align_map_data(ds_chopby)
         ds_chopby = combine_map_dataset(ds_chopby)

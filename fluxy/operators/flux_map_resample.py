@@ -199,7 +199,7 @@ def average_over_years(
             Labels for each period (e.g., "2020", "2020—2022").
     """
 
-    groups = ds.time.dt.year // N
+    groups = (ds.time.dt.year -ds.time.dt.year.min()) // N
     ds_avg = ds.groupby(groups, restore_coord_dims=True).mean(dim="time")
     ds_avg = ds_avg.rename({"year": "time"})
 
