@@ -399,16 +399,14 @@ def plot_country_flux(
         ax.grid(visible=True, which="major", alpha=0.4)
 
     # set xticks
-    year_range = max_x.dt.year.values - min_x.dt.year.values
-    min_x, max_x = min_x.values, max_x.values
+    year_range = max_x.astype("datetime64[Y]")-min_x.astype("datetime64[Y]")
     if "yearly" in [ds.attrs["frequency"] for ds in ds_to_plot.values()] \
         or resample == "year":
         min_x = min_x.astype("datetime64[Y]")
         max_x = max_x.astype("datetime64[Y]") + np.timedelta64(1, "Y")
     xlim = [min_x - (max_x-min_x)/50, max_x + (max_x-min_x)/50]
 
-    # if max_x - min_x > np.timedelta64(8, "Y"):
-    if year_range > 8:
+    if year_range > np.timedelta64(8,"Y"):
         max_x = max_x.astype("datetime64[Y]")
         min_x = min_x.astype("datetime64[Y]")
         step = int(year_range) // 8 + 1
