@@ -621,19 +621,19 @@ def produce_plots(
 
 
 def make_table(
-    df,
-    output_path,
-    descriptive_cols=["species", "source"],
-    hline_place={"source": "PARIS mean"},
+    df: pd.DataFrame,
+    output_path: Path,
+    descriptive_cols: list[str] = ["species", "source"],
+    hline_place: dict[str] = {"source": "PARIS mean"},
 ):
-    if "hfc" in output_path:
+    if "hfc" in str(output_path):
         species = "HFCs"
-    elif "pfc" in output_path:
+    elif "pfc" in str(output_path):
         species = "PFCs"
-    if "main_gases" in output_path:
+    if "main_gases" in str(output_path):
         species = "the main greenhouse gases of focus"
     # Set latex Table env and number of cols
-    tmp = output_path.split("/")[-1].split(".")[0]
+    tmp = str(output_path).split("/")[-1].split(".")[0]
     label = "\n \\label{" + tmp + "}"
     tmp = (
         "Emissions estimation for "

@@ -17,7 +17,7 @@ def combine_dataset(
     ds_to_combined = [ds for i, ds in enumerate(ds_all.values()) if plot_combined[i]]
     ds_to_combined_aligned = align_time(ds_to_combined)
 
-    ds_combined = xr.concat(ds_to_combined_aligned, "model")
+    ds_combined = xr.concat(ds_to_combined_aligned, "model", combine_attrs = "drop_conflicts")
 
     ds_output = xr.Dataset(
         {
@@ -29,6 +29,9 @@ def combine_dataset(
             "prior_upper": ds_combined["prior_upper"].max(dim="model")
         }
     )
+
+    ds_output.attrs = ds_combined.attrs
+
     return {"combined": ds_output}
 
 

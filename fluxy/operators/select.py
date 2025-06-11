@@ -81,7 +81,7 @@ def slice_flux(
         if species is not None:
             ds_all_sliced[m] = scale_variables(
                 m,
-                ds_all[m],
+                ds_all_sliced[m],
                 species_info,
                 flux_unit=flux_units_print,
                 country_flux_unit=country_flux_units_print,

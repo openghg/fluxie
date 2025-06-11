@@ -485,13 +485,18 @@ def plot_flux_map_over_time(
     # Prepare datasets and average over given periods
     ds_dict = {m: define_var_plot(ds, var) for m,ds in ds_all.items()}
     
-    ds_chopby = {}
-    for key, ds in ds_dict.items():
-        ds_chopby[key], time_labels = average_over_period(ds, dt, chop_by)
-
     if plot_combined:
-        ds_chopby = align_map_data(ds_chopby)
-        ds_chopby = combine_map_dataset(ds_chopby)
+        ds_dict = align_map_data(ds_dict)
+        ds_dict = combine_map_dataset(ds_dict)
+
+    ds_chopby, time_labels = {}, {}
+    for key, ds in ds_dict.items():
+        ds_chopby[key], time_labels[key] = average_over_period(ds, dt, chop_by)
+
+    if all([v == time_labels[key] for v in time_labels.values()]):
+        time_labels = time_labels[key]
+    else: 
+        raise ValueError(f"Uncoherent `time_labels` derived : {time_labels}.")
 
     # Load country lines, species and sites information
     country_lines = compute_boundary_geometry(map_bounds)

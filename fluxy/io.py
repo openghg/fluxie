@@ -454,20 +454,7 @@ def create_flux_total_fgases(ds_all, species, regions, models):
                 dim="species",
                 combine_attrs="drop_conflicts",
             )
-            ds_mean = ds_tmp[["prior", "posterior"]].sum(dim="species", keep_attrs=True)
-            ds_unc = np.sqrt(
-                (
-                    ds_tmp[
-                        [
-                            "prior_lower",
-                            "prior_upper",
-                            "posterior_lower",
-                            "posterior_upper",
-                        ]
-                    ]
-                    ** 2
-                ).sum(dim="species", keep_attrs=True)
-            )
+
             ds_summed = [
                 ds_tmp[["prior", "posterior"]].sum(dim="species", keep_attrs=True),
             ]
@@ -480,7 +467,7 @@ def create_flux_total_fgases(ds_all, species, regions, models):
                 ds_unc[f"{var}_lower"] = ds_summed[0][var] - ds_unc[f"{var}_lower"]
                 ds_unc[f"{var}_upper"] = ds_summed[0][var] + ds_unc[f"{var}_upper"]
                 ds_summed.append(ds_unc)
-            ds_list.append(xr.merge([ds_mean, ds_unc], combine_attrs="no_conflicts"))
+            ds_list.append(xr.merge(ds_summed, combine_attrs="no_conflicts"))
 
         ds_tmp = xr.concat(ds_list, dim="country", combine_attrs="no_conflicts")
         ds_tmp.attrs["species"] = species

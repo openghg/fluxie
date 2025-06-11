@@ -18,7 +18,7 @@
         "pfc218": "NAME_EUROPE_FLAT_rhime_obs_rhime_baseline_optimized",
         "pfc318": "NAME_EUROPE_FLAT_rhime_obs_rhime_baseline_optimized",
         "pfc116": "NAME_EUROPE_EDGARMINVAL_rhime_obs_rhime_baseline_optimized",
-        "cf4": "NAME_EUROPE_EDGARMINVAL_rhime_obs_rhime_baseline_optimized",
+        "cf4": "NAME_EUROPE_EDGARMINVAL_rhime_obs_rhime_baseline_optimized"
     },
     "InTEM": {
         "ch4": "NAME_EUROPE_ch4_33sites",
@@ -38,7 +38,7 @@
         "pfc218": "NAME_EUROPE_FLAT_intem_obs_intem_baseline_optimized",
         "pfc318": "NAME_EUROPE_FLAT_intem_obs_intem_baseline_optimized",
         "pfc116": "NAME_EUROPE_EDGARMINVAL_intem_obs_intem_baseline_optimized",
-        "cf4": "NAME_EUROPE_EDGARMINVAL_intem_obs_intem_baseline_optimized",
+        "cf4": "NAME_EUROPE_EDGARMINVAL_intem_obs_intem_baseline_optimized"
     },
     "InTEM_longrun": {
         "ch4": "NAME_EUROPE_NID2025",
@@ -58,7 +58,7 @@
         "pfc218": "NAME_EUROPE_FLAT_intem_obs_intem_baseline_optimized",
         "pfc318": "NAME_EUROPE_FLAT_intem_obs_intem_baseline_optimized",
         "pfc116": "NAME_EUROPE_EDGARMINVAL_intem_obs_intem_baseline_optimized",
-        "cf4": "NAME_EUROPE_EDGARMINVAL_intem_obs_intem_baseline_optimized",
+        "cf4": "NAME_EUROPE_EDGARMINVAL_intem_obs_intem_baseline_optimized"
     },
     "ELRIS": {
         "ch4": "NAME_EUROPE_EDGARWETCHART_31base",
@@ -78,6 +78,6 @@
         "pfc218": "NAME_EUROPE_FLAT_elris_obs_elris_baseline_optimized",
         "pfc318": "NAME_EUROPE_FLAT_elris_obs_elris_baseline_optimized",
         "pfc116": "NAME_EUROPE_EDGARMINVAL_elris_obs_elris_baseline_optimized",
-        "cf4": "NAME_EUROPE_EDGARMINVAL_elris_obs_elris_baseline_optimized",
-    },
+        "cf4": "NAME_EUROPE_EDGARMINVAL_elris_obs_elris_baseline_optimized"
+    }
 }
