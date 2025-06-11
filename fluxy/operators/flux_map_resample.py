@@ -26,9 +26,9 @@ def get_flux_mean(
             The computed mean flux, either over the entire time period or for the specified season.
     """
     if season is None:
-        ds_output = data.mean(dim="time",keep_attrs=True)
-        
-    else :
+        ds_output = data.mean(dim="time", keep_attrs=True)
+
+    else:
         # Group by season and check if the given season exists
         seasonal_means = data.groupby("time.season", restore_coord_dims=True).mean(
             dim="time"
@@ -204,7 +204,7 @@ def average_over_years(
             Labels for each period (e.g., "2020", "2020—2022").
     """
 
-    groups = (ds.time.dt.year -ds.time.dt.year.min()) // N
+    groups = (ds.time.dt.year - ds.time.dt.year.min()) // N
     ds_avg = ds.groupby(groups, restore_coord_dims=True).mean(dim="time")
     ds_avg = ds_avg.rename({"year": "time"})
 

@@ -91,25 +91,25 @@ def print_cbar_label(
     format: list[str] = ["variable", "species", "units", "time"],
 ) -> str:
     """
-    Generate a colorbar label for a dataset variable.
+        Generate a colorbar label for a dataset variable.
 
-    Args:
-        ds (xr.DataArray):
-            The DataArray containing the variable. The DataArray should be named with the name of the variable^M
-+            (e.g. "posterior_prior_diff", "flux_total_prior", ...)
-        species_info (dict):
-            A dictionary with metadata for species, including display names.
-        var (str, optional):
-            The variable name in the dataset.
-        season (str, optional):
-            The season to include in the label (e.g., 'DJF', 'MAM').
-        format (list[str], optional):
-            Specifies the components to include in the label.
-            Options: ['variable', 'species', 'units', 'time']. Default includes all.
+        Args:
+            ds (xr.DataArray):
+                The DataArray containing the variable. The DataArray should be named with the name of the variable^M
+    +            (e.g. "posterior_prior_diff", "flux_total_prior", ...)
+            species_info (dict):
+                A dictionary with metadata for species, including display names.
+            var (str, optional):
+                The variable name in the dataset.
+            season (str, optional):
+                The season to include in the label (e.g., 'DJF', 'MAM').
+            format (list[str], optional):
+                Specifies the components to include in the label.
+                Options: ['variable', 'species', 'units', 'time']. Default includes all.
 
-    Returns:
-        cbar_label(str):
-            A formatted colorbar label including variable, species, units, and period.
+        Returns:
+            cbar_label(str):
+                A formatted colorbar label including variable, species, units, and period.
     """
 
     var_label = f"{config.flux_labels[var.name]}" if "variable" in format else ""
@@ -238,7 +238,7 @@ def print_period(
     datetime_format = f"datetime64[{freq}]" if season is None else "datetime64[Y]"
 
     if "time" in ds.dims:
-        start_date, end_date = ds.time.values[0,-1]
+        start_date, end_date = ds.time.values[0, -1]
     elif "start_date" in ds.attrs and "end_date" in ds.attrs:
         start_date, end_date = ds.attrs["start_date"], ds.attrs["end_date"]
     else:
@@ -322,7 +322,7 @@ def add_site_markers(ax, site_info, color):
 def get_sites_coordinates(
     ds_all: dict[xr.Dataset],
     config_data: dict,
-    fallback_sites: list[str]  | None = None,
+    fallback_sites: list[str] | None = None,
 ) -> dict:
     # TODO DODGY FUNCTION!!! Modify this function once 'sites' is included in all the attributes.
     """
@@ -344,7 +344,6 @@ def get_sites_coordinates(
     """
 
     sites_list = {}
-
 
     # First pass: Extract 'sites' where available
     for key, ds in ds_all.items():
@@ -414,7 +413,10 @@ def extract_site_info(
 
     return site_data
 
-def get_bounds_from_datasets(ds_list: list[xr.Dataset]) -> tuple[float, float, float, float]:
+
+def get_bounds_from_datasets(
+    ds_list: list[xr.Dataset],
+) -> tuple[float, float, float, float]:
     """
     Get the bounds of a list of xarray datasets.
 
@@ -430,8 +432,10 @@ def get_bounds_from_datasets(ds_list: list[xr.Dataset]) -> tuple[float, float, f
 
     return lon_min, lon_max, lat_min, lat_max
 
-# Region type 
+
+# Region type
 Region = str | list[float] | tuple[float] | None
+
 
 def get_map_bounds(
     region: Region = None,
@@ -441,7 +445,7 @@ def get_map_bounds(
 ) -> tuple[float, float, float, float]:
     """
     Get the bounding coordinates for a specified region or dataset.
-    
+
     Three options for specifying the bounds based on the 'region' argument:
     1. A string representing a country, continent, or region name.
     2. A list of four floats representing the bounding box coordinates (lon_min, lon_max, lat_min, lat_max).
@@ -459,11 +463,11 @@ def get_map_bounds(
         map_bounds (tuple[float, float, float, float]):
             The bounding coordinates of the region or dataset (lon_min, lon_max, lat_min, lat_max).
 
-    
+
     """
     if isinstance(region, str):
         map_bounds = get_region_coordinates(
-            region, config_data.get("regions_info",{}), zoom_degree=zoom_degree
+            region, config_data.get("regions_info", {}), zoom_degree=zoom_degree
         )
     elif isinstance(region, (list, tuple)) and all(
         isinstance(coord, (int, float)) for coord in region
@@ -545,8 +549,8 @@ def get_region_coordinates(
         raise ValueError(f"No coordinates found for region '{region_name}'.")
 
     # Remove overseas territories by keeping only the largest landmass for each country
-    if region["CONTINENT"].apply(lambda x : x.lower()=="europe").all():
-        region = gpd.clip(region,[-30,30,50,75])
+    if region["CONTINENT"].apply(lambda x: x.lower() == "europe").all():
+        region = gpd.clip(region, [-30, 30, 50, 75])
     else:
         region["geometry"] = region["geometry"].apply(
             lambda geom: extract_largest_polygon(geom)

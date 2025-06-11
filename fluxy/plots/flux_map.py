@@ -130,7 +130,7 @@ def plot_flux_map(
 
     # Set flux limits #TODO Based on posterior, is this the right way to do?
     fluxlim = set_flux_limits(
-        {m: ds[var_posterior] for m,ds in ds_all.items()},
+        {m: ds[var_posterior] for m, ds in ds_all.items()},
         map_bounds,
         option=set_fluxlim,
         custom_percentile=set_fluxlim_percentile,
@@ -201,7 +201,7 @@ def plot_flux_map(
                 cbar_label = print_cbar_label(
                     var_plot,
                     species_info,
-                    season = season,
+                    season=season,
                     format=["variable", "species", "units", "time"],
                 )
                 add_colorbar(
@@ -381,8 +381,9 @@ def plot_flux_map_model_comparison(
 
         # Add colorbar
         cbar_label = print_cbar_label(
-            var_plot, species_info, 
-            season = season,
+            var_plot,
+            species_info,
+            season=season,
             format=["variable", "species", "units", "time"],
         )
         if model == "diff":
@@ -481,10 +482,10 @@ def plot_flux_map_over_time(
         config_data,
         zoom_degree=zoom_degree,
     )
-    
+
     # Prepare datasets and average over given periods
-    ds_dict = {m: define_var_plot(ds, var) for m,ds in ds_all.items()}
-    
+    ds_dict = {m: define_var_plot(ds, var) for m, ds in ds_all.items()}
+
     if plot_combined:
         ds_dict = align_map_data(ds_dict)
         ds_dict = combine_map_dataset(ds_dict)
@@ -495,7 +496,7 @@ def plot_flux_map_over_time(
 
     if all([v == time_labels[key] for v in time_labels.values()]):
         time_labels = time_labels[key]
-    else: 
+    else:
         raise ValueError(f"Uncoherent `time_labels` derived : {time_labels}.")
 
     # Load country lines, species and sites information
@@ -549,7 +550,13 @@ def plot_flux_map_over_time(
 
             # Plot the data
             im = ax_i.pcolormesh(
-                lon, lat, var_i, cmap=cmap, vmin=lim[0], vmax=lim[1], shading="nearest",
+                lon,
+                lat,
+                var_i,
+                cmap=cmap,
+                vmin=lim[0],
+                vmax=lim[1],
+                shading="nearest",
             )
             plot_country_borders(
                 ax=ax_i, lines=country_lines, border_color=border_color

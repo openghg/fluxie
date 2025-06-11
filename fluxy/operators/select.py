@@ -55,7 +55,7 @@ def slice_flux(
 
     """
     ds_all_sliced = dict()
-    
+
     if species is not None:
         species_info = config_data["species_info"][species]
 
@@ -68,7 +68,9 @@ def slice_flux(
         logger.info(f"Masking data from {m}.")
 
         # Slice data according to time window
-        ds_all_sliced[m] = ds_all[m].sel(time=slice(start_date[im], end_date[im])).copy()
+        ds_all_sliced[m] = (
+            ds_all[m].sel(time=slice(start_date[im], end_date[im])).copy()
+        )
 
         if len(ds_all_sliced[m]["time"]) == 0:
             logger.warning(

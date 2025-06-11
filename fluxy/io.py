@@ -327,7 +327,7 @@ def read_flux_total_fgases(
         raise ValueError(
             f"period must be a string or a list of the same length as models."
         )
-        
+
     if isinstance(regions, str):
         regions = [regions]
 
@@ -605,7 +605,10 @@ def edit_vars_and_attributes(
             for var in vars_to_check:
                 if var not in ds:
                     continue
-                if "units" not in ds[var].attrs.keys() and "unit" in ds[var].attrs.keys():
+                if (
+                    "units" not in ds[var].attrs.keys()
+                    and "unit" in ds[var].attrs.keys()
+                ):
                     ds[var].attrs["units"] = ds[var].attrs["unit"]
                     ds[var].attrs.pop("unit")
 
@@ -697,7 +700,7 @@ def edit_vars_and_attributes(
             ds["time"] = ds.time.values + np.timedelta64(15, "D")
 
             # Add "_" to second country dimension in covariance matrix
-            ds = ds.rename({'country2': 'country_2'})
+            ds = ds.rename({"country2": "country_2"})
 
         # Rename second country dimension in covariance matrix (xarray requirement)
         var_to_change = "covariance_flux_total_posterior_country"
@@ -719,10 +722,10 @@ def edit_vars_and_attributes(
 
     elif file_type == "concentration":
         # Ensure integer dtype
-        ds['number_of_identifier'] = ds['number_of_identifier'].astype(int)
+        ds["number_of_identifier"] = ds["number_of_identifier"].astype(int)
 
         # Ensure string dtype
-        ds['platform'] = ds['platform'].astype(str)
+        ds["platform"] = ds["platform"].astype(str)
 
         # Fix old format vs new format
         if "index" not in ds.dims:
@@ -735,13 +738,18 @@ def edit_vars_and_attributes(
                 .stack({"index": ["number_of_identifier", "time"]})
                 .reset_index("index")
             )
-        
+
         if "assimilation_flag" not in ds:
             # Add assimilation_flag if not present
-            ds = ds.assign(assimilation_flag=('index', np.ones(ds['index'].size, dtype=int)))
+            ds = ds.assign(
+                assimilation_flag=("index", np.ones(ds["index"].size, dtype=int))
+            )
 
-        # Test that the number of identifiers had valid values 
-        max_num_id, min_num_id = ds["number_of_identifier"].max(), ds["number_of_identifier"].min()
+        # Test that the number of identifiers had valid values
+        max_num_id, min_num_id = (
+            ds["number_of_identifier"].max(),
+            ds["number_of_identifier"].min(),
+        )
         if min_num_id == 1 and max_num_id == len(ds["platform"]):
             # 1 based (also called as retarded) indexing, so we need to shift the values
             ds["number_of_identifier"] -= 1
@@ -756,7 +764,9 @@ def edit_vars_and_attributes(
             )
 
         # Set coordinates
-        ds = ds.assign_coords({var: ds[var] for var in ["number_of_identifier", "time", "platform"]})
+        ds = ds.assign_coords(
+            {var: ds[var] for var in ["number_of_identifier", "time", "platform"]}
+        )
 
         # Fix for InTEM (units of platform are wrongly set to mol mol-1)
         ds["platform"].attrs.pop("units", None)

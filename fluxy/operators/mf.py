@@ -97,7 +97,7 @@ def compute_mf_difference(
                 f"{v} will not be included in the diff dataset."
             )
             continue
-        if 'percentile' in ds_left[v].dims:
+        if "percentile" in ds_left[v].dims:
             # Ignore variables with percentile dimension
             continue
 
@@ -155,7 +155,7 @@ def stats_mf(
     for site in sites_all:
         for model, ds in ds_all.items():
             # Remove the NaNs
-            ds = ds.dropna('index')
+            ds = ds.dropna("index")
             site_index = get_site_index(ds, site)
             if site_index is None:
                 continue
@@ -179,7 +179,7 @@ def stats_mf(
                 sim = ds_site["mf_posterior"] - ds_site["mf_bc_posterior"]
             else:
                 raise ValueError()
-            
+
             obs, sim = obs.values, sim.values
 
             # calculate stats

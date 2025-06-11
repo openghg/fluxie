@@ -87,7 +87,7 @@ def prepare_data_to_plot(
         ds_all_region[m].attrs["model_label"] = model_labels.get(m, m)
         if m not in model_colors.keys():
             model_colors[m] = config.get_default_colors()
-        ds_all_region[m].attrs["model_colors"] = model_colors[m] 
+        ds_all_region[m].attrs["model_colors"] = model_colors[m]
     map_model_colors = {f"c{i}": m for i, m in enumerate(model_colors.values())}
 
     # Prepare list of dataset to plot
@@ -224,7 +224,7 @@ def plot_country_flux(
         plot_regions = set.intersection(
             *(set(ds["country"].values) for ds in ds_all.values())
         )
-    if not isinstance(plot_regions,list): 
+    if not isinstance(plot_regions, list):
         plot_regions = [plot_regions]
 
     if return_res:
@@ -260,13 +260,13 @@ def plot_country_flux(
         ax = axes if (n_rows, n_cols) == (1, 1) else axes.flatten()[i]
 
         if plot_inventory:
-            if isinstance(start_date,list):
+            if isinstance(start_date, list):
                 start_date_inv = str(min([np.datetime64(date) for date in start_date]))
-            else :
+            else:
                 start_date_inv = start_date
-            if isinstance(end_date,list):
+            if isinstance(end_date, list):
                 end_date_inv = str(max([np.datetime64(date) for date in end_date]))
-            else :
+            else:
                 end_date_inv = end_date
             inventories_to_plot = retrieve_inventories(
                 data_dir,
@@ -373,8 +373,7 @@ def plot_country_flux(
             f"{s_data.get(species, {}).get('species_print', species)}"
             f" ({unit.replace('2','$_{{2}}$').replace('-1','$^{{-1}}$')})"
         )
-        
-       
+
         # set legend if needed
         if not set_global_leg:
             ncol = len(ds_to_plot) + 1 if annex_mode else 2
@@ -400,19 +399,21 @@ def plot_country_flux(
 
     # set xticks
     year_range = max_x.astype("datetime64[Y]") - min_x.astype("datetime64[Y]")
-    if "yearly" in [ds.attrs["frequency"] for ds in ds_to_plot.values()] \
-        or resample == "year":
+    if (
+        "yearly" in [ds.attrs["frequency"] for ds in ds_to_plot.values()]
+        or resample == "year"
+    ):
         min_x = min_x.astype("datetime64[Y]")
         max_x = max_x.astype("datetime64[Y]") + np.timedelta64(1, "Y")
-    xlim = [min_x - (max_x-min_x)/50, max_x + (max_x-min_x)/50]
+    xlim = [min_x - (max_x - min_x) / 50, max_x + (max_x - min_x) / 50]
 
-    if year_range > np.timedelta64(8,"Y"):
+    if year_range > np.timedelta64(8, "Y"):
         max_x = max_x.astype("datetime64[Y]")
         min_x = min_x.astype("datetime64[Y]")
         step = int(year_range) // 8 + 1
         xticks = np.arange(min_x, max_x, step=np.timedelta64(step, "Y"))
-        if (max_x-min_x)%np.timedelta64(step, "Y")==0:
-            xticks = np.append(xticks,max_x)
+        if (max_x - min_x) % np.timedelta64(step, "Y") == 0:
+            xticks = np.append(xticks, max_x)
         ax.set_xticks(xticks)
         ax.set_xticklabels(xticks.astype("datetime64[Y]"))
         ax.xaxis.set_major_locator(YearLocator())

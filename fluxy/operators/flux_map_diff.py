@@ -47,10 +47,12 @@ def define_var_plot(
         var_plot = ds[var]
         unit_var = var
 
-    
     var_plot.attrs["units"] = ds[unit_var].attrs.get("units")
-    var_plot.attrs = {**ds.attrs, **var_plot.attrs} # Add dataset attributes to var ones
+    var_plot.attrs = {
+        **ds.attrs,
+        **var_plot.attrs,
+    }  # Add dataset attributes to var ones
 
     var_plot.name = var
-    
+
     return var_plot

@@ -12,24 +12,24 @@ def align_time(ds_list: list[xr.Dataset]) -> list[xr.Dataset]:
     Returns:
         aligned_ds_list: list of xarray datasets time-aligned
     """
-    
+
     time_dim_equal = [ds_list[0].time.equals(x.time) for x in ds_list[1:]]
-    
+
     if all(time_dim_equal):
         return ds_list
-    
+
     # Infer period of first dataset
     dtime = ds_list[0].time.values[1:] - ds_list[0].time.values[:-1]
     if any(abs(dtime - np.median(dtime)) > 0.1 * np.median(dtime)):
         raise ValueError("Unable to infer period from dataset")
     period = np.median(dtime)
 
-    # Reduce datasets to their overlapping time range 
+    # Reduce datasets to their overlapping time range
     if np.unique([ds.time.size for ds in ds_list]).size != 1:
-        min_date = max([x.time.min() for x in ds_list]) - period/2
-        max_date = min([x.time.max() for x in ds_list]) + period/2 
-        ds_list = [ds.sel(time = slice(min_date, max_date)) for ds in ds_list]
-        
+        min_date = max([x.time.min() for x in ds_list]) - period / 2
+        max_date = min([x.time.max() for x in ds_list]) + period / 2
+        ds_list = [ds.sel(time=slice(min_date, max_date)) for ds in ds_list]
+
     aligned_ds_list = [ds_list[0]]
 
     for ds_p in ds_list[1:]:
@@ -90,7 +90,9 @@ def align_lat_lon(
     return aligned_ds_list
 
 
-def align_map_data(ds_all: dict[xr.Dataset | xr.DataArray]) -> dict[xr.Dataset | xr.DataArray]:
+def align_map_data(
+    ds_all: dict[xr.Dataset | xr.DataArray],
+) -> dict[xr.Dataset | xr.DataArray]:
     """
     Prepare flux datasets/dataarray for flux maps by filtering variables, removing unused dimensions, and aligning time and spatial coordinates.
 
@@ -104,7 +106,7 @@ def align_map_data(ds_all: dict[xr.Dataset | xr.DataArray]) -> dict[xr.Dataset |
     """
 
     for key, ds in ds_all.items():
-        if isinstance(ds,xr.DataArray):
+        if isinstance(ds, xr.DataArray):
             continue
         # Applied only if Dataset and not DataArray
         # Step 1: Remove variables without 'time', 'latitude' and 'longitude'

@@ -67,10 +67,7 @@ def extract_region_flux(
         # search for existing region names
         available_countries = ds["country"].values.astype(str)
 
-        if (
-            country_search not in available_countries
-            and country in dict_regions.keys()
-        ):
+        if country_search not in available_countries and country in dict_regions.keys():
             region_search = dict_regions[country]
 
             logger.info(
@@ -215,8 +212,9 @@ def extract_region_inventory_flux(
     # Find filename
     if inventory_year is not None:
         filepath = (
-            Path(data_dir) / "inventory" /
-            f"UNFCCC_inventory_{species}_{inventory_year}.nc"
+            Path(data_dir)
+            / "inventory"
+            / f"UNFCCC_inventory_{species}_{inventory_year}.nc"
         )
     else:
         filelist = sorted(
