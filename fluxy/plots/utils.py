@@ -545,9 +545,12 @@ def get_region_coordinates(
         raise ValueError(f"No coordinates found for region '{region_name}'.")
 
     # Remove overseas territories by keeping only the largest landmass for each country
-    region["geometry"] = region["geometry"].apply(
-        lambda geom: extract_largest_polygon(geom)
-    )
+    if region["CONTINENT"].apply(lambda x : x.lower()=="europe").all():
+        region = gpd.clip(region,[-30,30,50,75])
+    else:
+        region["geometry"] = region["geometry"].apply(
+            lambda geom: extract_largest_polygon(geom)
+        )
 
     # Get the bounding box of the region of interest
     region_boundaries = region.total_bounds  # [minx, miny, maxx, maxy]

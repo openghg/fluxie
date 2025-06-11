@@ -1,13 +1,21 @@
+import logging
+from typing import Literal
+
+import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 from matplotlib.dates import MonthLocator, YearLocator
 from matplotlib.ticker import NullFormatter
-import matplotlib.pyplot as plt
-from typing import Literal
+
 from fluxy import config
+from fluxy.operators.select import (
+    FrequencyType,
+    clean_timeseries_missing_data,
+    get_site_index,
+    get_unique_sites,
+    slice_site,
+)
 from fluxy.plots.utils import set_min_decimal_points
-from fluxy.operators.select import get_unique_sites, get_site_index
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +36,7 @@ def plot_mf_timeseries(
     },
     diff_include: list[str] | None = None,
     y_lim: None | list[float] = None,
+    time_freq_min: FrequencyType = None,
 ):
     """
     Timeseries plots of observations, modelled mole fractions, baseline mf and/or
@@ -60,6 +69,11 @@ def plot_mf_timeseries(
             If None, plots the histogram of the variables specified in include.
         y_lim (list of float, optional):
             Mix/max y axis limits to apply to all plots.
+        time_freq_min (FrequencyType, optional):
+            Time frequency minimum of the timeserie that should be shown as continous 
+            line. If the frequency is lower than this, the line will be discontinous.
+            see :py:func:`fluxy.operators.select.clean_timeseries_missing_data`
+            for more information.
     Returns:
         fig (figure):
             A timeseries and histogram plot for each model included.
@@ -110,18 +124,31 @@ def plot_mf_timeseries(
             model_color = model_colors[m]
         elif plot_type == "diff":
             iax = 0
-            mdiff0, mdiff1 = m.split("-")
+            mdiff0, mdiff1 = m.split("--")
             model_label = f"{model_labels[mdiff0]} - {model_labels[mdiff1]}"
             model_color = model_colors[mdiff0]
+
+        ds_plot = ds_all[m]
+        # Check there is only one site in the dataset 
+        if len(np.unique(ds_plot['number_of_identifier'])) > 1:
+            raise ValueError(
+                f"Dataset {m} contains more than one site. "
+                "Use slice_site to select a single site."
+            )
+        
+        # Clean the time dimension
+        ds_plot = clean_timeseries_missing_data(
+            ds_plot, variables_nans=vars_to_plot, min_freq=time_freq_min
+        )
 
         # Loop over all variables to plot
         for var in vars_to_plot:
 
-            if var not in ds_all[m].keys():
+            if var not in ds_plot.keys():
                 raise KeyError(f"Variable {var} not found in {m}.")
 
             # Get var unit
-            plot_units.append(ds_all[m][var].attrs["units"])
+            plot_units.append(ds_plot[var].attrs["units"])
 
             # Define plotting color
             plot_color = model_color[config.mf_color_index[var]]
@@ -131,8 +158,8 @@ def plot_mf_timeseries(
             if var == "mf_observed" or plot_type == "diff":
                 # Make scatter plot
                 ax[iax, 0].scatter(
-                    ds_all[m]['time'].values,
-                    ds_all[m][var].values,
+                    ds_plot["time"].values,
+                    ds_plot[var].values,
                     color=plot_color,
                     label=f"{model_label} {config.mf_labels[var]}",
                     s=8,
@@ -143,11 +170,13 @@ def plot_mf_timeseries(
             else:
                 # Make line plot
                 ax[iax, 0].plot(
-                    ds_all[m]['time'].values,
-                    ds_all[m][var].values,
+                    ds_plot["time"].values,
+                    ds_plot[var].values,
                     color=plot_color,
                     alpha=0.8,
                     linewidth=2.0,
+                    marker="o",
+                    markersize=1.5,
                     label=f"{model_label} {config.mf_labels[var]}",
                 )
 
@@ -159,15 +188,15 @@ def plot_mf_timeseries(
                         f"Option plot_type='diff' does not accept uncertainties. Replace '{unc_var}' by None."
                     )
 
-                if unc_var not in ds_all[m].keys():
+                if unc_var not in ds_plot.keys():
                     raise KeyError(f"Variable {unc_var} not found in {m}.")
 
                 if unc_var.split("_")[0] == "percentile":
                     # Add uncertainty band
                     ax[iax, 0].fill_between(
-                        ds_all[m].time.values,
-                        ds_all[m][unc_var][0, :].values,
-                        ds_all[m][unc_var][1, :].values,
+                        ds_plot.time.values,
+                        ds_plot[unc_var][0, :].values,
+                        ds_plot[unc_var][1, :].values,
                         color=plot_color,
                         alpha=0.2,
                     )
@@ -175,9 +204,9 @@ def plot_mf_timeseries(
                 else:
                     # Add error bar
                     ax[iax, 0].errorbar(
-                        ds_all[m].time.values,
-                        ds_all[m][var].values,
-                        ds_all[m][unc_var].values,
+                        ds_plot.time.values,
+                        ds_plot[var].values,
+                        ds_plot[unc_var].values,
                         color=plot_color,
                         alpha=0.4,
                         fmt="none",
@@ -186,7 +215,7 @@ def plot_mf_timeseries(
         # Plot histogram
         plot_histogram(
             ax[iax, 1],
-            ds_all[m],
+            ds_plot,
             m,
             vars_to_plot,
             diff_include,
@@ -227,17 +256,14 @@ def plot_mf_timeseries(
             for l in leg.legendHandles:
                 l.set_linewidth(5.0)
 
-        if len(ds_all[m]['time']) <= 1:
+        if len(ds_plot["time"]) <= 1:
             continue
-        start_date = ds_all[m]['time'].values.min()
-        end_date = ds_all[m]['time'].values.max()
-        
+        start_date = ds_plot["time"].values.min()
+        end_date = ds_plot["time"].values.max()
+
         # Set timeseries x-axis ticks
         if (
-            int(
-                end_date.astype("datetime64[M]")
-                - start_date.astype("datetime64[M]")
-            )
+            int(end_date.astype("datetime64[M]") - start_date.astype("datetime64[M]"))
             > 12
         ):
             ax[iax, 0].xaxis.set_minor_locator(MonthLocator())
