@@ -631,7 +631,7 @@ def plot_country_borders(ax, lines, border_color):
 
 
 def set_flux_limits(
-    ds_all: dict[xr.DataArray],
+    da_all: dict[xr.DataArray],
     region_plot: tuple[float, float, float, float],
     option: Literal["auto"] | list[float] | tuple[float, float] = "auto",
     custom_percentile: float = None,
@@ -643,7 +643,7 @@ def set_flux_limits(
     2. 'auto' - auto-calculate limits based on data percentiles.
 
     Args:
-        ds_all (dict[xr.DataArray]):^M
+        da_all (dict[xr.DataArray]):
             A dictionary of DataArrays containing the flux variables
         region_plot (tuple[float, float, float, float]):
             Coordinates [lon_min, lon_max, lat_min, lat_max].
@@ -666,7 +666,7 @@ def set_flux_limits(
     # Case 2: Auto-calculate limits based on percentiles
     elif option == "auto":
         models_var = []
-        for model, var in ds_all.items():
+        for model, var in da_all.items():
             # Filter based on longitude and latitude of region_plot
             mask_region = (
                 (var.longitude > region_plot[0])

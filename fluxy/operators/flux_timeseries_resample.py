@@ -113,7 +113,6 @@ def resample_flux(
     ds_all_original = {m: ds_all[m].copy() for m in ds_all.keys()}
 
     ds_all_resampled = calculate_resampled_flux(ds_all, rtime)
-    new_keys = [m + "_resample" if r else m for m, r in zip(ds_all_resampled.keys(),rtime)]
 
     if not resample_uncert_correlation:
         ds_all_resampled = calculate_resampled_uncertainty(
@@ -121,6 +120,7 @@ def resample_flux(
         )
 
     # shift timestamps of averaged data forwards to centre of inversion period
+    new_keys = list(ds_all.keys())
     for im, m in enumerate(ds_all.keys()):
 
         if (
@@ -135,6 +135,7 @@ def resample_flux(
             )
             offset = (date_list_for_offset[1:] - date_list_for_offset[:-1]).mean() / 2
             ds_all_resampled[m]["time"] = ds_all_resampled[m]["time"].values + offset
+            new_keys[im] = m + "_resample"
 
     return {
         key: ds.dropna(dim="time", how="all")

@@ -36,7 +36,7 @@ def retrieve_inventories(
     """
     inventories_list = list()
 
-    if inventory_years is None or not isinstance(inventory_years, list):
+    if not isinstance(inventory_years, list):
         inventory_years = [inventory_years]
 
     inv_cmap = get_cmap("Greys")

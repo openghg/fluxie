@@ -27,25 +27,28 @@ def define_var_plot(
 
     if var == "posterior_prior_diff":
         var_plot = ds["flux_total_posterior"] - ds["flux_total_prior"]
-        var_plot.attrs["units"] = ds['flux_total_posterior'].attrs.get("units")
+        unit_var = "flux_total_posterior"
     elif var == "posterior_mean_diff":
         var_plot = ds["flux_total_posterior"] - ds["flux_total_posterior"].mean(
             dim="time"
         )
-        var_plot.attrs["units"] = ds['flux_total_posterior'].attrs.get("units")
+        unit_var = "flux_total_posterior"
     elif var == "posterior_prior_diff_inversion_grid":
         var_plot = ds["flux_total_posterior_inversion_grid"] - ds["flux_total_prior"]
-        var_plot.attrs["units"] = ds['flux_total_posterior_inversion_grid'].attrs.get("units")
+        unit_var = "flux_total_posterior"
     elif var == "posterior_mean_diff_inversion_grid":
         var_plot = ds["flux_total_posterior_inversion_grid"] - ds[
             "flux_total_posterior_inversion_grid"
         ].mean(dim="time")
-        var_plot.attrs["units"] = ds['flux_total_posterior_inversion_grid'].attrs.get("units")
+        unit_var = "flux_total_posterior"
     else:
         if var not in ds:
             raise ValueError(f"'{var}' not found in dataset(s)")
         var_plot = ds[var]
+        unit_var = var
 
+    
+    var_plot.attrs["units"] = ds[unit_var].attrs.get("units")
     var_plot.attrs = {**ds.attrs, **var_plot.attrs} # Add dataset attributes to var ones
 
     var_plot.name = var

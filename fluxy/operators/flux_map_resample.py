@@ -38,8 +38,8 @@ def get_flux_mean(
             raise ValueError(f"Season '{season}' not found in the dataset.")
 
         ds_output = seasonal_means.sel(season=season)
-    ds_output.attrs["start_date"] = data.time.values[0]
-    ds_output.attrs["end_date"] = data.time.values[-1]
+    ds_output.attrs["start_date"] = data.time.values.min()
+    ds_output.attrs["end_date"] = data.time.values.max()
 
     return ds_output
 
@@ -176,7 +176,7 @@ def average_over_seasons(
     ordered_seasons = [s for s in desired_order if s in ds_avg.time.values]
     ds_avg = ds_avg.sel(time=ordered_seasons)
 
-    time_labels = ["Dec - Feb", "Mar - May", "Jun - Aug", "Sep - Nov"]
+    time_labels = ["Dec -> Feb", "Mar -> May", "Jun -> Aug", "Sep -> Nov"]
     return ds_avg, time_labels
 
 

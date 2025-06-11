@@ -261,19 +261,19 @@ def plot_country_flux(
 
         if plot_inventory:
             if isinstance(start_date,list):
-                start_date_inv = min([np.datetime64(date) for date in start_date])
+                start_date_inv = str(min([np.datetime64(date) for date in start_date]))
             else :
                 start_date_inv = start_date
             if isinstance(end_date,list):
-                end_date_inv = min([np.datetime64(date) for date in end_date])
+                end_date_inv = str(max([np.datetime64(date) for date in end_date]))
             else :
                 end_date_inv = end_date
             inventories_to_plot = retrieve_inventories(
                 data_dir,
                 country,
                 species,
-                str(start_date_inv),
-                str(end_date_inv),
+                start_date_inv,
+                end_date_inv,
                 unit,
                 s_data,
                 r_data,

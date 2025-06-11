@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 def slice_flux(
-    ds_all_p: dict[str, xr.Dataset],
+    ds_all: dict[str, xr.Dataset],
     config_data: dict[str, str | float] = {},
     start_date: str | list[str] = None,
     end_date: str | list[str] = None,
@@ -49,23 +49,23 @@ def slice_flux(
             xarray datasets, scaled, converted, and sliced between chosen dates.
 
     """
-    ds_all = dict()
+    ds_all_sliced = dict()
     
     if species is not None:
         species_info = config_data["species_info"][species]
 
     if type(start_date) is str:
-        start_date = [start_date] * len(ds_all_p.keys())
+        start_date = [start_date] * len(ds_all.keys())
     if type(end_date) is str:
-        end_date = [end_date] * len(ds_all_p.keys())
+        end_date = [end_date] * len(ds_all.keys())
 
-    for im, m in enumerate(ds_all_p.keys()):
+    for im, m in enumerate(ds_all.keys()):
         logger.info(f"Masking data from {m}.")
 
         # Slice data according to time window
-        ds_all[m] = ds_all_p[m].sel(time=slice(start_date[im], end_date[im])).copy()
+        ds_all_sliced[m] = ds_all[m].sel(time=slice(start_date[im], end_date[im])).copy()
 
-        if len(ds_all[m]["time"]) == 0:
+        if len(ds_all_sliced[m]["time"]) == 0:
             logger.warning(
                 f"No {m} fluxes found between {start_date[im]} and {end_date[im]}."
             )
@@ -74,7 +74,7 @@ def slice_flux(
 
         # Scale fluxes
         if species is not None:
-            ds_all[m] = scale_variables(
+            ds_all_sliced[m] = scale_variables(
                 m,
                 ds_all[m],
                 species_info,
@@ -82,7 +82,7 @@ def slice_flux(
                 country_flux_unit=country_flux_units_print,
             )
 
-    return ds_all
+    return ds_all_sliced
 
 
 def slice_mf(

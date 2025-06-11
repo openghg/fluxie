@@ -1,9 +1,8 @@
 # Path to results directory
-data_dir = '/project/paris/inverse_modelling/'
+data_dir = "/project/paris/inverse_modelling/"
 
 # Species
-monthly_species = ["ch4", "n2o"
-                  ]
+monthly_species = ["ch4", "n2o"]
 
 annual_species = [
     "hfc23",
@@ -23,8 +22,7 @@ annual_species = [
     "sf6",
 ]
 
-combined_species = ["all_hfc", "all_pfc"
-                    ]
+combined_species = ["all_hfc", "all_pfc"]
 
 # Cities to plot
 point_markers = {
