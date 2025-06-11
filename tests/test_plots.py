@@ -312,4 +312,3 @@ def test_plot_flux_map_over_time():
         set_fluxlim=set_fluxlim,
         set_fluxlim_percentile=set_fluxlim_percentile,
     )
-test_flux_timeseries()
