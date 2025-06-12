@@ -335,7 +335,7 @@ def get_sites_coordinates(
         config_data (dict):
             Dictionary of sites with information for plotting (read from json file).
         fallback_sites (list[str] | None):
-            A list of site names to use as a fallback if 'sites' is not found in any dataset.
+            A list of site names to use as a fallback if 'sites' is not found in the datasets.
             If None, the first available 'sites' in the datasets will be used as fallback.
 
     Returns:
@@ -375,7 +375,7 @@ def get_sites_coordinates(
     for key, sites in sites_list.items():
         if sites_list[key] is None:
             logger.warning(
-                f"No 'sites' attribute in {key}, using fallback from another dataset."
+                f"No 'sites' attribute in {key}, using fallback from the list provided. If no list was provided, sites from other dataset will be used."
             )
             sites_list[key] = fallback_sites
 
