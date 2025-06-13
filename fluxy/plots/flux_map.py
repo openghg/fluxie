@@ -131,7 +131,7 @@ def plot_flux_map(
     # Set flux limits #TODO Based on posterior, is this the right way to do?
     fluxlim = set_flux_limits(
         ds_all,
-        var,
+        vars_list[0],
         map_bounds,
         option=set_fluxlim,
         custom_percentile=set_fluxlim_percentile,
@@ -153,8 +153,8 @@ def plot_flux_map(
         for row, var in enumerate(vars_list):
             ax_i = model_axes if n_rows == 1 else model_axes[row]
 
-            var_plot = define_var_plot(ds, var)
-            var_plot = get_flux_mean(var_plot, season)
+            ds_plot = define_var_plot(ds, var)
+            ds_plot = get_flux_mean(ds_plot, season)
 
             # Determine plot settings
             is_diff = "diff" in var
@@ -168,7 +168,7 @@ def plot_flux_map(
             im = ax_i.pcolormesh(
                 lon,
                 lat,
-                var_plot,
+                ds_plot[var],
                 cmap=cmap_i,
                 vmin=vlim_i[0],
                 vmax=vlim_i[1],
@@ -200,8 +200,9 @@ def plot_flux_map(
             # Add colorbar (only for the last column)
             if col == n_cols - 1:
                 cbar_label = print_cbar_label(
-                    var_plot,
+                    ds_plot,
                     species_info,
+                    var,
                     season=season,
                     format=["variable", "species", "units", "time"],
                 )
@@ -315,6 +316,7 @@ def plot_flux_map_model_comparison(
     ds_dict["diff"] = ds_dict[models[1]] - ds_dict[models[0]]
     # Copy attributes from models[0]
     ds_dict["diff"].attrs = ds_dict[models[0]].attrs
+    ds_dict["diff"][var].attrs = ds_dict[models[0]][var].attrs
 
     # Load country lines, species and sites information
     country_lines = compute_boundary_geometry(map_bounds)
@@ -338,11 +340,11 @@ def plot_flux_map_model_comparison(
     fig, ax = plt.subplots(
         n_rows, n_cols, constrained_layout=True, figsize=(n_cols * 5, 9)
     )
-    for col, (model, var_plot) in enumerate(ds_dict.items()):
+    for col, (model, ds) in enumerate(ds_dict.items()):
         ax_i = ax[col]
-        lon, lat = var_plot.longitude, var_plot.latitude
+        lon, lat = ds.longitude, ds.latitude
 
-        var_plot = get_flux_mean(var_plot, season)
+        ds_plot = get_flux_mean(ds, season)
 
         # Determine plot settings
         is_diff = ("diff" in var) or ("diff" in model)
@@ -356,7 +358,7 @@ def plot_flux_map_model_comparison(
         im = ax_i.pcolormesh(
             lon,
             lat,
-            var_plot,
+            ds_plot[var],
             cmap=cmap_i,
             vmin=vlim_i[0],
             vmax=vlim_i[1],
@@ -383,8 +385,9 @@ def plot_flux_map_model_comparison(
 
         # Add colorbar
         cbar_label = print_cbar_label(
-            var_plot,
+            ds_plot,
             species_info,
+            var,
             season=season,
             format=["variable", "species", "units", "time"],
         )
@@ -535,9 +538,8 @@ def plot_flux_map_over_time(
     else:
         fig, ax = plt.subplots(n_rows, n_cols, figsize=(n_cols * 4, n_rows * 3))
 
-    for row, (model, ds) in enumerate(ds_chopby.items()):
-        var_plot = ds[var]
-        lon, lat = var_plot.longitude, var_plot.latitude
+    for row, (model, ds_plot) in enumerate(ds_chopby.items()):
+        lon, lat = ds_plot.longitude, ds_plot.latitude
 
         for col, time_label in enumerate(time_labels):
             if n_rows == 1 and n_cols == 1:
@@ -549,7 +551,7 @@ def plot_flux_map_over_time(
             else:
                 ax_i = ax[row, col]
 
-            var_i = var_plot.isel(time=col)
+            var_i = ds_plot[var].isel(time=col)
 
             # Plot the data
             im = ax_i.pcolormesh(
@@ -595,7 +597,10 @@ def plot_flux_map_over_time(
 
     # Add colorbar
     cbar_label = print_cbar_label(
-        var_plot, species_info, format=["variable", "species", "units"]
+        ds_plot,
+        species_info,
+        var,
+        format=["variable", "species", "units"]
     )
     add_colorbar(
         fig,

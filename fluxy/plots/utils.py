@@ -85,8 +85,9 @@ def add_colorbar(fig, ax, im, extend, label, n_cbar, idx_cbar, colorbar_type="ro
 
 
 def print_cbar_label(
-    var: xr.DataArray,
+    ds: xr.Dataset,
     species_info: dict,
+    var: str = None,
     season: str = None,
     format: list[str] = ["variable", "species", "units", "time"],
 ) -> str:
@@ -96,7 +97,7 @@ def print_cbar_label(
         Args:
             ds (xr.DataArray):
                 The DataArray containing the variable. The DataArray should be named with the name of the variable^M
-    +            (e.g. "posterior_prior_diff", "flux_total_prior", ...)
+                (e.g. "posterior_prior_diff", "flux_total_prior", ...)
             species_info (dict):
                 A dictionary with metadata for species, including display names.
             var (str, optional):
@@ -112,21 +113,21 @@ def print_cbar_label(
                 A formatted colorbar label including variable, species, units, and period.
     """
 
-    var_label = f"{config.flux_labels[var.name]}" if "variable" in format else ""
+    var_label = f"{config.flux_labels[var]}" if "variable" in format else ""
 
     species_label = (
         f"{species_info.get('species_print')}" if "species" in format else ""
     )
 
-    units_label = f"({get_units(var)})" if "units" in format else ""
+    units_label = f"({get_units(ds[var])})" if "units" in format else ""
 
     middle_label = " ".join(filter(None, [species_label, units_label]))
 
     time_label = ""
     if "time" in format:
-        freq = get_frequency(var)
+        freq = get_frequency(ds)
         period = print_period(
-            var, freq, season
+            ds, freq, season
         )  # TODO Here, based on the last iteration. Check if consistent for all models?
         time_label = f"{period}"
 
