@@ -130,7 +130,8 @@ def plot_flux_map(
 
     # Set flux limits #TODO Based on posterior, is this the right way to do?
     fluxlim = set_flux_limits(
-        {m: ds[var_posterior] for m, ds in ds_all.items()},
+        ds_all,
+        var,
         map_bounds,
         option=set_fluxlim,
         custom_percentile=set_fluxlim_percentile,
@@ -325,6 +326,7 @@ def plot_flux_map_model_comparison(
     # Set flux limits
     lim = set_flux_limits(
         ds_dict,
+        var,
         map_bounds,
         option=set_fluxlim,
         custom_percentile=set_fluxlim_percentile,
