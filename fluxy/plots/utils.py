@@ -480,13 +480,9 @@ def get_map_bounds(
             clip_region = None
 
         map_bounds = get_region_coordinates(
-<<<<<<< adapt_annex
-            region, config_data.get("regions_info", {}), zoom_degree=zoom_degree
-=======
             region, config_data.get("regions_info",{}), 
             zoom_degree = zoom_degree,
             clip_region = clip_region
->>>>>>> devel
         )
     elif isinstance(region, (list, tuple)) and all(
         isinstance(coord, (int, float)) for coord in region
@@ -572,19 +568,9 @@ def get_region_coordinates(
     if region.empty:
         raise ValueError(f"No coordinates found for region '{region_name}'.")
 
-<<<<<<< adapt_annex
-    # Remove overseas territories by keeping only the largest landmass for each country
-    if region["CONTINENT"].apply(lambda x: x.lower() == "europe").all():
-        region = gpd.clip(region, [-30, 30, 50, 75])
-    else:
-        region["geometry"] = region["geometry"].apply(
-            lambda geom: extract_largest_polygon(geom)
-        )
-=======
     # Restrict to clip_region
     if clip_region:
         region = gpd.clip(region,clip_region)
->>>>>>> devel
 
     # Get the bounding box of the region of interest
     region_boundaries = region.total_bounds  # [minx, miny, maxx, maxy]
