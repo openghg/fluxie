@@ -786,4 +786,10 @@ def edit_vars_and_attributes(
                 coords=ds["platform"].coords,
             )
 
+            # Delete NaN data variables
+            for var in ds.data_vars:
+                if ds[var].isnull().all():
+                    logger.warning(f"Removing {var} from {model}: all data in NaN")
+                    ds = ds.drop_vars(var)
+
     return ds
