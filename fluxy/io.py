@@ -789,7 +789,7 @@ def edit_vars_and_attributes(
             # Delete NaN data variables
             for var in ds.data_vars:
                 if ds[var].isnull().all():
-                    logger.warning(f"Removing {var} from {model}: all data in NaN")
+                    logger.warning(f"Removing {var} from {model}: all data is NaN")
                     ds = ds.drop_vars(var)
 
     return ds
