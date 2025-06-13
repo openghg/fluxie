@@ -509,6 +509,7 @@ def plot_flux_map_over_time(
     # Set flux limits
     lim = set_flux_limits(
         ds_chopby,
+        var,
         map_bounds,
         option=set_fluxlim,
         custom_percentile=set_fluxlim_percentile,
@@ -532,8 +533,8 @@ def plot_flux_map_over_time(
     else:
         fig, ax = plt.subplots(n_rows, n_cols, figsize=(n_cols * 4, n_rows * 3))
 
-    for row, (model, var_plot) in enumerate(ds_chopby.items()):
-
+    for row, (model, ds) in enumerate(ds_chopby.items()):
+        var_plot = ds[var]
         lon, lat = var_plot.longitude, var_plot.latitude
 
         for col, time_label in enumerate(time_labels):

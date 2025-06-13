@@ -638,7 +638,8 @@ def plot_country_borders(ax, lines, border_color):
 
 
 def set_flux_limits(
-    da_all: dict[xr.DataArray],
+    ds_all: dict[xr.Dataset],
+    var: str,
     region_plot: tuple[float, float, float, float],
     option: Literal["auto"] | list[float] | tuple[float, float] = "auto",
     custom_percentile: float = None,
@@ -650,8 +651,10 @@ def set_flux_limits(
     2. 'auto' - auto-calculate limits based on data percentiles.
 
     Args:
-        da_all (dict[xr.DataArray]):
-            A dictionary of DataArrays containing the flux variables
+        ds_all (dict[xr.Dataset]):
+            A dictionary of Datasets containing the flux variables
+        var (str):
+            Variable use to define the flux limits
         region_plot (tuple[float, float, float, float]):
             Coordinates [lon_min, lon_max, lat_min, lat_max].
         option ('auto', [lower_lim, upper_lim]):
@@ -673,16 +676,17 @@ def set_flux_limits(
     # Case 2: Auto-calculate limits based on percentiles
     elif option == "auto":
         models_var = []
-        for model, var in da_all.items():
+        for model, ds in ds_all.items():
+            var_plot = ds[var]
             # Filter based on longitude and latitude of region_plot
             mask_region = (
-                (var.longitude > region_plot[0])
-                & (var.longitude < region_plot[1])
-                & (var.latitude > region_plot[2])
-                & (var.latitude < region_plot[3])
+                (var_plot.longitude > region_plot[0])
+                & (var_plot.longitude < region_plot[1])
+                & (var_plot.latitude > region_plot[2])
+                & (var_plot.latitude < region_plot[3])
             )
-            var = var.where(mask_region, drop=True)
-            models_var.append(var)
+            var_plot = var_plot.where(mask_region, drop=True)
+            models_var.append(var_plot)
 
         models_var = xr.concat(models_var, dim="time")
 
