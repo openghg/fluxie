@@ -95,3 +95,32 @@ The most important variables are described below. Please refer to the cdl files 
 | stdev_mf_model                  | uYmod               | mol mol-1 | index      | Model uncertainty of simulated mole fraction
 
 (3) fluxy also accepts ppm, ppb and ppt. However, please make sure that all variables have the same units.
+
+## 3. Eddy covariance flux file
+
+Characterising variables: same as for the concentration file.
+
+| Observation variables | Units        | Dimensions | Description                                                        |
+| :-------------------- | :----------- | :--------- | :----------------------------------------------------------------- |
+| platform              | -            | platform   | Identifier of observing platform                                   |
+| sector                | -            | sector     | Identifier of emission sectors                                     |
+| flux_observed         | μmol m-2 s-1 | index      | Measured eddy covariance flux of `<species>`                       |
+| flux_observed_storage | μmol m-2 s-1 | index      | Measured storage flux of `<species>`                               |
+| qa_flag               |              | index      | Flag indicating quality of the eddy covariance flux measurement () |
+
+| Simulated variables    | Units        | Dimensions | Description                                                                                      |
+| :--------------------- | :----------- | :--------- | :----------------------------------------------------------------------------------------------- |
+| ecflux_prior           | μmol m-2 s-1 | index      | Simulated eddy covariance flux of `<species>`                                                    |
+| ecflux_posterior       | μmol m-2 s-1 | index      | Posterior simulated eddy covariance flux of `<species>`                                          |
+| stdev_ecflux_prior     | μmol m-2 s-1 | index      | Standard deviation of prior simulated eddy covariance fluxes due to state vector uncertainty     |
+| stdev_ecflux_posterior | μmol m-2 s-1 | index      | Standard deviation of posterior simulated eddy covariance fluxes due to state vector uncertainty |
+| *Sectorial based fluxes*
+| ecflux_prior_sectorial | μmol m-2 s-1 | index, sector | Same as `ecflux_prior` but sectorial
+| ecflux_posterior_sectorial| μmol m-2 s-1 | index, sector | Same as `ecflux_posterior` but sectorial
+| stdev_ecflux_prior_sectorial | μmol m-2 s-1 | index, sector | Same as `stdev_ecflux_prior` but sectorial
+| stdev_ecflux_posterior_sectorial| μmol m-2 s-1 | index, sector | Same as `stdev_ecflux_posterior` but sectorial
+
+| Uncertainty variables | Units        | Dimensions | Description                                      |
+| :-------------------- | :----------- | :--------- | :----------------------------------------------- |
+| stdev_ecflux_observed | μmol m-2 s-1 | index      | Total model-data-mismatch uncertainty applied in |
+| stdev_mf_model        | mol mol-1    | index      | Model uncertainty of simulated mole fraction     |
