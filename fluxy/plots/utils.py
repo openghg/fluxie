@@ -92,25 +92,25 @@ def print_cbar_label(
     format: list[str] = ["variable", "species", "units", "time"],
 ) -> str:
     """
-        Generate a colorbar label for a dataset variable.
+    Generate a colorbar label for a dataset variable.
 
-        Args:
-            ds (xr.DataArray):
-                The DataArray containing the variable. The DataArray should be named with the name of the variable^M
-                (e.g. "posterior_prior_diff", "flux_total_prior", ...)
-            species_info (dict):
-                A dictionary with metadata for species, including display names.
-            var (str, optional):
-                The variable name in the dataset.
-            season (str, optional):
-                The season to include in the label (e.g., 'DJF', 'MAM').
-            format (list[str], optional):
-                Specifies the components to include in the label.
-                Options: ['variable', 'species', 'units', 'time']. Default includes all.
+    Args:
+        ds (xr.DataArray):
+            The DataArray containing the variable. The DataArray should be named with the name of the variable^M
+            (e.g. "posterior_prior_diff", "flux_total_prior", ...)
+        species_info (dict):
+            A dictionary with metadata for species, including display names.
+        var (str, optional):
+            The variable name in the dataset.
+        season (str, optional):
+            The season to include in the label (e.g., 'DJF', 'MAM').
+        format (list[str], optional):
+            Specifies the components to include in the label.
+            Options: ['variable', 'species', 'units', 'time']. Default includes all.
 
-        Returns:
-            cbar_label(str):
-                A formatted colorbar label including variable, species, units, and period.
+    Returns:
+        cbar_label(str):
+            A formatted colorbar label including variable, species, units, and period.
     """
 
     var_label = f"{config.flux_labels[var]}" if "variable" in format else ""
@@ -239,11 +239,13 @@ def print_period(
     datetime_format = f"datetime64[{freq}]" if season is None else "datetime64[Y]"
 
     if "time" in ds.dims:
-        start_date, end_date = ds.time.values[0, -1]
+        start_date = ds.time.values.min()
+        end_date = ds.time.values.max()
     elif "start_date" in ds.attrs and "end_date" in ds.attrs:
         start_date, end_date = ds.attrs["start_date"], ds.attrs["end_date"]
     else:
         raise ValueError("Cannot infer start and end dates from dataset")
+
     start_date = start_date.astype(datetime_format)
     end_date = end_date.astype(datetime_format)
 
@@ -471,19 +473,25 @@ def get_map_bounds(
         # Use the non-zero country_fraction to define the clipping region, for coherence in the country definition
         if len(ds_all) > 0 and "country_fraction" in ds_all[0]:
             da_mask = ds_all[0].country_fraction.sum(dim="country")
-            clipped = da_mask.where(da_mask!=0).dropna(dim = "longitude", how = "all").dropna(dim = "latitude", how = "all")
-            clip_region = [clipped.longitude.values.min(),
-                        clipped.latitude.values.min(),
-                        clipped.longitude.values.max(),
-                        clipped.latitude.values.max(),
-                        ]
+            clipped = (
+                da_mask.where(da_mask != 0)
+                .dropna(dim="longitude", how="all")
+                .dropna(dim="latitude", how="all")
+            )
+            clip_region = [
+                clipped.longitude.values.min(),
+                clipped.latitude.values.min(),
+                clipped.longitude.values.max(),
+                clipped.latitude.values.max(),
+            ]
         else:
             clip_region = None
 
         map_bounds = get_region_coordinates(
-            region, config_data.get("regions_info",{}), 
-            zoom_degree = zoom_degree,
-            clip_region = clip_region
+            region,
+            config_data.get("regions_info", {}),
+            zoom_degree=zoom_degree,
+            clip_region=clip_region,
         )
     elif isinstance(region, (list, tuple)) and all(
         isinstance(coord, (int, float)) for coord in region
@@ -521,8 +529,8 @@ def get_region_coordinates(
             The number of degrees to zoom in/out from the bounding box. Default is 1.
         clip_region (list[float]):
             Coordinates ([min_lon, min_lat, max_lon, max_lat]) use to restrict the boundaries of the region.
-            For example, if the focus is on France and clip_region is the extent of continental Europe, overseas territory 
-            (Reunion, Mayotte,...) won't be included; if no clip region is provided, they will be included. 
+            For example, if the focus is on France and clip_region is the extent of continental Europe, overseas territory
+            (Reunion, Mayotte,...) won't be included; if no clip region is provided, they will be included.
 
     Returns:
         region_coordinates (tuple):
@@ -571,7 +579,7 @@ def get_region_coordinates(
 
     # Restrict to clip_region
     if clip_region:
-        region = gpd.clip(region,clip_region)
+        region = gpd.clip(region, clip_region)
 
     # Get the bounding box of the region of interest
     region_boundaries = region.total_bounds  # [minx, miny, maxx, maxy]

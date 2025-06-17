@@ -502,7 +502,9 @@ def plot_flux_map_over_time(
     if all([v == time_labels[key] for v in time_labels.values()]):
         time_labels = time_labels[key]
     else:
-        raise ValueError(f"Uncoherent `time_labels` derived : {time_labels}.")
+        raise ValueError(
+            f"Uncoherent `time_labels` derived : {time_labels}. Most probable reason is difference between start and end dates of the datasets, slicing them to thei common period should resolve the issue."
+        )
 
     # Load country lines, species and sites information
     country_lines = compute_boundary_geometry(map_bounds)
@@ -597,10 +599,7 @@ def plot_flux_map_over_time(
 
     # Add colorbar
     cbar_label = print_cbar_label(
-        ds_plot,
-        species_info,
-        var,
-        format=["variable", "species", "units"]
+        ds_plot, species_info, var, format=["variable", "species", "units"]
     )
     add_colorbar(
         fig,

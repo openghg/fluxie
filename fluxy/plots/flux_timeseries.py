@@ -380,12 +380,10 @@ def plot_country_flux(
             ncol = len(ds_to_plot) + 1 if annex_mode else 2
             leg = ax.legend(ncol=ncol, borderpad=0.4, columnspacing=1.0)
 
-            if float(matplotlib_version[:3]) > 3.7:
-                for l in leg.legend_handles[: (-1 if plot_inventory else None)]:
-                    l.set_linewidth(3.0)
-            else:
-                for l in leg.legendHandles[: (-1 if plot_inventory else None)]:
-                    l.set_linewidth(3.0)
+            # handle_name = "legend_handles" if float(matplotlib_version[:3]) > 3.7 else "legendHandles"
+            # for l in leg.__getattribute__(handle_name)[: (-1 if plot_inventory else None)]:
+            for l in leg.legendHandles[: (-1 if plot_inventory else None)]:
+                l.set_linewidth(3.0)
 
         # set title
         country_equivalent = {
