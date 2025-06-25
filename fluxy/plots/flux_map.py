@@ -503,7 +503,7 @@ def plot_flux_map_over_time(
         time_labels = time_labels[key]
     else:
         raise ValueError(
-            f"Uncoherent `time_labels` derived : {time_labels}. Most probable reason is difference between start and end dates of the datasets, slicing them to thei common period should resolve the issue."
+            f"Uncoherent `time_labels` derived : {time_labels}. Most probable reason is difference between start and end dates of the datasets, slicing them to their common period should resolve the issue."
         )
 
     # Load country lines, species and sites information

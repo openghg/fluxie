@@ -1,29 +1,3 @@
-# Path to results directory
-data_dir = "/project/paris/inverse_modelling/"
-
-# Species
-monthly_species = ["ch4", "n2o"]
-
-annual_species = [
-    "hfc23",
-    "hfc32",
-    "hfc125",
-    "hfc134a",
-    "hfc143a",
-    "hfc152a",
-    "hfc227ea",
-    "hfc245fa",
-    "hfc365mfc",
-    "hfc4310mee",
-    "cf4",
-    "pfc116",
-    "pfc218",
-    "pfc318",
-    "sf6",
-]
-
-combined_species = ["all_hfc", "all_pfc"]
-
 # Cities to plot
 point_markers = {
     "UK": ["london", "edinburgh", "cardiff", "belfast"],
@@ -188,3 +162,129 @@ fluxlim_percentiles = {
         "sf6": 0.95,
     },
 }
+
+
+class Annex_config:
+    def __init__(self, region, inventory_years):
+        ### Path to results directory
+        self.data_dir = "/project/paris/inverse_modelling/"
+
+        ### Species
+        self.monthly_species = []  # "ch4", "n2o"
+
+        self.annual_species = [
+            "hfc23",
+            "hfc32",
+            "hfc125",
+            "hfc134a",
+            "hfc143a",
+            "hfc152a",
+            "hfc227ea",
+            "hfc245fa",
+            "hfc365mfc",
+            "hfc4310mee",
+            "cf4",
+            "pfc116",
+            "pfc218",
+            "pfc318",
+            "sf6",
+        ]
+
+        self.combined_species = ["all_hfc", "all_pfc"]
+
+        ### Settings for country fluxes
+        ## Model definitions
+        # for monthly species
+        self.models_monthly_species = [
+            "InTEM_longrun",
+            "InTEM",
+            "ELRIS",
+            "RHIME",
+        ]  # NOTE: only options are basic model names w/ and w/o longrun
+
+        # for annual species
+        self.models_yearly_species = [
+            "InTEM",
+            "ELRIS",
+            "RHIME",
+        ]
+
+        ## Units for plot
+        self.country_flux_units_print = "Tg CO2-eq yr-1"
+
+        ## Kwargs for plot_country_flux
+        # for all
+        self.kwargs_country_flux_general = dict(
+            plot_regions=region,
+            inventory_years=inventory_years,
+            data_dir=self.data_dir,
+            annex_mode=True,
+            plot_inventory=True,
+            fix_y_axes=False,
+            add_prior=True,
+            add_prior_unc=False,
+            set_global_leg=False,
+            country_codes_as_titles=None,
+            plot_resample_and_original=False,
+            return_res=True,
+        )
+
+        # for monthly species on extended time window
+        self.kwargs_country_flux_monthly_species = dict(
+            plot_separate=[True, False, False, False],
+            plot_combined=[False, True, True, True],
+            resample=[None, "year", "year", "year"],
+            resample_uncert_correlation=False,
+            rolling_mean=False,
+        )
+
+        # for monthly species on PARIS time window
+        self.kwargs_country_flux_monthly_species_special = dict(
+            plot_separate=[True, False, False],
+            plot_combined=[True, True, True],
+            resample=None,
+            rolling_mean=False,
+        )
+
+        # for yearly species
+        self.kwargs_country_flux_yearly_species = dict(
+            plot_separate=[True, False, False],
+            plot_combined=[True, True, True],
+            resample=None,
+            rolling_mean=True,
+        )
+
+        ### Settings for spatial maps
+        self.models_spatial_maps = ["InTEM", "ELRIS", "RHIME"]
+        self.flux_units_print = "kg km-2 yr-1"
+
+        self.fluxlim_percentile = fluxlim_percentiles.get(region, dict())
+
+        self.start_date_fgases = start_date_fgases[region]
+
+        ## Kwargs for flux_map functions
+        # for all
+        self.kwargs_maps_general = dict(
+            region=region,
+            set_fluxlim="auto",
+            plot_combined=True,
+            add_sites=True,
+            add_markers=point_markers[region],
+        )
+
+        # for flux total posterior (all species)
+        self.kwargs_maps_mean = dict(
+            var="flux_total_posterior_inversion_grid",
+            cmap="viridis",
+            c_border="floralwhite",
+            chop_by="year",
+        )
+
+        # for posterior seasonal diff to mean (monthly species)
+        self.kwargs_maps_seasonnal = dict(
+            var="posterior_mean_diff_inversion_grid",
+            cmap="coolwarm",
+            c_border="dimgrey",
+            chop_by="season",
+            dt=[[12, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]],
+        )

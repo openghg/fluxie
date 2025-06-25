@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-import config_annex_plot as annex_config
+from config_annex_plot import Annex_config
 
 from pathlib import Path
 
@@ -16,12 +16,6 @@ from fluxy.plots.flux_timeseries import plot_country_flux
 from fluxy.plots.flux_map import plot_flux_map_over_time
 
 logger = logging.getLogger(__name__)
-
-###########################################
-### GENERAL SETTINGS
-###########################################
-# Species to plot
-###########################################
 
 
 def define_model_list(
@@ -50,10 +44,6 @@ def define_model_list(
         models_std :
             List of exp names to be used for the plots and tables for the annex for the species passed as input.
     """
-    logger.warning(
-        "Each team should check that the right files are used. Still to be checked by RHIME, ELRIS, InTEM."
-    )
-
     models_std = []
 
     for model in models:
@@ -165,93 +155,19 @@ def produce_plots(
     """
 
     ### Initialization
+    logger.warning(
+        "Each team should check that the right files are used. Still to be checked by RHIME, ELRIS, InTEM."
+    )
     config_data = read_config_files()
+    annex_config_data = Annex_config(region, inventory_years)
     annual_res_list = list()
-
-    ### Settings for country fluxes
-    models_monthly_species = [
-        "InTEM_longrun",
-        "InTEM",
-        "ELRIS",
-        "RHIME",
-    ]  # NOTE: only options are basic model names w/ and w/o longrun
-    models_yearly_species = [
-        "InTEM",
-        "ELRIS",
-        "RHIME",
-    ]
-
-    country_flux_units_print = "Tg CO2-eq yr-1"
-
-    kwargs_country_flux_general = dict(
-        plot_regions=region,
-        inventory_years=inventory_years,
-        data_dir=annex_config.data_dir,
-        config_data=config_data,
-        annex_mode=True,
-        plot_inventory=True,
-        fix_y_axes=False,
-        add_prior=True,
-        add_prior_unc=False,
-        set_global_leg=False,
-        country_codes_as_titles=None,
-        plot_resample_and_original=False,
-        return_res=True,
-    )
-
-    kwargs_country_flux_monthly_species = dict(
-        plot_separate=[True, False, False, False],
-        plot_combined=[False, True, True, True],
-        rolling_mean=False,
-    )
-
-    kwargs_country_flux_monthly_species_special = dict(
-        plot_separate=[True, False, False],
-        plot_combined=[True, True, True],
-        rolling_mean=False,
-    )
-
-    kwargs_country_flux_yearly_species = dict(
-        plot_separate=[True, False, False],
-        plot_combined=[True, True, True],
-        rolling_mean=True,
-    )
-
-    ### Settings for spatial maps
-    models_spatial_maps = ["InTEM", "ELRIS", "RHIME"]
-    flux_units_print = "kg km-2 yr-1"
-
-    # Settings for seasonal difference to the mean
-    kwargs_maps_general = dict(
-        config_data=config_data,
-        region=region,
-        set_fluxlim="auto",
-        plot_combined=True,
-        add_sites=True,
-        add_markers=annex_config.point_markers[region],
-    )
-
-    kwargs_maps_mean = dict(
-        var="flux_total_posterior_inversion_grid",
-        cmap="viridis",
-        c_border="floralwhite",
-        chop_by="year",
-    )
-
-    kwargs_maps_seasonnal = dict(
-        var="posterior_mean_diff_inversion_grid",
-        cmap="coolwarm",
-        c_border="dimgrey",
-        chop_by="season",
-        dt=[[12, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]],
-    )
 
     # Converting output_path into pathlib.Path object
     output_path = Path(output_path)
 
     #### CH4 and N2O
     print("\n--- PLOTTING MONTHLY SPECIES ---")
-    for species in annex_config.monthly_species:
+    for species in annex_config_data.monthly_species:
         print(f"-- {species.upper()}")
 
         ### Country fluxes
@@ -260,16 +176,19 @@ def produce_plots(
         end_date = "2024-01-01"
 
         models_std = define_model_list(
-            models_monthly_species, species, config_data, json_exp_to_use
+            annex_config_data.models_monthly_species,
+            species,
+            config_data,
+            json_exp_to_use,
         )
         period = [
             "monthly" if "longrun" not in m else "yearly"
-            for m in models_monthly_species
+            for m in annex_config_data.models_monthly_species
         ]
 
         # Read and slice data
         ds_all_flux = read_model_output(
-            annex_config.data_dir,
+            annex_config_data.data_dir,
             "flux",
             species,
             models_std,
@@ -282,7 +201,7 @@ def produce_plots(
             start_date,
             end_date,
             species=species,
-            country_flux_units_print=country_flux_units_print,
+            country_flux_units_print=annex_config_data.country_flux_units_print,
         )
 
         # Define plotting colors and labels
@@ -298,10 +217,9 @@ def produce_plots(
             model_labels=model_labels,
             start_date=start_date[0],
             end_date=end_date,
-            resample=[None, "year", "year", "year"],
-            resample_uncert_correlation=False,
-            **kwargs_country_flux_general,
-            **kwargs_country_flux_monthly_species,
+            config_data=config_data,
+            **annex_config_data.kwargs_country_flux_general,
+            **annex_config_data.kwargs_country_flux_monthly_species,
         )
         full_path = output_path / f"{species}_country_flux_annual_longrun_{region}.png"
         fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
@@ -318,8 +236,8 @@ def produce_plots(
             start_date,
             end_date,
             species=species,
-            country_flux_units_print=country_flux_units_print,
-            flux_units_print=flux_units_print,
+            country_flux_units_print=annex_config_data.country_flux_units_print,
+            flux_units_print=annex_config_data.flux_units_print,
         )
 
         # 1.2) Plot annual country fluxes from 2018 to 2023 from intem_longrun and combined from 3 std_run
@@ -331,10 +249,9 @@ def produce_plots(
             model_labels=model_labels,
             start_date=start_date,
             end_date=end_date,
-            resample=[None, "year", "year", "year"],
-            resample_uncert_correlation=False,
-            **kwargs_country_flux_general,
-            **kwargs_country_flux_monthly_species,
+            config_data=config_data,
+            **annex_config_data.kwargs_country_flux_general,
+            **annex_config_data.kwargs_country_flux_monthly_species,
         )
         full_path = (
             output_path / f"{species}_country_flux_annual_parisonly_{region}.png"
@@ -350,7 +267,7 @@ def produce_plots(
 
         # Reselect datasets to plot
         models_std = define_model_list(
-            models_spatial_maps, species, config_data, json_exp_to_use
+            annex_config_data.models_spatial_maps, species, config_data, json_exp_to_use
         )
         print(models_std)
         ds_all_flux_scaled = {m: ds_all_flux_scaled[m] for m in models_std}
@@ -366,9 +283,9 @@ def produce_plots(
             model_labels=model_labels,
             start_date=start_date,
             end_date=end_date,
-            resample=None,
-            **kwargs_country_flux_general,
-            **kwargs_country_flux_monthly_species_special,
+            config_data=config_data,
+            **annex_config_data.kwargs_country_flux_general,
+            **annex_config_data.kwargs_country_flux_monthly_species_special,
         )
         full_path = (
             output_path / f"{species}_country_flux_monthly_parisonly_{region}.png"
@@ -377,11 +294,6 @@ def produce_plots(
         plt.close()
 
         ### Spatial maps
-
-        set_fluxlim_percentile = annex_config.fluxlim_percentiles.get(
-            region, dict()
-        ).get(species, None)
-
         # 3) Plot spatial map of the posterior fluxes averaged between 2018 and 2023 (combined from 3 std_run)
         print(f"- Average map")
         dt = int(end_date[:4]) - int(start_date[:4])
@@ -389,10 +301,13 @@ def produce_plots(
             ds_all_flux_scaled,
             species=species,
             model_labels=model_labels,
+            config_data=config_data,
             dt=dt,
-            set_fluxlim_percentile=set_fluxlim_percentile,
-            **kwargs_maps_general,
-            **kwargs_maps_mean,
+            set_fluxlim_percentile=annex_config_data.fluxlim_percentile.get(
+                species, None
+            ),
+            **annex_config_data.kwargs_maps_general,
+            **annex_config_data.kwargs_maps_mean,
         )
         full_path = output_path / f"{species}_posterior_map_{region}.png"
         fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
@@ -404,9 +319,12 @@ def produce_plots(
             ds_all_flux_scaled,
             species=species,
             model_labels=model_labels,
-            set_fluxlim_percentile=set_fluxlim_percentile,
-            **kwargs_maps_general,
-            **kwargs_maps_seasonnal,
+            config_data=config_data,
+            set_fluxlim_percentile=annex_config_data.fluxlim_percentile.get(
+                species, None
+            ),
+            **annex_config_data.kwargs_maps_general,
+            **annex_config_data.kwargs_maps_seasonnal,
         )
         full_path = output_path / f"{species}_seasonal_map_{region}.png"
         fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
@@ -416,23 +334,26 @@ def produce_plots(
     end_date = "2024-01-01"
 
     print("\n--- PLOTTING ANNUAL SPECIES ---")
-    for species in annex_config.annual_species:
+    for species in annex_config_data.annual_species:
         print(f"-- {species.upper()}")
 
         ### Country fluxes
         ## Long time window
-        start_date = annex_config.start_date_fgases[region]
+        start_date = annex_config_data.start_date_fgases
         start_year = start_date.split("-")[0]
         if species == "hfc4310mee" and int(start_year) < 2011:
             start_date = "2011-01-01"  # Fix for InTEM longrun which is zero in 2010
 
         models_std = define_model_list(
-            models_yearly_species, species, config_data, json_exp_to_use
+            annex_config_data.models_yearly_species,
+            species,
+            config_data,
+            json_exp_to_use,
         )
 
         # Read and slice data
         ds_all_flux = read_model_output(
-            annex_config.data_dir,
+            annex_config_data.data_dir,
             "flux",
             species,
             models_std,
@@ -445,7 +366,7 @@ def produce_plots(
             start_date,
             end_date,
             species=species,
-            country_flux_units_print=country_flux_units_print,
+            country_flux_units_print=annex_config_data.country_flux_units_print,
         )
 
         # Define plotting colors and labels
@@ -461,9 +382,9 @@ def produce_plots(
             model_labels=model_labels,
             start_date=start_date,
             end_date=end_date,
-            resample=None,
-            **kwargs_country_flux_general,
-            **kwargs_country_flux_yearly_species,
+            config_data=config_data,
+            **annex_config_data.kwargs_country_flux_general,
+            **annex_config_data.kwargs_country_flux_yearly_species,
         )
         full_path = output_path / f"{species}_country_flux_annual_longrun_{region}.png"
         fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
@@ -481,14 +402,11 @@ def produce_plots(
             end_date = "2024-01-01"
         period = "monthly" if species in ["ch4", "n2o"] else "yearly"
 
-        set_fluxlim_percentile = annex_config.fluxlim_percentiles.get(
-            region, dict()
-        ).get(species, None)
         dt = int(end_date[:4]) - int(start_date[:4])
 
         # Select and reslice the data
         models_std = define_model_list(
-            models_spatial_maps, species, config_data, json_exp_to_use
+            annex_config_data.models_spatial_maps, species, config_data, json_exp_to_use
         )
         ds_all_flux = {m: ds_all_flux[m] for m in models_std}
         ds_all_flux_scaled = slice_flux(
@@ -497,8 +415,8 @@ def produce_plots(
             start_date,
             end_date,
             species=species,
-            country_flux_units_print=country_flux_units_print,
-            flux_units_print=flux_units_print,
+            country_flux_units_print=annex_config_data.country_flux_units_print,
+            flux_units_print=annex_config_data.flux_units_print,
         )
 
         ### Define plotting labels
@@ -510,10 +428,13 @@ def produce_plots(
             ds_all_flux_scaled,
             species=species,
             model_labels=model_labels,
+            config_data=config_data,
             dt=dt,
-            set_fluxlim_percentile=set_fluxlim_percentile,
-            **kwargs_maps_general,
-            **kwargs_maps_mean,
+            set_fluxlim_percentile=annex_config_data.fluxlim_percentile.get(
+                species, None
+            ),
+            **annex_config_data.kwargs_maps_general,
+            **annex_config_data.kwargs_maps_mean,
         )
         full_path = output_path / f"{species}_posterior_map_{region}.png"
         fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
@@ -521,7 +442,7 @@ def produce_plots(
 
     #### Total HFCs/PFCs (w/o HFC-4310mee)
     start_date = [
-        annex_config.start_date_fgases[region],
+        annex_config_data.start_date_fgases,
         "2018-01-01",
         "2018-01-01",
         "2018-01-01",
@@ -529,14 +450,14 @@ def produce_plots(
     end_date = "2024-01-01"
 
     print("\n--- PLOTTING COMBINED SPECIES ---")
-    for species in annex_config.combined_species:
+    for species in annex_config_data.combined_species:
         print(f"-- {species.upper()}")
 
         ### Read and scale fluxes
         ds_all_flux_scaled = read_flux_total_fgases(
-            annex_config.data_dir,
+            annex_config_data.data_dir,
             species,
-            models_yearly_species,
+            annex_config_data.models_yearly_species,
             config_data,
             region,
             start_date,
@@ -558,9 +479,9 @@ def produce_plots(
             model_labels=model_labels,
             start_date=start_date,
             end_date=end_date,
-            resample=None,
-            **kwargs_country_flux_general,
-            **kwargs_country_flux_yearly_species,
+            config_data=config_data,
+            **annex_config_data.kwargs_country_flux_general,
+            **annex_config_data.kwargs_country_flux_yearly_species,
         )
         full_path = output_path / f"{species}_country_flux_annual_longrun_{region}.png"
         fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)

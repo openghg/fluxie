@@ -96,7 +96,7 @@ def print_cbar_label(
 
     Args:
         ds (xr.DataArray):
-            The DataArray containing the variable. The DataArray should be named with the name of the variable^M
+            The DataArray containing the variable. The DataArray should be named with the name of the variable
             (e.g. "posterior_prior_diff", "flux_total_prior", ...)
         species_info (dict):
             A dictionary with metadata for species, including display names.

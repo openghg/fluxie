@@ -35,8 +35,8 @@
     },
 
     "standard_run":{
-        "default": {"ch4": "NAME_EUROPE_EDGAR-WetCHARTs_longrun_31sites",
-                    "n2o": "NAME_EUROPE_EDGAR_longrun_24sites",
+        "default": {"ch4": "NAME_EUROPE_EDGARWETCHARTS_31sites",
+                    "n2o": "NAME_EUROPE_EDGAR_26sites",
                     "sf6": "NAME_EUROPE_FLAT_std",
                     "hfc134a": "NAME_EUROPE_EDGAR",
                     "hfc143a": "NAME_EUROPE_EDGAR",

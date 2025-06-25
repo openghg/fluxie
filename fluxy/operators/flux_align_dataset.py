@@ -25,10 +25,9 @@ def align_time(ds_list: list[xr.Dataset]) -> list[xr.Dataset]:
     period = np.median(dtime)
 
     # Reduce datasets to their overlapping time range
-    if np.unique([ds.time.size for ds in ds_list]).size != 1:
-        min_date = max([x.time.min() for x in ds_list]) - period / 2
-        max_date = min([x.time.max() for x in ds_list]) + period / 2
-        ds_list = [ds.sel(time=slice(min_date, max_date)) for ds in ds_list]
+    min_date = max([x.time.min() for x in ds_list]) - period / 2
+    max_date = min([x.time.max() for x in ds_list]) + period / 2
+    ds_list = [ds.sel(time=slice(min_date, max_date)) for ds in ds_list]
 
     aligned_ds_list = [ds_list[0]]
 
