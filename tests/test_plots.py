@@ -123,9 +123,6 @@ def test_flux_timeseries():
     plot_resample_and_original = False
     annex_mode = False
     rolling_mean = False
-
-    from matplotlib import __version__ as matplotlib_version
-    print(float(matplotlib_version[:3]))
     
     fig = plot_country_flux(
         ds_all_flux_scaled,
