@@ -98,6 +98,7 @@ def slice_mf(
     end_date: str = None,
     site: str = None,
     baseline_site: str = None,
+    baseline_filename: str = "InTEM_baseline_timestamps",
     data_dir: os.PathLike | None = None,
     mf_units_print: str = None,
     keep_unassimilated: bool = False,
@@ -140,6 +141,7 @@ def slice_mf(
 
     # Get logical array with baseline timestamps
     if baseline_site is not None:
+        
         if data_dir is None:
             raise ValueError(
                 "Baseline site is set, but no data_dir provided. "
@@ -148,8 +150,8 @@ def slice_mf(
         data_dir = Path(data_dir)
         baseline_file = (
             data_dir
-            / "intem_baseline_timestamps"
-            / f"{baseline_site}_InTEM_baseline_timestamps.nc"
+            / "baseline_timestamps"
+            / f"{baseline_site}_{baseline_filename}.nc"
         )
 
         # Check if files exists
@@ -217,8 +219,8 @@ def slice_mf(
             b_masked = b.sel(time=b["time"][np.where(b["baseline"] == 1.0)])
 
             # mask dataset using only baseline times
-            both_times = np.isin(ds_all[m].time, b_masked.time)
-            ds_all[m] = ds_all[m].sel(time=both_times)
+            ds_all[m] = ds_all[m].where(ds_all[m].time.isin(b_masked.time),
+                                        drop=True)
 
     return ds_all
 

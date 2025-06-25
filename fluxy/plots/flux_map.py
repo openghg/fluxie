@@ -41,6 +41,7 @@ def plot_flux_map(
     plot_inversion_grid_flux: bool = False,
     zoom_degree: float = 1,
     only: Literal["posterior", "prior", "diff"] | None = None,
+    fallback_sites: list[str] | None = None,
 ) -> plt.Figure:
     """
     Plot posterior and prior fluxes and the difference between them for all models, time averaged.
@@ -86,6 +87,9 @@ def plot_flux_map(
             Value added to the latitude and longitude bounds of the plot.
             Positive values expand the plot area, while negative values zoom in by reducing the bounds.
             Example: `zoom_degree=1` adds 1 degree to the bounds, while `zoom_degree=-1` subtracts 1 degree.
+        fallback_sites (list[str] | None):
+            A list of site names to use as a fallback if 'sites' is not found in the datasets.
+            If None, the first available 'sites' in the datasets will be used as fallback.
 
     Returns:
         fig (figure):
@@ -125,7 +129,7 @@ def plot_flux_map(
     country_lines = compute_boundary_geometry(map_bounds)
     species_info = config_data.get("species_info", {}).get(species, {})
     sites_info = (
-        get_sites_coordinates(ds_all, config_data) if add_sites else ""
+        get_sites_coordinates(ds_all, config_data, fallback_sites) if add_sites else ""
     )  # TODO move in the for loop once the info comes from the concentration files
 
     # Set flux limits #TODO Based on posterior, is this the right way to do?
@@ -237,6 +241,7 @@ def plot_flux_map_model_comparison(
     set_fluxlim: str | tuple = "auto",
     set_fluxlim_percentile: float = None,
     zoom_degree: float = 1,
+    fallback_sites: list[str] | None = None,
 ) -> plt.Figure:
     """
     Plot a given flux variable for two models and the difference between them.
@@ -286,6 +291,9 @@ def plot_flux_map_model_comparison(
             Value added to the latitude and longitude bounds of the plot.
             Positive values expand the plot area, while negative values zoom in by reducing the bounds.
             Example: `zoom_degree=1` adds 1 degree to the bounds, while `zoom_degree=-1` subtracts 1 degree.
+        fallback_sites (list[str] | None):
+            A list of site names to use as a fallback if 'sites' is not found in the datasets.
+            If None, the first available 'sites' in the datasets will be used as fallback.
     Returns:
         fig (figure):
             Three maps of a target flux variable of the first and second models and the diffence between both.
@@ -322,7 +330,7 @@ def plot_flux_map_model_comparison(
     country_lines = compute_boundary_geometry(map_bounds)
     species_info = config_data["species_info"][species]
     sites_info = (
-        get_sites_coordinates(ds_dict, config_data) if add_sites else ""
+        get_sites_coordinates(ds_dict, config_data, fallback_sites) if add_sites else ""
     )  # TODO move in the for loop once the info comes from the concentration files
 
     # Set flux limits
@@ -427,6 +435,7 @@ def plot_flux_map_over_time(
     set_fluxlim: str | tuple = "auto",
     set_fluxlim_percentile: float = None,
     zoom_degree: float = 1,
+    fallback_sites: list[str] | None = None,
 ) -> plt.Figure:
     """
     Plot a given flux variable averaged over specific time intervals, for all models or the model mean.
@@ -475,6 +484,9 @@ def plot_flux_map_over_time(
             Value added to the latitude and longitude bounds of the plot.
             Positive values expand the plot area, while negative values zoom in by reducing the bounds.
             Example: `zoom_degree=1` adds 1 degree to the bounds, while `zoom_degree=-1` subtracts 1 degree.
+        fallback_sites (list[str] | None):
+            A list of site names to use as a fallback if 'sites' is not found in the datasets.
+            If None, the first available 'sites' in the datasets will be used as fallback.
     Returns:
         fig (figure):
             A plot of spatial flux of the variable specified in var
@@ -510,7 +522,7 @@ def plot_flux_map_over_time(
     country_lines = compute_boundary_geometry(map_bounds)
     species_info = config_data.get("species_info", {}).get(species, {})
     sites_info = (
-        get_sites_coordinates(ds_all, config_data) if add_sites else ""
+        get_sites_coordinates(ds_all, config_data, fallback_sites) if add_sites else ""
     )  # TODO move in the for loop once the info comes from the concentration files
 
     # Set flux limits

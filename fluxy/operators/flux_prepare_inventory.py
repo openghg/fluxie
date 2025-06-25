@@ -15,7 +15,8 @@ def retrieve_inventories(
     unit: str,
     s_data: dict[str, dict],
     r_data: dict[str, dict],
-    inventory_years: list[str] | list[float] | str | float | None = None,
+    inventory_years: list[str] | None,
+    inventory_filename: str,
 ) -> list[xr.Dataset]:
     """
     Load (in a list) inventories data to be plotted.
@@ -29,11 +30,12 @@ def retrieve_inventories(
         s_data: Dictionary of species with information for plotting (read from json file).
         r_data: Dictionary with country and region names (read from json file).
         inventory_years: List of inventory data from different years to include. If None, only plots the most recent inventory data.
-
+        inventory_filename: Name of inventory file: {inventory_filename}_{species}_{inventory_year}
     Returns:
         inventories_list : list of inventory data to be plotted.
 
     """
+    
     inventories_list = list()
 
     if not isinstance(inventory_years, list):
@@ -44,7 +46,14 @@ def retrieve_inventories(
 
     for year, inv_color in zip(inventory_years, inv_colors):
         ds_inv = extract_region_inventory_flux(
-            data_dir, country, species, unit, s_data, r_data, inventory_year=year
+            data_dir,
+            country,
+            species,
+            unit,
+            s_data,
+            r_data,
+            inventory_year=year,
+            inventory_filename=inventory_filename
         )
         ds_inv.attrs["plot_color"] = inv_color
         inventories_list.append(ds_inv.sel(time=slice(start_date, end_date)))

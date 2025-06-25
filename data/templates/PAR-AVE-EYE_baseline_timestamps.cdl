@@ -1,0 +1,23 @@
+// 
+// placeholders to be replaced in long_name attributes and variable names
+// <site>:	  3-letter site code in upper case (e.g. MHD, JFJ)
+// <source>:  source of baseline information (e.g. InTEM)
+netcdf <site>_<source>_baseline_timestamps {
+dimensions:
+	time = 153408 ;     // mandatory
+variables:
+	double baseline(time) ;     // mandatory
+		baseline:_FillValue = NaN ;
+		baseline:longname = "Timestamps defined as baseline" ;
+		baseline:unit = "If 1 time is baseline, if 0 time is not baseline" ;
+	double time(time) ;     // mandatory
+		time:units = "days since 1970-01-01 01:00:00" ;
+		time:calendar = "proleptic_gregorian" ;
+		time:standard_name = "time" ;
+		time:long_name = "time of mid of observation interval; UTC" ;
+// global attributes:
+		:site = "<site>" ;
+		:creation_date = "Processed at time 2025-06-17 09:28:12.682744" ;
+		:creator = "Alice Ramsden" ;
+        :note = "Info on source, e.g. NAME sensitivity"
+}

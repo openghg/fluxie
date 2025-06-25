@@ -164,6 +164,7 @@ def plot_country_flux(
     annex_mode: bool = False,
     plot_inventory: bool = True,
     inventory_years: list[str] | None = None,
+    inventory_filename: str = 'UNFCCC_inventory',
     data_dir: str | None = None,
     fix_y_axes: bool = False,
     add_prior: bool = True,
@@ -195,6 +196,7 @@ def plot_country_flux(
         scale_co2eq: If True, adapt y-axis label to CO2-eq.
         plot_inventory: If True, plots inventory flux estimates as bars in each plot.
         inventory_years: List of inventory data from different years to include. If None, only plots the most recent inventory data.
+        inventory_filename: Name of inventory file: {inventory_filename}_{species}_{inventory_year}
         data_dir: Path to top data directory, used to read inventory data files.
         fix_y_axes: If True, uses a consistent y axis for all plots.
         add_prior: If True, plots prior as dashed lines.
@@ -279,6 +281,7 @@ def plot_country_flux(
                 s_data,
                 r_data,
                 inventory_years,
+                inventory_filename
             )
             for i_inv, inventory in enumerate(inventories_to_plot):
                 ax.bar(
