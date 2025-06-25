@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-from config_annex_plot import Annex_config
+from config_annex_plot import AnnexConfig
 
 from pathlib import Path
 
@@ -159,7 +159,7 @@ def produce_plots(
         "Each team should check that the right files are used. Still to be checked by RHIME, ELRIS, InTEM."
     )
     config_data = read_config_files()
-    annex_config_data = Annex_config(region, inventory_years)
+    annex_config_data = AnnexConfig(region, inventory_years)
     annual_res_list = list()
 
     # Converting output_path into pathlib.Path object
