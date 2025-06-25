@@ -461,9 +461,24 @@ def get_map_bounds(
 
     
     """
+    ds_all = list(ds_all)
     if isinstance(region, str):
+        # Use the non-zero country_fraction to define the clipping region, for coherence in the country definition
+        if len(ds_all) > 0 and "country_fraction" in ds_all[0]:
+            da_mask = ds_all[0].country_fraction.sum(dim="country")
+            clipped = da_mask.where(da_mask!=0).dropna(dim = "longitude", how = "all").dropna(dim = "latitude", how = "all")
+            clip_region = [clipped.longitude.values.min(),
+                        clipped.latitude.values.min(),
+                        clipped.longitude.values.max(),
+                        clipped.latitude.values.max(),
+                        ]
+        else:
+            clip_region = None
+
         map_bounds = get_region_coordinates(
-            region, config_data.get("regions_info",{}), zoom_degree=zoom_degree
+            region, config_data.get("regions_info",{}), 
+            zoom_degree = zoom_degree,
+            clip_region = clip_region
         )
     elif isinstance(region, (list, tuple)) and all(
         isinstance(coord, (int, float)) for coord in region
@@ -487,6 +502,7 @@ def get_region_coordinates(
     region_name: str,
     regions_info: dict[str, str],
     zoom_degree: float = 1,
+    clip_region: list[float] = None,
 ) -> tuple[float, float, float, float]:
     """
     Get the bounding coordinates of a specified region with an option to zoom in/out.
@@ -498,6 +514,10 @@ def get_region_coordinates(
             Dictionary with country and region names (read from json file).
         zoom_degree (float):
             The number of degrees to zoom in/out from the bounding box. Default is 1.
+        clip_region (list[float]):
+            Coordinates ([min_lon, min_lat, max_lon, max_lat]) use to restrict the boundaries of the region.
+            For example, if the focus is on France and clip_region is the extent of continental Europe, overseas territory 
+            (Reunion, Mayotte,...) won't be included; if no clip region is provided, they will be included. 
 
     Returns:
         region_coordinates (tuple):
@@ -544,10 +564,9 @@ def get_region_coordinates(
     if region.empty:
         raise ValueError(f"No coordinates found for region '{region_name}'.")
 
-    # Remove overseas territories by keeping only the largest landmass for each country
-    region["geometry"] = region["geometry"].apply(
-        lambda geom: extract_largest_polygon(geom)
-    )
+    # Restrict to clip_region
+    if clip_region:
+        region = gpd.clip(region,clip_region)
 
     # Get the bounding box of the region of interest
     region_boundaries = region.total_bounds  # [minx, miny, maxx, maxy]
@@ -560,31 +579,6 @@ def get_region_coordinates(
 
     region_coordinates = (lon_min, lon_max, lat_min, lat_max)
     return region_coordinates
-
-
-def extract_largest_polygon(
-    geometry: MultiPolygon | Polygon,
-) -> Polygon:
-    """
-    Extract the largest polygon from a geometry object (e.g., MultiPolygon or Polygon).
-
-    Args:
-        geometry (MultiPolygon, Polygon):
-            Geometry object to process.
-
-    Returns:
-        Polygon:
-            Largest polygon from the geometry.
-    """
-    if isinstance(geometry, MultiPolygon):
-        # Use the .geoms attribute to access the Polygons in the MultiPolygon
-        return max(geometry.geoms, key=lambda p: p.area)
-    elif isinstance(geometry, Polygon):
-        # Single Polygon, return as is
-        return geometry
-    else:
-        # Handle invalid or unexpected geometries
-        return None
 
 
 def compute_boundary_geometry(map_bounds):

@@ -1,13 +1,18 @@
+import logging
+import os
+from datetime import timedelta
+from pathlib import Path
+
+import numpy as np
 import pandas as pd
 import xarray as xr
-import numpy as np
-import os
-from pathlib import Path
-import logging
 
 from fluxy.operators.convert import scale_variables
 
 logger = logging.getLogger(__name__)
+
+
+FrequencyType = timedelta | str | None
 
 
 def slice_flux(
@@ -177,15 +182,12 @@ def slice_mf(
 
         # Slice data according to site
         if site is not None:
-            site_index = get_site_index(ds_all[m], site)
-
-            if site_index is None:
-                logger.warning(f"No {m} obs found for {site}.")
+            try:
+                ds_all[m] = slice_site(ds_all[m], site)
+            except ValueError as e:
+                logger.warning(f"Error slicing site {site} from {m}: {e}")
                 ds_all.pop(m)
                 continue
-
-            mask_site = ds_all[m]["number_of_identifier"] == site_index
-            ds_all[m] = ds_all[m].where(mask_site, drop=True)
 
         if len(ds_all[m]["time"]) == 0:
             # Remove model if no data left after time slicing
@@ -215,6 +217,31 @@ def slice_mf(
             ds_all[m] = ds_all[m].sel(time=both_times)
 
     return ds_all
+
+
+def slice_site(ds: xr.Dataset, site: str) -> xr.Dataset:
+    """
+    Slices the dataset to only include data for a given site.
+
+    Args:
+        ds (xarray dataset):
+            Dataset with mf data of a given model.
+        site (str):
+            Site of interest.
+    Returns:
+        ds (xarray dataset):
+            Dataset with mf data of a given model, sliced to only include data for the given site.
+    """
+
+    site_index = get_site_index(ds, site)
+
+    if site_index is None:
+        raise ValueError(f"Site {site} not found in dataset.")
+
+    mask = ds["number_of_identifier"] == site_index
+    ds = ds.where(mask, drop=True)
+
+    return ds
 
 
 def get_site_index(ds: xr.Dataset, site: str) -> int | None:
@@ -258,3 +285,81 @@ def get_unique_sites(ds_all: dict[str, xr.Dataset]) -> list[str]:
     sites = np.sort(np.unique(sites))
 
     return sites
+
+
+def clean_timeseries_missing_data(
+    ds: xr.Dataset,
+    min_freq: FrequencyType = None,
+    variables_nans: list[str] = [],
+) -> xr.Dataset:
+    """Reorganise nan values in dataset based on time.
+
+    Removes or add NaN from dataset (originated from data gaps and the process of reshaping).
+    Adds back in NaN related to data gaps.
+
+    Args:
+        ds (xarray dataset):
+            Original dataset with mf data.
+        min_freq (str, optional):
+            Minimum frequency of the time series, e.g. '1h' for hourly data.
+            If provided, will add NaN values to the dataset to fill in gaps.
+            If None, a default frequency will be used based on the median time difference.
+            This can be given either as a string compatible with pandas frequency strings
+            or as a timedelta object.
+    Returns:
+        ds (xarray dataset):
+            Modified dataset with NaN in data gaps.
+    """
+
+    #  Ensure that the dataset is sorted by time
+    ds = ds.sortby("time")
+    # Remove all NaN from dataset
+    ds = ds.dropna(dim="index", subset=variables_nans)
+
+    # Add values to index if not already present
+    ds["index"] = ("index", np.arange(len(ds["index"])))
+
+    # Define threshold for data gap
+    time = ds.time.values
+    dtime = np.diff(time)
+
+    if min_freq is None:
+        # Calcuate a minimum frequency based on the median time difference
+        # between data points, assuming that the median is a good representation
+        # of the time difference between data points.
+        min_freq = np.median(dtime)
+    elif isinstance(min_freq, str):
+        # From pandas freq string
+        min_freq = pd.to_timedelta(min_freq).to_numpy().astype(dtime.dtype)
+    else:
+        # Comvert timedelta to numpy timedelta64 for consistency
+        min_freq = np.timedelta64(min_freq).astype(dtime.dtype)
+
+    # Check for data gaps
+    if np.all(dtime <= min_freq):
+        return ds
+
+    logger.info(
+        f"Adding NaN between data gaps using dt={min_freq.astype('timedelta64[h]')}."
+    )
+    new_times = []
+
+    wrong_times = time[np.where(dtime > min_freq)[0]]
+    new_times = wrong_times + min_freq
+
+    max_index = len(ds.index.values)
+
+    new_indices = np.concatenate(
+        [
+            ds.index.values.tolist(),
+            np.arange(max_index, max_index + len(new_times), dtype=int),
+        ]
+    )
+    # Set all values to nan
+    ds = ds.reindex(index=new_indices)
+    # Assign times to the new indices
+    ds["time"] = ("index", np.concatenate([time, new_times]))
+    # Sort the dataset by time again
+    ds = ds.sortby("time")
+
+    return ds

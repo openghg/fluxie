@@ -1,9 +1,12 @@
+from datetime import timedelta
 import itertools
 
 import pytest
 
+import xarray as xr
+import pandas as pd
 from fluxy.operators.mf import compute_mf_difference, stats_mf
-from fluxy.operators.select import slice_flux, slice_mf
+from fluxy.operators.select import slice_flux, slice_mf, clean_timeseries_missing_data
 from fluxy.test_utils.models import get_loaded_models, test_models
 
 ds_all_mf = get_loaded_models("concentration")
@@ -56,3 +59,44 @@ def test_stats_mf(stat):
         ds_all_mf,
         stats_type=stat,
     )
+
+
+ds_test = xr.Dataset(
+    {
+        "var1": (["index"], [1, 2, None, 4, 5]),
+        "var2": (["index"], [None, 2, None, None, 5]),
+    },
+    coords={
+        "time": ("index", pd.date_range("2020-01-01", periods=5, freq="D")),
+    },
+)
+
+
+def test_clean_timeseries_missing_data():
+
+    ds_out = clean_timeseries_missing_data(ds_test)
+    # Missing days should have been replaced
+    assert len(ds_out.time) == 5
+
+
+def test_clean_timeseries_missing_data_with_freq_pd():
+
+    ds_out = clean_timeseries_missing_data(ds_test, min_freq="1D")
+    # Missing days should have been replaced
+    assert len(ds_out.time) == 5
+
+
+def test_clean_timeseries_missing_data_with_freq_timedelta():
+
+    ds_out = clean_timeseries_missing_data(ds_test, min_freq=timedelta(days=1))
+    # Missing days should have been replaced
+    assert len(ds_out.time) == 5
+
+
+def test_clean_timeseries_missing_data_removed():
+
+    ds_out = clean_timeseries_missing_data(
+        ds_test, min_freq="10D", variables_nans=["var2"]
+    )
+    # Missing days should have been removed
+    assert len(ds_out.time) == 2

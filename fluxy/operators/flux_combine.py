@@ -25,6 +25,8 @@ def combine_dataset(
             "prior": ds_combined["prior"].mean(dim="model"),
             "posterior_lower": ds_combined["posterior_lower"].min(dim="model"),
             "posterior_upper": ds_combined["posterior_upper"].max(dim="model"),
+            "prior_lower": ds_combined["prior_lower"].min(dim="model"),
+            "prior_upper": ds_combined["prior_upper"].max(dim="model")
         }
     )
     return {"combined": ds_output}

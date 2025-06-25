@@ -796,4 +796,7 @@ def edit_vars_and_attributes(
                 coords=ds["platform"].coords,
             )
 
+            # Fill intake_height and stdev_mf_model with fake values
+            ds["intake_height"][:] = 0
+            ds["stdev_mf_model"][:] = 0
     return ds

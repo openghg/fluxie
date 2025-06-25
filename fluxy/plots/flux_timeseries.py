@@ -389,15 +389,22 @@ def plot_country_flux(
         ax.grid(visible=True, which="major", alpha=0.4)
 
     # set xticks
-    if max_x.astype("datetime64[Y]") != max_x:
-        max_x = max_x.astype("datetime64[Y]") + np.timedelta64(366, "D")
-    min_x = min_x.values.astype("datetime64[Y]")
-    max_x = max_x.values.astype("datetime64[Y]")
-    xlim = [min_x - np.timedelta64(60, "D"), max_x + np.timedelta64(60, "D")]
+    year_range = max_x.dt.year.values - min_x.dt.year.values
+    min_x, max_x = min_x.values, max_x.values
+    if "yearly" in [ds.attrs["frequency"] for ds in ds_to_plot.values()] \
+        or resample == "year":
+        min_x = min_x.astype("datetime64[Y]")
+        max_x = max_x.astype("datetime64[Y]") + np.timedelta64(1, "Y")
+    xlim = [min_x - (max_x-min_x)/50, max_x + (max_x-min_x)/50]
 
-    if max_x - min_x > np.timedelta64(8, "Y"):
-        step = int(max_x - min_x) // 8 + 1
+    # if max_x - min_x > np.timedelta64(8, "Y"):
+    if year_range > 8:
+        max_x = max_x.astype("datetime64[Y]")
+        min_x = min_x.astype("datetime64[Y]")
+        step = int(year_range) // 8 + 1
         xticks = np.arange(min_x, max_x, step=np.timedelta64(step, "Y"))
+        if (max_x-min_x)%np.timedelta64(step, "Y")==0:
+            xticks = np.append(xticks,max_x)
         ax.set_xticks(xticks)
         ax.set_xticklabels(xticks.astype("datetime64[Y]"))
         ax.xaxis.set_major_locator(YearLocator())
