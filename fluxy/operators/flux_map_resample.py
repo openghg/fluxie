@@ -176,8 +176,13 @@ def average_over_seasons(
     ordered_seasons = [s for s in desired_order if s in ds_avg.time.values]
     ds_avg = ds_avg.sel(time=ordered_seasons)
 
-    time_labels = ["Dec -> Feb", "Mar -> May", "Jun -> Aug", "Sep -> Nov"]
-    return ds_avg, time_labels
+    time_labels = {
+        "DJF": "Dec - Feb",
+        "MAM": "Mar - May",
+        "JJA": "Jun - Aug",
+        "SON": "Sep - Nov",
+    }
+    return ds_avg, [time_labels[s] for s in ordered_seasons]
 
 
 def average_over_years(
