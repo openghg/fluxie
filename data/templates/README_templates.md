@@ -116,10 +116,10 @@ Characterising variables: same as for the concentration file.
 | stdev_ecflux_posterior | μmol m-2 s-1 | index      | Standard deviation of posterior simulated eddy covariance fluxes due to state vector uncertainty |
 | footprint_coverage_fraction | -            | index      | Fraction of the footprint covered by the model grid cell (max 1, min 0)                                         |
 | *Sectorial based fluxes*
-| ecflux_prior_sectorial | μmol m-2 s-1 | index, sector | Same as `ecflux_prior` but sectorial
-| ecflux_posterior_sectorial| μmol m-2 s-1 | index, sector | Same as `ecflux_posterior` but sectorial
-| stdev_ecflux_prior_sectorial | μmol m-2 s-1 | index, sector | Same as `stdev_ecflux_prior` but sectorial
-| stdev_ecflux_posterior_sectorial| μmol m-2 s-1 | index, sector | Same as `stdev_ecflux_posterior` but sectorial
+| ecflux_sectorial_prior | μmol m-2 s-1 | index, sector | Same as `ecflux_prior` but sectorial
+| ecflux_sectorial_posterior| μmol m-2 s-1 | index, sector | Same as `ecflux_posterior` but sectorial
+| stdev_ecflux_sectorial_prior | μmol m-2 s-1 | index, sector | Same as `stdev_ecflux_prior` but sectorial
+| stdev_ecflux_sectorial_posterior| μmol m-2 s-1 | index, sector | Same as `stdev_ecflux_posterior` but sectorial
 
 | Uncertainty variables | Units        | Dimensions | Description                                      |
 | :-------------------- | :----------- | :--------- | :----------------------------------------------- |
