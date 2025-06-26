@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.ticker import NullFormatter
 from matplotlib.dates import YearLocator, MonthLocator
-from matplotlib import __version__ as matplotlib_version
+from matplotlib import __version__ as mplt_version
 
 from fluxy import config
 from fluxy.operators.regions import extract_region_flux
@@ -164,7 +164,7 @@ def plot_country_flux(
     annex_mode: bool = False,
     plot_inventory: bool = True,
     inventory_years: list[str] | None = None,
-    inventory_filename: str = 'UNFCCC_inventory',
+    inventory_filename: str = "UNFCCC_inventory",
     data_dir: str | None = None,
     fix_y_axes: bool = False,
     add_prior: bool = True,
@@ -281,7 +281,7 @@ def plot_country_flux(
                 s_data,
                 r_data,
                 inventory_years,
-                inventory_filename
+                inventory_filename,
             )
             for i_inv, inventory in enumerate(inventories_to_plot):
                 ax.bar(
@@ -383,9 +383,16 @@ def plot_country_flux(
             ncol = len(ds_to_plot) + 1 if annex_mode else 2
             leg = ax.legend(ncol=ncol, borderpad=0.4, columnspacing=1.0)
 
-            handle_name = "legend_handles" if float(matplotlib_version[:3]) > 3.0 else "legendHandles"
-            for l in leg.__getattribute__(handle_name)[: (-1 if plot_inventory else None)]:
-            # for l in leg.legendHandles[: (-1 if plot_inventory else None)]:
+            handle_name = (
+                "legend_handles"
+                if int(mplt_version.split(".")[0]) >= 3
+                and int(mplt_version.split(".")[1]) >= 7
+                else "legendHandles"
+            )
+            for l in leg.__getattribute__(handle_name)[
+                : (-1 if plot_inventory else None)
+            ]:
+                # for l in leg.legendHandles[: (-1 if plot_inventory else None)]:
                 l.set_linewidth(3.0)
 
         # set title
