@@ -54,21 +54,25 @@ def slice_flux(
             xarray datasets, scaled, converted, and sliced between chosen dates.
 
     """
+    ds_all_sliced = dict()
 
     if species is not None:
         species_info = config_data["species_info"][species]
 
     if type(start_date) is str:
         start_date = [start_date] * len(ds_all.keys())
+    if type(end_date) is str:
         end_date = [end_date] * len(ds_all.keys())
 
     for im, m in enumerate(ds_all.keys()):
         logger.info(f"Masking data from {m}.")
 
         # Slice data according to time window
-        ds_all[m] = ds_all[m].sel(time=slice(start_date[im], end_date[im]))
+        ds_all_sliced[m] = (
+            ds_all[m].sel(time=slice(start_date[im], end_date[im])).copy()
+        )
 
-        if len(ds_all[m]["time"]) == 0:
+        if len(ds_all_sliced[m]["time"]) == 0:
             logger.warning(
                 f"No {m} fluxes found between {start_date[im]} and {end_date[im]}."
             )
@@ -77,15 +81,15 @@ def slice_flux(
 
         # Scale fluxes
         if species is not None:
-            ds_all[m] = scale_variables(
+            ds_all_sliced[m] = scale_variables(
                 m,
-                ds_all[m],
+                ds_all_sliced[m],
                 species_info,
                 flux_unit=flux_units_print,
                 country_flux_unit=country_flux_units_print,
             )
 
-    return ds_all
+    return ds_all_sliced
 
 
 def slice_mf(
@@ -94,6 +98,7 @@ def slice_mf(
     end_date: str = None,
     site: str = None,
     baseline_site: str = None,
+    baseline_filename: str = "InTEM_baseline_timestamps",
     data_dir: os.PathLike | None = None,
     mf_units_print: str = None,
     keep_unassimilated: bool = False,
@@ -136,6 +141,7 @@ def slice_mf(
 
     # Get logical array with baseline timestamps
     if baseline_site is not None:
+        
         if data_dir is None:
             raise ValueError(
                 "Baseline site is set, but no data_dir provided. "
@@ -144,8 +150,8 @@ def slice_mf(
         data_dir = Path(data_dir)
         baseline_file = (
             data_dir
-            / "intem_baseline_timestamps"
-            / f"{baseline_site}_InTEM_baseline_timestamps.nc"
+            / "baseline_timestamps"
+            / f"{baseline_site}_{baseline_filename}.nc"
         )
 
         # Check if files exists
@@ -213,8 +219,8 @@ def slice_mf(
             b_masked = b.sel(time=b["time"][np.where(b["baseline"] == 1.0)])
 
             # mask dataset using only baseline times
-            both_times = np.isin(ds_all[m].time, b_masked.time)
-            ds_all[m] = ds_all[m].sel(time=both_times)
+            ds_all[m] = ds_all[m].where(ds_all[m].time.isin(b_masked.time),
+                                        drop=True)
 
     return ds_all
 

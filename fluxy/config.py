@@ -19,8 +19,9 @@ bel_pop_r = np.round(np.mean(bel_pop / (bel_pop + lux_pop)), 3)
 mf_labels = {
     "mf_prior": "prior",
     "mf_posterior": "posterior",
-    "YaprioriBC": "prior baseline",
+    "mf_bc_prior": "prior baseline",
     "mf_bc_posterior": "posterior baseline",
+    "mf_bias_prior": "prior bias",
     "mf_bias_posterior": "posterior bias",
     "mf_outer_prior": "prior outer region mf",
     "mf_outer_posterior": "posterior outer region mf",
@@ -34,9 +35,9 @@ mf_labels = {
 mf_color_index = {
     "mf_prior": 1,
     "mf_posterior": 0,
-    "YaprioriBC": 1,
+    "mf_bc_prior": 1,
     "mf_bc_posterior": 0,
-    "Yapriori_bias": 1,
+    "mf_bias_prior": 1,
     "mf_bias_posterior": 0,
     "mf_outer_prior": 1,
     "mf_outer_posterior": 0,

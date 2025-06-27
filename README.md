@@ -21,7 +21,7 @@ Data format must be in agreement with the PARIS-AVENGERS-EYECLIMA template avail
 
 Please note that the filenames should follow the following format:  
 - Flux file: `<inversionModel>_<optional_identifying_tags>_<species>_<inversionFrequency>.nc`  
-- Concentration file: `<inversionModel>_<optional_identifying_tags>_<species>_<inversionFrequency>_concentration.nc`  
+- Concentration file: `<inversionModel>_<optional_identifying_tags>_<species>_<inversionFrequency>_concentration.nc`
 
 `<inversionFrequency>` should be equal to "yearly" or "monthly".
 
@@ -92,8 +92,8 @@ Data format must be in agreement with the PARIS-AVENGERS-EYECLIMA template for i
 
 ### 7. netCDF file with baseline timestamps (optional)
 
-The files with baseline timestamps must be in the following location: `/path/to/data/<baseline_identifier>/`  
-The filenames should follow the following format: `<stationID>_<baseline_identifier>.nc` (e.g. "JFJ_InTEM_baseline_timestamps.nc")  
+The files with baseline timestamps must be in the following location: `/path/to/data/baseline_timestamps/`  
+The filenames should follow the following format: `<stationID>_<baseline_identifier>_baseline_timestamps.nc` (e.g. "JFJ_InTEM_baseline_timestamps.nc")  
 Data format must be in agreement with the PARIS-AVENGERS-EYECLIMA template for baseline timestamp files.
 
 ## Run the notebook

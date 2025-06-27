@@ -26,17 +26,22 @@ def get_flux_mean(
             The computed mean flux, either over the entire time period or for the specified season.
     """
     if season is None:
-        return data.mean(dim="time")
+        ds_output = data.mean(dim="time", keep_attrs=True)
 
-    # Group by season and check if the given season exists
-    seasonal_means = data.groupby("time.season", restore_coord_dims=True).mean(
-        dim="time"
-    )
+    else:
+        # Group by season and check if the given season exists
+        seasonal_means = data.groupby("time.season", restore_coord_dims=True).mean(
+            dim="time"
+        )
 
-    if season not in seasonal_means.season.values:
-        raise ValueError(f"Season '{season}' not found in the dataset.")
+        if season not in seasonal_means.season.values:
+            raise ValueError(f"Season '{season}' not found in the dataset.")
 
-    return seasonal_means.sel(season=season)
+        ds_output = seasonal_means.sel(season=season)
+    ds_output.attrs["start_date"] = data.time.values.min()
+    ds_output.attrs["end_date"] = data.time.values.max()
+
+    return ds_output
 
 
 def average_over_dates_list(
@@ -171,8 +176,13 @@ def average_over_seasons(
     ordered_seasons = [s for s in desired_order if s in ds_avg.time.values]
     ds_avg = ds_avg.sel(time=ordered_seasons)
 
-    time_labels = ds_avg.time.values.tolist()
-    return ds_avg, time_labels
+    time_labels = {
+        "DJF": "Dec - Feb",
+        "MAM": "Mar - May",
+        "JJA": "Jun - Aug",
+        "SON": "Sep - Nov",
+    }
+    return ds_avg, [time_labels[s] for s in ordered_seasons]
 
 
 def average_over_years(
@@ -199,7 +209,7 @@ def average_over_years(
             Labels for each period (e.g., "2020", "2020—2022").
     """
 
-    groups = ds.time.dt.year // N
+    groups = (ds.time.dt.year - ds.time.dt.year.min()) // N
     ds_avg = ds.groupby(groups, restore_coord_dims=True).mean(dim="time")
     ds_avg = ds_avg.rename({"year": "time"})
 

@@ -12,6 +12,7 @@ def align_time(ds_list: list[xr.Dataset]) -> list[xr.Dataset]:
     Returns:
         aligned_ds_list: list of xarray datasets time-aligned
     """
+
     time_dim_equal = [ds_list[0].time.equals(x.time) for x in ds_list[1:]]
 
     if all(time_dim_equal):
@@ -22,6 +23,11 @@ def align_time(ds_list: list[xr.Dataset]) -> list[xr.Dataset]:
     if any(abs(dtime - np.median(dtime)) > 0.1 * np.median(dtime)):
         raise ValueError("Unable to infer period from dataset")
     period = np.median(dtime)
+
+    # Reduce datasets to their overlapping time range
+    min_date = max([x.time.min() for x in ds_list]) - period / 2
+    max_date = min([x.time.max() for x in ds_list]) + period / 2
+    ds_list = [ds.sel(time=slice(min_date, max_date)) for ds in ds_list]
 
     aligned_ds_list = [ds_list[0]]
 
@@ -83,20 +89,25 @@ def align_lat_lon(
     return aligned_ds_list
 
 
-def align_map_data(ds_all: dict[xr.Dataset]) -> dict[xr.Dataset]:
+def align_map_data(
+    ds_all: dict[xr.Dataset | xr.DataArray],
+) -> dict[xr.Dataset | xr.DataArray]:
     """
-    Prepare flux datasets for flux maps by filtering variables, removing unused dimensions, and aligning time and spatial coordinates.
+    Prepare flux datasets/dataarray for flux maps by filtering variables, removing unused dimensions, and aligning time and spatial coordinates.
 
     Args:
-        ds_all (dict[xr.Dataset]):
-            Dictionary of model names and corresponding xarray datasets.
+        ds_all (dict[xr.Dataset | xr.DataArray]):
+            Dictionary of model names and corresponding xarray Datasets/DataArrays.
 
     Returns:
-        dict[xr.Dataset]:
-            Aligned datasets, after removing non-geographic variables.
+        dict[xr.Dataset | xr.DataArray]:
+            Aligned Datasets/DataArrays, after removing non-geographic variables.
     """
 
     for key, ds in ds_all.items():
+        if isinstance(ds, xr.DataArray):
+            continue
+        # Applied only if Dataset and not DataArray
         # Step 1: Remove variables without 'time', 'latitude' and 'longitude'
         ds = ds.drop_vars(
             [

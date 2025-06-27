@@ -3,7 +3,7 @@ import xarray as xr
 
 def define_var_plot(
     ds: xr.Dataset,
-    var: str,
+    var: str | list[str],
 ) -> xr.DataArray:
     """
     Define the variable to be plotted based on the specified `var` string.
@@ -24,22 +24,35 @@ def define_var_plot(
         var_plot (xarray.DataArray):
             The variable or computed difference to be plotted.
     """
+    if not isinstance(var, list):
+        var = [var]
 
-    if var == "posterior_prior_diff":
-        var_plot = ds["flux_total_posterior"] - ds["flux_total_prior"]
-    elif var == "posterior_mean_diff":
-        var_plot = ds["flux_total_posterior"] - ds["flux_total_posterior"].mean(
-            dim="time"
-        )
-    elif var == "posterior_prior_diff_inversion_grid":
-        var_plot = ds["flux_total_posterior_inversion_grid"] - ds["flux_total_prior"]
-    elif var == "posterior_mean_diff_inversion_grid":
-        var_plot = ds["flux_total_posterior_inversion_grid"] - ds[
-            "flux_total_posterior_inversion_grid"
-        ].mean(dim="time")
-    else:
-        if var not in ds:
-            raise ValueError(f"'{var}' not found in dataset(s)")
-        var_plot = ds[var]
+    ds_output = xr.Dataset()
+    for var_p in var:
+        unit_var = "flux_total_posterior"
 
-    return var_plot
+        if var_p == "posterior_prior_diff":
+            ds_output[var_p] = ds["flux_total_posterior"] - ds["flux_total_prior"]
+        elif var_p == "posterior_mean_diff":
+            ds_output[var_p] = ds["flux_total_posterior"] - ds[
+                "flux_total_posterior"
+            ].mean(dim="time")
+        elif var_p == "posterior_prior_diff_inversion_grid":
+            ds_output[var_p] = (
+                ds["flux_total_posterior_inversion_grid"] - ds["flux_total_prior"]
+            )
+        elif var_p == "posterior_mean_diff_inversion_grid":
+            ds_output[var_p] = ds["flux_total_posterior_inversion_grid"] - ds[
+                "flux_total_posterior_inversion_grid"
+            ].mean(dim="time")
+        else:
+            if var_p not in ds:
+                raise ValueError(f"'{var_p}' not found in dataset(s)")
+            ds_output[var_p] = ds[var_p]
+            unit_var = var_p
+
+        ds_output[var_p].attrs["units"] = ds[unit_var].attrs.get("units")
+
+    ds_output.attrs = ds.attrs
+
+    return ds_output

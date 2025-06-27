@@ -123,7 +123,7 @@ def test_flux_timeseries():
     plot_resample_and_original = False
     annex_mode = False
     rolling_mean = False
-
+    
     fig = plot_country_flux(
         ds_all_flux_scaled,
         species,
