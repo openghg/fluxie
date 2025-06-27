@@ -1,4 +1,6 @@
+import itertools
 import numpy as np
+import pandas as pd
 import xarray as xr
 import geopandas as gpd
 import logging
@@ -8,6 +10,7 @@ from shapely.geometry import MultiPolygon, Polygon
 from typing import Literal
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib.collections import LineCollection
+import matplotlib.pyplot as plt
 from copy import deepcopy
 
 from fluxy import config
@@ -778,3 +781,52 @@ def define_map_figsize(
         fig_height = n_rows * subplot_height
 
     return (fig_width, fig_height)
+
+
+def stack_plot(
+    df: pd.DataFrame,
+    ax: plt.Axes | None = None,
+    area: bool = False,
+    colors_of_category: dict[str, str] = {},
+):
+    """Function to plot stacked bar plots for the emissions data.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame containing the emissions data.
+    ax : matplotlib.axes.Axes, optional
+        Axes object to plot on, by default None
+    area : bool, optional
+        If True, use area plot instead of bar plot, by default False
+    """
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(10, 6))
+    default_colors = itertools.cycle(plt.rcParams["axes.prop_cycle"].by_key()["color"])
+    colors = {
+        cat: colors_of_category.get(cat, next(default_colors)) for cat in df.columns
+    }
+    if area:
+        # Use the same labels and colors for the positive and negative values
+        total = np.zeros(df.shape[0])
+        for i, column in enumerate(df.columns):
+            ax.fill_between(
+                df.index,
+                y1=total,
+                y2=df[column] + total,
+                color=colors.get(column, None),
+                label=column,
+            )
+            total += np.clip(df[column].values, 0, None)
+
+        # ax.set_ylim(df_neg.sum(axis=1).min() * 1.1, df_pos.sum(axis=1).max() * 1.1)
+    else:
+        ax = df.plot.bar(stacked=True, ax=ax, color=colors)
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(
+        list(reversed(handles)),
+        list(reversed(labels)),
+        loc="center left",
+        bbox_to_anchor=(1, 0.5),
+    )
+    return ax

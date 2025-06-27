@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Literal, NewType, Union
+import xarray as xr
 
 
 class DataTypes(Enum):
@@ -27,3 +28,6 @@ def file_pattern(file_type: DataTypes) -> str:
 DataType = DataTypes | Literal["flux", "concentration", "eddy_flux"]
 
 VariableType = str | dict[str, str | None] | list[str]
+
+
+DsAll = dict[str, xr.Dataset]

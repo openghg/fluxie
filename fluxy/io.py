@@ -789,4 +789,17 @@ def edit_vars_and_attributes(
             # Fill intake_height and stdev_mf_model with fake values
             ds["intake_height"][:] = 0
             ds["stdev_mf_model"][:] = 0
+
+    if file_type == DataTypes.EDDY_FLUX:
+        # check some eddy flux variables
+        if "ecflux_observed" not in ds:
+            var1, var2 = "ecflux_measured", "ecflux_observed_storage"
+            if var1 in ds and var2 in ds:
+                assert ds[var1].units == ds[var2].units, (
+                    f"Units of {var1} and {var2} do not match: "
+                    f"{ds[var1].units} != {ds[var2].units}"
+                )
+                # Calculate the observed flux
+                ds["ecflux_observed"] = ds[var1] + ds[var2]
+                ds["ecflux_observed"].attrs["units"] = ds[var1].attrs["units"]
     return ds
