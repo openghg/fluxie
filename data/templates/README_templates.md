@@ -98,18 +98,35 @@ The most important variables are described below. Please refer to the cdl files 
 
 ## 3. Eddy covariance flux file
 
-Characterising variables: same as for the concentration file.
+| Characterising variables | Units                          | Dimensions | Description                                                                                   |
+| :----------------------- | :----------------------------- | :--------- | :-------------------------------------------------------------------------------------------- |
+| longitude                | degrees_east                   | index      | Sample longitude in decimal degrees                                                           |
+| latitude                 | degrees_north                  | index      | Sample latitude in decimal degrees                                                            |
+| time                     | days since 1970-01-01 00:00:00 | index      | Time of mid of observation interval in UTC                                                    |
+| time_bnds                | days since 1970-01-01 00:00:00 | index      | Start and end points of each time step                                                        |
+| altitude                 | m                              | index      | Sample altitude in meters above sea level                                                     |
+| number_of_identifier     | -                              | index      | Index of identifier of observing platform                                                     |
+| assimilation_flag        | -                              | index      | Flag indicating whether observation was used in inversion/assimilation (0: not used; 1: used) |
+| sector                   | string                         | sector     | Identifier of emission sector                                                                 |
 
-| Observation variables | Units        | Dimensions | Description                                                                                                            |
-| :-------------------- | :----------- | :--------- | :--------------------------------------------------------------------------------------------------------------------- |
-| platform              | -            | platform   | Identifier of observing platform                                                                                       |
-| sector                | -            | sector     | Identifier of emission sectors                                                                                         |
-| flux_observed         | μmol m-2 s-1 | index      | Measured eddy covariance flux of `<species>`                                                                           |
-| flux_observed_storage | μmol m-2 s-1 | index      | Measured storage flux of `<species>`                                                                                   |
-| qa_flag               | int          | index      | Flag indicating quality of the eddy covariance flux measurement (0: high quality, 1: moderate quality, 2: low quality) |
-| qa_blh                | int          | index      | Flag of the boundary layer height measurement (0 = below, 1= above)                                                    |
-| pitch                 | degree       | index      | Pitch value                                                                                                            |
-| friction_velocity     | m s-1        | index      | Friction velocity of the eddy covariance measurement                                                                   |
+| Observation variables   | Units        | Dimensions | Description                                                                                                            |
+| :---------------------- | :----------- | :--------- | :--------------------------------------------------------------------------------------------------------------------- |
+| platform                | -            | platform   | Identifier of observing platform                                                                                       |
+| ecflux_observed         | μmol m-2 s-1 | index      | Observed eddy covariance flux of `<species>` (measured + storage flux)                                                 |
+| ecflux_measured         | μmol m-2 s-1 | index      | Measured eddy covariance flux of `<species>`                                                                           |
+| ecflux_observed_storage | μmol m-2 s-1 | index      | Measured storage flux of `<species>`                                                                                   |
+| stdev_flux_observed     | μmol m-2 s-1 | index      | Standard error of the measured flux                                                                                    |
+| md_observed             | mol m-3      | index      | Molar density observed                                                                                                 |
+| mf_observed             | μmol mol-1   | index      | Observed mole fraction of `<species>` in dry air                                                                       |
+| mr_observed             | μmol mol-1   | index      | Mixing ratio observed                                                                                                  |
+| wind_speed              | m s-1        | index      | Wind speed of the eddy covariance measurement                                                                          |
+| wind_direction          | degree       | index      | Wind direction of the eddy covariance measurement                                                                      |
+| air_temperature         | K            | index      | Air temperature of the eddy covariance measurement                                                                     |
+| air_pressure            | Pa           | index      | Air pressure of the eddy covariance measurement                                                                        |
+| qa_flag                 | int          | index      | Flag indicating quality of the eddy covariance flux measurement (0: high quality, 1: moderate quality, 2: low quality) |
+| qa_blh                  | int          | index      | Flag of the boundary layer height measurement (0 = below, 1= above)                                                    |
+| pitch                   | degree       | index      | Pitch value                                                                                                            |
+| friction_velocity       | m s-1        | index      | Friction velocity of the eddy covariance measurement                                                                   |
 
 | Simulated variables         | Units        | Dimensions | Description                                                                                      |
 | :-------------------------- | :----------- | :--------- | :----------------------------------------------------------------------------------------------- |
