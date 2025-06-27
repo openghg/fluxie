@@ -100,22 +100,26 @@ The most important variables are described below. Please refer to the cdl files 
 
 Characterising variables: same as for the concentration file.
 
-| Observation variables | Units        | Dimensions | Description                                                        |
-| :-------------------- | :----------- | :--------- | :----------------------------------------------------------------- |
-| platform              | -            | platform   | Identifier of observing platform                                   |
-| sector                | -            | sector     | Identifier of emission sectors                                     |
-| flux_observed         | μmol m-2 s-1 | index      | Measured eddy covariance flux of `<species>`                       |
-| flux_observed_storage | μmol m-2 s-1 | index      | Measured storage flux of `<species>`                               |
-| qa_flag               |              | index      | Flag indicating quality of the eddy covariance flux measurement () |
+| Observation variables | Units        | Dimensions | Description                                                                                                            |
+| :-------------------- | :----------- | :--------- | :--------------------------------------------------------------------------------------------------------------------- |
+| platform              | -            | platform   | Identifier of observing platform                                                                                       |
+| sector                | -            | sector     | Identifier of emission sectors                                                                                         |
+| flux_observed         | μmol m-2 s-1 | index      | Measured eddy covariance flux of `<species>`                                                                           |
+| flux_observed_storage | μmol m-2 s-1 | index      | Measured storage flux of `<species>`                                                                                   |
+| qa_flag               | int          | index      | Flag indicating quality of the eddy covariance flux measurement (0: high quality, 1: moderate quality, 2: low quality) |
+| qa_blh                | int          | index      | Flag of the boundary layer height measurement (0 = below, 1= above)                                                    |
+| pitch                 | degree       | index      | Pitch value                                                                                                            |
+| friction_velocity     | m s-1        | index      | Friction velocity of the eddy covariance measurement                                                                   |
 
-| Simulated variables    | Units        | Dimensions | Description                                                                                      |
-| :--------------------- | :----------- | :--------- | :----------------------------------------------------------------------------------------------- |
-| ecflux_prior           | μmol m-2 s-1 | index      | Simulated eddy covariance flux of `<species>`                                                    |
-| ecflux_posterior       | μmol m-2 s-1 | index      | Posterior simulated eddy covariance flux of `<species>`                                          |
-| stdev_ecflux_prior     | μmol m-2 s-1 | index      | Standard deviation of prior simulated eddy covariance fluxes due to state vector uncertainty     |
-| stdev_ecflux_posterior | μmol m-2 s-1 | index      | Standard deviation of posterior simulated eddy covariance fluxes due to state vector uncertainty |
-| footprint_coverage_fraction | -            | index      | Fraction of the footprint covered by the model grid cell (max 1, min 0)                                         |
-| *Sectorial based fluxes*
+| Simulated variables         | Units        | Dimensions | Description                                                                                      |
+| :-------------------------- | :----------- | :--------- | :----------------------------------------------------------------------------------------------- |
+| ecflux_prior                | μmol m-2 s-1 | index      | Simulated eddy covariance flux of `<species>`                                                    |
+| ecflux_posterior            | μmol m-2 s-1 | index      | Posterior simulated eddy covariance flux of `<species>`                                          |
+| stdev_ecflux_prior          | μmol m-2 s-1 | index      | Standard deviation of prior simulated eddy covariance fluxes due to state vector uncertainty     |
+| stdev_ecflux_posterior      | μmol m-2 s-1 | index      | Standard deviation of posterior simulated eddy covariance fluxes due to state vector uncertainty |
+| footprint_coverage_fraction | -            | index      | Fraction of the footprint covered by the model grid cell (max 1, min 0)                          |
+
+| _Sectorial based fluxes_
 | ecflux_sectorial_prior | μmol m-2 s-1 | index, sector | Same as `ecflux_prior` but sectorial
 | ecflux_sectorial_posterior| μmol m-2 s-1 | index, sector | Same as `ecflux_posterior` but sectorial
 | stdev_ecflux_sectorial_prior | μmol m-2 s-1 | index, sector | Same as `stdev_ecflux_prior` but sectorial
