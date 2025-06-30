@@ -189,12 +189,12 @@ def slice_mf(
 
         # Slice data according to site
         if site is not None:
-            #try:
-            ds_all[m] = slice_site(ds_all[m], site,combine_sites=True)
-            #except ValueError as e:
-            #    logger.warning(f"Error slicing site {site} from {m}: {e}")
-            #    ds_all.pop(m)
-            #    continue
+            try:
+                ds_all[m] = slice_site(ds_all[m], site,combine_sites=True)
+            except ValueError as e:
+                logger.warning(f"Error slicing site {site} from {m}: {e}")
+                ds_all.pop(m)
+                continue
 
         if len(ds_all[m]["time"]) == 0:
             # Remove model if no data left after time slicing

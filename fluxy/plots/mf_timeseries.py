@@ -129,7 +129,7 @@ def plot_mf_timeseries(
             model_color = model_colors[mdiff0]
 
         ds_plot = ds_all[m]
-    
+
         # Check there is only one site in the dataset
         if len(np.unique(ds_plot["number_of_identifier"])) > 1:
             raise ValueError(
@@ -182,7 +182,7 @@ def plot_mf_timeseries(
                 )
 
             unc_var = include[var]
-
+            
             if unc_var:
                 if plot_type == "diff":
                     raise ValueError(
@@ -190,7 +190,19 @@ def plot_mf_timeseries(
                     )
 
                 if unc_var not in ds_plot.keys():
-                    raise KeyError(f"Variable {unc_var} not found in {m}.")
+                    if 'percentile' in unc_var:
+                        unc_var_in = unc_var
+                        unc_var = unc_var.replace('percentile','stdev')
+                        
+                    elif 'stdev' in unc_var:
+                        unc_var_in = unc_var
+                        unc_var = unc_var.replace('stdev','percentile')
+
+                    if unc_var not in ds_plot.keys():
+                        KeyError(f"Variables {unc_var_in} and {unc_var} not found in {m}.")
+                    else:
+                        print(logger.warning(f"Variable {unc_var_in} not found in {m} so reading uncert from {unc_var}."))
+                #raise KeyError(f"Variable {unc_var} not found in {m}.")
 
                 if unc_var.split("_")[0] == "percentile":
                     # Add uncertainty band
@@ -317,14 +329,17 @@ def plot_sites_timeseries(
     dt_end_date = np.datetime64(end_date)
     siteList = get_unique_sites(ds_all)
     model_labels_copy = model_labels.copy()
-    
+
     # Create figure
     fig, ax = plt.subplots(1, 1, figsize=(0.7 * len(siteList), 8))
 
     assert margin < 0.5, "Margin must be smaller than 0.5"
     assert margin > 0, "Margin must be positive"
 
-    model_offset = (1 - 2 * margin) / (len(models) - 1)
+    if len(models) > 1:
+        model_offset = (1 - 2 * margin) / (len(models) - 1)
+    else:
+        model_offset = 1
 
     for site_iter, site in enumerate(siteList):
         if site_iter != 0:
@@ -437,7 +452,7 @@ def plot_histogram(
     # Loop over all variables to plot in histogram
     for v, var in enumerate(hist_to_plot):
 
-        if var not in ds.keys():
+        if var not in ds.keys():                   
             raise KeyError(f"Variable {var} not found in {model}.")
 
         if diff_include:
