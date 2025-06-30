@@ -129,6 +129,7 @@ def plot_mf_timeseries(
             model_color = model_colors[mdiff0]
 
         ds_plot = ds_all[m]
+    
         # Check there is only one site in the dataset
         if len(np.unique(ds_plot["number_of_identifier"])) > 1:
             raise ValueError(
@@ -316,7 +317,7 @@ def plot_sites_timeseries(
     dt_end_date = np.datetime64(end_date)
     siteList = get_unique_sites(ds_all)
     model_labels_copy = model_labels.copy()
-
+    
     # Create figure
     fig, ax = plt.subplots(1, 1, figsize=(0.7 * len(siteList), 8))
 

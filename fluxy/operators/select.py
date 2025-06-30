@@ -181,6 +181,7 @@ def slice_mf(
 
         # Slice data according to time window
         mask = (ds_all[m]["time"] >= start_date) & (ds_all[m]["time"] <= end_date)
+        
         if not keep_unassimilated:
             # Mask assimilated data only
             mask &= ds_all[m]["assimilation_flag"] == 1
@@ -188,12 +189,12 @@ def slice_mf(
 
         # Slice data according to site
         if site is not None:
-            try:
-                ds_all[m] = slice_site(ds_all[m], site)
-            except ValueError as e:
-                logger.warning(f"Error slicing site {site} from {m}: {e}")
-                ds_all.pop(m)
-                continue
+            #try:
+            ds_all[m] = slice_site(ds_all[m], site,combine_sites=True)
+            #except ValueError as e:
+            #    logger.warning(f"Error slicing site {site} from {m}: {e}")
+            #    ds_all.pop(m)
+            #    continue
 
         if len(ds_all[m]["time"]) == 0:
             # Remove model if no data left after time slicing
@@ -225,7 +226,10 @@ def slice_mf(
     return ds_all
 
 
-def slice_site(ds: xr.Dataset, site: str) -> xr.Dataset:
+def slice_site(ds: xr.Dataset, 
+               site: str, 
+               combine_sites: bool = False
+) -> xr.Dataset:
     """
     Slices the dataset to only include data for a given site.
 
@@ -244,8 +248,17 @@ def slice_site(ds: xr.Dataset, site: str) -> xr.Dataset:
     if site_index is None:
         raise ValueError(f"Site {site} not found in dataset.")
 
-    mask = ds["number_of_identifier"] == site_index
+    for i,site_id in enumerate(site_index):
+        if i == 0:
+            mask = ds["number_of_identifier"] == site_id
+        else:
+            mask += ds["number_of_identifier"] == site_id
+                    
     ds = ds.where(mask, drop=True)
+    
+    if combine_sites == True:
+        
+        ds['number_of_identifier'].values[:] = ds['number_of_identifier'].values[0] 
 
     return ds
 
@@ -265,12 +278,49 @@ def get_site_index(ds: xr.Dataset, site: str) -> int | None:
             Returns None if site does not exist.
     """
 
-    if site in ds["platform"]:
-        index = np.where(ds["platform"] == site)[0][0]
+    #if site in ds["platform"]:
+        #index = np.where(ds["platform"] == site)[0][0]
+    index = [i for i,s in enumerate(ds['platform'].values) if site in s]
+    
+    if index == []:
+        
+        return None
+    
+    else:
+        
         return index
 
-    return None
+def get_inlet_height(site:str,site_info: dict[str:dict]) -> int | None:
+    """
+    Extract the inlet height from site_info.json.
+    This function is used to update the 'platform' variable when 
+    site height is missing, and only extracts the greatest height 
+    from all available at the specified site.
+    
+    Args:
+        site (str):
+            3-letter site code.
+        site_info (dict of dict):
+            Data extracted from site_info.json.
+    Returns:
+        max_height (int):
+            Maximum height from all networks and inlets available ast s
+    """
+    
+    all_heights = []
 
+    for network in site_info[site].keys():
+        if 'height' in site_info[site][network].keys():
+            all_heights += site_info[site][network]['height']
+
+    if all_heights == []:
+        logger.warning(f"No height info available for {site} in site_info.json so using 0m.")
+        max_height = 0
+            
+    else:
+        max_height = np.max([int(h.strip('m')) for h in all_heights])
+        
+    return max_height
 
 def get_unique_sites(ds_all: dict[str, xr.Dataset]) -> list[str]:
     """
@@ -288,7 +338,10 @@ def get_unique_sites(ds_all: dict[str, xr.Dataset]) -> list[str]:
     for ds in ds_all.values():
         sites = np.concatenate([sites, ds["platform"].values])
 
+    #natsort package not included as default so need to find alternative
+    #sites = np.array(natsorted(np.unique(sites)))
     sites = np.sort(np.unique(sites))
+    
 
     return sites
 

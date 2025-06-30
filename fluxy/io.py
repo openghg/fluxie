@@ -15,7 +15,7 @@ from typing import Literal
 
 from fluxy import config
 from fluxy.operators.regions import extract_region_flux
-from fluxy.operators.select import slice_flux
+from fluxy.operators.select import slice_flux,get_inlet_height
 from fluxy.operators.flux_align_dataset import align_time
 
 logger = logging.getLogger(__name__)
@@ -242,7 +242,8 @@ def read_model_output(
 
         # Fix variables and attributes
         ds_all[m] = edit_vars_and_attributes(
-            ds_all[m], m, period[i], file_type, config_data.get("regions_info", {})
+            ds_all[m], m, period[i], file_type, config_data.get("regions_info", {}),
+            config_data.get("site_info",{})
         )
 
     return ds_all
@@ -532,6 +533,7 @@ def edit_vars_and_attributes(
     frequency: str,
     file_type: Literal["flux", "concentration"],
     regions_info: dict[str, str],
+    site_info: dict[str,dict],
 ) -> xr.Dataset:
     """
     Edit dataset variables and attributes.
@@ -550,6 +552,8 @@ def edit_vars_and_attributes(
             Options for "flux" and "concentration".
         regions_info (dict of str):
             Dictionary with country and region names (read from json file).
+        site_info (dict of str):
+            Dictionary with site info (read from json file).
 
     Returns:
         ds (xarray dataset):
@@ -744,6 +748,9 @@ def edit_vars_and_attributes(
             ds = ds.assign(
                 assimilation_flag=("index", np.ones(ds["index"].size, dtype=int))
             )
+            
+        #if "time" not in ds["assimilation_flag"].coords:
+        #    ds['assimilation_flag'] = ds["assimilation_flag"].assign_coords(time=ds["time"].values)
 
         # Test that the number of identifiers had valid values
         max_num_id, min_num_id = (
@@ -767,6 +774,22 @@ def edit_vars_and_attributes(
         ds = ds.assign_coords(
             {var: ds[var] for var in ["number_of_identifier", "time", "platform"]}
         )
+        
+        # Add in inlet heights to list of platforms, if this is missing from site names
+        if any([True if '-' not in i else False for i in ds['platform'].values]):
+            updated_sites = []
+            for i,site in enumerate(ds['platform'].values):
+                site_letters = site.split('-')[0]
+                if '-' not in site:
+                    site_height = get_inlet_height(site=site_letters,site_info=site_info)
+                    logger.warning((f"No platform height included in {model} "+
+                                    f"for {site_letters} ."+
+                                    f"So assuming height of {site_height}."))
+                    updated_sites.append(f"{site}-{site_height}")
+                else:
+                    updated_sites.append(site)    
+                
+            ds = ds.assign_coords({'platform':updated_sites})
 
         # Fix for InTEM (units of platform are wrongly set to mol mol-1)
         ds["platform"].attrs.pop("units", None)

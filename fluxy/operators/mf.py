@@ -147,7 +147,7 @@ def stats_mf(
 
     # names of sites
     sites_all = get_unique_sites(ds_all)
-
+    
     # init empty list to hold results for individual sites
     stats = []
 
