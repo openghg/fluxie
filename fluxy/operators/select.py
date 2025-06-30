@@ -243,7 +243,7 @@ def slice_site(ds: xr.Dataset,
             Dataset with mf data of a given model, sliced to only include data for the given site.
     """
 
-    site_index = get_site_index(ds, site)
+    site_index = get_site_index(ds, site, full_site_name=False)
 
     if site_index is None:
         raise ValueError(f"Site {site} not found in dataset.")
@@ -263,7 +263,7 @@ def slice_site(ds: xr.Dataset,
     return ds
 
 
-def get_site_index(ds: xr.Dataset, site: str) -> int | None:
+def get_site_index(ds: xr.Dataset, site: str, full_site_name: False) -> int | None:
     """
     Gets the index of a given site in a dataset.
 
@@ -272,6 +272,9 @@ def get_site_index(ds: xr.Dataset, site: str) -> int | None:
             Dataset with mf data of a given model.
         site (str):
             Site of interest.
+        full_site_name (bool):
+            If True, matches full platform name, e.g 'MHD-10', 
+            else only matches 3-letter code, e.g. 'MHD'.
     Returns:
         index (int):
             Index of site of interest in the dataset.
@@ -280,7 +283,11 @@ def get_site_index(ds: xr.Dataset, site: str) -> int | None:
 
     #if site in ds["platform"]:
         #index = np.where(ds["platform"] == site)[0][0]
-    index = [i for i,s in enumerate(ds['platform'].values) if s == site]
+    if full_site_name == False:
+        index = [i for i,s in enumerate(ds['platform'].values) if site in s]
+    else:
+        index = [i for i,s in enumerate(ds['platform'].values) if s == site]
+        
     
     if index == []:
         

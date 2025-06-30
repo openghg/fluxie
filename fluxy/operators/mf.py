@@ -156,7 +156,7 @@ def stats_mf(
         for model, ds in ds_all.items():
             # Remove the NaNs
             ds = ds.dropna("index")
-            site_index = get_site_index(ds, site)
+            site_index = get_site_index(ds, site,full_site_name=True)
             if site_index is None:
                 continue
             mask_site = ds["number_of_identifier"] == site_index

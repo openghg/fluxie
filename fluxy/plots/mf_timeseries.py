@@ -354,7 +354,7 @@ def plot_sites_timeseries(
 
         for i, m in enumerate(models):
 
-            site_index = get_site_index(ds_all[m], site)
+            site_index = get_site_index(ds_all[m], site,full_site_name=True)
 
             if site_index is None:
                 continue
