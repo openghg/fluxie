@@ -280,7 +280,7 @@ def get_site_index(ds: xr.Dataset, site: str) -> int | None:
 
     #if site in ds["platform"]:
         #index = np.where(ds["platform"] == site)[0][0]
-    index = [i for i,s in enumerate(ds['platform'].values) if site in s]
+    index = [i for i,s in enumerate(ds['platform'].values) if s == site]
     
     if index == []:
         

@@ -380,7 +380,7 @@ def plot_sites_timeseries(
     )
 
     ax.set_xticks(np.arange(siteList.size))
-    ax.set_xticklabels(siteList)
+    ax.set_xticklabels([f"{s.split('-')[0]}\n{s.split('-')[1]}m" for s in siteList])
 
     if (
         int(dt_end_date.astype("datetime64[M]") - dt_start_date.astype("datetime64[M]"))
