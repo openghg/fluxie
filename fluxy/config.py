@@ -1,14 +1,23 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+import matplotlib.colors as mcolors
+import colorsys
 import logging
+from typing import List
 
 logger = logging.getLogger(__name__)
 
-color_palette = {
-    0: [["blue", "dodgerblue"], ["dodgerblue", "skyblue"], ["deepskyblue", "cyan"]],
-    1: [["purple", "mediumpurple"], ["deeppink", "pink"], ["darkorange", "red"]],
-    2: [["darkgreen", "green"], ["limegreen", "palegreen"], ["olive", "lightgreen"]],
-    3: [["darkorange", "orange"], ["gold", "khaki"], ["yellow", "lightyellow"]],
+default_color_palette = {
+    0: [["#2c74a7", "#9ecae1"]],
+    1: [["#cf4c0c", "#fdae6b"]],
+    2: [["#2b934a", "#a1d99b"]],
+    3: [["#695fa0", "#bcbddc"]],
+    4: [["#783632", "#d6616b"]],
+    5: [["#7e612c", "#e7ba52"]],
+    6: [["#32346d", "#6b6ecf"]],
+    7: [["#596a33", "#b5cf6b"]],
+    8: [["#6f3b68", "#ce6dbd"]],
 }
 
 # population from 2018 to 2023 (at Jan 1 each year)
@@ -85,6 +94,11 @@ units_scale = {
 }
 
 
+# -----------------------------------------------------------------------------------------------------------
+# -- PRINT SETTINGS
+# -----------------------------------------------------------------------------------------------------------
+
+
 def set_print_settings(presentation_mode: bool = False) -> dict[int, list]:
     """
     Sets font size and annotation coordinates.
@@ -109,9 +123,7 @@ def set_print_settings(presentation_mode: bool = False) -> dict[int, list]:
 
         annotate_coords = {0: [0.58, 0.7], 1: [0.58, 0.4], 2: [0.58, 0.1]}
 
-        logger.warning(
-            "Using big fonts when plotting. You might need to define shorter labels."
-        )
+        logger.warning("Using big fonts when plotting. You might need to define shorter labels.")
 
     else:
         # Set small font size (ideal for text documents)
@@ -127,75 +139,12 @@ def set_print_settings(presentation_mode: bool = False) -> dict[int, list]:
     return annotate_coords
 
 
-def set_model_colors(models: list[str]) -> dict[str, list]:
-    """
-    Sets plotting colors for each model.
-
-    Args:
-        models (list of str):
-            Keys specifying model names, e.g. ['intem','elris']
-
-    Returns:
-        model_colors (dict of lists):
-            List of colors to be used by each model.
-    """
-
-    model_colors = dict()
-    max_color_groups = len(color_palette)
-
-    # Get unique inversion systems
-    # dict.fromkeys() is used because it conserves the order of the models
-    unique_models = list(dict.fromkeys(m.split("_")[0] for m in models))
-    n_unique_models = len(unique_models)
-
-    if n_unique_models == 1:
-        # The results to plot are from a single inversion system
-        i = 0
-        index_colors = 0
-
-        # Use color_palette in order
-        for m in models:
-            if index_colors == len(color_palette[i]):
-                i = i + 1
-                index_colors = 0
-
-            if i == max_color_groups:
-                raise ValueError(
-                    f"Number of models to plot is greater than number of pre-defined colors. Add more colors to color_palette."
-                )
-
-            model_colors[m] = color_palette[i][index_colors]
-            index_colors = index_colors + 1
-
-    else:
-        # The results to plot are from multiple inversion systems
-        index_colors = [0] * n_unique_models
-        index_colors_max = [len(color_palette[i]) for i in color_palette]
-
-        for m in models:
-            model_name = m.split("_")[0]
-            i = unique_models.index(model_name)
-
-            if i == max_color_groups:
-                raise KeyError(
-                    f"color_palette has only {i} keys. Add more keys to plot results from more than {i} distinct inversion models."
-                )
-
-            if index_colors[i] == index_colors_max[i]:
-                raise KeyError(
-                    f"There are more than {index_colors[i]} results from {model_name} but only {index_colors[i]} elements in color_palette[{i}]. Add more pairs of colors to the list."
-                )
-
-            # For each inversion system, get plotting colors from a single color_palette key
-            model_colors[m] = color_palette[i][index_colors[i]]
-            index_colors[i] = index_colors[i] + 1
-
-    return model_colors
+# -----------------------------------------------------------------------------------------------------------
+# -- LABELS
+# -----------------------------------------------------------------------------------------------------------
 
 
-def set_model_labels(
-    models: list[str], config_data: dict[str, dict], get_labels_from_file: bool
-) -> dict[str, str]:
+def set_model_labels(models: list[str], config_data: dict[str, dict], get_labels_from_file: bool) -> dict[str, str]:
     """
     Sets the label of each model.
 
@@ -230,6 +179,134 @@ def set_model_labels(
         model_labels[m] = label
 
     return model_labels
+
+
+# -----------------------------------------------------------------------------------------------------------
+# -- COLORS
+# -----------------------------------------------------------------------------------------------------------
+
+
+def set_model_colors(models: list[str]) -> tuple[dict[str, str], dict[int, list[list[str]]]]:
+    """
+    Sets plotting colors for each model.
+    It adds hue-shifted color pairs to the default color palette if needed.
+
+    Args:
+        models (list of str): Keys specifying model names, e.g. ['intem','elris']
+
+    Returns:
+        model_colors (dict of lists): List of colors to be used by each model.
+        color_palette (dict): Dictionary of grouped color pairs.
+    """
+
+    model_colors = dict()
+
+    # Get unique inversion systems
+    dict_invs = {inv: [m for m in models if inv in m] for inv in dict.fromkeys(m.split("_")[0] for m in models)}
+
+    if len(default_color_palette) < len(dict_invs):
+        raise ValueError(
+            f"The number of inversion systems to plot is greater than the number of pre-defined colors."
+            f"Add more keys to default_color_palette."
+        )
+
+    # Add hue-shifted pairs to the color palette and to the model dict
+    color_palette = {inv: default_color_palette[k].copy() for k, inv in enumerate(dict_invs)}
+    for inv, models in dict_invs.items():
+        for imod, m in enumerate(models):
+            sign = 1 if imod % 2 == 0 else -1
+            shift = (15 + (imod + 1) * 10) * sign 
+            add_new_color_pair(color_palette, group_key=inv, hue_shift_degrees=shift)
+            model_colors[m] = color_palette[inv][-1]
+
+    return model_colors, color_palette
+
+
+def plot_color_palette(color_palette: dict[int, list[list[str]]]) -> None:
+    """
+    Plots the generated color palette.
+
+    Args:
+        color_palette (dict): Dictionary of grouped color pairs.
+    Returns:
+        None
+    """
+
+    n_groups = len(color_palette)
+    pairs_per_group = max(len(pairs) for pairs in color_palette.values())
+
+    fig_height = n_groups * 0.8 + 1
+    fig, ax = plt.subplots(figsize=(8, fig_height))
+    ax.set_xlim(0, pairs_per_group * 2)
+    ax.set_ylim(0, n_groups)
+    ax.axis("off")
+
+    for row, (group_id, pairs) in enumerate(color_palette.items()):
+        y = n_groups - row - 1
+        for col, (dark, light) in enumerate(pairs):
+            # Draw dark rectangle
+            ax.add_patch(mpatches.Rectangle((col * 2, y), 1, 0.8, color=dark))
+            # Draw light rectangle
+            ax.add_patch(mpatches.Rectangle((col * 2 + 1, y), 1, 0.8, color=light))
+
+        # Label the group
+        ax.text(-0.5, y + 0.4, f"{group_id}", va="center", ha="right", fontsize=10, fontweight="bold")
+
+    fig.tight_layout()
+    fig.show()
+
+
+def hex_to_rgb(hex_color: str) -> tuple:
+    return mcolors.to_rgb(hex_color)
+
+
+def rgb_to_hsl(rgb: tuple) -> tuple:
+    return colorsys.rgb_to_hls(*rgb)  # H, L, S
+
+
+def hsl_to_rgb(hsl: tuple) -> tuple:
+    return colorsys.hls_to_rgb(*hsl)
+
+
+def shift_hue(h: float, degrees: float) -> float:
+    """Shift hue (0–1) by degrees (0–360 scale)."""
+    return (h + degrees / 360.0) % 1.0
+
+
+def get_lightness_delta(pair: List[str]) -> float:
+    rgb1, rgb2 = map(hex_to_rgb, pair)
+    _, l1, _ = rgb_to_hsl(rgb1)
+    _, l2, _ = rgb_to_hsl(rgb2)
+    return l2 - l1  # Could be negative or positive
+
+
+def add_new_color_pair(
+    color_palette: dict[int, list[list[str]]], group_key: int, hue_shift_degrees: float = 10.0
+) -> None:
+    """
+    Adds a new color pair to `color_palette[group_key]` by hue-shifting
+    the first pair and applying the same lightness delta.
+    """
+    if group_key not in color_palette or not color_palette[group_key]:
+        raise ValueError(f"No valid color pair in group {group_key}.")
+
+    base_cpair = color_palette[group_key][0]  # Get the first color pair in the group
+    base_rgb = hex_to_rgb(base_cpair[0])
+    h, l, s = rgb_to_hsl(base_rgb)
+    delta_l = get_lightness_delta(base_cpair)
+
+    # Apply hue shift
+    new_h = shift_hue(h, hue_shift_degrees)
+
+    # Generate new color pair
+    dark_rgb = hsl_to_rgb((new_h, l, s))
+    light_l = l + delta_l
+    light_l = max(0.0, min(1.0, light_l))  # clamp to [0,1]
+    light_rgb = hsl_to_rgb((new_h, light_l, s))
+
+    # Convert to hex and add to the group
+    new_pair = [mcolors.to_hex(dark_rgb), mcolors.to_hex(light_rgb)]
+    color_palette[group_key].append(new_pair)
 
 
 def get_default_colors() -> list[str]:
