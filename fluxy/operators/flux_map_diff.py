@@ -43,3 +43,54 @@ def define_var_plot(
         var_plot = ds[var]
 
     return var_plot
+
+
+def make_diff_ds(
+    ds1: xr.Dataset,
+    ds2: xr.Dataset,
+):
+    """
+    Create a difference xarray.Dataset between two model datasets.
+
+    Args:
+        ds1 (xr.Dataset): 
+            First model dataset.
+        ds2 (xr.Dataset): 
+            Second model dataset.
+
+    Returns:
+        xr.Dataset: A new xarray.Dataset containing the computed differences or combinations for the supported variables.
+    """
+
+    diff = {}
+
+    for var in ds1.data_vars:
+
+        v1 = ds1[var]
+        v2 = ds2[var]
+
+        dims = v1.dims
+
+        if set(dims) == {"time", "latitude", "longitude"}:
+            diff[var] = v1 - v2
+
+        elif set(dims) == {"time", "percentile", "latitude", "longitude"}:
+
+            min_p0 = xr.ufuncs.minimum(v1.sel(percentile=v1.percentile[0]), v2.sel(percentile=v2.percentile[0]))
+            max_p1 = xr.ufuncs.maximum(v1.sel(percentile=v1.percentile[1]), v2.sel(percentile=v2.percentile[1]))
+
+            diff[var] = xr.concat([min_p0, max_p1], dim="percentile")
+        
+        elif var == "sites" and set(dims) == {"time", "platform"}:
+            sites1, sites2 = xr.align(ds1[var], ds2[var], join="outer", fill_value=0)
+            diff["sites"] = xr.where((sites1 == 1) | (sites2 == 1), 1, 0)
+
+        else:
+            logger.info(f"Variable '{var}' with dims {dims} not processed.")
+
+        diff[var].attrs = v1.attrs # Copy attributes from ds1
+
+    diff = xr.Dataset(diff)
+    diff.attrs["frequency"] = ds1.attrs.get("frequency", "")
+
+    return diff

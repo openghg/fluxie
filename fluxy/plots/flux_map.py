@@ -6,8 +6,8 @@ import xarray as xr
 from fluxy import config
 from fluxy.operators.flux_align_dataset import align_map_data
 from fluxy.operators.flux_combine import combine_map_dataset
-from fluxy.operators.flux_map_diff import define_var_plot
-from fluxy.operators.flux_map_resample import average_over_period, get_flux_mean
+from fluxy.operators.flux_map_diff import define_var_plot, make_diff_ds
+from fluxy.operators.flux_map_resample import resample_over_period, calculate_flux_mean
 from fluxy.plots.utils import (
     Region,
     add_colorbar,
@@ -16,7 +16,7 @@ from fluxy.plots.utils import (
     compute_boundary_geometry,
     define_map_figsize,
     get_map_bounds,
-    get_sites_coordinates,
+    get_active_sites_coordinates,
     plot_country_borders,
     print_cbar_label,
     set_flux_limits,
@@ -125,12 +125,9 @@ def plot_flux_map(
     else:
         vars_list = [var_prior, var_posterior, var_diff]
 
-    # Load country lines, species and sites information
+    # Load country lines and species information
     country_lines = compute_boundary_geometry(map_bounds)
     species_info = config_data.get("species_info", {}).get(species, {})
-    sites_info = (
-        get_sites_coordinates(ds_all, config_data, fallback_sites) if add_sites else ""
-    )  # TODO move in the for loop once the info comes from the concentration files
 
     # Set flux limits #TODO Based on posterior, is this the right way to do?
     fluxlim = set_flux_limits(
@@ -152,6 +149,16 @@ def plot_flux_map(
 
     for col, (model, ds) in enumerate(ds_all.items()):
         lon, lat = ds.longitude, ds.latitude
+        try:
+            sites_info = (
+                get_active_sites_coordinates(ds, config_data, fallback_sites) if add_sites else ""
+            )
+        except Exception as e:
+            raise RuntimeError(
+                "Failed to get active sites coordinates. "
+                "Check that `add_sites_to_flux` is True in `read_model_output` "
+                "or that a `fallback_sites` list is provided in `plot_flux_map`."
+            ) from e
 
         model_axes = ax if n_cols == 1 else (ax[:, col] if n_rows > 1 else ax[col])
 
@@ -159,7 +166,7 @@ def plot_flux_map(
             ax_i = model_axes if n_rows == 1 else model_axes[row]
 
             var_plot = define_var_plot(ds, var)
-            var_plot = get_flux_mean(var_plot, season)
+            var_plot = calculate_flux_mean(var_plot, season)
 
             # Determine plot settings
             is_diff = "diff" in var
@@ -195,8 +202,8 @@ def plot_flux_map(
                 ax_i.set_ylabel(config.flux_labels[var])
 
             # Add sites and markers if specified
-            if add_sites and model in sites_info:
-                add_site_markers(ax_i, sites_info[model], marker_color)
+            if add_sites and sites_info:
+                add_site_markers(ax_i, sites_info, marker_color)
             if add_markers:
                 add_custom_markers(
                     ax_i, add_markers, marker_color, config_data["regions_info"]
@@ -322,19 +329,11 @@ def plot_flux_map_model_comparison(
     # Prepare datasets
     ds_dict = {k: v for k, v in ds_all.items() if k in models}
     ds_dict = align_map_data(ds_dict)
-    ds_dict["diff"] = ds_dict[models[1]] - ds_dict[models[0]]
-    ds_dict["diff"].attrs["frequency"] = ds_dict[models[0]].attrs[
-        "frequency"
-    ]  # Copy attributes from models[0]
-    for v in ds_dict["diff"].data_vars:
-        ds_dict["diff"][v].attrs = ds_dict[models[0]][v].attrs
+    ds_dict["diff"] = make_diff_ds(ds_dict[models[0]], ds_dict[models[1]])
 
-    # Load country lines, species and sites information
+    # Load country lines and species information
     country_lines = compute_boundary_geometry(map_bounds)
     species_info = config_data["species_info"][species]
-    sites_info = (
-        get_sites_coordinates(ds_dict, config_data, fallback_sites) if add_sites else ""
-    )  # TODO move in the for loop once the info comes from the concentration files
 
     # Set flux limits
     fluxlim = set_flux_limits(
@@ -357,7 +356,7 @@ def plot_flux_map_model_comparison(
         lon, lat = ds.longitude, ds.latitude
 
         var_plot = define_var_plot(ds, var)
-        var_plot = get_flux_mean(var_plot, season)
+        var_plot = calculate_flux_mean(var_plot, season)
 
         # Determine plot settings
         is_diff = ("diff" in var) or ("diff" in model)
@@ -384,13 +383,21 @@ def plot_flux_map_model_comparison(
 
         # Add titles
         if model == "diff":
-            ax_i.set_title(f"{model_labels[models[1]]} - {model_labels[models[0]]}")
+            ax_i.set_title(f"{model_labels[models[0]]} - {model_labels[models[1]]}")
         else:
             ax_i.set_title(model_labels[model])
 
         # Add sites and markers if specified
         if add_sites:
-            add_site_markers(ax_i, sites_info.get(model, {}), marker_color)
+            try:
+                sites_info = get_active_sites_coordinates(ds, config_data, fallback_sites)
+            except Exception as e:
+                raise RuntimeError(
+                    "Failed to get active sites coordinates. "
+                    "Check that `add_sites_to_flux` is True in `read_model_output` "
+                    "or that a `fallback_sites` list is provided in `plot_flux_map`."
+                ) from e
+            add_site_markers(ax_i, sites_info, marker_color)
         if add_markers:
             add_custom_markers(
                 ax_i, add_markers, marker_color, config_data["regions_info"]
@@ -509,18 +516,15 @@ def plot_flux_map_over_time(
         ds_dict = align_map_data(ds_all)
         ds_dict = combine_map_dataset(ds_dict)
     else:
-        ds_dict = ds_all
+        ds_dict = align_map_data(ds_all, align_coordinates=False, align_variables=False) # Only remove variables without dimensions  ['time', 'latitude', 'longitude'] (or 'platform')
 
     ds_chopby = {}
     for key, ds in ds_dict.items():
-        ds_chopby[key], time_labels = average_over_period(ds, dt, chop_by)
+        ds_chopby[key], time_labels = resample_over_period(ds, dt, chop_by)
 
     # Load country lines, species and sites information
     country_lines = compute_boundary_geometry(map_bounds)
     species_info = config_data.get("species_info", {}).get(species, {})
-    sites_info = (
-        get_sites_coordinates(ds_all, config_data, fallback_sites) if add_sites else ""
-    )  # TODO move in the for loop once the info comes from the concentration files
 
     # Set flux limits
     lim = set_flux_limits(
@@ -588,16 +592,16 @@ def plot_flux_map_over_time(
 
             # Add sites and markers if specified
             if add_sites:
-                if model in sites_info:
-                    add_site_markers(
-                        ax_i, sites_info[model], marker_color
-                    )  # TODO Manage combined
-                elif model == "combined":
-                    merged_sites_info = {
-                        k: v for d in sites_info.values() for k, v in d.items()
-                    }
-                    add_site_markers(ax_i, merged_sites_info, marker_color)
-
+                try:
+                    sites_info = get_active_sites_coordinates(ds.isel(time=[col]), config_data, fallback_sites)
+                except Exception as e:
+                    raise RuntimeError(
+                        "Failed to get active sites coordinates. "
+                        "Check that `add_sites_to_flux` is True in `read_model_output` "
+                        "or that a `fallback_sites` list is provided in `plot_flux_map`."
+                    ) from e
+                add_site_markers(ax_i, sites_info, marker_color)
+                
             if add_markers:
                 add_custom_markers(
                     ax_i, add_markers, marker_color, config_data["regions_info"]
