@@ -338,6 +338,9 @@ def read_flux_total_fgases(
             f"period must be a string or a list of the same length as models."
         )
 
+    if isinstance(regions, str):
+        regions = [regions]
+
     # Assign key to find file for each species and model according to the config file
     missing_species = {model: list() for model in models}
     default_overwrite = {model: list() for model in models}
@@ -461,20 +464,7 @@ def create_flux_total_fgases(ds_all, species, regions, models):
                 dim="species",
                 combine_attrs="drop_conflicts",
             )
-            ds_mean = ds_tmp[["prior", "posterior"]].sum(dim="species", keep_attrs=True)
-            ds_unc = np.sqrt(
-                (
-                    ds_tmp[
-                        [
-                            "prior_lower",
-                            "prior_upper",
-                            "posterior_lower",
-                            "posterior_upper",
-                        ]
-                    ]
-                    ** 2
-                ).sum(dim="species", keep_attrs=True)
-            )
+
             ds_summed = [
                 ds_tmp[["prior", "posterior"]].sum(dim="species", keep_attrs=True),
             ]
@@ -487,7 +477,7 @@ def create_flux_total_fgases(ds_all, species, regions, models):
                 ds_unc[f"{var}_lower"] = ds_summed[0][var] - ds_unc[f"{var}_lower"]
                 ds_unc[f"{var}_upper"] = ds_summed[0][var] + ds_unc[f"{var}_upper"]
                 ds_summed.append(ds_unc)
-            ds_list.append(xr.merge([ds_mean, ds_unc], combine_attrs="no_conflicts"))
+            ds_list.append(xr.merge(ds_summed, combine_attrs="no_conflicts"))
 
         ds_tmp = xr.concat(ds_list, dim="country", combine_attrs="no_conflicts")
         ds_tmp.attrs["species"] = species
@@ -598,7 +588,7 @@ def edit_vars_and_attributes(
     if file_type == "flux":
 
         # Apply model specific corrections
-        if m0 == "elris":
+        if m0 in ("elris", "flexinvert"):
             # Fix for legacy files
             if "countrynumber" in ds.dims.keys():
                 ds["country"] = ds["country"].astype("str")
@@ -625,7 +615,10 @@ def edit_vars_and_attributes(
             for var in vars_to_check:
                 if var not in ds:
                     continue
-                if "units" not in ds[var].attrs.keys() and "unit" in ds[var].attrs.keys():
+                if (
+                    "units" not in ds[var].attrs.keys()
+                    and "unit" in ds[var].attrs.keys()
+                ):
                     ds[var].attrs["units"] = ds[var].attrs["unit"]
                     ds[var].attrs.pop("unit")
 
@@ -690,34 +683,12 @@ def edit_vars_and_attributes(
                 regions_info["country_codes"].get(x, x) for x in ds["country"].values
             ]
 
-        elif m0 == "flexinvert":
-            ds["percentile_flux_total_posterior_country"] = xr.concat(
-                [
-                    ds["flux_total_posterior_country"]
-                    - ds["country_flux_error_posterior"],
-                    ds["flux_total_posterior_country"]
-                    + ds["country_flux_error_posterior"],
-                ],
-                pd.Index([0, 1], name="percentile"),
-            )
-
-            ds["percentile_flux_total_prior_country"] = xr.concat(
-                [
-                    ds["flux_total_prior_country"] - ds["country_flux_error_prior"],
-                    ds["flux_total_prior_country"] + ds["country_flux_error_prior"],
-                ],
-                pd.Index([0, 1], name="percentile"),
-            )
-            ds["countrynumber"] = ds["country"].astype(str)
-            del ds["country"]
-            ds = ds.rename({"countrynumber": "country"})
-
         elif m0 == "cif-enks":
             # Move time variable to center of the month
             ds["time"] = ds.time.values + np.timedelta64(15, "D")
 
             # Add "_" to second country dimension in covariance matrix
-            ds = ds.rename({'country2': 'country_2'})
+            ds = ds.rename({"country2": "country_2"})
 
         # Rename second country dimension in covariance matrix (xarray requirement)
         var_to_change = "covariance_flux_total_posterior_country"
@@ -739,10 +710,10 @@ def edit_vars_and_attributes(
 
     elif file_type == "concentration":
         # Ensure integer dtype
-        ds['number_of_identifier'] = ds['number_of_identifier'].astype(int)
+        ds["number_of_identifier"] = ds["number_of_identifier"].astype(int)
 
         # Ensure string dtype
-        ds['platform'] = ds['platform'].astype(str)
+        ds["platform"] = ds["platform"].astype(str)
 
         # Fix old format vs new format
         if "index" not in ds.dims:
@@ -755,13 +726,18 @@ def edit_vars_and_attributes(
                 .stack({"index": ["number_of_identifier", "time"]})
                 .reset_index("index")
             )
-        
+
         if "assimilation_flag" not in ds:
             # Add assimilation_flag if not present
-            ds = ds.assign(assimilation_flag=('index', np.ones(ds['index'].size, dtype=int)))
+            ds = ds.assign(
+                assimilation_flag=("index", np.ones(ds["index"].size, dtype=int))
+            )
 
-        # Test that the number of identifiers had valid values 
-        max_num_id, min_num_id = ds["number_of_identifier"].max(), ds["number_of_identifier"].min()
+        # Test that the number of identifiers had valid values
+        max_num_id, min_num_id = (
+            ds["number_of_identifier"].max(),
+            ds["number_of_identifier"].min(),
+        )
         if min_num_id == 1 and max_num_id == len(ds["platform"]):
             # 1 based (also called as retarded) indexing, so we need to shift the values
             ds["number_of_identifier"] -= 1
@@ -776,7 +752,9 @@ def edit_vars_and_attributes(
             )
 
         # Set coordinates
-        ds = ds.assign_coords({var: ds[var] for var in ["number_of_identifier", "time", "platform"]})
+        ds = ds.assign_coords(
+            {var: ds[var] for var in ["number_of_identifier", "time", "platform"]}
+        )
 
         # Fix for InTEM (units of platform are wrongly set to mol mol-1)
         ds["platform"].attrs.pop("units", None)
@@ -795,7 +773,24 @@ def edit_vars_and_attributes(
                 dims=ds["platform"].dims,
                 coords=ds["platform"].coords,
             )
+        if m0 == "flexinvert":
+            ds["mf_observed"].attrs["units"] = "ppt"
+            ds["mf_observed"].attrs["longname"] = "observed_mole_fraction"
+            ds["mf_prior"].attrs["units"] = "ppt"
+            ds["mf_prior"].attrs["longname"] = "apriori_simulated_mole_fraction"
+            ds["mf_posterior"].attrs["units"] = "ppt"
+            ds["mf_posterior"].attrs["longname"] = "aposteriori_simulated_mole_fraction"
+            ds["mf_bc_prior"] = ds["Ypri_bkg"]
+            ds["mf_bc_prior"].attrs["units"] = "ppt"
+            ds["mf_bc_prior"].attrs["longname"] = "apriori_simulated_boundary_condition_mole_fraction"
+            ds["mf_bc_prior"] = ds["Ypri_bkg"]
+            ds["mf_bc_posterior"] = ds["Ypost_bkg"]
+            ds["mf_bc_posterior"].attrs["units"] = "ppt"
+            ds["mf_bc_posterior"].attrs["longname"] = "aposteriori_simulated_boundary_condition_mole_fraction"
 
+            # Fill intake_height and stdev_mf_model with fake values
+            ds["intake_height"][:] = 0
+            ds["stdev_mf_model"][:] = 0
     return ds
 
 

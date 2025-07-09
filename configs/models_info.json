@@ -8,7 +8,15 @@
     "model_labels":{
         "ELRIS_NAME_EDGAR_std" : "ELRIS",
         "InTEM_NAME_EDGAR_std" : "InTEM",
-        "RHIME_NAME_EDGAR_std" : "RHIME"
+        "RHIME_NAME_EDGAR_std" : "RHIME",
+        "ELRIS_NAME_EUROPE_HOSSAINI" : "ELRIS Hossaini",
+        "InTEM_NAME_EUROPE_hossaini_prior_20250118_obs" : "InTEM Hossaini",
+        "RHIME_NAME_EUROPE_HOSSAINI" : "RHIME Hossaini",
+        "Flexinvert_Flexpart_EUROPE_hossaini" : "Flexinvert Hossaini",
+        "ELRIS_NAME_EUROPE_UNIFORM" : "ELRIS uniform",
+        "InTEM_NAME_EUROPE_uniform_prior_20250118_obs" : "InTEM uniform",
+        "RHIME_NAME_EUROPE_UNIFORM" : "RHIME uniform",
+        "Flexinvert_Flexpart_EUROPE_uniform" : "Flexinvert uniform"
     },
 
     "species_name":{

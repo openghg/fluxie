@@ -26,17 +26,22 @@ def calculate_flux_mean(
             The computed mean flux, either over the entire time period or for the specified season.
     """
     if season is None:
-        return data.mean(dim="time")
+        ds_output = data.mean(dim="time", keep_attrs=True)
 
-    # Group by season and check if the given season exists
-    seasonal_means = data.groupby("time.season", restore_coord_dims=True).mean(
-        dim="time"
-    )
+    else:
+        # Group by season and check if the given season exists
+        seasonal_means = data.groupby("time.season", restore_coord_dims=True).mean(
+            dim="time"
+        )
 
-    if season not in seasonal_means.season.values:
-        raise ValueError(f"Season '{season}' not found in the dataset.")
+        if season not in seasonal_means.season.values:
+            raise ValueError(f"Season '{season}' not found in the dataset.")
 
-    return seasonal_means.sel(season=season)
+        ds_output = seasonal_means.sel(season=season)
+    ds_output.attrs["start_date"] = data.time.values.min()
+    ds_output.attrs["end_date"] = data.time.values.max()
+
+    return ds_output
 
 def calculate_resampled_flux(
     flux: xr.DataArray,
@@ -293,7 +298,13 @@ def resample_over_seasons(
     ds_resampled = ds_resampled.sel(time=ordered_seasons)
 
     # Make time labels
-    time_labels = ds_resampled.time.values.tolist()
+    season_labels = {
+        "DJF": "Dec - Feb",
+        "MAM": "Mar - May",
+        "JJA": "Jun - Aug",
+        "SON": "Sep - Nov",
+    }
+    time_labels = [season_labels[s] for s in ordered_seasons]
     return ds_resampled, time_labels
 
 

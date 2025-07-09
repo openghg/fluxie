@@ -12,6 +12,7 @@ def align_time(ds_list: list[xr.Dataset]) -> list[xr.Dataset]:
     Returns:
         aligned_ds_list: list of xarray datasets time-aligned
     """
+
     time_dim_equal = [ds_list[0].time.equals(x.time) for x in ds_list[1:]]
 
     if all(time_dim_equal):
@@ -22,6 +23,11 @@ def align_time(ds_list: list[xr.Dataset]) -> list[xr.Dataset]:
     if any(abs(dtime - np.median(dtime)) > 0.1 * np.median(dtime)):
         raise ValueError("Unable to infer period from dataset")
     period = np.median(dtime)
+
+    # Reduce datasets to their overlapping time range
+    min_date = max([x.time.min() for x in ds_list]) - period / 2
+    max_date = min([x.time.max() for x in ds_list]) + period / 2
+    ds_list = [ds.sel(time=slice(min_date, max_date)) for ds in ds_list]
 
     aligned_ds_list = [ds_list[0]]
 
@@ -84,11 +90,10 @@ def align_lat_lon(
 
 
 def align_map_data(
-    ds_all: dict[xr.Dataset],
+    ds_all: dict[xr.Dataset | xr.DataArray],
     align_coordinates: bool = True,
     align_variables: bool = True,
-
-) -> dict[xr.Dataset]:
+) -> dict[xr.Dataset | xr.DataArray]:
     """
     Prepare flux datasets for flux maps by:
       - filtering variables to only those with expected spatial or platform dimensions,
@@ -97,20 +102,23 @@ def align_map_data(
       - aligning time and spatial coordinates (optional).
     
     Args:
-        ds_all (dict[xr.Dataset]):
-            Dictionary of model names and corresponding xarray datasets.
+        ds_all (dict[xr.Dataset | xr.DataArray]):
+            Dictionary of model names and corresponding xarray Datasets/DataArrays.
         align_coordinates (bool): 
             If True, align dataset time, latitude and longitude coordinates.
         align_variables (bool):
             If True, keep only variables common to all datasets.
 
     Returns:
-        dict[xr.Dataset]:
-            Aligned datasets, with consistent variables and coordinates.
+        dict[xr.Dataset | xr.DataArray]:
+            Aligned Datasets/DataArrays, with consistent variables and coordinates.
     """
 
      # Step 1: Filter variables based on dimension criteria
     for key, ds in ds_all.items():
+        if isinstance(ds, xr.DataArray):
+            continue
+        # Applied only if Dataset and not DataArray
         ds = ds.drop_vars(
             [
                 var

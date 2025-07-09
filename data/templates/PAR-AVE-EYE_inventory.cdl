@@ -1,0 +1,31 @@
+// 
+// placeholders to be replaced in long_name attributes and variable names
+// <species>:	species name in lower case no separators (e.g., ch4, n2o, hfc13a)
+// <year>: date of inventory submission
+// 
+netcdf UNFCCC_inventory_<species>_<year> {
+dimensions:
+	time = 33 ;     // mandatory
+	country = 28 ;  // mandatory
+variables:
+	double flux_total_inventory_country(time, country) ;            // mandatory
+		flux_total_inventory_country:_FillValue = NaN ;
+		flux_total_inventory_country:longname = "UNFCCC inventory emissions estimate from <year>" ;
+		flux_total_inventory_country:units = "kg/yr" ;
+	double stdev_flux_total_inventory_country(time, country) ;      // mandatory
+		stdev_flux_total_inventory_country:_FillValue = NaN ;
+		stdev_flux_total_inventory_country:longname = "Standard deviation UNFCCC inventory emissions estimate from <year>, extrapolated back from current inventory uncertainty" ;
+		stdev_flux_total_inventory_country:units = "kg/yr" ;
+	double time(time) ;                                             // mandatory
+		time:long_name = "Mid of flux interval in UTC" ;
+		time:units = "days since 1970-01-01 00:00:00" ;
+		time:calendar = "proleptic_gregorian" ;
+        time:axis = "T" ;
+	string country(country) ;                                       // mandatory
+		country:longname = "Country ISO 3166-1 alpha-3 code" ;
+
+// global attributes:
+		:missing_data = "[]" ;  // list of "<country>:<species>" data that were not available, so have been included as empty values (NaNs) or zero values in totals
+        :creator = "Alice Ramsden" ;
+        :creation_date = "2025-06-13" ;
+}
