@@ -28,34 +28,38 @@ def define_var_plot(
         var = [var]
 
     ds_output = xr.Dataset()
-        for var_p in var:
-            unit_var = "flux_total_posterior"
+    for var_p in var:
+        unit_var = "flux_total_posterior"
 
-            if var_p == "posterior_prior_diff":
-                ds_output[var_p] = ds["flux_total_posterior"] - ds["flux_total_prior"]
-            elif var_p == "posterior_mean_diff":
-                ds_output[var_p] = ds["flux_total_posterior"] - ds[
-                    "flux_total_posterior"
-                ].mean(dim="time")
-            elif var_p == "posterior_prior_diff_inversion_grid":
-                ds_output[var_p] = (
-                    ds["flux_total_posterior_inversion_grid"] - ds["flux_total_prior"]
-                )
-            elif var_p == "posterior_mean_diff_inversion_grid":
-                ds_output[var_p] = ds["flux_total_posterior_inversion_grid"] - ds[
-                    "flux_total_posterior_inversion_grid"
-                ].mean(dim="time")
-            else:
-                if var_p not in ds:
-                    raise ValueError(f"'{var_p}' not found in dataset(s)")
-                ds_output[var_p] = ds[var_p]
-                unit_var = var_p
+        if var_p == "posterior_prior_diff":
+            ds_output[var_p] = ds["flux_total_posterior"] - ds["flux_total_prior"]
+        elif var_p == "posterior_mean_diff":
+            ds_output[var_p] = ds["flux_total_posterior"] - ds[
+                "flux_total_posterior"
+            ].mean(dim="time")
+        elif var_p == "posterior_prior_diff_inversion_grid":
+            ds_output[var_p] = (
+                ds["flux_total_posterior_inversion_grid"] - ds["flux_total_prior"]
+            )
+        elif var_p == "posterior_mean_diff_inversion_grid":
+            ds_output[var_p] = ds["flux_total_posterior_inversion_grid"] - ds[
+                "flux_total_posterior_inversion_grid"
+            ].mean(dim="time")
+        else:
+            if var_p not in ds:
+                raise ValueError(f"'{var_p}' not found in dataset(s)")
+            ds_output[var_p] = ds[var_p]
+            unit_var = var_p
 
-            ds_output[var_p].attrs["units"] = ds[unit_var].attrs.get("units")
+        ds_output[var_p].attrs["units"] = ds[unit_var].attrs.get("units")
 
-      ds_output.attrs = ds.attrs
+    ds_output.attrs = ds.attrs
 
-      return ds_output
+    # Add back sites variable if exists
+    if "sites" in ds.data_vars:
+        ds_output["sites"] = ds["sites"]
+
+    return ds_output
 
 
 def make_diff_ds(

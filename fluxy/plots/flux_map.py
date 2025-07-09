@@ -603,7 +603,7 @@ def plot_flux_map_over_time(
             # Add sites and markers if specified
             if add_sites:
                 try:
-                    sites_info = get_active_sites_coordinates(ds.isel(time=[col]), config_data, fallback_sites)
+                    sites_info = get_active_sites_coordinates(ds_plot.isel(time=[col]), config_data, fallback_sites)
                 except Exception as e:
                     raise RuntimeError(
                         "Failed to get active sites coordinates. "
