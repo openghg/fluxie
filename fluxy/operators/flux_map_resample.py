@@ -5,43 +5,44 @@ import calendar
 import datetime
 
 from typing import List, Tuple, Literal
+from fluxy.plots.utils import print_period, get_frequency
 
 
-def calculate_flux_mean(
-    data: xr.DataArray,
-    season: str = None,
-) -> xr.DataArray:
-    """
-    Calculate the mean flux along the 'time' dimension from a dataset, optionally for a specific season.
+# def calculate_flux_mean(
+#     data: xr.DataArray,
+#     season: str = None,
+# ) -> xr.DataArray:
+#     """
+#     Calculate the mean flux along the 'time' dimension from a dataset, optionally for a specific season.
 
-    Args:
-        data (xr.DataArray):
-            The input data containing a 'time' dimension to calculate the mean.
-        season (str, optional):
-            The season for which to calculate the mean (e.g., 'DJF', 'MAM', 'JJA', 'SON').
-            If None, the mean is calculated over the entire 'time' dimension.
+#     Args:
+#         data (xr.DataArray):
+#             The input data containing a 'time' dimension to calculate the mean.
+#         season (str, optional):
+#             The season for which to calculate the mean (e.g., 'DJF', 'MAM', 'JJA', 'SON').
+#             If None, the mean is calculated over the entire 'time' dimension.
 
-    Returns:
-        xr.DataArray:
-            The computed mean flux, either over the entire time period or for the specified season.
-    """
-    if season is None:
-        ds_output = data.mean(dim="time", keep_attrs=True)
+#     Returns:
+#         xr.DataArray:
+#             The computed mean flux, either over the entire time period or for the specified season.
+#     """
+#     if season is None:
+#         ds_output = data.mean(dim="time", keep_attrs=True)
 
-    else:
-        # Group by season and check if the given season exists
-        seasonal_means = data.groupby("time.season", restore_coord_dims=True).mean(
-            dim="time"
-        )
+#     else:
+#         # Group by season and check if the given season exists
+#         seasonal_means = data.groupby("time.season", restore_coord_dims=True).mean(
+#             dim="time"
+#         )
 
-        if season not in seasonal_means.season.values:
-            raise ValueError(f"Season '{season}' not found in the dataset.")
+#         if season not in seasonal_means.season.values:
+#             raise ValueError(f"Season '{season}' not found in the dataset.")
 
-        ds_output = seasonal_means.sel(season=season)
-    ds_output.attrs["start_date"] = data.time.values.min()
-    ds_output.attrs["end_date"] = data.time.values.max()
+#         ds_output = seasonal_means.sel(season=season)
+#     ds_output.attrs["start_date"] = data.time.values.min()
+#     ds_output.attrs["end_date"] = data.time.values.max()
 
-    return ds_output
+#     return ds_output
 
 def calculate_resampled_flux(
     flux: xr.DataArray,
@@ -271,6 +272,7 @@ def resample_over_months_list(
 
 def resample_over_seasons(
     ds: xr.Dataset,
+    season: Literal['DJF', 'MAM', 'JJA', 'SON'] = None,
 ) -> Tuple[xr.Dataset, List[str]]:
     """
     Resample a dataset over seasons.
@@ -279,12 +281,14 @@ def resample_over_seasons(
     Args:
         ds (xarray.Dataset):
             Dataset with a "time" dimension.
+        season (str, optional):
+            The season to resample ds over.
 
     Returns:
         ds_resampled (xarray.Dataset):
-            Dataset resampled over seasons.
+            Dataset resampled over seasons or a given season.
         time_labels (list of str):
-            Labels for each season (e.g., "DJF", "MAM").
+            Labels for each season (e.g., "Dec - Feb").
     """
     # Define groupings
     groups = ds.time.dt.season
@@ -305,6 +309,48 @@ def resample_over_seasons(
         "SON": "Sep - Nov",
     }
     time_labels = [season_labels[s] for s in ordered_seasons]
+
+    if season is not None:
+        ds_resampled = ds_resampled.sel(time=season)
+        ds_resampled["sites"] = ds_resampled["sites"].expand_dims(time=[season])
+
+        freq = get_frequency(ds)
+        time_labels = print_period(ds, freq, season)
+        ds_resampled.attrs["time_label"] = time_labels # needed for print_cbar_label
+    return ds_resampled, time_labels
+
+
+def resample_over_all_period(
+    ds: xr.Dataset,
+) -> Tuple[xr.Dataset, List[str]]:
+    """
+    Resample a dataset over time for the entire period.
+    It also generates a label for the period.
+
+    Args:
+        ds (xarray.Dataset):
+            Dataset with a "time" dimension.
+
+    Returns:
+        ds_resampled (xarray.Dataset):
+            Dataset resampled over the entire period.
+        time_labels (list of str):
+            Label of the entire period (e.g., "2020", "2020—2022").
+    """
+
+    # Define groupings
+    groups = xr.DataArray(np.zeros(len(ds.time), dtype=int), dims="time")
+
+    # Resample dataset
+    ds_resampled = calculate_resampled_dataset(ds, groups)
+    ds_resampled = ds_resampled.isel(group=0, drop=True)
+    ds_resampled["sites"] = ds_resampled["sites"].expand_dims(time=[ds.time.min().values])
+
+    # Make time label
+    freq = get_frequency(ds)
+    time_labels = print_period(ds, freq)
+    ds_resampled.attrs["time_label"] = time_labels # needed for print_cbar_label
+
     return ds_resampled, time_labels
 
 
@@ -404,7 +450,7 @@ def resample_over_months(
 def resample_over_period(
     ds: xr.Dataset,
     N: int = 1,
-    chop_by: Literal["year", "month", "season"] | List = "year",
+    chop_by: Literal["year", "month", "season"] | List | Literal['DJF', 'MAM', 'JJA', 'SON'] = "year",
 ) -> Tuple[xr.Dataset, List[str]]:
     """
     Resample a dataset over a specified time period or custom intervals.
@@ -420,7 +466,7 @@ def resample_over_period(
             Interval length for custom periods (e.g., for months or years).
         chop_by (str, list):
             Defines how the dataset should be chopped.
-            Options are: 'year', 'month', 'season', or a list of dates or months.
+            Options are: 'year', 'month', 'season', a list of dates or months, or a season.
 
     Returns:
         ds_avg (xarray.Dataset):
@@ -444,9 +490,12 @@ def resample_over_period(
         if all(isinstance(i, (list, int, float)) for i in chop_by):
             months_list = chop_by
             return resample_over_months_list(ds.copy(), months_list)
-
+    elif chop_by in ['DJF', 'MAM', 'JJA', 'SON']:
+        return resample_over_seasons(ds.copy(), season=chop_by)
     elif chop_by == "season":
         return resample_over_seasons(ds.copy())
+    elif chop_by == "all":
+        return resample_over_all_period(ds.copy())
     elif chop_by == "year":
         return resample_over_years(ds.copy(), N)
     elif chop_by == "month":
