@@ -91,23 +91,17 @@ def align_lat_lon(
 
 def align_map_data(
     ds_all: dict[xr.Dataset | xr.DataArray],
-    align_coordinates: bool = True,
-    align_variables: bool = True,
 ) -> dict[xr.Dataset | xr.DataArray]:
     """
     Prepare flux datasets for flux maps by:
       - filtering variables to only those with expected spatial or platform dimensions,
-      - keeping only variables common to all datasets (optional),
+      - keeping only variables common to all datasets,
       - removing unused dimensions,
-      - aligning time and spatial coordinates (optional).
+      - aligning time and spatial coordinates.
     
     Args:
         ds_all (dict[xr.Dataset | xr.DataArray]):
             Dictionary of model names and corresponding xarray Datasets/DataArrays.
-        align_coordinates (bool): 
-            If True, align dataset time, latitude and longitude coordinates.
-        align_variables (bool):
-            If True, keep only variables common to all datasets.
 
     Returns:
         dict[xr.Dataset | xr.DataArray]:
@@ -135,20 +129,18 @@ def align_map_data(
         )
         ds_all[key] = ds.drop_dims(unused_dims)
 
-    # Step 2: Keep only variables common to all datasets (if align_variables is True)
-    if align_variables:
-        var_sets = [set(ds.data_vars) for ds in ds_all.values()]
-        common_vars = set.intersection(*var_sets)
+    # Step 2: Keep only variables common to all datasets
+    var_sets = [set(ds.data_vars) for ds in ds_all.values()]
+    common_vars = set.intersection(*var_sets)
 
-        for key in ds_all:
-            ds_all[key] = ds_all[key][list(common_vars)]
+    for key in ds_all:
+        ds_all[key] = ds_all[key][list(common_vars)]
 
-    # Step 3: Align dataset coordinates (if align_coordinates is True)
+    # Step 3: Align dataset coordinates
     models = list(ds_all.keys())
     ds_list = list(ds_all.values())
-    if align_coordinates:
-        ds_list = align_time(ds_list)
-        ds_list = align_lat_lon(ds_list, coord="latitude")
-        ds_list = align_lat_lon(ds_list, coord="longitude")
+    ds_list = align_time(ds_list)
+    ds_list = align_lat_lon(ds_list, coord="latitude")
+    ds_list = align_lat_lon(ds_list, coord="longitude")
 
     return dict(zip(models, ds_list))

@@ -88,7 +88,6 @@ def print_cbar_label(
     ds: xr.Dataset,
     species_info: dict,
     var: str = None,
-    season: str = None,
     format: list[str] = ["variable", "species", "units", "time"],
 ) -> str:
     """
@@ -102,8 +101,6 @@ def print_cbar_label(
             A dictionary with metadata for species, including display names.
         var (str, optional):
             The variable name in the dataset.
-        season (str, optional):
-            The season to include in the label (e.g., 'DJF', 'MAM').
         format (list[str], optional):
             Specifies the components to include in the label.
             Options: ['variable', 'species', 'units', 'time']. Default includes all.
@@ -125,11 +122,7 @@ def print_cbar_label(
 
     time_label = ""
     if "time" in format:
-        freq = get_frequency(ds)
-        period = print_period(
-            ds, freq, season
-        )  # TODO Here, based on the last iteration. Check if consistent for all models?
-        time_label = f"{period}"
+        time_label = ds.attrs["time_label"]
 
     # Construct the final label with proper line breaks
     label_parts = [var_label, middle_label, time_label]

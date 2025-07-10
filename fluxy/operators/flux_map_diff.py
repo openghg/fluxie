@@ -62,7 +62,7 @@ def define_var_plot(
     return ds_output
 
 
-def make_diff_ds(
+def make_model_diff_ds(
     ds1: xr.Dataset,
     ds2: xr.Dataset,
 ):

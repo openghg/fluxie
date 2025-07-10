@@ -6,8 +6,8 @@ import xarray as xr
 from fluxy import config
 from fluxy.operators.flux_align_dataset import align_map_data
 from fluxy.operators.flux_combine import combine_map_dataset
-from fluxy.operators.flux_map_diff import define_var_plot, make_diff_ds
-from fluxy.operators.flux_map_resample import resample_over_period, calculate_flux_mean
+from fluxy.operators.flux_map_diff import define_var_plot, make_model_diff_ds
+from fluxy.operators.flux_map_resample import resample_over_period
 from fluxy.plots.utils import (
     Region,
     add_colorbar,
@@ -87,6 +87,8 @@ def plot_flux_map(
             Value added to the latitude and longitude bounds of the plot.
             Positive values expand the plot area, while negative values zoom in by reducing the bounds.
             Example: `zoom_degree=1` adds 1 degree to the bounds, while `zoom_degree=-1` subtracts 1 degree.
+        only (str, optional):
+            Option to plot only "posterior" or "prior" or "diff"
         fallback_sites (list[str] | None):
             A list of site names to use as a fallback if 'sites' is not found in the datasets.
             If None, the first available 'sites' in the datasets will be used as fallback.
@@ -118,21 +120,35 @@ def plot_flux_map(
     )
     if only == "posterior":
         vars_list = [var_posterior]
+        var_fluxlim = var_posterior
     elif only == "prior":
         vars_list = [var_prior]
+        var_fluxlim = var_prior
     elif only == "diff":
         vars_list = [var_diff]
+        var_fluxlim = var_diff
     else:
         vars_list = [var_prior, var_posterior, var_diff]
+        var_fluxlim = var_posterior #TODO Flux limits based on posterior, is this the right way to do?
+
+    # Prepare datasets and resample over the whole time period or a given season
+    if not season:
+        resample_period = 'all'
+    else:
+        resample_period = season
+    ds_dict = {
+        m: resample_over_period(define_var_plot(ds, vars_list), chop_by=resample_period)[0]
+        for m, ds in ds_all.items()
+    }
 
     # Load country lines and species information
     country_lines = compute_boundary_geometry(map_bounds)
     species_info = config_data.get("species_info", {}).get(species, {})
 
-    # Set flux limits #TODO Based on posterior, is this the right way to do?
+    # Set flux limits
     fluxlim = set_flux_limits(
-        ds_all,
-        vars_list[0],
+        ds_dict,
+        var_fluxlim,
         map_bounds,
         option=set_fluxlim,
         custom_percentile=set_fluxlim_percentile,
@@ -140,13 +156,13 @@ def plot_flux_map(
 
     # Initialize figure
     n_rows = len(vars_list)
-    n_cols = len(ds_all)
+    n_cols = len(ds_dict)
     figsize = define_map_figsize(
         map_bounds, n_rows, n_cols, fixed_value=3 * n_rows, fixed_dimension="height"
     )
     fig, ax = plt.subplots(n_rows, n_cols, figsize=figsize, constrained_layout=True)
 
-    for col, (model, ds) in enumerate(ds_all.items()):
+    for col, (model, ds) in enumerate(ds_dict.items()):
         lon, lat = ds.longitude, ds.latitude
         try:
             sites_info = (
@@ -164,9 +180,6 @@ def plot_flux_map(
         for row, var in enumerate(vars_list):
             ax_i = model_axes if n_rows == 1 else model_axes[row]
 
-            ds_plot = define_var_plot(ds, var)
-            ds_plot = calculate_flux_mean(ds_plot, season)
-
             # Determine plot settings
             is_diff = "diff" in var
             cmap_i = cmap_diff if is_diff else cmap
@@ -179,7 +192,7 @@ def plot_flux_map(
             im = ax_i.pcolormesh(
                 lon,
                 lat,
-                ds_plot[var],
+                ds[var],
                 cmap=cmap_i,
                 vmin=vlim_i[0],
                 vmax=vlim_i[1],
@@ -211,12 +224,11 @@ def plot_flux_map(
             # Add colorbar (only for the last column)
             if col == n_cols - 1:
                 cbar_label = print_cbar_label(
-                    ds_plot,
+                    ds,
                     species_info,
                     var,
-                    season=season,
                     format=["variable", "species", "units", "time"],
-                )
+                ) # TODO Here, based on the last iteration. Check if consistent for all models?
                 add_colorbar(
                     fig,
                     ax_i,
@@ -325,10 +337,17 @@ def plot_flux_map_model_comparison(
         zoom_degree=zoom_degree,
     )
 
-    # Prepare datasets
+    # Prepare datasets and resample over the whole time period or a given season
     ds_dict = {m: define_var_plot(ds, var) for m, ds in ds_all.items() if m in models}
     ds_dict = align_map_data(ds_dict)
-    ds_dict["diff"] = make_diff_ds(ds_dict[models[0]], ds_dict[models[1]])
+    ds_dict["diff"] = make_model_diff_ds(ds_dict[models[0]], ds_dict[models[1]])
+
+    if not season:
+        resample_period = 'all'
+    else:
+        resample_period = season
+    for m, ds in ds_dict.items():
+        ds_dict[m] = resample_over_period(ds, chop_by=resample_period)[0]
 
     # Load country lines and species information
     country_lines = compute_boundary_geometry(map_bounds)
@@ -353,8 +372,6 @@ def plot_flux_map_model_comparison(
         ax_i = ax[col]
         lon, lat = ds.longitude, ds.latitude
 
-        ds_plot = calculate_flux_mean(ds, season)
-
         # Determine plot settings
         is_diff = ("diff" in var) or ("diff" in model)
         cmap_i = cmap_diff if is_diff else cmap
@@ -367,7 +384,7 @@ def plot_flux_map_model_comparison(
         im = ax_i.pcolormesh(
             lon,
             lat,
-            ds_plot[var],
+            ds[var],
             cmap=cmap_i,
             vmin=vlim_i[0],
             vmax=vlim_i[1],
@@ -402,12 +419,11 @@ def plot_flux_map_model_comparison(
 
         # Add colorbar
         cbar_label = print_cbar_label(
-            ds_plot,
+            ds,
             species_info,
             var,
-            season=season,
             format=["variable", "species", "units", "time"],
-        )
+        ) # TODO Here, based on the last iteration. Check if consistent for all models?
         if model == "diff":
             cbar_lines = cbar_label.split("\n")
             cbar_lines[0] += " difference"
@@ -509,18 +525,16 @@ def plot_flux_map_over_time(
         zoom_degree=zoom_degree,
     )
 
-    # Prepare datasets and average over given periods
+    # Prepare datasets and resample over given periods
     ds_dict = {m: define_var_plot(ds, var) for m, ds in ds_all.items()}
 
     if plot_combined:
         ds_dict = align_map_data(ds_dict)
         ds_dict = combine_map_dataset(ds_dict)
-    else:
-        ds_dict = align_map_data(ds_all, align_coordinates=False, align_variables=False) # Only remove variables without dimensions  ['time', 'latitude', 'longitude'] (or 'platform')
 
-    ds_chopby, time_labels = {}, {}
+    time_labels = {}
     for key, ds in ds_dict.items():
-        ds_chopby[key], time_labels[key] = resample_over_period(ds, dt, chop_by)
+        ds_dict[key], time_labels[key] = resample_over_period(ds, dt, chop_by)
 
     if all([v == time_labels[key] for v in time_labels.values()]):
         time_labels = time_labels[key]
@@ -535,7 +549,7 @@ def plot_flux_map_over_time(
 
     # Set flux limits
     lim = set_flux_limits(
-        ds_chopby,
+        ds_dict,
         var,
         map_bounds,
         option=set_fluxlim,
@@ -550,7 +564,7 @@ def plot_flux_map_over_time(
     extend = "both" if is_diff else "max"
 
     # Initialise figure
-    n_rows = len(ds_chopby.keys())
+    n_rows = len(ds_dict.keys())
     n_cols = len(time_labels)
 
     if n_rows * n_cols == 4:
@@ -560,8 +574,8 @@ def plot_flux_map_over_time(
     else:
         fig, ax = plt.subplots(n_rows, n_cols, figsize=(n_cols * 4, n_rows * 3))
 
-    for row, (model, ds_plot) in enumerate(ds_chopby.items()):
-        lon, lat = ds_plot.longitude, ds_plot.latitude
+    for row, (model, ds) in enumerate(ds_dict.items()):
+        lon, lat = ds.longitude, ds.latitude
 
         for col, time_label in enumerate(time_labels):
             if n_rows == 1 and n_cols == 1:
@@ -573,7 +587,7 @@ def plot_flux_map_over_time(
             else:
                 ax_i = ax[row, col]
 
-            var_i = ds_plot[var].isel(time=col)
+            var_i = ds[var].isel(time=col)
 
             # Plot the data
             im = ax_i.pcolormesh(
@@ -603,7 +617,7 @@ def plot_flux_map_over_time(
             # Add sites and markers if specified
             if add_sites:
                 try:
-                    sites_info = get_active_sites_coordinates(ds_plot.isel(time=[col]), config_data, fallback_sites)
+                    sites_info = get_active_sites_coordinates(ds.isel(time=[col]), config_data, fallback_sites)
                 except Exception as e:
                     raise RuntimeError(
                         "Failed to get active sites coordinates. "
@@ -619,7 +633,7 @@ def plot_flux_map_over_time(
 
     # Add colorbar
     cbar_label = print_cbar_label(
-        ds_plot, species_info, var, format=["variable", "species", "units"]
+        ds, species_info, var, format=["variable", "species", "units"]
     )
     add_colorbar(
         fig,
