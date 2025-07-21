@@ -71,6 +71,31 @@ def read_json(filepath: os.PathLike) -> dict[str, dict]:
     return json_data
 
 
+def read_yaml(filepath: os.PathLike) -> dict[str, dict]:
+    """
+    Reads yaml file.
+
+    Args:
+        filepath (str or Path):
+            Path to yaml file including filename.
+    Returns:
+        yaml_data (dictionary of dictionaries):
+            Dictionary with data read from filepath.
+    """
+
+    import yaml
+
+    filepath = Path(filepath)
+
+    if not filepath.is_file():
+        raise FileNotFoundError(f"Cannot find {filepath}.")
+
+    with open(filepath, "r") as f:
+        yaml_data = yaml.safe_load(f)
+
+    return yaml_data
+
+
 def read_config_files(
     configs_dir: os.PathLike | None = None,
 ) -> dict[str, dict]:
@@ -88,13 +113,21 @@ def read_config_files(
         parent_dir = Path(__file__).parent.parent
         configs_dir = parent_dir / "configs"
 
-    # List of json files to be read
-    json_files = configs_dir.glob("*.json")
+    logger.info(f"Reading config files from {configs_dir}")
+
+    read_func = {
+        ".json": read_json,
+        ".yaml": read_yaml,
+        ".yml": read_yaml,
+    }
+
+    # List of files to be read
+    files = itertools.chain(*(configs_dir.glob(f"*{ext}") for ext in read_func.keys()))
 
     # Read json files
     data_dict = {}
-    for file in json_files:
-        data = read_json(file)
+    for file in files:
+        data = read_func.get(file.suffix, read_json)(file)
         filename = file.stem
         data_dict[filename] = data
 
@@ -240,7 +273,12 @@ def read_model_output(
 
         # Fix variables and attributes
         ds_all[m] = edit_vars_and_attributes(
-            ds_all[m], m, period_str, file_type, config_data.get("regions_info", {})
+            ds_all[m],
+            m,
+            period_str,
+            file_type,
+            config_data.get("regions_info", {}),
+            species=species,
         )
 
     return ds_all
@@ -530,6 +568,7 @@ def edit_vars_and_attributes(
     frequency: str,
     file_type: DataType,
     regions_info: dict[str, str],
+    species: str | None = None,
 ) -> xr.Dataset:
     """
     Edit dataset variables and attributes.
@@ -548,6 +587,8 @@ def edit_vars_and_attributes(
             See :py:class:`fluxy.types.DataType` for options.
         regions_info (dict of str):
             Dictionary with country and region names (read from json file).
+        species (str, optional):
+            Gas species, e.g. 'ch4'. If None, no species attribute is added.
 
     Returns:
         ds (xarray dataset):
@@ -571,6 +612,15 @@ def edit_vars_and_attributes(
 
     # Get model name
     m0 = model.split("_")[0].lower()
+
+    # check the species
+    if species is not None:
+        if "species" not in ds.attrs:
+            ds.attrs["species"] = species
+        elif ds.attrs["species"] != species:
+            logger.warning(
+                f"Species {ds.attrs['species']} in dataset does not match species {species} in model {model}."
+            )
 
     file_type = DataTypes(file_type)
 
