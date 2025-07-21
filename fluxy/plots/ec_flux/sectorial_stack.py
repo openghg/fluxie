@@ -26,14 +26,14 @@ def plot_stacked(
     ds: xr.Dataset,
     variable_simulated: str = "ecflux_sectorial_prior",
     variable_observed: str = "ecflux_observed",
-    season=None,
-    group_format="%H",
-    substance=" ",
-    area=False,
+    season: str = None,
+    group_format: str = "%H",
+    substance: str = " ",
+    area: bool = False,
     y_lims: tuple[float, float] = (None, None),
-    sector_groups: dict[str, list[str]] | None = None,
     model: str = "ecflux",
-    plot_footrpint_counts: bool = False,
+    plot_footprint_counts: bool = False,
+    sectors_config: dict[str, str] = {},
 ):
 
     # Check that the variable is on the sector and index dimensions
@@ -43,13 +43,16 @@ def plot_stacked(
     raise_var_dims(variable_simulated, ds, ("sector", "index"))
     raise_var_dims(variable_observed, ds, ("index",))
 
+    if season is not None:
+        ds = ds.sel(index=ds["time"].dt.season == season)
+
     df_sim = (
         ds[variable_simulated]
         .swap_dims({"index": "time"})
         .drop(["index", "number_of_identifier"])
         .transpose("time", "sector")
         .to_pandas()
-    ) * 10000000000000000000
+    )
     serie_obs = ds[variable_observed].swap_dims({"index": "time"}).to_series()
 
     fmt_time = lambda x: x.index.strftime(group_format)
@@ -74,12 +77,6 @@ def plot_stacked(
         axis=1,
     )
 
-    # Group sectors if specified
-    if sector_groups:
-        for key, value in sector_groups.items():
-            df_sim[key] = df_sim[value].sum(axis=1)
-            df_sim.drop(value, axis=1, inplace=True)
-
     fig, ax = plt.subplots(figsize=(12, 6))
     ef_kwargs = {
         "color": "black",
@@ -93,7 +90,26 @@ def plot_stacked(
     #    **ef_kwargs,
     # )
 
-    ax = stack_plot(df_sim, ax=ax, area=area)
+    if "sector_ordering" in sectors_config:
+        sector_order = [
+            # Set to presciribed order
+            sector
+            for sector in sectors_config["sector_ordering"]
+            if sector in df_sim.columns
+        ] + [
+            # Sectors not specified in the ordering
+            sector
+            for sector in df_sim.columns
+            if sector not in sectors_config["sector_ordering"]
+        ]
+        df_sim = df_sim[sector_order]
+
+    ax = stack_plot(
+        df_sim,
+        ax=ax,
+        area=area,
+        colors_of_category=sectors_config.get("colors_of_sector", {}),
+    )
     ax.scatter(
         df_obs.index,
         df_obs["mean"].values.reshape(-1),
@@ -101,8 +117,8 @@ def plot_stacked(
     )
     # scatter the total simulated
     ax.scatter(
-        df_obs.index,
-        df_obs.sum(axis=1),
+        df_sim.index,
+        df_sim.sum(axis=1),
         color="black",
         marker="*",
         label="Total simulated fluxes",
@@ -118,7 +134,7 @@ def plot_stacked(
             **kwargs,
         )
 
-        if plot_footrpint_counts:
+        if plot_footprint_counts:
             ax.text(
                 row.name,
                 row["mean"].value - offset,
@@ -137,9 +153,9 @@ def plot_stacked(
 
     ax.set_ylim(y_lims)
 
-    ax.set_ylabel(f"Mean Modelled {substance} Flux " "[µmol m$^{-2}$ s$^{-1}$]")
+    ax.set_ylabel(f"{substance} Flux " " [ µmol m$^{-2}$ s$^{-1}$ ]")
     season_str = season if season else ""
-    ax.set_title(f"Footprint and {model} fluxes at Hardau {season_str} ")
+    ax.set_title(f"Footprint and {model} fluxes {season_str} ")
     # ax.set_xlabel()
     x_labels = {
         "%H": "Hour of the day (UTC)",
