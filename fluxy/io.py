@@ -628,7 +628,7 @@ def edit_vars_and_attributes(
     if file_type == DataTypes.FLUX:
 
         # Apply model specific corrections
-        if m0 == "elris":
+        if m0 in ("elris", "flexinvert"):
             # Fix for legacy files
             if "countrynumber" in ds.dims.keys():
                 ds["country"] = ds["country"].astype("str")
@@ -723,28 +723,6 @@ def edit_vars_and_attributes(
                 regions_info["country_codes"].get(x, x) for x in ds["country"].values
             ]
 
-        elif m0 == "flexinvert":
-            ds["percentile_flux_total_posterior_country"] = xr.concat(
-                [
-                    ds["flux_total_posterior_country"]
-                    - ds["country_flux_error_posterior"],
-                    ds["flux_total_posterior_country"]
-                    + ds["country_flux_error_posterior"],
-                ],
-                pd.Index([0, 1], name="percentile"),
-            )
-
-            ds["percentile_flux_total_prior_country"] = xr.concat(
-                [
-                    ds["flux_total_prior_country"] - ds["country_flux_error_prior"],
-                    ds["flux_total_prior_country"] + ds["country_flux_error_prior"],
-                ],
-                pd.Index([0, 1], name="percentile"),
-            )
-            ds["countrynumber"] = ds["country"].astype(str)
-            del ds["country"]
-            ds = ds.rename({"countrynumber": "country"})
-
         elif m0 == "cif-enks":
             # Move time variable to center of the month
             ds["time"] = ds.time.values + np.timedelta64(15, "D")
@@ -835,6 +813,20 @@ def edit_vars_and_attributes(
                 dims=ds["platform"].dims,
                 coords=ds["platform"].coords,
             )
+        if m0 == "flexinvert":
+            ds["mf_observed"].attrs["units"] = "ppt"
+            ds["mf_observed"].attrs["longname"] = "observed_mole_fraction"
+            ds["mf_prior"].attrs["units"] = "ppt"
+            ds["mf_prior"].attrs["longname"] = "apriori_simulated_mole_fraction"
+            ds["mf_posterior"].attrs["units"] = "ppt"
+            ds["mf_posterior"].attrs["longname"] = "aposteriori_simulated_mole_fraction"
+            ds["mf_bc_prior"] = ds["Ypri_bkg"]
+            ds["mf_bc_prior"].attrs["units"] = "ppt"
+            ds["mf_bc_prior"].attrs["longname"] = "apriori_simulated_boundary_condition_mole_fraction"
+            ds["mf_bc_prior"] = ds["Ypri_bkg"]
+            ds["mf_bc_posterior"] = ds["Ypost_bkg"]
+            ds["mf_bc_posterior"].attrs["units"] = "ppt"
+            ds["mf_bc_posterior"].attrs["longname"] = "aposteriori_simulated_boundary_condition_mole_fraction"
 
             # Fill intake_height and stdev_mf_model with fake values
             ds["intake_height"][:] = 0

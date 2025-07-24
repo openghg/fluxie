@@ -17,7 +17,7 @@ from fluxy.plots.mf_timeseries import (
     plot_sites_timeseries,
 )
 from fluxy.operators.mf import compute_mf_difference
-from fluxy.plots.mf_stats import plot_stats_mf
+from fluxy.plots.mf_stats import plot_stats_mf, plot_taylor_diagram
 
 data_dir = Path(fluxy.__path__[0]).parent / "data" / "tests"
 
@@ -105,6 +105,7 @@ plot_inversion_grid_flux = False
 
 stats_to_plot = ["pearson", "bias", "crmse"]
 what_to_compare = "posterior_above_BC"
+taylor_stats2include = ["prior", "posterior"]
 stats_ylim = {"pearson": [0, 1], "bias": [-1.5, 0.5], "crmse": [0, 1.5]}
 
 
@@ -240,6 +241,29 @@ def test_plot_stats():
         stats_ylim=stats_ylim,
         start_date=start_date,
         end_date=end_date,
+    )
+
+
+def test_plot_taylor_diagram():
+    ds_all_allsites = slice_mf(
+        ds_all_mf.copy(),
+        start_date,
+        end_date,
+        site=None,
+        baseline_site=baseline_site,
+        data_dir=data_dir,
+        mf_units_print=mf_units_print,
+    )
+
+    stats = {}
+    for stat in taylor_stats2include:
+        stats[stat] = stats_mf(ds_all_allsites, stats_type=stat)
+
+    fig = plot_taylor_diagram(
+        stats=stats,
+        model_colors=model_colors,
+        model_labels=model_labels,
+        include=taylor_stats2include
     )
 
 

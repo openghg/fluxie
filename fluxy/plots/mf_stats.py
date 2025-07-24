@@ -19,18 +19,22 @@ class TaylorDiagram:
 
     def __init__(
         self,
+        sd_range: tuple[float, float],
+        sd_unit: str,
         sd_obs: float = None,
         fig: Figure = None,
         position: tuple[int, int, int] = (1, 1, 1),
         markersize: int = 100,
-        sd_range: tuple[float, float] = (0, 1.5),
-        sd_unit: str = "ppb",
         normalized: bool = True,
     ):
         """
         Initialize the axis for the Taylor Diagram.
 
         Args:
+            sd_range (tuple):
+                Two floats (min, max). It indicates the range for the radial coordinate.
+            sd_unit (str):
+                Unit for the standard deviation. It is only used for the axis label.
             sd_obs (float):
                 Observed standard deviation.
                 It makes sense to have it only if all markers share the same observed standard deviation.
@@ -42,10 +46,6 @@ class TaylorDiagram:
                 on a grid with nrows rows and ncols columns.
             markersize (int):
                 Size of the markers.
-            sd_range (tuple):
-                Two floats (min, max). It indicates the range for the radial coordinate.
-            sd_unit (str):
-                Unit for the standard deviation. It is only used for the axis label.
             normalized (bool):
                 If True, the standard deviation is normalized to the observed standard deviation.
                 If False, the standard deviation is plotted in absolute units.
@@ -81,30 +81,38 @@ class TaylorDiagram:
         fig.add_subplot(ax)
 
         # Set the label for standard deviation
-        label_sd = "Normalized standard deviation [unitless]".format(sd_unit) \
-            if normalized else "Standard deviation [{}]".format(sd_unit)
+        label_sd = (
+            "Normalized standard deviation [unitless]" if normalized else "Standard deviation [{}]".format(sd_unit)
+        )
 
         # Customize the axes
-        # Correlation coefficient axis (top)
-        ax.axis["top"].set_axis_direction("bottom")
-        ax.axis["top"].label.set_text("Correlation coefficient")
-        ax.axis["top"].toggle(ticklabels=True, label=True)
-        ax.axis["top"].major_ticklabels.set_axis_direction("top")
-        ax.axis["top"].label.set_axis_direction("top")
+        dict_axes = {
+            "top": {
+                "axis_direction": "bottom",
+                "major_tick_labels_axis_direction": "top",
+                "label_axis_direction": "top",
+                "label": "Correlation coefficient",
+            },
+            "left": {
+                "axis_direction": "bottom",
+                "major_tick_labels_axis_direction": "bottom",
+                "label_axis_direction": "bottom",
+                "label": label_sd,
+            },
+            "right": {
+                "axis_direction": "top",
+                "major_tick_labels_axis_direction": "left",
+                "label_axis_direction": "top",
+                "label": label_sd,
+            },
+        }
 
-        # Standard deviation axis (left)
-        ax.axis["left"].set_axis_direction("bottom")
-        ax.axis["left"].toggle(ticklabels=True, label=True)
-        ax.axis["left"].major_ticklabels.set_axis_direction("bottom")
-        ax.axis["left"].label.set_axis_direction("bottom")
-        ax.axis["left"].label.set_text(label_sd)
-
-        # Standard deviation axis (right)
-        ax.axis["right"].set_axis_direction("top")
-        ax.axis["right"].toggle(ticklabels=True, label=True)
-        ax.axis["right"].major_ticklabels.set_axis_direction("left")
-        ax.axis["right"].label.set_axis_direction("top")
-        ax.axis["right"].label.set_text(label_sd)
+        for key, params in dict_axes.items():
+            ax.axis[key].set_axis_direction(params["axis_direction"])
+            ax.axis[key].toggle(ticklabels=True, label=True)
+            ax.axis[key].major_ticklabels.set_axis_direction(params["major_tick_labels_axis_direction"])
+            ax.axis[key].label.set_axis_direction(params["label_axis_direction"])
+            ax.axis[key].label.set_text(params["label"])
 
         # Hide bottom axis (not used)
         ax.axis["bottom"].set_visible(False)
@@ -137,16 +145,22 @@ class TaylorDiagram:
         Add markers representing sample points to the Taylor diagram.
 
         Args:
-            sd_obs (list of floats):
+            sds (list of floats):
                 Standard deviations of the sample points
             pearsons (list of floats):
                 Pearson's correlation coefficiens of the sample points
+            label (str):
+                Label for the sample points, used in the legend.
             *args, **kwargs: Additional plotting parameters (e.g., color, marker).
         """
 
-        self.ax.scatter(
-            np.arccos(pearsons), sds, s=self.markersize, zorder=10, label=label, *args, **kwargs
+        ms = kwargs.pop("markersize") if "markersize" in kwargs else self.markersize
+
+        lines = self.ax.scatter(
+            np.arccos(pearsons), sds, s=ms, zorder=10, label=label, *args, **kwargs
         )  # Plot in polar coordinates
+
+        return lines
 
     def add_contours(self, levels: int = 10, **kwargs):
         """
@@ -167,7 +181,6 @@ class TaylorDiagram:
         crmse = np.sqrt(self.sd_obs**2 + rs**2 - 2 * self.sd_obs * rs * np.cos(ts))
         contours = self._ax.contour(xs, ys, crmse, levels=levels, **kwargs)
         return contours
-
 
 
 def plot_stats_mf(
@@ -231,9 +244,7 @@ def plot_stats_mf(
     nrows = len(stats_to_plot)
     fig, ax = plt.subplots(nrows, 1, figsize=(10, 3 * nrows), tight_layout=True)
     for i, stat in enumerate(stats_to_plot):
-        df_this_stats = long_stats[long_stats["variable"] == stat].pivot(
-            index="site", columns="model", values="value"
-        )
+        df_this_stats = long_stats[long_stats["variable"] == stat].pivot(index="site", columns="model", values="value")
 
         df_this_stats.plot(
             kind="bar",
@@ -275,16 +286,17 @@ def plot_stats_mf(
 
 
 def plot_taylor_diagram(
-    stats: dict[Literal['prior', 'posterior'], pd.DataFrame],
+    stats: dict[Literal["prior", "posterior", "prior_above_BC", "posterior_above_BC"], pd.DataFrame],
     model_colors: dict[str, str],
     model_labels: dict[str, str],
-    model_markers: list[str] = ['o'],
+    stat_markers: list[str] = ["o"],
     normalize: bool = True,
-    plot_type_model: Literal['separate', 'together'] = 'separate',
-    plot_type_stat: Literal['separate', 'together'] = 'separate',
-    include: list[str] = ['prior', 'posterior'],
+    plot_type_model: Literal["separate", "together"] = "separate",
+    plot_type_stat: Literal["separate", "together"] = "separate",
+    include: list[Literal["prior", "posterior", "prior_above_BC", "posterior_above_BC"]] = ["prior", "posterior"],
     sd_range: tuple[float, float] = (0, 2.5),
-    sd_unit: str = 'ppb',
+    sd_unit: str = "ppb",
+    check_sites: bool = False,
 ) -> Figure:
     """
     Plots statistics for all sites, for all models.
@@ -294,29 +306,30 @@ def plot_taylor_diagram(
             Dictionary containing statistics for each model and each site.
             The keys should match the entries in the `include` parameter.
         model_colors (dict of str):
-            Models and corresponding colours used to plot the model.
+            Models and corresponding colours used to plot the markers.
         model_labels (dict of str):
-            Models and corresponding labels used to plot the stats.
-        model_markers (list of str):
-            Markers used to plot the stats in the `include` parameter.
-            If only one marker is given, it is used for all models.
+            Models and corresponding labels used to label the markers.
+        stat_markers (list of str):
+            Marker styles used to plot the stats specified in the `include` parameter, sharing the same index.
+            If only one marker is provided, it will be applied to all stats.
         normalize (bool):
             If True, normalizes the data by the standard deviation of the observations.
             If False, plots the absolute data.
         plot_type_model (str):
             If 'separate', plots each model in a separate subplot.
             If 'together', plots all models in the same subplot.
-        plot_type_stat (str):       
+        plot_type_stat (str):
             If 'separate', plots each statistic in a separate subplot.
             If 'together', plots all statistics in the same subplot.
         include (list of str):
             List of statistics to include in the plot.
             Options are 'prior' and 'posterior'.
         sd_range (tuple of float):
-            Range for the standard deviation axis.
+            Range for the standard deviation axis, in units provided with `sd_unit` if `normalize` = True.
         sd_unit (str):
             Unit for the standard deviation axis label.
-
+        check_sites (bool):
+            If True, color different sites with different colors.
     Returns:
         fig (figure):
             Plot showing each model's fit statistics, for each site.
@@ -325,33 +338,50 @@ def plot_taylor_diagram(
     # Check that include is a subset of stats keys
     if not set(include).issubset(stats.keys()):
         raise ValueError(f"include {include} must be a subset of stats keys {list(stats.keys())}")
+    
+    # Ensure stats keys are valid
+    type_options = ["prior", "posterior", "prior_above_BC", "posterior_above_BC"]
+    for s in stats:
+        assert s in type_options, f"'{s}' is not in {type_options}"
 
     # Get model names
-    models = np.unique(stats[include[0]]['model'].to_numpy())
+    models = np.unique(stats[include[0]]["model"].to_numpy())
+
+    # Get site names
+    sites = np.unique(stats[include[0]]["site"].to_numpy())
+    num_colors = len(sites)
+    colormap = plt.get_cmap("Spectral", num_colors)  # Using 'hsv' colormap for more distinct colors
+    site_colors = {
+        s: colormap(i / num_colors) for i, s in enumerate(sites)
+    }  # Normalize index for better color distribution
 
     # Set the number of rows and columns
     NCOLS_MAX = 3
     ncols = nrows = 1
 
-    if plot_type_model != 'together' or plot_type_stat != 'together':
+    if plot_type_model != "together" or plot_type_stat != "together":
 
-        if plot_type_model == 'separate' and plot_type_stat == 'separate':
-            nsubplots = (len(models) * len(stats))
+        if plot_type_model == "separate" and plot_type_stat == "separate":
+            nsubplots = len(models) * len(stats)
 
-        elif plot_type_model == 'together' and plot_type_stat == 'separate':
+        elif plot_type_model == "together" and plot_type_stat == "separate":
             nsubplots = len(stats)
 
-        elif plot_type_model == 'separate' and plot_type_stat == 'together':
+        elif plot_type_model == "separate" and plot_type_stat == "together":
             nsubplots = len(models)
 
         ncols = NCOLS_MAX if nsubplots >= NCOLS_MAX else nsubplots
         nrows = nsubplots // ncols + 1
-    
+
     # Create the figure
     fig = plt.figure(figsize=(10 * ncols, 8 * nrows), tight_layout=False)
 
     # Create a dictionary to save positions of diagrams
     dict_diags_pos = {}
+
+    # Initalize common features for legend
+    combined_handles = []
+    combined_labels = []
 
     # Loop over statistics (i.e., prior, posterior)
     for i, (s, stat) in enumerate(stats.items()):
@@ -361,49 +391,52 @@ def plot_taylor_diagram(
             continue
 
         # Fetch statistical data
-        long_stat = pd.melt(stat, id_vars=['model', 'site'], value_vars=['pearson', 'sd_obs', 'sd_sim'])
-        df_pearson = long_stat[long_stat['variable'] == 'pearson'].pivot(index='site', columns='model', values='value')
-        df_sds_obs = long_stat[long_stat['variable'] == 'sd_obs'].pivot(index='site', columns='model', values='value')
-        df_sds_sim = long_stat[long_stat['variable'] == 'sd_sim'].pivot(index='site', columns='model', values='value')
+        long_stat = pd.melt(stat, id_vars=["model", "site"], value_vars=["pearson", "sd_obs", "sd_sim"])
+        fetch_stat = lambda s: long_stat[long_stat["variable"] == s].pivot(
+            index="site", columns="model", values="value"
+        )
+        df_pearson = fetch_stat("pearson")
+        df_sds_obs = fetch_stat("sd_obs")
+        df_sds_sim = fetch_stat("sd_sim")
 
         # Loop over models
         for j, m in enumerate(models):
-            
+
             # Get the position of the subplot depending on the case
-            if plot_type_model == 'separate' and plot_type_stat == 'separate':
+            if plot_type_model == "separate" and plot_type_stat == "separate":
                 index_pos = i * ncols + j + 1
 
-            elif plot_type_model == 'together' and plot_type_stat == 'together':
+            elif plot_type_model == "together" and plot_type_stat == "together":
                 index_pos = 1
 
-            elif plot_type_model == 'together' and plot_type_stat == 'separate':
+            elif plot_type_model == "together" and plot_type_stat == "separate":
                 index_pos = i + 1
 
-            elif plot_type_model == 'separate' and plot_type_stat == 'together':
+            elif plot_type_model == "separate" and plot_type_stat == "together":
                 index_pos = j + 1
 
             # Get the statistics for the model m
-            list_sds_obs = df_sds_obs[m].values
-            list_sds_sim = df_sds_sim[m].values
-            list_pearsons = df_pearson[m].values
-            
+            sds_obs = df_sds_obs[m].values
+            sds_sim = df_sds_sim[m].values
+            pearsons = df_pearson[m].values
+
             # Normalize the data if needed
             if normalize:
-                list_sds_sim /= list_sds_obs
-                list_sds_obs /= list_sds_obs
+                sds_sim /= sds_obs
+                sds_obs /= sds_obs
 
             # Remove observation reference if multiple sd_obs and normalize = False
-            sd_obs = list_sds_obs[0] if (len(list_sds_obs) == 1 or normalize) else None 
+            sd_obs = sds_obs[~np.isnan(sds_obs)][0] if (len(sds_obs) == 1 or normalize) else None
 
             # Create the Taylor diagram using the corresponding class or fetch it
             if index_pos not in dict_diags_pos:
                 diag = TaylorDiagram(
-                    sd_obs=sd_obs, 
-                    fig=fig, 
-                    position=(nrows, ncols, index_pos),
-                    markersize=150, 
-                    sd_range=sd_range, 
+                    sd_range=sd_range,
                     sd_unit=sd_unit,
+                    sd_obs=sd_obs,
+                    fig=fig,
+                    position=(nrows, ncols, index_pos),
+                    markersize=150,
                     normalized=normalize,
                 )
 
@@ -411,15 +444,67 @@ def plot_taylor_diagram(
                 diag = dict_diags_pos[index_pos]
 
             # Define labels, colors and markers
-            label = model_labels[m] + ' - ' + s
-            color = model_colors[m][1] if s == 'prior' else model_colors[m][0] 
-            marker = model_markers[include.index(s)] if len(model_markers) > 1 else model_markers[0]
+            label = f"{model_labels[m]} - {s}"
+            color = model_colors[m][1] if s.split('_')[0] == "prior" else model_colors[m][0]
+            edgecolor = "k"
+            marker = stat_markers[include.index(s)] if len(stat_markers) > 1 else stat_markers[0]
 
             # Add samples to the diagram
-            diag.add_samples(list_sds_sim, list_pearsons, c=color, edgecolor='k', marker=marker, label=label)
-            diag._ax.legend(fontsize=10, loc='lower left', bbox_to_anchor=(0.1, 1.05))
+            if check_sites:
+
+                for (
+                    site,
+                    sd_sim,
+                    pearson,
+                ) in zip(sites, sds_sim, pearsons):
+
+                    # Add samples for each site with different colors
+                    site_handles = diag.add_samples(
+                        [sd_sim], [pearson], c=site_colors[site], edgecolor="k", marker=marker, label=site
+                    )
+
+                    # Add all site handles to the combined legend
+                    if i == 0 and j == 0:
+                        combined_handles += [site_handles]
+                        combined_labels += [site]
+
+                    # Add inner circles to indicate model/statistic
+                    inner_handles = diag.add_samples(
+                        [sd_sim], [pearson], c=color, edgecolor="k", marker="o", label=label, markersize=40
+                    )
+
+                # Add only last inner_handle to the combined legend
+                combined_handles += [inner_handles]
+                combined_labels += [label]
+
+            else:
+                handles = diag.add_samples(sds_sim, pearsons, c=color, edgecolor=edgecolor, marker=marker, label=label)
+
+                # Check if diag.add_samples returns artists or not
+                if not isinstance(handles, list):
+                    handles = [handles]
+
+                # If this is the first iteration, initialize combined handles and labels
+                if i == 0 and j == 0:
+                    combined_handles = handles.copy()
+                    combined_labels = [label] * len(handles)
+
+                # Add the new marker(s) and label(s) to combined legend
+                else:
+                    combined_handles += handles
+                    combined_labels += [label] * len(handles)
 
             # Save the position of the diagram's subplot
             dict_diags_pos[index_pos] = diag
+
+    # Add the combined legend to the diagram (once, at the end)
+    fig.legend(
+        combined_handles,
+        combined_labels,
+        fontsize=10,
+        loc="lower left",
+        bbox_to_anchor=(0.1, 1.05),
+        ncols=7 if check_sites else 2,
+    )
 
     return fig
