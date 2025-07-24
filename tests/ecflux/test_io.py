@@ -4,7 +4,7 @@ from fluxy.test_utils import data_dir
 
 import pytest
 
-test_models = models = ["EDDY_HARDAU", "EDDY_HARDAU_STORAGE_2LAYERS"]
+test_models = ["EDDY_HARDAU", "EDDY_HARDAU_STORAGE_2LAYERS"]
 
 
 @pytest.mark.parametrize("model", test_models)
