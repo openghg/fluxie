@@ -26,7 +26,7 @@ def test_stats():
     )
 
 
-def test_groupping():
+def test_grouping():
     group_sectors(dss, sectors_config=config["sectors"])
 
 
