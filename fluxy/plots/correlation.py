@@ -28,6 +28,7 @@ def plot_correlation(
     presentation_mode: bool = False,
     scatter_size: float = 1.5,
     lims: LimsTuple | tuple[LimsTuple, LimsTuple] | None = None,
+    figsize: tuple[float, float] = (10, 10),
 ):
     """Plot correlation between two timeseries.
 
@@ -44,6 +45,17 @@ def plot_correlation(
         model_labels (dict, optional): Dictionary of model labels. Defaults to {}.
         config_data (dict, optional): Configuration data. Defaults to {}.
         presentation_mode (bool, optional): Whether to use presentation mode. Defaults to False.
+        linear_fit (bool, optional): Whether to plot a linear fit line. Defaults to True.
+        scatter_size (float, optional): Size of scatter points. Defaults to 1.5.
+        lims (LimsTuple | tuple[LimsTuple, LimsTuple] | None, optional):
+            Limits for the x and y axes. If None, defaults to matplotlib limits.
+            If a single tuple is provided, it is used for both axes.
+            If two tuples are provided, they are used for x and y axes respectively.
+        figsize (tuple[float, float], optional):
+            Size of the figure. Defaults to (10, 10).
+
+    Returns:
+        matplotlib.figure.Figure: The figure object containing the plot.
     """
 
     models = list(ds_all.keys())
@@ -96,7 +108,7 @@ def plot_correlation(
     else:
         raise ValueError("Oppose must be either 'variables' or 'models'.")
 
-    fig, ax = plt.subplots(figsize=(10, 10))
+    fig, ax = plt.subplots(figsize=figsize)
 
     x_lims: LimsTuple | None = None
     y_lims: LimsTuple | None = None
