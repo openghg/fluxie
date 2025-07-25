@@ -68,6 +68,8 @@ def plot_timeseries(
     y_lim: None | list[float] = None,
     n_bins: int = 30,
     time_freq_min: FrequencyType = None,
+    histogram_type: Literal["hist", "violin", "none"] = "hist",
+    hist_kwargs: dict[str, any] = {},
 ):
     """
     Timeseries plots of observations, modelled mole fractions, baseline mf and/or
@@ -151,6 +153,7 @@ def plot_timeseries(
         figsize=(15, nrows * 3),
         gridspec_kw={"width_ratios": [0.8, 0.2]},
         constrained_layout=True,
+        sharey="row" if histogram_type == "violin" else False,
     )
 
     # Expand axis dimension if 1D
@@ -267,19 +270,22 @@ def plot_timeseries(
                     )
 
         # Plot histogram
-        plot_histogram(
-            ax[iax, 1],
-            ds_plot,
-            m,
-            vars_to_plot,
-            diff_include,
-            model_color,
-            presentation_mode,
-            annotate_coords,
-            annotate_index=i,
-            plot_type=plot_type,
-            n_bins=n_bins,
-        )
+        if histogram_type != "none":
+            plot_histogram(
+                ax[iax, 1],
+                ds_plot,
+                m,
+                vars_to_plot,
+                diff_include,
+                model_color,
+                presentation_mode,
+                annotate_coords,
+                annotate_index=i,
+                plot_type=plot_type,
+                n_bins=n_bins,
+                violin=histogram_type == "violin",
+                **hist_kwargs,
+            )
 
         # Get timeseries y-axis minimum and maximum
         min_mf = min(min_mf, ax[iax, 0].get_ylim()[0])
@@ -457,6 +463,8 @@ def plot_histogram(
     annotate_index: int,
     plot_type: Literal["separate", "together", "diff"],
     n_bins: int = 30,
+    violin: bool = False,
+    **kwargs,
 ) -> None:
     """
     Plots a histogram on a specified axis.
@@ -510,15 +518,21 @@ def plot_histogram(
             var_to_plot = ds[var]
 
         # Plot histogram
-        a, b, c = ax.hist(
-            var_to_plot.values,
-            bins=n_bins,
-            color=model_color[config.mf_color_index.get(var, 0)],
-            density=1,
-        )
+        if violin:
+            # Drop the na values
+            values = var_to_plot.values[~np.isnan(var_to_plot.values)]
+            ax.violinplot([values], **kwargs)
+        else:
+            a, b, c = ax.hist(
+                var_to_plot.values,
+                bins=n_bins,
+                color=model_color[config.mf_color_index.get(var, 0)],
+                density=1,
+                **kwargs,
+            )
 
-        if diff_include:
-            ax.vlines(0, 0, np.max(a), color="dimgrey", linewidth=3.0)
+            if diff_include:
+                ax.vlines(0, 0, np.max(a), color="dimgrey", linewidth=3.0)
 
         if plot_type in ["separate", "diff"]:
             index = v
