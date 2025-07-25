@@ -849,4 +849,7 @@ def edit_vars_and_attributes(
         if "ecflux_prior" not in ds:
             # Calculate it from sectorial prior
             ds["ecflux_prior"] = ds["ecflux_sectorial_prior"].sum(dim="sector")
+            ds["ecflux_prior"].attrs["units"] = ds["ecflux_sectorial_prior"].attrs[
+                "units"
+            ]
     return ds
