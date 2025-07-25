@@ -80,14 +80,24 @@ def stats_observed_vs_simulated(
                 "bias": np.mean(sim - obs),
                 "mae": np.mean(np.abs(sim - obs)),
                 "mre": np.mean(np.abs((sim - obs) / obs)),
-                "mean_sim": np.mean(sim),
-                "mean_obs": np.mean(obs),
                 "sd_sim": np.std(sim),
                 "sd_obs": np.std(obs),
                 "sd_res": np.std(sim - obs),
                 "nn": np.size(sim),
                 "variable_sim": sim_var,
                 "variable_obs": obs_var,
+            }
+            stats_site |= {
+                f"q{i:02d}_{simobs}": np.quantile(
+                    sim if simobs == "sim" else obs, i / 100
+                )
+                for i in [5, 25, 75, 95]
+                for simobs in ["sim", "obs"]
+            }
+            stats_site |= {
+                f"{func}_{simobs}": getattr(np, func)(sim if simobs == "sim" else obs)
+                for func in ["max", "min", "mean", "median", "std"]
+                for simobs in ["sim", "obs"]
             }
 
             # change to DataFrame
