@@ -305,7 +305,7 @@ def plot_timeseries(
                 [
                     species_info.get("species_print", ""),
                     site if site else "",
-                    f"({plot_units[0]})'",
+                    f"({plot_units[0]})",
                 ]
             )
         )
