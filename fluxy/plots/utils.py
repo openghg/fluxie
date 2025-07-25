@@ -808,16 +808,19 @@ def stack_plot(
     }
     if area:
         # Use the same labels and colors for the positive and negative values
-        total = np.zeros(df.shape[0])
+        total_pos = np.zeros(df.shape[0])
+        total_neg = np.zeros(df.shape[0])
         for i, column in enumerate(df.columns):
+            values = df[column].values
             ax.fill_between(
                 df.index,
-                y1=total,
-                y2=df[column] + total,
+                y1=np.where(values >= 0, total_pos, total_neg),
+                y2=np.where(values >= 0, total_pos + values, total_neg + values),
                 color=colors.get(column, None),
                 label=column,
             )
-            total += np.clip(df[column].values, 0, None)
+            total_pos += np.clip(values, 0, None)
+            total_neg += np.clip(values, None, 0)
 
         # ax.set_ylim(df_neg.sum(axis=1).min() * 1.1, df_pos.sum(axis=1).max() * 1.1)
     else:
