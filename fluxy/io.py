@@ -837,10 +837,11 @@ def edit_vars_and_attributes(
         if "ecflux_observed" not in ds:
             var1, var2 = "ecflux_measured", "ecflux_observed_storage"
             if var1 in ds and var2 in ds:
-                assert ds[var1].units == ds[var2].units, (
-                    f"Units of {var1} and {var2} do not match: "
-                    f"{ds[var1].units} != {ds[var2].units}"
-                )
+                if ds[var1].units != ds[var2].units:
+                    raise ValueError(
+                        f"Units of {var1} and {var2} do not match: "
+                        f"{ds[var1].units} != {ds[var2].units}"
+                    )
                 # Calculate the observed flux
                 ds["ecflux_observed"] = ds[var1] + ds[var2]
                 ds["ecflux_observed"].attrs["units"] = ds[var1].attrs["units"]
