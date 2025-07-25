@@ -78,10 +78,16 @@ def stats_observed_vs_simulated(
                 "rmse": np.sqrt(np.mean((sim - obs) ** 2)),
                 "crmse": np.sqrt(np.mean((sim - obs - np.mean(sim - obs)) ** 2)),
                 "bias": np.mean(sim - obs),
+                "mae": np.mean(np.abs(sim - obs)),
+                "mre": np.mean(np.abs((sim - obs) / obs)),
+                "mean_sim": np.mean(sim),
+                "mean_obs": np.mean(obs),
                 "sd_sim": np.std(sim),
                 "sd_obs": np.std(obs),
                 "sd_res": np.std(sim - obs),
                 "nn": np.size(sim),
+                "variable_sim": sim_var,
+                "variable_obs": obs_var,
             }
 
             # change to DataFrame
