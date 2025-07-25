@@ -103,9 +103,8 @@ def filter_ecflux(
 
     ds_out = ds.where(mask, drop=True)
 
-    if verbose:
-        logger.setLevel(logging.INFO)
-    logger.info(
+    print_func = print if verbose else logger.info
+    print_func(
         f"Filtered  {len(ds_out['index'])} / {len(ds['index'])} eddy covariance fluxes..."
     )
 
