@@ -850,12 +850,14 @@ def edit_vars_and_attributes(
                     )
                 # Calculate the observed flux
                 ds["ecflux_observed"] = ds[var1] + ds[var2]
-                ds["ecflux_observed"].attrs["units"] = ds[var1].attrs["units"]
+                ds["ecflux_observed"].attrs["units"] = ds[var1].attrs.get(
+                    "units", "umol m-2 s-1"
+                )
 
         if "ecflux_prior" not in ds:
             # Calculate it from sectorial prior
             ds["ecflux_prior"] = ds["ecflux_sectorial_prior"].sum(dim="sector")
-            ds["ecflux_prior"].attrs["units"] = ds["ecflux_sectorial_prior"].attrs[
-                "units"
-            ]
+            ds["ecflux_prior"].attrs["units"] = ds["ecflux_sectorial_prior"].attrs.get(
+                "units", "umol m-2 s-1"
+            )
     return ds
