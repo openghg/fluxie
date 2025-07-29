@@ -112,6 +112,8 @@ def read_config_files(
         # Get location of json files
         parent_dir = Path(__file__).parent.parent
         configs_dir = parent_dir / "configs"
+    else:
+        configs_dir = Path(configs_dir)
 
     logger.info(f"Reading config files from {configs_dir}")
 
@@ -822,11 +824,15 @@ def edit_vars_and_attributes(
             ds["mf_posterior"].attrs["longname"] = "aposteriori_simulated_mole_fraction"
             ds["mf_bc_prior"] = ds["Ypri_bkg"]
             ds["mf_bc_prior"].attrs["units"] = "ppt"
-            ds["mf_bc_prior"].attrs["longname"] = "apriori_simulated_boundary_condition_mole_fraction"
+            ds["mf_bc_prior"].attrs[
+                "longname"
+            ] = "apriori_simulated_boundary_condition_mole_fraction"
             ds["mf_bc_prior"] = ds["Ypri_bkg"]
             ds["mf_bc_posterior"] = ds["Ypost_bkg"]
             ds["mf_bc_posterior"].attrs["units"] = "ppt"
-            ds["mf_bc_posterior"].attrs["longname"] = "aposteriori_simulated_boundary_condition_mole_fraction"
+            ds["mf_bc_posterior"].attrs[
+                "longname"
+            ] = "aposteriori_simulated_boundary_condition_mole_fraction"
 
             # Fill intake_height and stdev_mf_model with fake values
             ds["intake_height"][:] = 0
