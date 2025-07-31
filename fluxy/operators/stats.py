@@ -49,19 +49,29 @@ def stats_observed_vs_simulated(
     # Compute stats for all sites and all models
     for site in sites_all:
         for model, ds in ds_all.items():
-            # Remove the NaNs
-            ds = ds.dropna("index")
             site_index = get_site_index(ds, site)
             if site_index is None:
+                logger.warning(f"Site {site} not found in model {model}.")
                 continue
             mask_site = ds["number_of_identifier"] == site_index
             if not mask_site.any():
+                logger.warning(
+                    f"No data for site {site} with index {site_index} in model {model}."
+                )
                 continue
             ds_site = ds.where(mask_site, drop=True)
 
             # select what to compare
             obs = ds_site[obs_var]
             sim = ds_site[sim_var]
+
+            # Remove the nans
+            mask_nan = ~np.isnan(obs) & ~np.isnan(sim)
+            if not mask_nan.any():
+                logger.warning(f"No valid data for site {site} in model {model}.")
+                continue
+            obs = obs.where(mask_nan, drop=True)
+            sim = sim.where(mask_nan, drop=True)
 
             # Check that they are on the same coordinates
             if not obs.coords.equals(sim.coords):
