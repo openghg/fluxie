@@ -65,7 +65,7 @@ def plot_timeseries(
     presentation_mode: bool = False,
     plot_type: Literal["separate", "together", "diff"] = "separate",
     diff_include: list[str] | None = None,
-    y_lim: None | list[float] = None,
+    y_lim: None | tuple[float | None, float | None] = None,
     n_bins: int = 30,
     time_freq_min: FrequencyType = None,
     histogram_type: Literal["hist", "violin", "none"] = "hist",
@@ -341,13 +341,15 @@ def plot_timeseries(
             if presentation_mode:
                 ax[iax, 0].tick_params(axis="x", rotation=70)
 
-    # Set timeseries y-axis min/max
     if y_lim is None:
-        for ax0 in ax[:, 0]:
-            ax0.set_ylim([min_mf - 0.02 * min_mf, max_mf + 0.05 * max_mf])
-    else:
-        for ax0 in ax[:, 0]:
-            ax0.set_ylim(y_lim)
+        y_lim = [min_mf - 0.02 * min_mf, max_mf + 0.05 * max_mf]
+
+    # Set all the axes to the same y-axis limits
+    for iax, ax0 in enumerate(ax[:, 0]):
+        ax0.set_ylim(y_lim)
+
+        method = "set_ylim" if histogram_type == "violin" else "set_xlim"
+        getattr(ax[iax, 1], method)(y_lim)
 
     logger.info(
         "If annotations in the histograms are not displaying correctly, adjust annotate_coords."
