@@ -450,13 +450,13 @@ def resample_over_months(
 def resample_over_period(
     ds: xr.Dataset,
     N: int = 1,
-    chop_by: Literal["year", "month", "season"] | List | Literal['DJF', 'MAM', 'JJA', 'SON'] = "year",
+    chop_by: Literal["year", "month", "season", "all"] | List | Literal['DJF', 'MAM', 'JJA', 'SON'] = "year",
 ) -> Tuple[xr.Dataset, List[str]]:
     """
     Resample a dataset over a specified time period or custom intervals.
 
     This function allows resampling over different time periods such as years,
-    months, seasons, or custom-defined intervals provided in `chop_by`.
+    months, seasons, the entire period, or custom-defined intervals provided in `chop_by`.
     It calls appropriate resampling functions based on the value of `chop_by`.
 
     Args:
@@ -466,7 +466,7 @@ def resample_over_period(
             Interval length for custom periods (e.g., for months or years).
         chop_by (str, list):
             Defines how the dataset should be chopped.
-            Options are: 'year', 'month', 'season', a list of dates or months, or a season.
+            Options are: 'year', 'month', 'season', 'all', a list of dates or months, or a season.
 
     Returns:
         ds_avg (xarray.Dataset):

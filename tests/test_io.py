@@ -17,8 +17,10 @@ def test_read_flux(model):
 
     period = "yearly"
 
+    add_sites_to_flux = True
+
     ds_all_flux = read_model_output(
-        data_dir, "flux", species, [model], config_data, period=period
+        data_dir, "flux", species, [model], config_data, period=period, add_sites_to_flux=add_sites_to_flux
     )
 
 
