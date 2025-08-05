@@ -140,7 +140,8 @@ def get_filename(
     """
 
     # Get file name tags
-    name_tags = model.split("_")
+    sub_dir, name_tags = os.path.split(model)
+    name_tags = name_tags.split("_")
     model_name = name_tags[0]
 
     # Replace parameter tags by dict values in config
@@ -172,6 +173,7 @@ def get_filename(
         data_dir
         / model_name
         / species
+        / sub_dir
         / f"{model_filename}_{species_print}_{period}{file_pattern}"
     )
 
@@ -572,7 +574,8 @@ def edit_vars_and_attributes(
     ds = ds.rename(name_dict)
 
     # Get model name
-    m0 = model.split("_")[0].lower()
+    filename_tags = os.path.basename(model)
+    m0 = filename_tags.split("_")[0].lower()
 
     # Fix flux dataset
     if file_type == "flux":

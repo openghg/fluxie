@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -145,7 +146,9 @@ def set_model_colors(models: list[str]) -> dict[str, list]:
 
     # Get unique inversion systems
     # dict.fromkeys() is used because it conserves the order of the models
-    unique_models = list(dict.fromkeys(m.split("_")[0] for m in models))
+    unique_models = list(
+        dict.fromkeys(os.path.basename(m).split("_")[0] for m in models)
+    )
     n_unique_models = len(unique_models)
 
     if n_unique_models == 1:
@@ -173,7 +176,7 @@ def set_model_colors(models: list[str]) -> dict[str, list]:
         index_colors_max = [len(color_palette[i]) for i in color_palette]
 
         for m in models:
-            model_name = m.split("_")[0]
+            model_name = os.path.basename(m).split("_")[0]
             i = unique_models.index(model_name)
 
             if i == max_color_groups:
