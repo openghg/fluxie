@@ -140,7 +140,8 @@ def get_filename(
     """
 
     # Get file name tags
-    name_tags = model.split("_")
+    sub_dir, name_tags = os.path.split(model)
+    name_tags = name_tags.split("_")
     model_name = name_tags[0]
 
     # Replace parameter tags by dict values in config
@@ -172,6 +173,7 @@ def get_filename(
         data_dir
         / model_name
         / species
+        / sub_dir
         / f"{model_filename}_{species_print}_{period}{file_pattern}"
     )
 
@@ -196,7 +198,9 @@ def read_model_output(
         species (str):
             Gas species, e.g. 'ch4'.
         models (list of str):
-            Keys specifying model names, e.g. ['intem','elris']
+            Model name tags specifying model runs,
+            i.e. '<inversionModel>_<optional_identifying_tags>', preceded by subdirectory if applicable,
+            e.g. ['InTEM_NAME_EUROPE_EDGAR','ELRIS_NAME_EUROPE_EDGAR']
         config_data (dict of dict):
             Dictionary with settings read from json file.
             Use json filenames as keys.
@@ -280,7 +284,9 @@ def read_flux_total_fgases(
         species (str):
             'all_hfc' or 'all_pfc'
         models (list of str):
-            Keys specifying model names, e.g. ['intem','elris']
+            Model name tags specifying model runs,
+            i.e. '<inversionModel>_<optional_identifying_tags>', preceded by subdirectory if applicable,
+            e.g. ['InTEM_NAME_EUROPE_EDGAR','ELRIS_NAME_EUROPE_EDGAR']
         regions (list of str):
             Region names used to extract fluxes. Only these regions can then be plotted.
         config_data (dict of dict):
@@ -447,7 +453,9 @@ def create_flux_total_fgases(ds_all, species, regions, models):
         species (str):
             'all_hfc' or 'all_pfc'
         models (list of str):
-            Keys specifying model names, e.g. ['intem','elris']
+            Model name tags specifying model runs,
+            i.e. '<inversionModel>_<optional_identifying_tags>', preceded by subdirectory if applicable,
+            e.g. ['InTEM_NAME_EUROPE_EDGAR','ELRIS_NAME_EUROPE_EDGAR']
         regions (list of str):
             Region names used to extract fluxes. Only these regions can then be plotted.
 
@@ -551,7 +559,8 @@ def edit_vars_and_attributes(
         ds (xarray dataset):
             xarray dataset with model data.
         model (str):
-            Model name tag corresponding to ds.
+            Model name tag corresponding to ds,
+            i.e. '<inversionModel>_<optional_identifying_tags>', preceded by subdirectory if applicable
         frequency (str):
             Frequency of the inversion results present in the dataset.
             Options for "monthly" and "yearly".
@@ -582,7 +591,8 @@ def edit_vars_and_attributes(
     ds = ds.rename(name_dict)
 
     # Get model name
-    m0 = model.split("_")[0].lower()
+    filename_tags = os.path.basename(model)
+    m0 = filename_tags.split("_")[0].lower()
 
     # Fix flux dataset
     if file_type == "flux":

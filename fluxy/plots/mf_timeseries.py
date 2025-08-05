@@ -405,7 +405,8 @@ def plot_histogram(
         ds (xarray dataset):
             Dataset with results from a particular model.
         model (str):
-            Model name to which the dataset ds refers to.
+            Model name tag to which the dataset ds refers to.
+            i.e. '<inversionModel>_<optional_identifying_tags>', preceded by subdirectory if applicable
         vars_to_plot (list of str):
             Variables plotted in the timeseries plot.
             These variables are directly plotted in the histogram if diff_include is None.
