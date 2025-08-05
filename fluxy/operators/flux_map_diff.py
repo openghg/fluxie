@@ -90,20 +90,13 @@ def make_model_diff_ds(
 
         if set(dims) == {"time", "latitude", "longitude"}:
             diff[var] = v1 - v2
-
-        elif set(dims) == {"time", "percentile", "latitude", "longitude"}:
-
-            min_p0 = xr.ufuncs.minimum(v1.sel(percentile=v1.percentile[0]), v2.sel(percentile=v2.percentile[0]))
-            max_p1 = xr.ufuncs.maximum(v1.sel(percentile=v1.percentile[1]), v2.sel(percentile=v2.percentile[1]))
-
-            diff[var] = xr.concat([min_p0, max_p1], dim="percentile")
         
         elif var == "sites" and set(dims) == {"time", "platform"}:
             sites1, sites2 = xr.align(ds1[var], ds2[var], join="outer", fill_value=0)
             diff["sites"] = xr.where((sites1 == 1) | (sites2 == 1), 1, 0)
 
         else:
-            logger.info(f"Variable '{var}' with dims {dims} not processed.")
+            logger.info(f"Variable '{var}' with dims {dims} not processed.") # eg, not keeping percentiles 
 
         diff[var].attrs = v1.attrs # Copy attributes from ds1
 
