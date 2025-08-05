@@ -134,7 +134,9 @@ def set_model_colors(models: list[str]) -> dict[str, list]:
 
     Args:
         models (list of str):
-            Keys specifying model names, e.g. ['intem','elris']
+            Model name tags specifying model runs,
+            i.e. '<inversionModel>_<optional_identifying_tags>', preceded by subdirectory if applicable,
+            e.g. ['InTEM_NAME_EUROPE_EDGAR','ELRIS_NAME_EUROPE_EDGAR']
 
     Returns:
         model_colors (dict of lists):
@@ -204,7 +206,9 @@ def set_model_labels(
 
     Args:
         models (list of str):
-            Keys specifying model names, e.g. ['intem','elris']
+            Model name tags specifying model runs,
+            i.e. '<inversionModel>_<optional_identifying_tags>', preceded by subdirectory if applicable,
+            e.g. ['InTEM_NAME_EUROPE_EDGAR','ELRIS_NAME_EUROPE_EDGAR']
         config_data (dict of dict):
             Dictionary with settings read from json file.
             Use json filenames as keys.
