@@ -3,6 +3,7 @@ import xarray as xr
 import geopandas as gpd
 import logging
 import re
+import warnings
 
 from shapely.geometry import MultiPolygon, Polygon
 from typing import Literal
@@ -362,8 +363,8 @@ def get_sites_coordinates(
     config_data: dict,
     fallback_sites: list[str] | None = None,
 ) -> dict:
-    # TODO DEPRACATED FUNCTION --> to delete
     """
+    DEPRECATED: Use `get_active_sites_coordinates` instead.
     Collect the 'sites' attribute from a dictionary of xarray datasets.
     If 'sites' is missing, use it from another dataset where it's available.
 
@@ -380,47 +381,14 @@ def get_sites_coordinates(
         dict:
             A mapping of dataset keys to their respective 'sites' attribute.
     """
+    warnings.warn(
+        "'get_sites_coordinates' is deprecated and will be removed in a future release. "
+        "Please use 'get_active_sites_coordinates' instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
-    sites_list = {}
-
-    # First pass: Extract 'sites' where available
-    for key, ds in ds_all.items():
-        try:
-            # Parse the 'sites' attribute if it exists
-            if hasattr(ds, "sites"):
-                sites = eval(ds.attrs['sites'])
-                this_sites = sites
-                # Store fallback sites if not already set
-                if fallback_sites is None:
-                    fallback_sites = sites
-            else:
-                this_sites = None
-        except (ValueError, SyntaxError) as e:
-            logger.warning(f"Could not parse 'sites' for {key}: {e}")
-            this_sites = None
-        sites_list[key] = this_sites
-
-    if fallback_sites is None:
-        # If no 'sites' attribute is found in any dataset, raise an error
-        logger.warning(
-            "No 'sites' attribute found in any dataset. "
-            "Please ensure at least one dataset has the 'sites' attribute."
-        )
-        return {}
-
-    # Second pass: Fill in missing 'sites' using the fallback
-    for key, sites in sites_list.items():
-        if sites_list[key] is None:
-            logger.warning(
-                f"No 'sites' attribute in {key}, using fallback from the list provided. If no list was provided, sites from other dataset will be used."
-            )
-            sites_list[key] = fallback_sites
-
-    sites_coordinates = {}
-    for key in sites_list.keys():
-        sites_coordinates[key] = extract_site_info(sites_list[key], config_data)
-
-    return sites_coordinates
+    return get_active_sites_coordinates(ds_all, config_data, fallback_sites)
 
 
 def extract_site_info(
