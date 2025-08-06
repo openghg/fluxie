@@ -27,6 +27,7 @@ def get_loaded_models(
         species="hfc134a",
         models=test_models,
         config_data=config_data,
+        add_sites_to_flux = True,
     )
 
     return ds_all_mf

@@ -36,7 +36,7 @@ def get_flux_mean(
         stacklevel=2,
     )
 
-    return resample_over_period(ds, chop_by=season)[0]
+    return resample_over_period(data, chop_by=season)[0]
 
 
 def calculate_resampled_flux(
@@ -131,9 +131,10 @@ def calculate_resampled_dataset(
     """
     Resample a dataset over custom time groupings with handling of special variable types.
 
+    - Non time-dependent or non-numerical variables are removed.
     - Variables with 'percentile' in dims are aggregated with uncertainty propagation.
     - The 'sites' variable is set to 1 if any entry in the group is 1.
-    - Other variables are averaged.
+    - Other variables are averaged over time.
 
     Args:
         ds (xr.Dataset): 
@@ -150,7 +151,10 @@ def calculate_resampled_dataset(
         da = ds[var]
         dims = set(da.dims)
 
-        if "percentile" in dims:
+        if "time" not in dims or not np.issubdtype(da.dtype, np.number):
+            continue
+
+        elif "percentile" in dims:
             base_var = var.replace("percentile_", "")
             output_vars[var] = calculate_resampled_uncertainties(da, groups, ds[base_var])
 

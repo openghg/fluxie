@@ -20,7 +20,7 @@ def test_get_flux_mean(model):
         "year",
         "month",
         "season",
-        "all",
+        None,
         # TODO: add test with the list input
     ],
 )
