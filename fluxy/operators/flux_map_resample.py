@@ -409,7 +409,8 @@ def resample_over_seasons(
 
     if season is not None:
         ds_resampled = ds_resampled.sel(time=season)
-        ds_resampled["sites"] = ds_resampled["sites"].expand_dims(time=[season])
+        if "sites" in ds_resampled.data_vars:
+            ds_resampled["sites"] = ds_resampled["sites"].expand_dims(time=[season])
 
         freq = get_frequency(ds)
         time_labels = print_period(ds, freq, season)
@@ -441,7 +442,8 @@ def resample_over_whole_period(
     # Resample dataset
     ds_resampled = calculate_resampled_dataset(ds, groups)
     ds_resampled = ds_resampled.isel(group=0, drop=True)
-    ds_resampled["sites"] = ds_resampled["sites"].expand_dims(time=[ds.time.min().values])
+    if "sites" in ds_resampled.data_vars:
+        ds_resampled["sites"] = ds_resampled["sites"].expand_dims(time=[ds.time.min().values])
 
     # Make time label
     freq = get_frequency(ds)
