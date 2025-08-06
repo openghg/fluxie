@@ -3,46 +3,41 @@ import xarray as xr
 import pandas as pd
 import calendar
 import datetime
+import warnings
 
 from typing import List, Tuple, Literal
 from fluxy.plots.utils import print_period, get_frequency
 
 
-# def calculate_flux_mean(
-#     data: xr.DataArray,
-#     season: str = None,
-# ) -> xr.DataArray:
-#     """
-#     Calculate the mean flux along the 'time' dimension from a dataset, optionally for a specific season.
+def get_flux_mean(
+    data: xr.DataArray,
+    season: str = None,
+) -> xr.DataArray:
+    """
+    DEPRECATED: Use `resample_over_period` instead.
+    
+    Calculate the mean flux along the 'time' dimension from a dataset, optionally for a specific season.
 
-#     Args:
-#         data (xr.DataArray):
-#             The input data containing a 'time' dimension to calculate the mean.
-#         season (str, optional):
-#             The season for which to calculate the mean (e.g., 'DJF', 'MAM', 'JJA', 'SON').
-#             If None, the mean is calculated over the entire 'time' dimension.
+    Args:
+        data (xr.DataArray):
+            The input data containing a 'time' dimension to calculate the mean.
+        season (str, optional):
+            The season for which to calculate the mean (e.g., 'DJF', 'MAM', 'JJA', 'SON').
+            If None, the mean is calculated over the entire 'time' dimension.
 
-#     Returns:
-#         xr.DataArray:
-#             The computed mean flux, either over the entire time period or for the specified season.
-#     """
-#     if season is None:
-#         ds_output = data.mean(dim="time", keep_attrs=True)
+    Returns:
+        xr.DataArray:
+            The computed mean flux, either over the entire time period or for the specified season.
+    """
+    warnings.warn(
+        "'get_flux_mean' is deprecated and will be removed in a future release. "
+        "Please use 'resample_over_period' instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
-#     else:
-#         # Group by season and check if the given season exists
-#         seasonal_means = data.groupby("time.season", restore_coord_dims=True).mean(
-#             dim="time"
-#         )
+    return resample_over_period(ds, chop_by=season)[0]
 
-#         if season not in seasonal_means.season.values:
-#             raise ValueError(f"Season '{season}' not found in the dataset.")
-
-#         ds_output = seasonal_means.sel(season=season)
-#     ds_output.attrs["start_date"] = data.time.values.min()
-#     ds_output.attrs["end_date"] = data.time.values.max()
-
-#     return ds_output
 
 def calculate_resampled_flux(
     flux: xr.DataArray,
@@ -168,6 +163,41 @@ def calculate_resampled_dataset(
     return xr.Dataset(output_vars)
 
 
+def average_over_dates_list(
+    ds: xr.Dataset,
+    dates_list: List[str],
+) -> Tuple[xr.Dataset, List[str]]:
+    """
+    DEPRECATED: Use `resample_over_dates_list` instead.
+
+    Average a dataset over custom time intervals defined in `dates_list`.
+
+    This function groups time values in `ds` based on `dates_list` and computes
+    the mean for each period. Time labels indicating the date range of each
+    averaged period are also generated.
+
+    Args:
+        ds (xarray.Dataset):
+            Dataset with a "time" dimension.
+        dates_list (list of datetime-like):
+            Boundaries for averaging periods (e.g., ['2018-01-01', '2020-01-01']).
+
+    Returns:
+        ds_avg (xarray.Dataset):
+            Dataset averaged over the defined time intervals.
+        time_labels (list of str):
+            Labels for each averaged period (format: "YYYY/MM—YYYY/MM").
+    """
+    warnings.warn(
+        "'average_over_dates_list' is deprecated and will be removed in a future release. "
+        "Please use 'resample_over_dates_list' instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
+    return resample_over_dates_list(ds, dates_list)
+
+
 def resample_over_dates_list(
     ds: xr.Dataset,
     dates_list: List[str],
@@ -224,6 +254,39 @@ def resample_over_dates_list(
 
     return ds_resampled, time_labels
 
+def average_over_months_list(
+    ds: xr.Dataset,
+    months_list: List,
+) -> Tuple[xr.Dataset, List[str]]:
+    """
+    DEPRECATED: Use `resample_over_months_list` instead.
+    Average a dataset over specified months in `months_list`.
+
+    This function groups time values in `ds` by the months defined in `months_list`
+    and computes the mean for each group. It also generates labels for each group based
+    on the months included.
+
+    Args:
+        ds (xarray.Dataset):
+            Dataset with a "time" dimension.
+        months_list (list of lists or ints):
+            List of months (or month groups) to average (e.g., [[7,8]]).
+
+    Returns:
+        ds_avg (xarray.Dataset):
+            Dataset averaged over the specified months.
+        time_labels (list of str):
+            Labels for each averaged period (e.g., "Jan—Mar").
+    """
+    warnings.warn(
+        "'average_over_months_list' is deprecated and will be removed in a future release. "
+        "Please use 'resample_over_months_list' instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
+    return resample_over_months_list(ds, months)
+
 
 def resample_over_months_list(
     ds: xr.Dataset,
@@ -268,6 +331,36 @@ def resample_over_months_list(
             time_labels.append(calendar.month_abbr[months_list[i]])
 
     return ds_resampled, time_labels
+
+
+def average_over_seasons(
+    ds: xr.Dataset,
+) -> Tuple[xr.Dataset, List[str]]:
+    """
+    DEPRECATED: Use `resample_over_seasons` instead.
+    Average a dataset over seasons.
+
+    This function groups time values in `ds` by their respective seasons and computes
+    the mean for each season. It also generates labels for each season.
+
+    Args:
+        ds (xarray.Dataset):
+            Dataset with a "time" dimension.
+
+    Returns:
+        ds_avg (xarray.Dataset):
+            Dataset averaged over seasons.
+        time_labels (list of str):
+            Labels for each season (e.g., "DJF", "MAM").
+    """
+    warnings.warn(
+        "'average_over_seasons' is deprecated and will be removed in a future release. "
+        "Please use 'resample_over_seasons' instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
+    return resample_over_seasons(ds)
 
 
 def resample_over_seasons(
@@ -354,6 +447,39 @@ def resample_over_whole_period(
     return ds_resampled, time_labels
 
 
+def average_over_years(
+    ds: xr.Dataset,
+    N: int = 1,
+) -> Tuple[xr.Dataset, List[str]]:
+    """
+    DEPRECATED: Use `resample_over_years` instead.
+    Average a dataset over years or custom yearly intervals defined by N.
+
+    This function groups time values in `ds` by year (or custom yearly intervals) and computes
+    the mean for each group. It also generates labels for each group based on the
+    first and last years in each period.
+
+    Args:
+        ds (xarray.Dataset):
+            Dataset with a "time" dimension.
+        N (int):
+            Length of the custom period in years (default is 1, for yearly averages).
+
+    Returns:
+        ds_avg (xarray.Dataset):
+            Dataset averaged over the specified periods.
+        time_labels (list of str):
+            Labels for each period (e.g., "2020", "2020—2022").
+    """
+    warnings.warn(
+        "'average_over_years' is deprecated and will be removed in a future release. "
+        "Please use 'resample_over_years' instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
+    return resample_over_years(ds, N)
+
 def resample_over_years(
     ds: xr.Dataset,
     N: int = 1,
@@ -397,6 +523,37 @@ def resample_over_years(
     ds_resampled["time"].attrs = ds["time"].attrs
 
     return ds_resampled, time_labels
+
+def average_over_months(
+    ds: xr.Dataset,
+    N: int = 1,
+) -> Tuple[xr.Dataset, List[str]]:
+    """
+    DEPRECATED: Use `resample_over_months` instead.
+    Average a dataset over custom monthly intervals defined by N.
+
+    This function groups time values in `ds` by custom monthly intervals (e.g., every N months)
+    and computes the mean for each period. It also generates labels for each group based on the
+    first and last months in each period.
+
+    Args:
+        ds (xarray.Dataset):
+            Dataset with a "time" dimension.
+        N (int):
+            Length of the custom period in months (default is 1, for monthly averages).
+
+    Returns:
+        ds_avg (xarray.Dataset): Dataset averaged over the specified months.
+        time_labels (list of str): Labels for each period (e.g., "2020-01", "2020-03—2020-05").
+    """
+    warnings.warn(
+        "'average_over_months' is deprecated and will be removed in a future release. "
+        "Please use 'resample_over_months' instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
+    return resample_over_months(ds, N)
 
 
 def resample_over_months(
@@ -445,6 +602,44 @@ def resample_over_months(
     ds_resampled["time"].attrs = ds["time"].attrs
 
     return ds_resampled, time_labels
+
+
+def average_over_period(
+    ds: xr.Dataset,
+    N: int = 1,
+    chop_by: Literal["year", "month", "season"] | List = "year",
+) -> Tuple[xr.Dataset, List[str]]:
+    """
+    DEPRECATED: Use `resample_over_period` instead.
+    Average a dataset over a specified time period or custom intervals.
+
+    This function allows averaging over different time periods such as years,
+    months, seasons, or custom-defined intervals provided in `chop_by`.
+    It calls appropriate averaging functions based on the value of `chop_by`.
+
+    Args:
+        ds (xarray.Dataset):
+            Dataset with a "time" dimension.
+        N (int):
+            Interval length for custom periods (e.g., for months or years).
+        chop_by (str, list):
+            Defines how the dataset should be chopped.
+            Options are: 'year', 'month', 'season', or a list of dates or months.
+
+    Returns:
+        ds_avg (xarray.Dataset):
+            Dataset averaged over the specified periods.
+        time_labels (list of str):
+            Labels for each averaged period (e.g., "2020", "2020-03—2020-05").
+    """
+    warnings.warn(
+        "'average_over_period' is deprecated and will be removed in a future release. "
+        "Please use 'resample_over_period' instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
+    return resample_over_period(ds, N, chop_by)
 
 
 def resample_over_period(
