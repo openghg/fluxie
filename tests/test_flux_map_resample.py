@@ -1,10 +1,16 @@
 import pytest
 from fluxy.test_utils.models import test_models, get_loaded_models
 from fluxy.operators.flux_map_resample import (
+    get_flux_mean,
     resample_over_period,
 )
 
 dss = get_loaded_models("flux")
+
+
+@pytest.mark.parametrize("model", test_models)
+def test_get_flux_mean(model):
+    da_mean = get_flux_mean(dss[model])
 
 
 @pytest.mark.parametrize("model", test_models)
