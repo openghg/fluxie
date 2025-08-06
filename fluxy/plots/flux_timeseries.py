@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.ticker import NullFormatter
 from matplotlib.dates import YearLocator, MonthLocator
+from matplotlib import __version__ as mplt_version
 
 from fluxy import config
 from fluxy.operators.regions import extract_region_flux
@@ -87,7 +88,7 @@ def prepare_data_to_plot(
         ds_all_region[m].attrs["model_label"] = model_labels.get(m, m)
         if m not in model_colors.keys():
             model_colors[m] = config.get_default_colors()
-        ds_all_region[m].attrs["model_colors"] = model_colors[m] 
+        ds_all_region[m].attrs["model_colors"] = model_colors[m]
     map_model_colors = {f"c{i}": m for i, m in enumerate(model_colors.values())}
 
     # Prepare list of dataset to plot
@@ -154,7 +155,7 @@ def prepare_data_to_plot(
 def plot_country_flux(
     ds_all: dict[str, xr.Dataset],
     species: str,
-    plot_regions: list[str] = [],
+    plot_regions: list[str] | str = [],
     config_data: dict[str, dict] = {},
     model_colors: dict[str, str] = {},
     model_labels: dict[str, str] = {},
@@ -163,6 +164,7 @@ def plot_country_flux(
     annex_mode: bool = False,
     plot_inventory: bool = True,
     inventory_years: list[str] | None = None,
+    inventory_filename: str = "UNFCCC_inventory",
     data_dir: str | None = None,
     fix_y_axes: bool = False,
     add_prior: bool = True,
@@ -194,6 +196,7 @@ def plot_country_flux(
         scale_co2eq: If True, adapt y-axis label to CO2-eq.
         plot_inventory: If True, plots inventory flux estimates as bars in each plot.
         inventory_years: List of inventory data from different years to include. If None, only plots the most recent inventory data.
+        inventory_filename: Name of inventory file: {inventory_filename}_{species}_{inventory_year}
         data_dir: Path to top data directory, used to read inventory data files.
         fix_y_axes: If True, uses a consistent y axis for all plots.
         add_prior: If True, plots prior as dashed lines.
@@ -209,7 +212,6 @@ def plot_country_flux(
         resample_uncert_correlation: If True, calculates the resampled uncertainty as the mean from all averaged periods.
             If False, recalculates uncertainty assuming no correlation between all averaged periods, by taking the square root of the summed variances, divided by the number of averaging periods.
         plot_resample_and_original: If True, plots both the resampled data and the data as its original frequency. If False, only plots the resampled data.
-        period_override: Inversion periods to include, to override the standards in species_info.json. Must be the same length as models, e.g. ['monthly',None,'yearly']
         return_res: Wheter or not including a dictionnary with the results as output
         rolling_mean : If True, calculates a rolling mean (xx years) for each of the data to plot.
     Returns:
@@ -225,6 +227,8 @@ def plot_country_flux(
         plot_regions = set.intersection(
             *(set(ds["country"].values) for ds in ds_all.values())
         )
+    if not isinstance(plot_regions, list):
+        plot_regions = [plot_regions]
 
     if return_res:
         res_dict: dict[str, dict] = {country: dict() for country in plot_regions}
@@ -259,16 +263,25 @@ def plot_country_flux(
         ax = axes if (n_rows, n_cols) == (1, 1) else axes.flatten()[i]
 
         if plot_inventory:
+            if isinstance(start_date, list):
+                start_date_inv = str(min([np.datetime64(date) for date in start_date]))
+            else:
+                start_date_inv = start_date
+            if isinstance(end_date, list):
+                end_date_inv = str(max([np.datetime64(date) for date in end_date]))
+            else:
+                end_date_inv = end_date
             inventories_to_plot = retrieve_inventories(
                 data_dir,
                 country,
                 species,
-                start_date,
-                end_date,
+                start_date_inv,
+                end_date_inv,
                 unit,
                 s_data,
                 r_data,
                 inventory_years,
+                inventory_filename,
             )
             for i_inv, inventory in enumerate(inventories_to_plot):
                 ax.bar(
@@ -286,8 +299,8 @@ def plot_country_flux(
                         "time": inventory.time.values,
                         "value": inventory.values,
                     }
-                min_x = min(inventory.time.min(skipna=True), min_x)
-                max_x = max(inventory.time.max(skipna=True), max_x)
+                min_x = min(inventory.time.min(skipna=True).values, min_x)
+                max_x = max(inventory.time.max(skipna=True).values, max_x)
                 max_cf[i] = np.nanmax((max_cf[i], inventory.max(skipna=True)))
 
         ds_all_region = extract_region_flux(ds_all, country, r_data)
@@ -325,8 +338,8 @@ def plot_country_flux(
                     ds_region.posterior.max(skipna=True),
                 )
             )
-            min_x = min(ds_region.time.min(skipna=True), min_x)
-            max_x = max(ds_region.time.max(skipna=True), max_x)
+            min_x = min(ds_region.time.min(skipna=True).values, min_x)
+            max_x = max(ds_region.time.max(skipna=True).values, max_x)
 
             if return_res:
                 res_dict[country][m] = {
@@ -367,9 +380,19 @@ def plot_country_flux(
 
         # set legend if needed
         if not set_global_leg:
-            ncol = 3 if annex_mode else 2
+            ncol = len(ds_to_plot) + 1 if annex_mode else 2
             leg = ax.legend(ncol=ncol, borderpad=0.4, columnspacing=1.0)
-            for l in leg.legend_handles[: (-1 if plot_inventory else None)]:
+
+            handle_name = (
+                "legend_handles"
+                if int(mplt_version.split(".")[0]) >= 3
+                and int(mplt_version.split(".")[1]) >= 7
+                else "legendHandles"
+            )
+            for l in leg.__getattribute__(handle_name)[
+                : (-1 if plot_inventory else None)
+            ]:
+                # for l in leg.legendHandles[: (-1 if plot_inventory else None)]:
                 l.set_linewidth(3.0)
 
         # set title
@@ -389,22 +412,22 @@ def plot_country_flux(
         ax.grid(visible=True, which="major", alpha=0.4)
 
     # set xticks
-    year_range = max_x.dt.year.values - min_x.dt.year.values
-    min_x, max_x = min_x.values, max_x.values
-    if "yearly" in [ds.attrs["frequency"] for ds in ds_to_plot.values()] \
-        or resample == "year":
+    year_range = max_x.astype("datetime64[Y]") - min_x.astype("datetime64[Y]")
+    if (
+        "yearly" in [ds.attrs["frequency"] for ds in ds_to_plot.values()]
+        or resample == "year"
+    ):
         min_x = min_x.astype("datetime64[Y]")
         max_x = max_x.astype("datetime64[Y]") + np.timedelta64(1, "Y")
-    xlim = [min_x - (max_x-min_x)/50, max_x + (max_x-min_x)/50]
+    xlim = [min_x - (max_x - min_x) / 50, max_x + (max_x - min_x) / 50]
 
-    # if max_x - min_x > np.timedelta64(8, "Y"):
-    if year_range > 8:
+    if year_range > np.timedelta64(8, "Y"):
         max_x = max_x.astype("datetime64[Y]")
         min_x = min_x.astype("datetime64[Y]")
         step = int(year_range) // 8 + 1
         xticks = np.arange(min_x, max_x, step=np.timedelta64(step, "Y"))
-        if (max_x-min_x)%np.timedelta64(step, "Y")==0:
-            xticks = np.append(xticks,max_x)
+        if (max_x - min_x) % np.timedelta64(step, "Y") == 0:
+            xticks = np.append(xticks, max_x)
         ax.set_xticks(xticks)
         ax.set_xticklabels(xticks.astype("datetime64[Y]"))
         ax.xaxis.set_major_locator(YearLocator())

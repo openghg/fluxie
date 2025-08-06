@@ -70,7 +70,7 @@ def plot_mf_timeseries(
         y_lim (list of float, optional):
             Mix/max y axis limits to apply to all plots.
         time_freq_min (FrequencyType, optional):
-            Time frequency minimum of the timeserie that should be shown as continous 
+            Time frequency minimum of the timeserie that should be shown as continous
             line. If the frequency is lower than this, the line will be discontinous.
             see :py:func:`fluxy.operators.select.clean_timeseries_missing_data`
             for more information.
@@ -129,13 +129,13 @@ def plot_mf_timeseries(
             model_color = model_colors[mdiff0]
 
         ds_plot = ds_all[m]
-        # Check there is only one site in the dataset 
-        if len(np.unique(ds_plot['number_of_identifier'])) > 1:
+        # Check there is only one site in the dataset
+        if len(np.unique(ds_plot["number_of_identifier"])) > 1:
             raise ValueError(
                 f"Dataset {m} contains more than one site. "
                 "Use slice_site to select a single site."
             )
-        
+
         # Clean the time dimension
         ds_plot = clean_timeseries_missing_data(
             ds_plot, variables_nans=vars_to_plot, min_freq=time_freq_min
@@ -405,7 +405,8 @@ def plot_histogram(
         ds (xarray dataset):
             Dataset with results from a particular model.
         model (str):
-            Model name to which the dataset ds refers to.
+            Model name tag to which the dataset ds refers to.
+            i.e. '<inversionModel>_<optional_identifying_tags>', preceded by subdirectory if applicable
         vars_to_plot (list of str):
             Variables plotted in the timeseries plot.
             These variables are directly plotted in the histogram if diff_include is None.

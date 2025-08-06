@@ -120,6 +120,7 @@ def resample_flux(
         )
 
     # shift timestamps of averaged data forwards to centre of inversion period
+    new_keys = list(ds_all.keys())
     for im, m in enumerate(ds_all.keys()):
 
         if (
@@ -134,8 +135,9 @@ def resample_flux(
             )
             offset = (date_list_for_offset[1:] - date_list_for_offset[:-1]).mean() / 2
             ds_all_resampled[m]["time"] = ds_all_resampled[m]["time"].values + offset
+            new_keys[im] = m + "_resample"
 
     return {
-        m + "_resample": ds.dropna(dim="time", how="all")
-        for m, ds in ds_all_resampled.items()
+        key: ds.dropna(dim="time", how="all")
+        for key, ds in zip(new_keys, ds_all_resampled.values())
     }

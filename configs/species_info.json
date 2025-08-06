@@ -25,7 +25,7 @@
         "molar_mass": 130.49
     },
     "clch2ch2cl":{
-        "species_print":"DCA",
+        "species_print":"1,2-DCA",
         "mf_units_scaling": 1e-12,
         "gwp":1,
         "molar_mass": 98.959

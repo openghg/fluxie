@@ -88,21 +88,19 @@ def print_cbar_label(
     ds: xr.Dataset,
     species_info: dict,
     var: str = None,
-    season: str = None,
     format: list[str] = ["variable", "species", "units", "time"],
 ) -> str:
     """
     Generate a colorbar label for a dataset variable.
 
     Args:
-        ds (xr.Dataset):
-            The dataset containing the variable.
+        ds (xr.DataArray):
+            The DataArray containing the variable. The DataArray should be named with the name of the variable
+            (e.g. "posterior_prior_diff", "flux_total_prior", ...)
         species_info (dict):
             A dictionary with metadata for species, including display names.
         var (str, optional):
             The variable name in the dataset.
-        season (str, optional):
-            The season to include in the label (e.g., 'DJF', 'MAM').
         format (list[str], optional):
             Specifies the components to include in the label.
             Options: ['variable', 'species', 'units', 'time']. Default includes all.
@@ -118,22 +116,13 @@ def print_cbar_label(
         f"{species_info.get('species_print')}" if "species" in format else ""
     )
 
-    units_label = ""
-    if "units" in format:
-        if "diff" in var:
-            units_label = f"({get_units(ds['flux_total_posterior'])})"
-        else:
-            units_label = f"({get_units(ds[var])})"
+    units_label = f"({get_units(ds[var])})" if "units" in format else ""
 
     middle_label = " ".join(filter(None, [species_label, units_label]))
 
     time_label = ""
     if "time" in format:
-        freq = get_frequency(ds)
-        period = print_period(
-            ds, freq, season
-        )  # TODO Here, based on the last iteration. Check if consistent for all models?
-        time_label = f"{period}"
+        time_label = ds.attrs["time_label"]
 
     # Construct the final label with proper line breaks
     label_parts = [var_label, middle_label, time_label]
@@ -240,11 +229,18 @@ def print_period(
             A formatted string representing the dataset's time period, optionally including a season.
     """
 
-    time = ds.time
     datetime_format = f"datetime64[{freq}]" if season is None else "datetime64[Y]"
 
-    start_date = time.values[0].astype(datetime_format)
-    end_date = time.values[-1].astype(datetime_format)
+    if "time" in ds.dims:
+        start_date = ds.time.values.min()
+        end_date = ds.time.values.max()
+    elif "start_date" in ds.attrs and "end_date" in ds.attrs:
+        start_date, end_date = ds.attrs["start_date"], ds.attrs["end_date"]
+    else:
+        raise ValueError("Cannot infer start and end dates from dataset")
+
+    start_date = start_date.astype(datetime_format)
+    end_date = end_date.astype(datetime_format)
 
     if start_date == end_date:
         period = f"{start_date}"
@@ -319,12 +315,54 @@ def add_site_markers(ax, site_info, color):
         )
 
 
-def get_sites_coordinates(
-    ds_all: dict[xr.Dataset],
+def get_active_sites_coordinates(
+    ds: xr.Dataset,
     config_data: dict,
     fallback_sites: list[str]  | None = None,
 ) -> dict:
-    # TODO DODGY FUNCTION!!! Modify this function once 'sites' is included in all the attributes.
+    """
+    Retrieve coordinates for active platforms/sites from an xarray Dataset.
+
+    Args:
+        ds (xr.Dataset):
+           xarray flux dataset.
+        config_data (dict):
+            Dictionary of sites with information for plotting (read from json file).
+        fallback_sites (list[str] | None):
+            A list of site/platform names to use if no active sites are found in `ds`.
+
+    Returns:
+        dict:
+            A dictionary of site coordinates for either the active sites or the fallback sites. 
+            Returns an empty dict if no sites are found and no fallback_sites are provided.
+    """
+
+    sites = ds["sites"] if "sites" in ds else None
+
+    if sites is None:
+        if fallback_sites:
+            logger.warning(
+                "No active 'sites' found in dataset, using fallback sites from the list provided."
+            )
+            return extract_site_info(fallback_sites, config_data)
+
+        else:
+            logger.warning(
+                "No 'sites' found. "
+                "Please ensure 'add_sites_to_flux' is True or that a 'fallback_sites' list is provided."
+            )
+            return {}
+        
+    active_sites = sites.platform.values[sites.any(dim='time').values].tolist()
+    return extract_site_info(active_sites, config_data)
+
+
+def get_sites_coordinates(
+    ds_all: dict[xr.Dataset],
+    config_data: dict,
+    fallback_sites: list[str] | None = None,
+) -> dict:
+    # TODO DEPRACATED FUNCTION --> to delete
     """
     Collect the 'sites' attribute from a dictionary of xarray datasets.
     If 'sites' is missing, use it from another dataset where it's available.
@@ -345,13 +383,12 @@ def get_sites_coordinates(
 
     sites_list = {}
 
-
     # First pass: Extract 'sites' where available
     for key, ds in ds_all.items():
         try:
             # Parse the 'sites' attribute if it exists
             if hasattr(ds, "sites"):
-                sites = eval(ds.sites)
+                sites = eval(ds.attrs['sites'])
                 this_sites = sites
                 # Store fallback sites if not already set
                 if fallback_sites is None:
@@ -387,7 +424,8 @@ def get_sites_coordinates(
 
 
 def extract_site_info(
-    sites: list[str], config_data: dict[str, dict]
+    sites: list[str], 
+    config_data: dict[str, dict]
 ) -> dict[str, dict]:
     """
     Extract latitude and longitude for each site from site_info in the config data.
@@ -398,23 +436,31 @@ def extract_site_info(
                                        where 'site_info' holds the latitude and longitude info.
 
     Returns:
-        site_data (dict[str, dict]): A dictionary mapping site names to their respective latitude and longitude.
+        sites_coordinates (dict[str, dict]): A dictionary mapping site names to their respective latitude and longitude.
     """
 
-    site_info = config_data["site_info"]
+    site_info = config_data.get("site_info", {})
+    sites_coordinates = {}
 
-    site_data = {
-        site: {
-            "latitude": site_data_info[next(iter(site_data_info))]["latitude"],
-            "longitude": site_data_info[next(iter(site_data_info))]["longitude"],
+    for site in sites:
+        if site not in site_info:
+            logger.warning(f"Site '{site}' not found in config_data['site_info']. It will be skipped.")
+            continue
+
+        # Take the first entry in site_info[site]
+        first_key = next(iter(site_info[site]))
+
+        sites_coordinates[site] = {
+            "latitude": site_info[site][first_key]["latitude"],
+            "longitude": site_info[site][first_key]["longitude"],
         }
-        for site, site_data_info in site_info.items()
-        if site in sites
-    }
 
-    return site_data
+    return sites_coordinates
 
-def get_bounds_from_datasets(ds_list: list[xr.Dataset]) -> tuple[float, float, float, float]:
+
+def get_bounds_from_datasets(
+    ds_list: list[xr.Dataset],
+) -> tuple[float, float, float, float]:
     """
     Get the bounds of a list of xarray datasets.
 
@@ -430,8 +476,10 @@ def get_bounds_from_datasets(ds_list: list[xr.Dataset]) -> tuple[float, float, f
 
     return lon_min, lon_max, lat_min, lat_max
 
-# Region type 
+
+# Region type
 Region = str | list[float] | tuple[float] | None
+
 
 def get_map_bounds(
     region: Region = None,
@@ -441,7 +489,7 @@ def get_map_bounds(
 ) -> tuple[float, float, float, float]:
     """
     Get the bounding coordinates for a specified region or dataset.
-    
+
     Three options for specifying the bounds based on the 'region' argument:
     1. A string representing a country, continent, or region name.
     2. A list of four floats representing the bounding box coordinates (lon_min, lon_max, lat_min, lat_max).
@@ -459,26 +507,32 @@ def get_map_bounds(
         map_bounds (tuple[float, float, float, float]):
             The bounding coordinates of the region or dataset (lon_min, lon_max, lat_min, lat_max).
 
-    
+
     """
     ds_all = list(ds_all)
     if isinstance(region, str):
         # Use the non-zero country_fraction to define the clipping region, for coherence in the country definition
         if len(ds_all) > 0 and "country_fraction" in ds_all[0]:
             da_mask = ds_all[0].country_fraction.sum(dim="country")
-            clipped = da_mask.where(da_mask!=0).dropna(dim = "longitude", how = "all").dropna(dim = "latitude", how = "all")
-            clip_region = [clipped.longitude.values.min(),
-                        clipped.latitude.values.min(),
-                        clipped.longitude.values.max(),
-                        clipped.latitude.values.max(),
-                        ]
+            clipped = (
+                da_mask.where(da_mask != 0)
+                .dropna(dim="longitude", how="all")
+                .dropna(dim="latitude", how="all")
+            )
+            clip_region = [
+                clipped.longitude.values.min(),
+                clipped.latitude.values.min(),
+                clipped.longitude.values.max(),
+                clipped.latitude.values.max(),
+            ]
         else:
             clip_region = None
 
         map_bounds = get_region_coordinates(
-            region, config_data.get("regions_info",{}), 
-            zoom_degree = zoom_degree,
-            clip_region = clip_region
+            region,
+            config_data.get("regions_info", {}),
+            zoom_degree=zoom_degree,
+            clip_region=clip_region,
         )
     elif isinstance(region, (list, tuple)) and all(
         isinstance(coord, (int, float)) for coord in region
@@ -516,8 +570,8 @@ def get_region_coordinates(
             The number of degrees to zoom in/out from the bounding box. Default is 1.
         clip_region (list[float]):
             Coordinates ([min_lon, min_lat, max_lon, max_lat]) use to restrict the boundaries of the region.
-            For example, if the focus is on France and clip_region is the extent of continental Europe, overseas territory 
-            (Reunion, Mayotte,...) won't be included; if no clip region is provided, they will be included. 
+            For example, if the focus is on France and clip_region is the extent of continental Europe, overseas territory
+            (Reunion, Mayotte,...) won't be included; if no clip region is provided, they will be included.
 
     Returns:
         region_coordinates (tuple):
@@ -566,7 +620,7 @@ def get_region_coordinates(
 
     # Restrict to clip_region
     if clip_region:
-        region = gpd.clip(region,clip_region)
+        region = gpd.clip(region, clip_region)
 
     # Get the bounding box of the region of interest
     region_boundaries = region.total_bounds  # [minx, miny, maxx, maxy]
@@ -628,7 +682,6 @@ def set_flux_limits(
     ds_all: dict[xr.Dataset],
     var: str,
     region_plot: tuple[float, float, float, float],
-    species_info: dict = {},
     option: Literal["auto"] | list[float] | tuple[float, float] = "auto",
     custom_percentile: float = None,
 ) -> tuple[float, float]:
@@ -640,13 +693,11 @@ def set_flux_limits(
 
     Args:
         ds_all (dict[xr.Dataset]):
-            A dictionary of datasets containing the flux variables.
+            A dictionary of Datasets containing the flux variables
         var (str):
-            The variable name to compute limits for.
+            Variable use to define the flux limits
         region_plot (tuple[float, float, float, float]):
             Coordinates [lon_min, lon_max, lat_min, lat_max].
-        species_info (dict):
-            Contains default limit values.
         option ('auto', [lower_lim, upper_lim]):
             The option for setting limits.
                 - A list or tuple with two elements (lower_lim, upper_lim) for specified limits.
@@ -667,33 +718,16 @@ def set_flux_limits(
     elif option == "auto":
         models_var = []
         for model, ds in ds_all.items():
-            if var == "posterior_prior_diff":
-                var_i = ds["flux_total_posterior"] - ds["flux_total_prior"]
-            elif var == "posterior_mean_diff":
-                var_i = ds["flux_total_posterior"] - ds["flux_total_posterior"].mean(
-                    dim="time"
-                )
-            elif var == "posterior_prior_diff_inversion_grid":
-                var_i = (
-                    ds["flux_total_posterior_inversion_grid"]
-                    - ds["flux_total_prior_inversion_grid"]
-                )
-            elif var == "posterior_mean_diff_inversion_grid":
-                var_i = ds["flux_total_posterior_inversion_grid"] - ds[
-                    "flux_total_posterior_inversion_grid"
-                ].mean(dim="time")
-            else:
-                var_i = ds[var]
-
+            var_plot = ds[var]
             # Filter based on longitude and latitude of region_plot
             mask_region = (
-                (ds.longitude > region_plot[0])
-                & (ds.longitude < region_plot[1])
-                & (ds.latitude > region_plot[2])
-                & (ds.latitude < region_plot[3])
+                (var_plot.longitude > region_plot[0])
+                & (var_plot.longitude < region_plot[1])
+                & (var_plot.latitude > region_plot[2])
+                & (var_plot.latitude < region_plot[3])
             )
-            var_i = var_i.where(mask_region, drop=True)
-            models_var.append(var_i)
+            var_plot = var_plot.where(mask_region, drop=True)
+            models_var.append(var_plot)
 
         models_var = xr.concat(models_var, dim="time")
 
@@ -702,7 +736,7 @@ def set_flux_limits(
             custom_percentile if custom_percentile else 0.99
         ).item()
 
-        if "diff" in var:
+        if "diff" in models_var.name:
             flux_lim = (-upper_lim, upper_lim)
         else:
             flux_lim = (0, upper_lim)
