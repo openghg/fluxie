@@ -36,6 +36,7 @@ country_flux_units_print = "Gg yr-1"
 start_date = "2018-01-01"  # inclusive. Option to set as list of dates, e.g. ['2018-01-01','2019-01-01'] which is required for total fgases if one model is missing obs for a year
 end_date = "2024-01-01"  # not inclusive. Option to set as list of dates, e.g. ['2023-01-01','2022-01-01'] which is required for total fgases if one model is missing obs for a year
 get_labels_from_file = False
+add_sites_to_flux = True
 
 ds_all_flux_scaled = {}
 
@@ -52,7 +53,7 @@ if "all" in species:
     )
 else:
     ds_all_flux = read_model_output(
-        data_dir, "flux", species, models, config_data, period=period
+        data_dir, "flux", species, models, config_data, period=period, add_sites_to_flux=add_sites_to_flux
     )
 
     for m in models:
