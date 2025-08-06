@@ -131,13 +131,9 @@ def plot_flux_map(
         vars_list = [var_prior, var_posterior, var_diff]
         var_fluxlim = var_posterior #TODO Flux limits based on posterior, is this the right way to do?
 
-    # Prepare datasets and resample over the whole time period or a given season
-    if not season:
-        resample_period = 'all'
-    else:
-        resample_period = season
+    # Prepare datasets and resample over the whole time period (season=None) or a given season
     ds_dict = {
-        m: resample_over_period(define_var_plot(ds, vars_list), chop_by=resample_period)[0]
+        m: resample_over_period(define_var_plot(ds, vars_list), chop_by=season)[0]
         for m, ds in ds_all.items()
     }
 
@@ -337,17 +333,13 @@ def plot_flux_map_model_comparison(
         zoom_degree=zoom_degree,
     )
 
-    # Prepare datasets and resample over the whole time period or a given season
+    # Prepare datasets and resample over the whole time period (season=None) or a given season
     ds_dict = {m: define_var_plot(ds, var) for m, ds in ds_all.items() if m in models}
     ds_dict = align_map_data(ds_dict)
     ds_dict["diff"] = make_model_diff_ds(ds_dict[models[0]], ds_dict[models[1]])
 
-    if not season:
-        resample_period = 'all'
-    else:
-        resample_period = season
     for m, ds in ds_dict.items():
-        ds_dict[m] = resample_over_period(ds, chop_by=resample_period)[0]
+        ds_dict[m] = resample_over_period(ds, chop_by=season)[0]
 
     # Load country lines and species information
     country_lines = compute_boundary_geometry(map_bounds)
