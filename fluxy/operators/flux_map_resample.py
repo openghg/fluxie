@@ -320,7 +320,7 @@ def resample_over_seasons(
     return ds_resampled, time_labels
 
 
-def resample_over_all_period(
+def resample_over_whole_period(
     ds: xr.Dataset,
 ) -> Tuple[xr.Dataset, List[str]]:
     """
@@ -450,7 +450,7 @@ def resample_over_months(
 def resample_over_period(
     ds: xr.Dataset,
     N: int = 1,
-    chop_by: Literal["year", "month", "season", "all"] | List | Literal['DJF', 'MAM', 'JJA', 'SON'] = "year",
+    chop_by: Literal["year", "month", "season"] | List | Literal['DJF', 'MAM', 'JJA', 'SON'] = None,
 ) -> Tuple[xr.Dataset, List[str]]:
     """
     Resample a dataset over a specified time period or custom intervals.
@@ -466,7 +466,7 @@ def resample_over_period(
             Interval length for custom periods (e.g., for months or years).
         chop_by (str, list):
             Defines how the dataset should be chopped.
-            Options are: 'year', 'month', 'season', 'all', a list of dates or months, or a season.
+            Options are: 'year', 'month', 'season', None, a list of dates or months, or a season.
 
     Returns:
         ds_avg (xarray.Dataset):
@@ -494,8 +494,8 @@ def resample_over_period(
         return resample_over_seasons(ds.copy(), season=chop_by)
     elif chop_by == "season":
         return resample_over_seasons(ds.copy())
-    elif chop_by == "all":
-        return resample_over_all_period(ds.copy())
+    elif chop_by is None:
+        return resample_over_whole_period(ds.copy())
     elif chop_by == "year":
         return resample_over_years(ds.copy(), N)
     elif chop_by == "month":
