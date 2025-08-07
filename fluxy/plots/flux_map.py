@@ -42,6 +42,7 @@ def plot_flux_map(
     zoom_degree: float = 1,
     only: Literal["posterior", "prior", "diff"] | None = None,
     fallback_sites: list[str] | None = None,
+    resample_uncert_correlation = False,
 ) -> plt.Figure:
     """
     Plot posterior and prior fluxes and the difference between them for all models, time averaged.
@@ -92,6 +93,9 @@ def plot_flux_map(
         fallback_sites (list[str] | None):
             A list of site names to use as a fallback if 'sites' is not found in the datasets.
             If None, the first available 'sites' in the datasets will be used as fallback.
+        resample_uncert_correlation (bool, optional):
+            If True, uncertainties are averaged directly .
+            If False, uncertainties are calculated as RMSE-like aggregation.
 
     Returns:
         fig (figure):
@@ -133,7 +137,7 @@ def plot_flux_map(
 
     # Prepare datasets and resample over the whole time period (season=None) or a given season
     ds_dict = {
-        m: resample_over_period(define_var_plot(ds, vars_list), chop_by=season)[0]
+        m: resample_over_period(define_var_plot(ds, vars_list), chop_by=season, resample_uncert_correlation=resample_uncert_correlation)[0]
         for m, ds in ds_all.items()
     }
 
@@ -257,6 +261,7 @@ def plot_flux_map_model_comparison(
     set_fluxlim_percentile: float = None,
     zoom_degree: float = 1,
     fallback_sites: list[str] | None = None,
+    resample_uncert_correlation: bool = False,
 ) -> plt.Figure:
     """
     Plot a given flux variable for two models and the difference between them.
@@ -309,6 +314,9 @@ def plot_flux_map_model_comparison(
         fallback_sites (list[str] | None):
             A list of site names to use as a fallback if 'sites' is not found in the datasets.
             If None, the first available 'sites' in the datasets will be used as fallback.
+        resample_uncert_correlation (bool, optional):
+            If True, uncertainties are averaged.
+            If False, uncertainties are calculated as RMSE-like aggregation.
     Returns:
         fig (figure):
             Three maps of a target flux variable of the first and second models and the diffence between both.
@@ -339,7 +347,7 @@ def plot_flux_map_model_comparison(
     ds_dict["diff"] = make_model_diff_ds(ds_dict[models[0]], ds_dict[models[1]])
 
     for m, ds in ds_dict.items():
-        ds_dict[m] = resample_over_period(ds, chop_by=season)[0]
+        ds_dict[m] = resample_over_period(ds, chop_by=season, resample_uncert_correlation=resample_uncert_correlation)[0]
 
     # Load country lines and species information
     country_lines = compute_boundary_geometry(map_bounds)
@@ -453,6 +461,7 @@ def plot_flux_map_over_time(
     set_fluxlim_percentile: float = None,
     zoom_degree: float = 1,
     fallback_sites: list[str] | None = None,
+    resample_uncert_correlation: bool = False,
 ) -> plt.Figure:
     """
     Plot a given flux variable averaged over specific time intervals, for all models or the model mean.
@@ -504,6 +513,9 @@ def plot_flux_map_over_time(
         fallback_sites (list[str] | None):
             A list of site names to use as a fallback if 'sites' is not found in the datasets.
             If None, the first available 'sites' in the datasets will be used as fallback.
+        resample_uncert_correlation (bool, optional):
+            If True, uncertainties are averaged directly.
+            If False, uncertainties are calculated as RMSE-like aggregation.
     Returns:
         fig (figure):
             A plot of spatial flux of the variable specified in var
@@ -526,7 +538,7 @@ def plot_flux_map_over_time(
 
     time_labels = {}
     for key, ds in ds_dict.items():
-        ds_dict[key], time_labels[key] = resample_over_period(ds, dt, chop_by)
+        ds_dict[key], time_labels[key] = resample_over_period(ds, dt, chop_by, resample_uncert_correlation)
 
     if all([v == time_labels[key] for v in time_labels.values()]):
         time_labels = time_labels[key]
