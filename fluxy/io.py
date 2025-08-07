@@ -129,7 +129,9 @@ def read_config_files(
     # Read json files
     data_dict = {}
     for file in files:
-        data = read_func.get(file.suffix, read_json)(file)
+        if file.suffix not in read_func:
+            raise ValueError(f"Unsupported config file extension: {file.suffix} in file {file.name}")
+        data = read_func[file.suffix](file)
         filename = file.stem
         data_dict[filename] = data
 
