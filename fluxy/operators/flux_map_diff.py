@@ -90,16 +90,15 @@ def make_model_diff_ds(
 
         if set(dims) == {"time", "latitude", "longitude"}:
             diff[var] = v1 - v2
+            diff[var].attrs = v1.attrs # Copy attributes from ds1
         
         elif var == "sites" and set(dims) == {"time", "platform"}:
             sites1, sites2 = xr.align(ds1[var], ds2[var], join="outer", fill_value=0)
             diff["sites"] = xr.where((sites1 == 1) | (sites2 == 1), 1, 0)
+            diff["sites"].attrs = v1.attrs # Copy attributes from ds1
 
         else:
             logger.info(f"Variable '{var}' with dims {dims} not processed.") # eg, not keeping percentiles 
-
-        diff[var].attrs = v1.attrs # Copy attributes from ds1
-
     diff = xr.Dataset(diff)
     diff.attrs["frequency"] = ds1.attrs.get("frequency", "")
 
