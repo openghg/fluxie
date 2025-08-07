@@ -388,7 +388,10 @@ def get_sites_coordinates(
         stacklevel=2,
     )
 
-    return get_active_sites_coordinates(ds_all, config_data, fallback_sites)
+    return {
+        key: get_active_sites_coordinates(ds, config_data, fallback_sites)
+        for key, ds in ds_all.items()
+    }
 
 
 def extract_site_info(
