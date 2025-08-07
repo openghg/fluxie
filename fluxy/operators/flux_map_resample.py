@@ -330,7 +330,7 @@ def resample_over_months_list(
     time_labels = []
     for i, group in enumerate(unique_groups):
         if isinstance(months_list[i], list):
-            time_labels.append("-".join(calendar.month_abbr[m] for m in months_list[i]))
+            time_labels.append("—".join(calendar.month_abbr[m] for m in months_list[i]))
         else:
             time_labels.append(calendar.month_abbr[months_list[i]])
 
