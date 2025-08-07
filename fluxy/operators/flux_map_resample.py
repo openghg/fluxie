@@ -289,7 +289,7 @@ def average_over_months_list(
         stacklevel=2,
     )
 
-    return resample_over_months_list(ds, months)
+    return resample_over_months_list(ds, months_list)
 
 
 def resample_over_months_list(
