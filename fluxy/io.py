@@ -115,6 +115,7 @@ def get_filename(
     file_pattern: str,
     config_data: dict[str, dict],
     data_dir: os.PathLike | str,
+    read_standard_run: bool,
 ) -> Path:
     """
     Get complete path to the output file.
@@ -139,30 +140,57 @@ def get_filename(
             Complete path to output file.
     """
 
-    # Get file name tags
-    sub_dir, name_tags = os.path.split(model)
-    name_tags = name_tags.split("_")
-    model_name = name_tags[0]
+    models_info = config_data.get("models_info", {})
+
+    # Get model name
+    sub_dir, model_name = os.path.split(model)
+    base_model_name = model_name.split("_")[0]
+
+    # Get model name from standard_run dictionary
+    if read_standard_run:
+        logger.info(f"Getting {model_name} run key from models_info['standard_run']")
+
+        if (models_info is not None) and (
+            all_standard_run_dict := models_info.get("standard_run")
+        ):
+            standard_run_dict = all_standard_run_dict.get(model_name, {})
+            standard_run_dict_default = all_standard_run_dict.get("default", {})
+
+            if species in standard_run_dict:
+                model_name = f"{base_model_name}_{standard_run_dict[species]}"
+            elif species in standard_run_dict_default:
+                model_name = f"{base_model_name}_{standard_run_dict_default[species]}"
+            else:
+                raise ValueError(
+                    f"No standard run provided for {species}, neither in '{model_name}' nor in 'default'. Please update variable 'standard_run' in models_info.json."
+                )
+        else:
+            raise ValueError(
+                f"Config file models_info.json does not exist or variable 'standard_run' is not defined. Please update models_info.json."
+            )
 
     # Replace parameter tags by dict values in config
-    models_info = config_data.get("models_info", {})
+    name_tags = model_name.split("_")
+
     filename_tags = models_info.get("filename_tags", None)
     if filename_tags is not None:
         for i, param in enumerate(name_tags):
             string_in_file = filename_tags.get(param, None)
 
             if string_in_file is not None:
-                string_in_file = string_in_file.replace("<model>", model_name.lower())
+                string_in_file = string_in_file.replace(
+                    "<model>", base_model_name.lower()
+                )
                 name_tags[i] = string_in_file
 
-    # Build filename
-    model_filename = "_".join(name_tags)
+    # Build model name
+    model_name = "_".join(name_tags)
 
     # Get species name
     species_print = species
     if (
         (species_names := models_info.get("species_name"))
-        and (model_species := species_names.get(model_name))
+        and (model_species := species_names.get(base_model_name))
         and (species_tag := model_species.get(species))
     ):
         species_print = species_tag
@@ -171,10 +199,10 @@ def get_filename(
     data_dir = Path(data_dir)
     filepath = (
         data_dir
-        / model_name
+        / base_model_name
         / species
         / sub_dir
-        / f"{model_filename}_{species_print}_{period}{file_pattern}"
+        / f"{model_name}_{species_print}_{period}{file_pattern}"
     )
 
     return filepath
@@ -187,6 +215,7 @@ def read_model_output(
     models: list[str],
     config_data: dict[str, dict] = {},
     period: str | list[str] = "yearly",
+    read_standard_run: bool = False,
 ) -> dict[str, xr.Dataset]:
     """
     Extracts mole fraction or flux timeseries data from each model.
@@ -232,7 +261,13 @@ def read_model_output(
 
     for i, m in enumerate(models):
         filepath = get_filename(
-            m, species, period[i], file_pattern, config_data, data_dir
+            m,
+            species,
+            period[i],
+            file_pattern,
+            config_data,
+            data_dir,
+            read_standard_run,
         )
 
         # Check if files exists
@@ -275,8 +310,9 @@ def read_flux_total_fgases(
             'all_hfc' or 'all_pfc'
         models (list of str):
             Model name tags specifying model runs,
-            i.e. '<inversionModel>_<optional_identifying_tags>', preceded by subdirectory if applicable,
-            e.g. ['InTEM_NAME_EUROPE_EDGAR','ELRIS_NAME_EUROPE_EDGAR']
+            i.e. models[i] = '<inversionModel>_<run_key>', preceded by subdirectory if applicable, e.g. ['InTEM','ELRIS'].
+            The model name tag for each species is taken from standard_run[models[i]] in models_info.json, preceded by <inversionModel>.
+            If standard_run[models[i]] does not exist in models_info.json, standard_run["default"] is used.
         regions (list of str):
             Region names used to extract fluxes. Only these regions can then be plotted.
         config_data (dict of dict):
@@ -337,51 +373,25 @@ def read_flux_total_fgases(
     if isinstance(regions, str):
         regions = [regions]
 
-    # Assign key to find file for each species and model according to the config file
     missing_species = {model: list() for model in models}
-    default_overwrite = {model: list() for model in models}
-    valid_experiments = {species_p: dict() for species_p in all_species}
-
-    for model in models:
-        m0, *run_key = model.split("_")
-        run_key = "_".join(run_key)
-        if not run_key:
-            run_key = "default"
-
-        standard_run_dict = config_data["models_info"]["standard_run"][run_key]
-        standard_run_dict_default = config_data["models_info"]["standard_run"][
-            "default"
-        ]
-        for species_p in all_species:
-            if species_p in standard_run_dict:
-                valid_experiments[species_p][
-                    model
-                ] = f"{m0}_{standard_run_dict[species_p]}"
-            elif species_p in standard_run_dict_default:
-                valid_experiments[species_p][
-                    model
-                ] = f"{m0}_{standard_run_dict_default[species_p]}"
-                default_overwrite[model].append(species_p)
-            else:
-                raise ValueError(
-                    f"No standard run provided for {species_p}, neither for '{run_key}' nor in 'default'. Please update your config file."
-                )
 
     # Extract data by species, model and region
     ds_all = {region: {model: list() for model in models} for region in regions}
     for species_p in all_species:
-        # read and slice dataset for each species and model separately
-        ds_in = dict()
-        for ik, (model, standard_run) in enumerate(
-            valid_experiments[species_p].items()
-        ):
-            model_output = read_model_output(
-                data_dir, "flux", species_p, [standard_run], config_data, period[ik]
-            )
-            if standard_run in model_output:
-                ds_in[model] = model_output[standard_run]
-            else:
-                missing_species[model].append(f"{species_p} ({standard_run})")
+        # read and slice dataset for each species
+        ds_in = read_model_output(
+            data_dir,
+            "flux",
+            species_p,
+            models,
+            config_data,
+            period,
+            read_standard_run=True,
+        )
+
+        for model in models:
+            if model not in ds_in.keys():
+                missing_species[model].append(f"{species_p} ({model})")
 
         ds_in = slice_flux(
             ds_in,
@@ -391,6 +401,7 @@ def read_flux_total_fgases(
             species_p,
             country_flux_units_print=unit,
         )
+
         # extract regions
         for region in regions:
             ds_all_region = extract_region_flux(
@@ -405,13 +416,6 @@ def read_flux_total_fgases(
     # print messages about used config
     messages_ordered_by_model = list()
     for model in models:
-        if default_overwrite[model]:
-            messages_ordered_by_model.append(
-                [
-                    logger.warning,
-                    f" {default_overwrite[model]} have been overwritten by default config for {model}.",
-                ]
-            )
         if missing_species[model]:
             messages_ordered_by_model.append(
                 [
@@ -427,7 +431,7 @@ def read_flux_total_fgases(
         message[0](message[1])
 
     logger.info(
-        " To change the files used as the standard for each HFC/PFC, edit variable std_run in species_info.json"
+        " To change the files used as the standard for each HFC/PFC, edit 'standard_run' in models_info.json"
     )
 
     return ds_output
@@ -782,11 +786,15 @@ def edit_vars_and_attributes(
             ds["mf_posterior"].attrs["longname"] = "aposteriori_simulated_mole_fraction"
             ds["mf_bc_prior"] = ds["Ypri_bkg"]
             ds["mf_bc_prior"].attrs["units"] = "ppt"
-            ds["mf_bc_prior"].attrs["longname"] = "apriori_simulated_boundary_condition_mole_fraction"
+            ds["mf_bc_prior"].attrs[
+                "longname"
+            ] = "apriori_simulated_boundary_condition_mole_fraction"
             ds["mf_bc_prior"] = ds["Ypri_bkg"]
             ds["mf_bc_posterior"] = ds["Ypost_bkg"]
             ds["mf_bc_posterior"].attrs["units"] = "ppt"
-            ds["mf_bc_posterior"].attrs["longname"] = "aposteriori_simulated_boundary_condition_mole_fraction"
+            ds["mf_bc_posterior"].attrs[
+                "longname"
+            ] = "aposteriori_simulated_boundary_condition_mole_fraction"
 
             # Fill intake_height and stdev_mf_model with fake values
             ds["intake_height"][:] = 0
