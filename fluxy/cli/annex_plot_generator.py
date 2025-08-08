@@ -52,7 +52,7 @@ def dict_to_str_dataframe(
     }
     inv = res.get(f"inventory_{inventory_years}", inv_default)
 
-    if species in ["n20", "ch4"]:
+    if species in ["n2o", "ch4"]:
         n_digits = 0
     elif species in ["all_hfc", "all_pfc", "sf6"]:
         n_digits = 1
@@ -77,14 +77,28 @@ def dict_to_str_dataframe(
     return pd.DataFrame(output)
 
 
-def get_species_specific_settings(settings: list | dict, species: str):
+def get_species_specific_settings(settings: list | dict, species: str) -> list | dict:
+    """
+    Get species-specific setting from dictionary.
+    Returns the input settings if it is already a list.
 
-    if isinstance(settings,list):
+    Args:
+        settings:
+            List or dictionary with species as keys or "default" key if species not present.
+        species:
+            Gas species, e.g. 'ch4'.
+
+    Returns:
+        settings_species:
+            List or dictionary with species-specific settings.
+    """
+
+    if isinstance(settings, list):
         return settings
-    
+
     settings_species = settings.get(species, None)
     if settings_species is None:
-        settings_species = settings.get("default",{})
+        settings_species = settings.get("default", {})
 
     return settings_species
 
@@ -142,7 +156,9 @@ def produce_plots(
         end_date = annex_config_data.end_date
 
         # Models to plot
-        models_std = get_species_specific_settings(annex_config_data.models_monthly_species, species)
+        models_std = get_species_specific_settings(
+            annex_config_data.models_monthly_species, species
+        )
 
         # Species-specific settings
         kwargs_species_specific = get_species_specific_settings(
@@ -252,7 +268,9 @@ def produce_plots(
 
         ### Spatial maps
         # Reselect datasets to plot
-        models_std = get_species_specific_settings(annex_config_data.models_spatial_maps, species)
+        models_std = get_species_specific_settings(
+            annex_config_data.models_spatial_maps, species
+        )
         ds_all_flux_scaled = {m: ds_all_flux_scaled[m] for m in models_std}
 
         # Define plotting labels
@@ -309,7 +327,9 @@ def produce_plots(
             start_date = "2011-01-01"  # Fix for InTEM longrun which is zero in 2010
             logger.warning(f"Using special settings for HFC-4310mee: {start_date=}")
 
-        models_std = get_species_specific_settings(annex_config_data.models_yearly_species, species)
+        models_std = get_species_specific_settings(
+            annex_config_data.models_yearly_species, species
+        )
 
         # Read and slice data
         ds_all_flux = read_model_output(
@@ -357,16 +377,12 @@ def produce_plots(
 
         ### Spatial maps
         start_date = annex_config_data.start_date_paris_window
-        if species == "hfc4310mee":
-            end_date = "2023-01-01"  # NOTE: no 2023 results for HFC-4310mee
-            logger.warning(f"Using special settings for HFC-4310mee: {end_date=}")
-        else:
-            end_date = annex_config_data.end_date
-
         dt = int(end_date[:4]) - int(start_date[:4])
 
         # Select and reslice the data
-        models_std = get_species_specific_settings(annex_config_data.models_spatial_maps, species)
+        models_std = get_species_specific_settings(
+            annex_config_data.models_spatial_maps, species
+        )
         ds_all_flux = {m: ds_all_flux[m] for m in models_std}
         ds_all_flux_scaled = slice_flux(
             ds_all_flux,
