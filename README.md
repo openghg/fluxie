@@ -14,10 +14,16 @@ pip install -e .
 ```
 Note: in the ICOS Jupyter Hub, you might need to restart the kernel so that package fluxy is found.
 
+## Quick start 
+
+If you want to try fluxy, the easiest way is to run the example notebook `scripts/example_basics.ipynb`.
+It will run with some test data and show you what fluxy can do.
+
+
 ## Prepare input files
 ### 1. Flux and concentration netCDF files with model results
 
-Data format must be in agreement with the PARIS-AVENGERS-EYECLIMA template available in folder data/templates/. You can find a summary of the most important variables  in data/templates/README_templates.md
+Data format must be in agreement with the PARIS-AVENGERS-EYECLIMA template available in folder `data/templates/` (see files `PAR-AVE-EYE_inversion_flux_output.cdl` and `PAR-AVE-EYE_inversion_concentration_output.cdl`). You can find a summary of the most important variables in `data/templates/README_templates.md`
 
 Please note that the filenames should follow the following format:  
 - Flux file: `<inversionModel>_<optional_identifying_tags>_<species>_<inversionFrequency>.nc`  
@@ -36,7 +42,7 @@ The following folder structure is expected:
 
 ### 2. Regions information (optional)
 
-Example file located in folder configs/regions_info.json.
+Example file: `configs/regions_info.json`
 
 | Variables     | Type                      | Description  |
 |:--------------|:--------------------------|:-------------|
@@ -46,7 +52,7 @@ Example file located in folder configs/regions_info.json.
 
 ### 3. Models information (optional)
 
-Example file located in folder configs/models_info.json.
+Example file: `configs/models_info.json`
 
 | Variables     | Type           | Description  |
 |:--------------|:---------------|:-------------|
@@ -57,7 +63,7 @@ Example file located in folder configs/models_info.json.
 
 ### 4. Species information (optional)
 
-Example file located in folder configs/species_info.json.
+Example file: `configs/species_info.json`
 
 It contains a dictionary of species (or group of species) pointing to various properties/print settings.
 
@@ -70,7 +76,7 @@ It contains a dictionary of species (or group of species) pointing to various pr
 
 ### 5. Sites information (optional)
 
-Example file located in folder configs/site_info.json.
+Example file: `configs/site_info.json`
 
 It contains a dictionary of stations (station designation code) pointing to the respective observation network (e.g. ICOS).  
 For each pair station/observation network, there is a dictionary of station specifications:
@@ -88,13 +94,13 @@ For each pair station/observation network, there is a dictionary of station spec
 
 The inventory files must be in the following location: `/path/to/data/inventory/`  
 The filenames should follow the following format: `<inventory_identifier>_<species>_<year>.nc` (e.g. "UNFCCC_inventory_hfc134a_2024.nc")  
-Data format must be in agreement with the PARIS-AVENGERS-EYECLIMA template for inventory files.
+Data format must be in agreement with the PARIS-AVENGERS-EYECLIMA template for inventory files: `data/templates/PAR-AVE-EYE_inventory.cdl`
 
 ### 7. netCDF file with baseline timestamps (optional)
 
 The files with baseline timestamps must be in the following location: `/path/to/data/baseline_timestamps/`  
 The filenames should follow the following format: `<stationID>_<baseline_identifier>_baseline_timestamps.nc` (e.g. "JFJ_InTEM_baseline_timestamps.nc")  
-Data format must be in agreement with the PARIS-AVENGERS-EYECLIMA template for baseline timestamp files.
+Data format must be in agreement with the PARIS-AVENGERS-EYECLIMA template for baseline timestamp files: `data/templates/PAR-AVE-EYE_baseline_timestamps.cdl`
 
 ## Run the notebook
 

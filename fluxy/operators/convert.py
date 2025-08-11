@@ -20,6 +20,7 @@ def scale_variables(
     Args:
         model (str):
             Name tag of the model being scaled.
+            i.e. '<inversionModel>_<optional_identifying_tags>', preceded by subdirectory if applicable
         ds_model (xarray dataset):
             Sliced dataset with mf data from model.
         species_info (dictionary of str):

@@ -5,3 +5,6 @@ __pycache__/
 
 data/ne_data/
 data/my_data/
+
+# Output of the test notebook
+data/tests/flux_country.png
