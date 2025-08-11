@@ -154,8 +154,7 @@ def stats_mf(
     # Compute stats for all sites and all models
     for site in sites_all:
         for model, ds in ds_all.items():
-            # Remove the NaNs
-            ds = ds.dropna("index")
+            # Mask by site
             site_index = get_site_index(ds, site)
             if site_index is None:
                 continue
@@ -163,6 +162,9 @@ def stats_mf(
             if not mask_site.any():
                 continue
             ds_site = ds.where(mask_site, drop=True)
+
+            # Remove indexes with no obs
+            ds_site = ds_site.dropna("index", subset=["mf_observed"])
 
             # select what to compare
             if stats_type == "prior":
