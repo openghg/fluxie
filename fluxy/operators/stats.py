@@ -11,31 +11,50 @@ def stats_observed_vs_simulated(
     sim_var: str,
 ) -> pd.DataFrame:
     """
-    Calculates multiple statistical measures of the fit between the posterior
-    mean mf and the observed mole fraction.
-    Implemented statistics: Pearson correlation coefficent, root mean square
-    error, normalised root mean square error, standard deviation.
+    Calculates multiple statistical measures of the fit between the observed
+    and simulated variables.
+
+    Statistics are computed for each site and each model.
+
+    Implemented statistics:
+        * Standard statistics
+        * Pearson correlation coefficent
+        * Root mean square error
+        * Normalised root mean square error
 
     Args:
         ds_all (dictionary of datasets):
-            xarray datasets from slice_mf(), sliced between chosen dates
-            but still containing all sites.
-        stats_type :
-            type of statistics to be computed. One of 'prior', 'posterior' for
-            statistics on the absolute mole fractions and 'prior_above_BC',
-            'posterior_above_BC' for regional part of mole fraction, i.e. with
-            BC contribution subtracted from both observation and simulation.
+            xarray datasets
+        obs_var (str):
+            Name of the observed variable.
+        sim_var (str):
+            Name of the simulated variable.
+
     Returns:
         stats (pandas.DataFrame):
             Statistical measures, for each site and for each model between observations and
-            simulations. Columns: 'model': model string,
-            'site': observation platform ID, 'pearson': Pearson correlation coefficient,
-            'rmse': root mean square error, 'crmse': centered root mean square error,
-            'bias': bias, 'sd_sim': standard deviation of simulation,
-            'sd_obs': standard deviation of observation (reference),
-            'sd_res': standard deviation of simulation - observation (residuals) ,
-            'nrmse': root mean square error normalised by observation mean,
-            'nn': number of value pairs. Index: integer.
+            simulations. Columns:
+                * 'model': model string
+                * 'site': observation platform ID
+                * 'pearson': Pearson correlation coefficient
+                * 'mae': mean absolute error
+                * 'mre': mean relative error
+                * 'rmse': root mean square error
+                * 'nrmse': root mean square error normalised by observation mean
+                * 'crmse': centered root mean square error
+                * 'bias': bias
+                * 'sd_sim'/'std_sim': standard deviation of simulation
+                * 'sd_obs'/'std_obs': standard deviation of observation (reference)
+                * 'sd_res': standard deviation of simulation - observation (residuals)
+                * 'nn': number of value pairs
+                * 'variable_sim': name of the simulated variable
+                * 'variable_obs': name of the observed variable
+                * '{min|max}_{sim|obs}': minimum/maximum value of the simulated/observed variable
+                * 'mean_{sim|obs}': mean value of the simulated/observed variable
+                * 'median_{sim|obs}': median of the simulated/observed variable
+                * 'std_{sim|obs}': standard deviation of the simulated/observed variable
+                * 'q{05|25|75|95}_{sim|obs}': quantiles of the simulated/observed variable
+
     """
 
     logger = logging.getLogger(__name__)

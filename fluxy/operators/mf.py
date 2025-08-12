@@ -118,8 +118,8 @@ def stats_mf(
     """
     Calculates multiple statistical measures of the fit between the posterior
     mean mf and the observed mole fraction.
-    Implemented statistics: Pearson correlation coefficent, root mean square
-    error, normalised root mean square error, standard deviation.
+
+    This calls :py:func:`fluxy.operators.stats.stats_observed_vs_simulated`
 
     Args:
         ds_all (dictionary of datasets):
@@ -132,15 +132,7 @@ def stats_mf(
             BC contribution subtracted from both observation and simulation.
     Returns:
         stats (pandas.DataFrame):
-            Statistical measures, for each site and for each model between observations and
-            simulations. Columns: 'model': model string,
-            'site': observation platform ID, 'pearson': Pearson correlation coefficient,
-            'rmse': root mean square error, 'crmse': centered root mean square error,
-            'bias': bias, 'sd_sim': standard deviation of simulation,
-            'sd_obs': standard deviation of observation (reference),
-            'sd_res': standard deviation of simulation - observation (residuals) ,
-            'nrmse': root mean square error normalised by observation mean,
-            'nn': number of value pairs. Index: integer.
+            Dataframe containing the statistical measures.
     """
 
     # assure that stats_type in allowed options
