@@ -7,6 +7,7 @@ from pathlib import Path
 from urllib.request import urlopen
 from zipfile import ZipFile
 
+import yaml
 import geopandas as gpd
 import numpy as np
 import pandas as pd
@@ -82,8 +83,6 @@ def read_yaml(filepath: os.PathLike) -> dict[str, dict]:
         yaml_data (dictionary of dictionaries):
             Dictionary with data read from filepath.
     """
-
-    import yaml
 
     filepath = Path(filepath)
 
