@@ -224,7 +224,7 @@ def read_model_output(
     species: str,
     models: list[str],
     config_data: dict[str, dict] = {},
-    period: str | list[str] | None = None,
+    period: str | list[str | None] | None = None,
 ) -> dict[str, xr.Dataset]:
     """
     Extracts mole fraction or flux timeseries data from each model.
@@ -255,7 +255,7 @@ def read_model_output(
         # Default period
         period = "yearly"
 
-    if isinstance(period, str):
+    if isinstance(period, str | None):
         period = [period] * len(models)
 
     if period is not None and len(period) != len(models):
@@ -266,7 +266,7 @@ def read_model_output(
     ds_all = {}
 
     for i, m in enumerate(models):
-        period_str = period[i] if period is not None else ""
+        period_str = period[i] or ""
         filepath = get_filename(
             m, species, period_str, file_pattern(file_type), config_data, data_dir
         )
