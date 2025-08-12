@@ -85,10 +85,3 @@ colors_of_sector:
   Agriculture: "#ff7f00"
   Fugitives: "#a65628"
   Shipping: "#FFB5B8"
-
-molar_masses:
-  CO2: 44.01e-3
-  CH4: 16.04e-3
-  N2O: 44.013e-3
-  NOx: 46.005e-3
-  CO: 28.01e-3
