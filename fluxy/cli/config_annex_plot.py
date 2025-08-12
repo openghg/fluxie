@@ -29,140 +29,6 @@ start_date_fgases = {
     "NORWAY": "2018-01-01",
 }
 
-# Specify the percentile to use for the color scales in the flux spatial map
-fluxlim_percentiles = {
-    "UK": {
-        "ch4": 0.95,
-        "n2o": 0.95,
-        "hfc32": 0.99,
-        "hfc125": 0.99,
-        "hfc134a": 0.99,
-        "hfc143a": 0.99,
-        "cf4": 0.99,
-        "pfc116": 0.95,
-        "pfc218": 0.99,
-        "pfc318": 0.95,
-        "sf6": 0.99,
-    },
-    "SWITZERLAND": {
-        "ch4": 0.96,
-        "n2o": 0.96,
-        "hfc32": 0.98,
-        "hfc125": 0.98,
-        "hfc134a": 0.97,
-        "hfc143a": 0.97,
-        "cf4": 0.98,
-        "pfc116": 0.98,
-        "pfc218": 0.975,
-        "pfc318": 0.96,
-        "sf6": 0.99,
-    },
-    "GERMANY": {
-        "ch4": 0.97,
-        "n2o": 0.97,
-        "hfc32": 0.99,
-        "hfc125": 0.99,
-        "hfc134a": 0.99,
-        "hfc143a": 0.99,
-        "cf4": 0.995,
-        "pfc116": 0.995,
-        "pfc218": 0.98,
-        "pfc318": 0.99,
-        "sf6": 0.99,
-    },
-    "ITALY": {
-        "ch4": 0.95,
-        "n2o": 0.95,
-        "hfc32": 0.99,
-        "hfc125": 0.99,
-        "hfc134a": 0.99,
-        "hfc143a": 0.99,
-        "cf4": 0.99,
-        "pfc116": 0.99,
-        "pfc218": 0.95,
-        "pfc318": 0.99,
-        "sf6": 0.95,
-    },
-    "NETHERLANDS": {
-        "ch4": 0.96,
-        "n2o": 0.97,
-        "hfc32": 0.97,
-        "hfc125": 0.97,
-        "hfc134a": 0.97,
-        "hfc143a": 0.96,
-        "cf4": 0.99,
-        "pfc116": 0.99,
-        "pfc218": 0.97,
-        "pfc318": 0.99,
-        "sf6": 0.99,
-    },
-    "BELGIUM": {
-        "ch4": 0.95,
-        "n2o": 0.97,
-        "hfc32": 0.95,
-        "hfc125": 0.95,
-        "hfc134a": 0.94,
-        "hfc143a": 0.94,
-        "cf4": 0.99,
-        "pfc116": 0.99,
-        "pfc218": 0.94,
-        "pfc318": 0.99,
-        "sf6": 0.98,
-    },
-    "BENELUX": {
-        "ch4": 0.96,
-        "n2o": 0.97,
-        "hfc32": 0.98,
-        "hfc125": 0.97,
-        "hfc134a": 0.97,
-        "hfc143a": 0.97,
-        "cf4": 0.9925,
-        "pfc116": 0.99,
-        "pfc218": 0.97,
-        "pfc318": 0.99,
-        "sf6": 0.99,
-    },
-    "IRELAND": {
-        "ch4": 0.95,
-        "n2o": 0.95,
-        "hfc32": 0.95,
-        "hfc125": 0.95,
-        "hfc134a": 0.95,
-        "hfc143a": 0.95,
-        "cf4": 0.99,
-        "pfc116": 0.99,
-        "pfc218": 0.95,
-        "pfc318": 0.95,
-        "sf6": 0.95,
-    },
-    "HUNGARY": {
-        "ch4": 0.99,
-        "n2o": 0.99,
-        "hfc32": 0.97,
-        "hfc125": 0.95,
-        "hfc134a": 0.95,
-        "hfc143a": 0.95,
-        "cf4": 0.99,
-        "pfc116": 0.995,
-        "pfc218": 0.96,
-        "pfc318": 0.965,
-        "sf6": 0.98,
-    },
-    "NORWAY": {
-        "ch4": 0.95,
-        "n2o": 0.95,
-        "hfc32": 0.95,
-        "hfc125": 0.95,
-        "hfc134a": 0.95,
-        "hfc143a": 0.95,
-        "cf4": 0.95,
-        "pfc116": 0.95,
-        "pfc218": 0.95,
-        "pfc318": 0.95,
-        "sf6": 0.95,
-    },
-}
-
 
 class AnnexConfig:
     """
@@ -188,8 +54,9 @@ class AnnexConfig:
         fluxlim_percentile (dict): flux limits to use in flux map plots for every species of the selected region
         start_date_fgases (dict): start date to use for every species of the selected region
     """
+
     ### Path to results directory
-    data_dir = "/project/bmda/PARIS_jupyter/NID2025/"
+    data_dir = "/project/paris/NID2025/"
 
     ### Species
     monthly_species = ["ch4", "n2o"]
@@ -223,6 +90,7 @@ class AnnexConfig:
     ## Model definitions
     # for monthly species (list or dictionary if different between species)
     # no RHIME N2O results in NID2025
+    print("WARNING: Excluding RHIME from N2O country fluxes!")
     models_monthly_species = {
         "default": [
             "InTEM_longrun",
@@ -299,6 +167,7 @@ class AnnexConfig:
 
     ### Settings for spatial maps (list or dictionary if different between species)
     # no RHIME N2O results in NID2025
+    print("WARNING: Excluding RHIME from N2O spatial maps!")
     models_spatial_maps = {
         "default": ["InTEM", "ELRIS", "RHIME"],
         "n2o": ["InTEM", "ELRIS"],
@@ -336,11 +205,10 @@ class AnnexConfig:
         ### Settings for country fluxes
         self.kwargs_country_flux_general["plot_regions"] = region
         self.kwargs_country_flux_general["inventory_years"] = inventory_years
-        
-        ### Settings for spatial maps
-        self.fluxlim_percentile = fluxlim_percentiles.get(region, dict())
 
         self.start_date_fgases = start_date_fgases[region]
+
+        ### Settings for spatial maps
         self.kwargs_maps_general["region"] = region
         self.kwargs_maps_general["add_markers"] = point_markers[region]
 
