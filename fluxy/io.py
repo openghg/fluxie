@@ -126,13 +126,9 @@ def read_config_files(
     # List of files to be read
     files = itertools.chain(*(configs_dir.glob(f"*{ext}") for ext in read_func.keys()))
 
-    # Read json files
+    # Read config files
     data_dict = {}
     for file in files:
-        if file.suffix not in read_func:
-            raise ValueError(
-                f"Unsupported config file extension: {file.suffix} in file {file.name}"
-            )
         data = read_func[file.suffix](file)
         filename = file.stem
         data_dict[filename] = data
