@@ -99,16 +99,16 @@ def read_config_files(
     configs_dir: os.PathLike | None = None,
 ) -> dict[str, dict]:
     """
-    Reads all configuration json files.
+    Reads all configuration files.
 
     Returns:
         data_dict (dictionary of dictionaries):
-            Dictionary with keys equal to json basename (without extension).
-            Each key points to a dictionary with the data from each json file.
+            Dictionary with keys equal to files basename (without extension).
+            Each key points to a dictionary with the data from each config file.
     """
 
     if configs_dir is None:
-        # Get location of json files
+        # Get location of config files
         parent_dir = Path(__file__).parent.parent
         configs_dir = parent_dir / "configs"
     else:
@@ -132,7 +132,7 @@ def read_config_files(
         filename = file.stem
         data_dict[filename] = data
 
-    # Join dictionaries from regions_info.json
+    # Join dictionaries from regions_info config
     regions_info = data_dict.get("regions_info", {})
     if "regions" in regions_info.keys():
         if "country_codes" not in regions_info.keys():
@@ -163,8 +163,8 @@ def get_filename(
         file_pattern (str):
             String that should be added at the end of the filename.
         config_data (dict of dict):
-            Dictionary with settings read from json file.
-            Use json filenames as keys.
+            Dictionary with settings read from config file.
+            Use config filenames as keys.
         data_dir (str):
             Path to top data directory.
 
@@ -238,8 +238,8 @@ def read_model_output(
             i.e. '<inversionModel>_<optional_identifying_tags>', preceded by subdirectory if applicable,
             e.g. ['InTEM_NAME_EUROPE_EDGAR','ELRIS_NAME_EUROPE_EDGAR']
         config_data (dict of dict):
-            Dictionary with settings read from json file.
-            Use json filenames as keys.
+            Dictionary with settings read from config file.
+            Use config filenames as keys.
         period (str or list of str):
             Inversion period as specified in the model filename.
             If it is a string, the same period is considered for all models.
@@ -320,8 +320,8 @@ def read_flux_total_fgases(
         regions (list of str):
             Region names used to extract fluxes. Only these regions can then be plotted.
         config_data (dict of dict):
-            Dictionary with settings read from json file.
-            Use json filenames as keys.
+            Dictionary with settings read from config file.
+            Use config filenames as keys.
         start_date (str):
             Date to slice data from, e.g. '2021-01-01'
         end_date (str):
@@ -599,7 +599,7 @@ def edit_vars_and_attributes(
             Output file type.
             See :py:class:`fluxy.types.DataType` for options.
         regions_info (dict of str):
-            Dictionary with country and region names (read from json file).
+            Dictionary with country and region names (read from config file).
         species (str, optional):
             Gas species, e.g. 'ch4'. If None, no species attribute is added.
 
