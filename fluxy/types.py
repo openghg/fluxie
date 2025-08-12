@@ -22,7 +22,7 @@ def file_pattern(file_type: DataTypes) -> str:
     elif file_type == DataTypes.CONCENTRATION:
         return "_concentrations.nc"
     else:
-        return f"{file_type.value}.nc"
+        return f"_{file_type.value}.nc"
 
 
 DataType = DataTypes | Literal["flux", "concentration", "eddy_flux"]

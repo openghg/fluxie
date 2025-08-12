@@ -130,7 +130,9 @@ def read_config_files(
     data_dict = {}
     for file in files:
         if file.suffix not in read_func:
-            raise ValueError(f"Unsupported config file extension: {file.suffix} in file {file.name}")
+            raise ValueError(
+                f"Unsupported config file extension: {file.suffix} in file {file.name}"
+            )
         data = read_func[file.suffix](file)
         filename = file.stem
         data_dict[filename] = data
@@ -206,6 +208,9 @@ def get_filename(
 
     # Define filepath
     data_dir = Path(data_dir)
+    if not period and file_pattern.startswith("_"):
+        # Remove leading underscore if no period is given
+        file_pattern = file_pattern[1:]
     filepath = (
         data_dir
         / model_name
