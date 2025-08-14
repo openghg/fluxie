@@ -178,7 +178,7 @@ def plot_country_flux(
     species: str,
     plot_regions: list[str] | str = [],
     config_data: dict[str, dict] = {},
-    model_colors: dict[str, str] = {},
+    model_colors: dict[str, list] = {},
     model_labels: dict[str, str] = {},
     start_date: str | None = None,
     end_date: str | None = None,
@@ -187,7 +187,7 @@ def plot_country_flux(
     inventory_years: list[str] | None = None,
     inventory_filename: str = "UNFCCC_inventory",
     data_dir: str | None = None,
-    fix_y_axes: bool = False,
+    fix_y_axes: bool | list[float] = False,
     add_prior: bool = True,
     add_prior_unc: bool = False,
     set_global_leg: bool = False,
@@ -199,7 +199,7 @@ def plot_country_flux(
     plot_resample_and_original: bool = False,
     return_res: bool = False,
     rolling_mean: bool | list[bool] = False,
-) -> Figure | list:
+) -> Figure | tuple[Figure, dict[str, dict]]:
     """
     Timeseries plot of prior and posterior country fluxes, from list of
     areas in plot_regions.
@@ -219,7 +219,7 @@ def plot_country_flux(
         inventory_years: List of inventory data from different years to include. If None, only plots the most recent inventory data.
         inventory_filename: Name of inventory file: {inventory_filename}_{species}_{inventory_year}
         data_dir: Path to top data directory, used to read inventory data files.
-        fix_y_axes: If True, uses a consistent y axis for all plots.
+        fix_y_axes: If True, uses a consistent y axis for all plots. If list of 2 floats, use them as min and max of all the y axes.
         add_prior: If True, plots prior as dashed lines.
         add_prior_unc: If True, plots prior uncertainty as shaded area.
         set_global_leg: If True, plots one single legend instead of one legend per subplot.
@@ -326,9 +326,9 @@ def plot_country_flux(
 
         ds_all_region = extract_region_flux(ds_all, country, r_data)
         ds_to_plot = prepare_data_to_plot(
-            ds_all_region,
-            model_labels,
-            model_colors,
+            ds_all_region=ds_all_region,
+            model_labels=model_labels,
+            model_colors=model_colors,
             plot_separate=plot_separate,
             plot_combined=plot_combined,
             resample=resample,
@@ -446,7 +446,7 @@ def plot_country_flux(
         max_x = max_x.astype("datetime64[Y]")
         min_x = min_x.astype("datetime64[Y]")
         step = int(year_range) // 8 + 1
-        xticks = np.arange(min_x, max_x, step=np.timedelta64(step, "Y"))
+        xticks: np.ndarray = np.arange(min_x, max_x, step=np.timedelta64(step, "Y"))
         if (max_x - min_x) % np.timedelta64(step, "Y") == 0:
             xticks = np.append(xticks, max_x)
         ax.set_xticks(xticks)
@@ -489,12 +489,12 @@ def plot_country_flux(
 
     # loop through plots again to fix min/max y-axis values
     for i, country in enumerate(plot_regions):
-        if fix_y_axes == True:
-            fig.axes[i].set_ylim([0, np.nanmax(max_cf) * fac])
-        elif type(fix_y_axes) == list:
-            fig.axes[i].set_ylim(fix_y_axes)
-        elif fix_y_axes == False:
-            fig.axes[i].set_ylim([0, max_cf[i] * fac])
+        if isinstance(fix_y_axes,list):
+            fig.axes[i].set_ylim(*fix_y_axes)
+        elif fix_y_axes:
+            fig.axes[i].set_ylim(0, np.nanmax(max_cf) * fac)
+        else:
+            fig.axes[i].set_ylim(0, max_cf[i] * fac)
 
     logger.info(
         "NOTE: If all the data is not within axis limits, adjust the set_ylim parameter"
