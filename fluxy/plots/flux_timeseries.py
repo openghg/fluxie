@@ -114,18 +114,6 @@ def prepare_data_to_plot(
             }
         )
 
-    # Add combined dataset to plot
-    if any(plot_combined):
-        if all([resamp for comb, resamp in zip(plot_combined, resample) if comb]):
-            ds_combined = combine_dataset(ds_resampled, plot_combined)
-            ds_combined["combined"].attrs[
-                "model_label"
-            ] = "PARIS mean (from resampled data)"
-        else:
-            ds_combined = combine_dataset(ds_all_region, plot_combined)
-            ds_combined["combined"].attrs["model_label"] = "PARIS mean"
-        ds_to_plot.update(ds_combined)
-
     # Apply rolling mean when necessary
     for m, rm, ps, rs in zip(
         ds_all_region.keys(), rolling_mean, plot_separate, resample
@@ -135,17 +123,25 @@ def prepare_data_to_plot(
                 ds_to_plot[m + "_resample"] if rs else ds_to_plot[m]
             )
 
-    comb_and_roll = [rolling_mean[i] for i, c in enumerate(plot_combined) if c]
-    if comb_and_roll and all(
-        comb_and_roll
-    ):  # if combine exists and if all of the ds used within have rolling_mean
-        ds_to_plot["combined"] = calc_rolling_mean(ds_to_plot["combined"])
-    elif any(
-        comb_and_roll
-    ):  # if combine exists and if only some of the ds used within have rolling_mean
-        logger.warning(
-            "Inconsistency between the datasets to be combined regarding parameter 'rolling_mean'. The rolling mean is therefore not applied to the combined plot."
-        )
+    # Add combined dataset to plot
+    if any(plot_combined):
+        if all([resamp for comb, resamp in zip(plot_combined, resample) if comb]):
+            ds_to_combine = {
+                m: calc_rolling_mean(ds) if rm else ds
+                for rm, (m, ds) in zip(rolling_mean, ds_resampled.items())
+            }
+            ds_combined = combine_dataset(ds_to_combine, plot_combined)
+            ds_combined["combined"].attrs[
+                "model_label"
+            ] = "PARIS mean (from resampled data)"
+        else:
+            ds_to_combine = {
+                m: calc_rolling_mean(ds) if rm else ds
+                for rm, (m, ds) in zip(rolling_mean, ds_all_region.items())
+            }
+            ds_combined = combine_dataset(ds_to_combine, plot_combined)
+            ds_combined["combined"].attrs["model_label"] = "PARIS mean"
+        ds_to_plot.update(ds_combined)
 
     # Determine plot color and label of each dataset
     color_usage = {k: 0 for k in map_model_colors.keys()}
@@ -489,7 +485,7 @@ def plot_country_flux(
 
     # loop through plots again to fix min/max y-axis values
     for i, country in enumerate(plot_regions):
-        if isinstance(fix_y_axes,list):
+        if isinstance(fix_y_axes, list):
             fig.axes[i].set_ylim(*fix_y_axes)
         elif fix_y_axes:
             fig.axes[i].set_ylim(0, np.nanmax(max_cf) * fac)
