@@ -63,6 +63,7 @@ def plot_correlation(
 
     models = list(ds_all.keys())
 
+    # Checking consistency of input data
     if oppose == "variables":
         if not isinstance(variable, (list, tuple)) or len(variable) != 2:
             raise ValueError(
@@ -104,6 +105,7 @@ def plot_correlation(
     else:
         raise ValueError("Oppose must be either 'variables' or 'models'.")
 
+    # Accessing the variables to plot
     if oppose == "variables":
         ds = ds_all[models[0]]
         x, y = ds[variable[0]].values, ds[variable[1]].values
