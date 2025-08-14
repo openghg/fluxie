@@ -11,7 +11,6 @@ test_models = [
     "ELRIS_NAME_EUROPE_EDGAR",
 ]
 
-
 def get_loaded_models(
     file_type: Literal["concentration", "flux"],
 ) -> dict[str, xr.Dataset]:
@@ -27,7 +26,6 @@ def get_loaded_models(
         species="hfc134a",
         models=test_models,
         config_data=config_data,
-        add_sites_to_flux = True,
     )
 
     return ds_all_mf
