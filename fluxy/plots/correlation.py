@@ -70,6 +70,8 @@ def plot_correlation(
         if len(models) != 1:
             raise ValueError("When oppose='variables', only one model can be provided.")
     elif oppose == "models":
+        if isinstance(variable, (list, tuple)) and len(variable) == 1:
+            variable = variable[0]
         if not isinstance(variable, str):
             raise ValueError(
                 "When oppose='models', variable must be a single variable name."
