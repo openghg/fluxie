@@ -50,7 +50,7 @@ def prepare_data_to_plot(
     plot_separate: bool | list[bool] = True,
     plot_combined: bool | list[bool] = False,
     resample: str | list[str] | None = None,
-    rolling_mean: bool = False,
+    rolling_mean: bool | list[bool] = False,
     resample_uncert_correlation: bool = False,
     plot_resample_and_original: bool = False,
 ) -> dict[str, xr.Dataset]:
@@ -58,7 +58,7 @@ def prepare_data_to_plot(
     Create a single xarray dataset for each set of data to be plotted.
 
     Args:
-        ds_region: xarray datasets of fluxes, scaled and sliced between
+        ds_all_region: xarray datasets of fluxes, scaled and sliced between
             chosen dates.
         plot_separate: If True, plots model result as separate line. List must be of same size as models, e.g. [True, False, False].
             If a single boolean is provided, the same flag is assumed for all models.
@@ -76,8 +76,8 @@ def prepare_data_to_plot(
     """
 
     # Convert some inputs to list and check there size
-    plot_separate, plot_combined, resample = update_list_params(
-        [plot_separate, plot_combined, resample],
+    plot_separate, plot_combined, resample, rolling_mean = update_list_params(
+        [plot_separate, plot_combined, resample, rolling_mean],
         expected_size=len(ds_all_region.keys()),
     )
 
@@ -94,12 +94,14 @@ def prepare_data_to_plot(
     # Prepare list of dataset to plot
     ds_to_plot = dict()
 
+    # Add original datasets to plot
     if not any(resample) or plot_resample_and_original:
         ds_original_flux = {
             m: v for (i, (m, v)) in enumerate(ds_all_region.items()) if plot_separate[i]
         }
         ds_to_plot.update(ds_original_flux)
 
+    # Add resampled datasets to plot
     if any(resample):
         ds_resampled = resample_flux(
             ds_all_region, resample, resample_uncert_correlation
@@ -112,6 +114,7 @@ def prepare_data_to_plot(
             }
         )
 
+    # Add combined dataset to plot
     if any(plot_combined):
         if all([resamp for comb, resamp in zip(plot_combined, resample) if comb]):
             ds_combined = combine_dataset(ds_resampled, plot_combined)
@@ -123,8 +126,16 @@ def prepare_data_to_plot(
             ds_combined["combined"].attrs["model_label"] = "PARIS mean"
         ds_to_plot.update(ds_combined)
 
-    if rolling_mean:
-        ds_to_plot = {m: calc_rolling_mean(ds) for m, ds in ds_to_plot.items()}
+    # Apply rolling mean when necessary
+    for m, rm, ps, rs in zip(ds_all_region.keys(),rolling_mean,plot_separate,resample):
+        if rm&ps: 
+            ds_to_plot[m] = calc_rolling_mean(ds_to_plot[m+"_resample"] if rs 
+                                              else ds_to_plot[m])
+    comb_and_roll = [rolling_mean[i] for i,c in enumerate(plot_combined) if c] 
+    if comb_and_roll and all(comb_and_roll):
+        ds_to_plot["combined"] = calc_rolling_mean(ds_to_plot["combined"])
+    elif any(comb_and_roll):
+        logger.warning("Inconsistency between the datasets to be combined regarding parameter 'rolling_mean'. The rolling mean is therefore not applied to the combined plot.")
 
     # Determine plot color and label of each dataset
     color_usage = {k: 0 for k in map_model_colors.keys()}
