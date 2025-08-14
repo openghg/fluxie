@@ -6,6 +6,7 @@ import xarray as xr
 import numpy as np
 
 from fluxy import config
+from fluxy.operators.select import slice_site
 from fluxy.types import VariableType
 import matplotlib.pyplot as plt
 
@@ -83,11 +84,15 @@ def plot_correlation(
 
         # Check common time axis
         ds_x, ds_y = ds_all[models[0]], ds_all[models[1]]
-        is_single_platform = lambda ds: len(ds["platform"]) == 1
-        if not (is_single_platform(ds_x) and is_single_platform(ds_y)):
-            raise ValueError(
-                "When oppose='models', both datasets must have a single platform (site)."
-            )
+        if site is not None:
+            ds_x = slice_site(ds_x, site)
+            ds_y = slice_site(ds_y, site)
+        else:
+            is_single_platform = lambda ds: len(ds["platform"]) == 1
+            if not (is_single_platform(ds_x) and is_single_platform(ds_y)):
+                raise ValueError(
+                    "When oppose='models', both datasets must have a single platform (site)."
+                )
 
         make_da = lambda ds: xr.DataArray(
             ds[variable].values,
