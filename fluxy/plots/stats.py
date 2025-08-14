@@ -61,14 +61,14 @@ def plot_stats(
             ax.errorbar(
                 x - sim_obs_offset,
                 df_stats["mean_sim"],
-                yerr=df_stats["sd_sim"],
+                yerr=df_stats["std_sim"],
                 label="Simulated",
                 **fmt_kwargs,
             )
             ax.errorbar(
                 x + sim_obs_offset,
                 df_stats["mean_obs"],
-                yerr=df_stats["sd_obs"],
+                yerr=df_stats["std_obs"],
                 label="Observed",
                 **fmt_kwargs,
             )

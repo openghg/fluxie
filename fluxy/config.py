@@ -64,10 +64,10 @@ stat_labels = {
     "rmse": "RMSE",
     "bias": "Bias",
     "crmse": "Centered RMSE",
-    "sd_sim": "Simulated StDev",
-    "sd_obs": "Observed StDev",
+    "std_sim": "Simulated StDev",
+    "std_obs": "Observed StDev",
     "nrmse": "Normalised RMSE",
-    "sd_res": "Standard deviation of residuals",
+    "std_res": "Standard deviation of residuals",
     "nn": "Number of observations",
 }
 

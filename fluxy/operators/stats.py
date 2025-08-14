@@ -43,9 +43,9 @@ def stats_observed_vs_simulated(
                 * 'nrmse': root mean square error normalised by observation mean
                 * 'crmse': centered root mean square error
                 * 'bias': bias
-                * 'sd_sim'/'std_sim': standard deviation of simulation
-                * 'sd_obs'/'std_obs': standard deviation of observation (reference)
-                * 'sd_res': standard deviation of simulation - observation (residuals)
+                * 'std_sim': standard deviation of simulation
+                * 'std_obs': standard deviation of observation (reference)
+                * 'std_res': standard deviation of simulation - observation (residuals)
                 * 'nn': number of value pairs
                 * 'variable_sim': name of the simulated variable
                 * 'variable_obs': name of the observed variable
@@ -109,9 +109,7 @@ def stats_observed_vs_simulated(
                 "bias": np.mean(sim - obs),
                 "mae": np.mean(np.abs(sim - obs)),
                 "mre": np.mean(np.abs((sim - obs) / obs)),
-                "sd_sim": np.std(sim),
-                "sd_obs": np.std(obs),
-                "sd_res": np.std(sim - obs),
+                "std_res": np.std(sim - obs),
                 "nn": np.size(sim),
                 "variable_sim": sim_var,
                 "variable_obs": obs_var,
