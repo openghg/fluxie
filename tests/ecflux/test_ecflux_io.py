@@ -12,7 +12,7 @@ def test_read_ecflux(model):
     ds = read_model_output(
         data_dir=data_dir / "ecflux",
         file_type=DataTypes.EDDY_FLUX,
-        species="CO2",
+        species="co2",
         models=[model],
     )
 
