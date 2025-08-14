@@ -16,6 +16,7 @@ def plot_stats(
     variable: str = "",
     site_span: float = 0.7,
     plot_type: StatsPlotTypes = StatsPlotTypes.MEAN_AND_STD,
+    config_data: dict[str, dict] = {},
 ):
     """Plot statistics for each site and model.
 
@@ -31,6 +32,7 @@ def plot_stats(
             Should be between 0.1 and 1.0.
         plot_type: Type of the plot to create.
             One of :py:class:`fluxy.operators.stats.StatsPlotTypes`.
+        config_data: Configuration data, used to get species information.
     """
 
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -114,7 +116,9 @@ def plot_stats(
         case _:
             raise ValueError(f"Unknown plot type: {plot_type}")
 
-    ax.set_title(f"Statistics for {species}" if species else "Statistics")
+    species_info = config_data.get("species_info", {}).get(species, {})
+    specie_print = species_info.get("species_print", species)
+    ax.set_title(f"Statistics for {specie_print}" if specie_print else "Statistics")
     ax.set_ylabel(variable)
     ax.legend()
 
