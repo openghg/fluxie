@@ -257,7 +257,7 @@ def read_model_output(
     if isinstance(period, str | None):
         period = [period] * len(models)
 
-    if period is not None and len(period) != len(models):
+    elif len(period) != len(models):
         raise ValueError(
             f"period must be None, a string or a list of the same length as models."
         )
