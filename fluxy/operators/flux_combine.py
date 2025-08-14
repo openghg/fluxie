@@ -1,6 +1,9 @@
 import xarray as xr
+import logging
 
 from fluxy.operators.flux_align_dataset import align_time
+
+logger = logging.getLogger(__name__)
 
 
 def combine_dataset(
@@ -57,21 +60,25 @@ def combine_map_dataset(
     ds_list = list(ds_all.values())
 
     ds_combined = xr.concat(ds_list, dim="model", combine_attrs="override")
+    kwargs_combine = {"dim": "model", "keep_attrs": True}
 
     for var in ds_combined.data_vars:
         v = ds_combined[var]
         dims = set(v.dims)
 
         if "percentile" in dims:
-            p0 = v.isel(percentile=0).min(dim="model", keep_attrs=True)
-            p1 = v.isel(percentile=1).max(dim="model", keep_attrs=True)
+            p0 = v.isel(percentile=0).min(**kwargs_combine)
+            p1 = v.isel(percentile=1).max(**kwargs_combine)
             ds_combined[var] = xr.concat([p0, p1], dim="percentile", combine_attrs="override")
 
         elif var == "sites" and dims == {"time", "platform"}:
-            ds_combined[var] = v.any(dim="model", keep_attrs=True).astype(int)
+            ds_combined[var] = v.any(**kwargs_combine).astype(int)
 
         elif "time" in dims:
-            ds_combined[var] = v.mean(dim="model", keep_attrs=True)
+            ds_combined[var] = v.mean(**kwargs_combine)
+
+        else:
+            logger.info(f"{var} has no time dimension and will be skipped when combining datasets over time.")
 
     ds_dict = {"combined": ds_combined}
 
