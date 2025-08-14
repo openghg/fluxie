@@ -16,6 +16,8 @@ def test_read_ecflux(model):
         models=[model],
     )
 
+    assert model in ds, f"Model {model} not found in the loaded datasets"
+
 
 def test_sectorial_config():
     config_dict = read_config_files(data_dir / "ecflux")
