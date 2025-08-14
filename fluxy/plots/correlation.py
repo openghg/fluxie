@@ -31,6 +31,7 @@ def plot_correlation(
     scatter_size: float = 1.5,
     lims: LimsTuple | tuple[LimsTuple, LimsTuple] | None = None,
     figsize: tuple[float, float] = (10, 10),
+    cmap: str = "YlOrRd",
 ):
     """Plot correlation between two timeseries.
 
@@ -59,6 +60,7 @@ def plot_correlation(
             If two tuples are provided, they are used for x and y axes respectively.
         figsize (tuple[float, float], optional):
             Size of the figure. Defaults to (10, 10).
+        cmap (str, optional): Colormap to use for the density plot. Defaults to "YlOrRd".
 
     Returns:
         matplotlib.figure.Figure: The figure object containing the plot.
@@ -167,7 +169,7 @@ def plot_correlation(
         # Create a meshgrid for the edges
         X, Y = np.meshgrid(xedges[:-1], yedges[:-1])
         # Plot the density as a contour plot
-        ax.contourf(X, Y, hist.T, levels=20, cmap="viridis", alpha=0.7)
+        ax.contourf(X, Y, hist.T, levels=20, cmap=cmap, alpha=0.7)
     else:
         raise ValueError("Style must be either 'scatter' or 'density'.")
     ax.set_xlim(x_lims)
