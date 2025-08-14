@@ -128,13 +128,14 @@ def prepare_data_to_plot(
 
     # Apply rolling mean when necessary
     for m, rm, ps, rs in zip(ds_all_region.keys(),rolling_mean,plot_separate,resample):
-        if rm&ps: 
+        if rm & ps: # if rolling_mean and plot_separate 
             ds_to_plot[m] = calc_rolling_mean(ds_to_plot[m+"_resample"] if rs 
                                               else ds_to_plot[m])
+            
     comb_and_roll = [rolling_mean[i] for i,c in enumerate(plot_combined) if c] 
-    if comb_and_roll and all(comb_and_roll):
+    if comb_and_roll and all(comb_and_roll): # if combine exists and if all of the ds used within have rolling_mean
         ds_to_plot["combined"] = calc_rolling_mean(ds_to_plot["combined"])
-    elif any(comb_and_roll):
+    elif any(comb_and_roll): # if combine exists and if only some of the ds used within have rolling_mean
         logger.warning("Inconsistency between the datasets to be combined regarding parameter 'rolling_mean'. The rolling mean is therefore not applied to the combined plot.")
 
     # Determine plot color and label of each dataset
@@ -188,7 +189,7 @@ def plot_country_flux(
     resample_uncert_correlation: bool = False,
     plot_resample_and_original: bool = False,
     return_res: bool = False,
-    rolling_mean: bool = False,
+    rolling_mean: bool | list[bool] = False,
 ) -> Figure | list:
     """
     Timeseries plot of prior and posterior country fluxes, from list of
