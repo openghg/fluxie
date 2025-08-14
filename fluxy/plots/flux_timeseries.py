@@ -127,16 +127,25 @@ def prepare_data_to_plot(
         ds_to_plot.update(ds_combined)
 
     # Apply rolling mean when necessary
-    for m, rm, ps, rs in zip(ds_all_region.keys(),rolling_mean,plot_separate,resample):
-        if rm & ps: # if rolling_mean and plot_separate 
-            ds_to_plot[m] = calc_rolling_mean(ds_to_plot[m+"_resample"] if rs 
-                                              else ds_to_plot[m])
-            
-    comb_and_roll = [rolling_mean[i] for i,c in enumerate(plot_combined) if c] 
-    if comb_and_roll and all(comb_and_roll): # if combine exists and if all of the ds used within have rolling_mean
+    for m, rm, ps, rs in zip(
+        ds_all_region.keys(), rolling_mean, plot_separate, resample
+    ):
+        if rm & ps:  # if rolling_mean and plot_separate
+            ds_to_plot[m] = calc_rolling_mean(
+                ds_to_plot[m + "_resample"] if rs else ds_to_plot[m]
+            )
+
+    comb_and_roll = [rolling_mean[i] for i, c in enumerate(plot_combined) if c]
+    if comb_and_roll and all(
+        comb_and_roll
+    ):  # if combine exists and if all of the ds used within have rolling_mean
         ds_to_plot["combined"] = calc_rolling_mean(ds_to_plot["combined"])
-    elif any(comb_and_roll): # if combine exists and if only some of the ds used within have rolling_mean
-        logger.warning("Inconsistency between the datasets to be combined regarding parameter 'rolling_mean'. The rolling mean is therefore not applied to the combined plot.")
+    elif any(
+        comb_and_roll
+    ):  # if combine exists and if only some of the ds used within have rolling_mean
+        logger.warning(
+            "Inconsistency between the datasets to be combined regarding parameter 'rolling_mean'. The rolling mean is therefore not applied to the combined plot."
+        )
 
     # Determine plot color and label of each dataset
     color_usage = {k: 0 for k in map_model_colors.keys()}
