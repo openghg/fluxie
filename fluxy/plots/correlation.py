@@ -20,6 +20,7 @@ def plot_correlation(
     variable: str | tuple[str, str],
     species: str | None = None,
     site: str | None = None,
+    models_to_plot: list[str] | None = None,
     oppose: Literal["variables", "models"] = "models",
     style: Literal["scatter", "density"] = "scatter",
     model_colors: dict[str, str] | None = None,
@@ -40,6 +41,8 @@ def plot_correlation(
             2 variables must be provided as a tuple.
         species (str, optional): Species to plot. Defaults to None.
         site (str, optional): Site to plot. Defaults to None.
+        models_to_plot (list[str], optional): Models to plot. Defaults to None.
+            If not given, will plot all models.
         oppose (Literal['variables', 'models'], optional): Whether to oppose variables or models. Defaults to 'models'.
         style (Literal['scatter', 'density'], optional): Plotting style.
             If 'scatter', a scatter (points) plot is created.
@@ -61,7 +64,7 @@ def plot_correlation(
         matplotlib.figure.Figure: The figure object containing the plot.
     """
 
-    models = list(ds_all.keys())
+    models = models_to_plot or list(ds_all.keys())
 
     # Checking consistency of input data
     if oppose == "variables":
