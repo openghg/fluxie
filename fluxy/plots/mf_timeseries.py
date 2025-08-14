@@ -147,18 +147,16 @@ def plot_timeseries(
         )
 
     # Create figure
+    ncols = 2 if histogram_type and histogram_type != "none" else 1
     fig, ax = plt.subplots(
         nrows,
-        2,
+        ncols,
         figsize=(15, nrows * 3),
-        gridspec_kw={"width_ratios": [0.8, 0.2]},
+        gridspec_kw={"width_ratios": [0.8, 0.2]} if ncols == 2 else {},
         constrained_layout=True,
         sharey="row" if histogram_type == "violin" else False,
+        squeeze=False,
     )
-
-    # Expand axis dimension if 1D
-    if nrows == 1:
-        ax = np.expand_dims(ax, axis=0)
 
     logger.info(
         f"Plotting {len(models)} models with {len(vars_to_plot)} variables in {plot_type} mode."
@@ -270,7 +268,7 @@ def plot_timeseries(
                     )
 
         # Plot histogram
-        if histogram_type and histogram_type != "none":
+        if ncols == 2:
             plot_histogram(
                 ax[iax, 1],
                 ds_plot,
@@ -348,8 +346,9 @@ def plot_timeseries(
     for iax, ax0 in enumerate(ax[:, 0]):
         ax0.set_ylim(y_lim)
 
-        method = "set_ylim" if histogram_type == "violin" else "set_xlim"
-        getattr(ax[iax, 1], method)(y_lim)
+        if ncols == 2:
+            method = "set_ylim" if histogram_type == "violin" else "set_xlim"
+            getattr(ax[iax, 1], method)(y_lim)
 
     logger.info(
         "If annotations in the histograms are not displaying correctly, adjust annotate_coords."
