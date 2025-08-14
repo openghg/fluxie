@@ -40,6 +40,9 @@ def plot_correlation(
         species (str, optional): Species to plot. Defaults to None.
         site (str, optional): Site to plot. Defaults to None.
         oppose (Literal['variables', 'models'], optional): Whether to oppose variables or models. Defaults to 'models'.
+        style (Literal['scatter', 'density'], optional): Plotting style.
+            If 'scatter', a scatter (points) plot is created.
+            If 'density', a density (colorscale) plot is created.
         model_colors (dict, optional): Dictionary of model colors. Defaults to None.
         model_labels (dict, optional): Dictionary of model labels. Defaults to {}.
         config_data (dict, optional): Configuration data. Defaults to {}.
