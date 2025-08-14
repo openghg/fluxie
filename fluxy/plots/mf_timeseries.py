@@ -558,8 +558,11 @@ def plot_histogram(
             )
 
     # Write number of obs
-    if plot_type == "separate":
-        n_obs = ds["time"].count().values
+    if plot_type == "separate" and len(hist_to_plot) == 1:
+        var = list(vars_to_plot)[0]
+        values = ds[var].values
+        mask_not_nan = ~np.isnan(values)
+        n_obs = np.sum(mask_not_nan)
         if presentation_mode:
             pos_xy = [0.57, 1.05]
         else:
