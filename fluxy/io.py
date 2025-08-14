@@ -882,7 +882,7 @@ def add_sites_var(
             mf_keys = np.array(mf_keys, dtype=[('year', 'i4'), ('month', 'i4')])
 
         # Mark time steps in flux where observations from this site exist
-        sites.sel(platform=site)[:] = np.isin(flux_keys, mf_keys).astype(int)
+        sites.loc[dict(platform=site)] = np.isin(flux_keys, mf_keys).astype(int)
 
     # Add the 'sites' variable to the flux dataset
     ds_flux['sites'] = sites
