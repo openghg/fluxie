@@ -37,7 +37,6 @@ def plot_correlation(
         variable (str | tuple):
             Variable(s) to plot. If `oppose='variables'`,
             2 variables must be provided as a tuple.
-        include (VariableType): Variables to include/oppose in the plot.
         species (str, optional): Species to plot. Defaults to None.
         site (str, optional): Site to plot. Defaults to None.
         oppose (Literal['variables', 'models'], optional): Whether to oppose variables or models. Defaults to 'models'.
