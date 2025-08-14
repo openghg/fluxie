@@ -31,6 +31,8 @@ jobs:
     - name: Test with pytest
       run: |
         pytest
-    - name: Test the example notebook
+    - name: Test the example notebooks
       run: |
-        jupyter nbconvert --to notebook --execute --inplace ./scripts/example_basics.ipynb
+        NBEXEC="jupyter nbconvert --to notebook --execute --inplace"
+        $NBEXEC ./scripts/example_basics.ipynb
+        $NBEXEC ./scripts/example_ecflux.ipynb
