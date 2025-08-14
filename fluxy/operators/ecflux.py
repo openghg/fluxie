@@ -6,7 +6,7 @@ import xarray as xr
 
 @apply_to_dict_or_single
 def filter_ecflux(
-    ds: xr.Dataset,
+    ds: xr.Dataset | DsAll,
     min_footprint_ratio: float = 0.8,
     flux_range: tuple[float | None, float | None] = (None, None),
     qa_flag: int | list[int] = 1,
@@ -18,10 +18,10 @@ def filter_ecflux(
 
     Parameters
     ----------
-    ds : xr.Dataset or DsAll
+    ds :
         Dataset or dictionary of datasets containing eddy covariance flux data.
         The decorator will handle applying the function to each dataset in the dictionary.
-    min_footprint_ratio : float, optional
+    min_footprint_ratio :
         Minimum footprint ratio to consider a flux valid, by default 0.8
     flux_range :
         Minimum and maximum flux values to filter out.
