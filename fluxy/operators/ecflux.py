@@ -12,7 +12,6 @@ def filter_ecflux(
     qa_flag: int | list[int] = 1,
     qa_blh: list[int] = [0],
     min_friction_velocity: float = 0.2,
-    verbose: bool = True,
 ):
     """Filter the eddy covariance data.
 
@@ -103,9 +102,8 @@ def filter_ecflux(
 
     ds_out = ds.where(mask, drop=True)
 
-    print_func = print if verbose else logger.info
-    print_func(
-        f"Filtered  {len(ds_out['index'])} / {len(ds['index'])} eddy covariance fluxes..."
+    logger.info(
+        f"Filtered  {len(ds_out['index'])} / {len(ds['index'])} eddy covariance fluxes"
     )
 
     return ds_out
