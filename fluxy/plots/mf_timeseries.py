@@ -68,7 +68,7 @@ def plot_timeseries(
     y_lim: None | tuple[float | None, float | None] = None,
     n_bins: int = 30,
     time_freq_min: FrequencyType = None,
-    histogram_type: Literal["hist", "violin", "none"] = "hist",
+    histogram_type: Literal["hist", "violin", "none"] | None = "hist",
     hist_kwargs: dict[str, any] = {},
 ):
     """
@@ -270,7 +270,7 @@ def plot_timeseries(
                     )
 
         # Plot histogram
-        if histogram_type != "none":
+        if histogram_type and histogram_type != "none":
             plot_histogram(
                 ax[iax, 1],
                 ds_plot,
