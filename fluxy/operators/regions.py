@@ -88,8 +88,8 @@ def extract_region_flux(
                 ds_region["sigma_prior"] = np.sqrt(
                     (
                         (
-                            ds["flux_total_prior_country"]
-                            - ds["percentile_flux_total_prior_country"].isel(
+                            ds_region["flux_total_prior_country"]
+                            - ds_region["percentile_flux_total_prior_country"].isel(
                                 percentile=min_percentile_index
                             )
                         )
@@ -98,7 +98,7 @@ def extract_region_flux(
                 )
             elif "stdev_flux_total_prior_country" in ds.variables:
                 ds_region["sigma_prior"] = np.sqrt(
-                    ((ds["stdev_flux_total_prior_country"]) ** 2).sum(dim="country")
+                    ((ds_region["stdev_flux_total_prior_country"]) ** 2).sum(dim="country")
                 )
             else:
                 ds_region["sigma_prior"] = xr.zeros_like(
