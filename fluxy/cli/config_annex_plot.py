@@ -285,7 +285,7 @@ class AnnexConfig:
         plot_separate=[True, False, False, False],
         plot_combined=[False, True, True, True],
         resample=None,
-        rolling_mean=True,
+        rolling_mean=[False, True, True, True],
     )
 
     # Define separately for N2O because there are no RHIME N2O results in NID2025
