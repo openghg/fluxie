@@ -349,8 +349,9 @@ def get_active_sites_coordinates(
 
         else:
             logger.warning(
-                "No 'sites' found. "
-                "Please ensure 'add_sites_to_flux' is True or that a 'fallback_sites' list is provided."
+                "No 'sites' found in dataset. "
+                "Please ensure 'add_sites_to_flux' is True in 'read_model_output' "
+                "or that a 'fallback_sites' list is provided in plot_flux_map."
             )
             return {}
         

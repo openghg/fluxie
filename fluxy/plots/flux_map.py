@@ -164,16 +164,9 @@ def plot_flux_map(
 
     for col, (model, ds) in enumerate(ds_dict.items()):
         lon, lat = ds.longitude, ds.latitude
-        try:
-            sites_info = (
-                get_active_sites_coordinates(ds, config_data, fallback_sites) if add_sites else ""
-            )
-        except Exception as e:
-            raise RuntimeError(
-                "Failed to get active sites coordinates. "
-                "Check that `add_sites_to_flux` is True in `read_model_output` "
-                "or that a `fallback_sites` list is provided in `plot_flux_map`."
-            ) from e
+        sites_info = (
+            get_active_sites_coordinates(ds, config_data, fallback_sites) if add_sites else ""
+        )
 
         model_axes = ax if n_cols == 1 else (ax[:, col] if n_rows > 1 else ax[col])
 
