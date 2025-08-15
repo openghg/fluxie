@@ -121,8 +121,8 @@ def get_filename(
     Get complete path to the output file.
 
     Args:
-        models (str):
-            Keys specifying model name, e.g. 'elris'
+        model (str):
+            Key specifying model name, e.g. 'elris'
         species (str):
             Gas species, e.g. 'ch4'.
         period (str):
@@ -134,6 +134,9 @@ def get_filename(
             Use json filenames as keys.
         data_dir (str):
             Path to top data directory.
+        read_standard_run (bool):
+            If True, constructs filename from models_info['standard_run'][<model>].
+            If key "<model>" don't exist, constructs filename from items in "default".
 
     Returns:
         filepath (Path):
