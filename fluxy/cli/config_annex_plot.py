@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__name__)
+
 # Cities to plot
 point_markers = {
     "UK": ["london", "edinburgh", "cardiff", "belfast"],
@@ -56,7 +59,7 @@ class AnnexConfig:
     """
 
     ### Path to results directory
-    data_dir = "/project/paris/NID2025/"
+    data_dir = "/project/bmda/PARIS_jupyter/NID2025/"
 
     ### Species
     monthly_species = ["ch4", "n2o"]
@@ -90,7 +93,7 @@ class AnnexConfig:
     ## Model definitions
     # for monthly species (list or dictionary if different between species)
     # no RHIME N2O results in NID2025
-    print("WARNING: Excluding RHIME from N2O country fluxes!")
+    logger.warning("Excluding RHIME from N2O country fluxes!")
     models_monthly_species = {
         "default": [
             "InTEM_longrun",
@@ -167,7 +170,7 @@ class AnnexConfig:
 
     ### Settings for spatial maps (list or dictionary if different between species)
     # no RHIME N2O results in NID2025
-    print("WARNING: Excluding RHIME from N2O spatial maps!")
+    logger.warning("Excluding RHIME from N2O spatial maps!")
     models_spatial_maps = {
         "default": ["InTEM", "ELRIS", "RHIME"],
         "n2o": ["InTEM", "ELRIS"],
