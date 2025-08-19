@@ -49,6 +49,7 @@ def stats_observed_vs_simulated(
                 * 'nn': number of value pairs
                 * 'variable_sim': name of the simulated variable
                 * 'variable_obs': name of the observed variable
+                * 'unit': unit of the variables
                 * '{min|max}_{sim|obs}': minimum/maximum value of the simulated/observed variable
                 * 'mean_{sim|obs}': mean value of the simulated/observed variable
                 * 'median_{sim|obs}': median of the simulated/observed variable
@@ -97,6 +98,14 @@ def stats_observed_vs_simulated(
                 logger.warning(f"Coordinates do not match for {site} in {model}.")
                 continue
 
+            unit_obs = obs.attrs.get("units", "-")
+            unit_sim = sim.attrs.get("units", "-")
+            if unit_obs != unit_sim:
+                logger.warning(
+                    f"Units do not match for {site} in {model}: {unit_obs} vs {unit_sim}."
+                )
+            unit = unit_obs
+
             obs, sim = obs.values, sim.values
 
             # calculate stats
@@ -113,6 +122,7 @@ def stats_observed_vs_simulated(
                 "nn": np.size(sim),
                 "variable_sim": sim_var,
                 "variable_obs": obs_var,
+                "unit": unit,
             }
             stats_site |= {
                 f"q{i:02d}_{simobs}": np.quantile(

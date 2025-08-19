@@ -1,4 +1,5 @@
 from enum import Enum
+import logging
 import numpy as np
 
 import matplotlib.pyplot as plt
@@ -8,6 +9,9 @@ import pandas as pd
 class StatsPlotTypes(Enum):
     MEAN_AND_STD = "mean_and_std"
     BOX_PLOT = "box_plot"
+
+
+logger = logging.getLogger(__name__)
 
 
 def plot_stats(
@@ -118,8 +122,11 @@ def plot_stats(
 
     species_info = config_data.get("species_info", {}).get(species, {})
     specie_print = species_info.get("species_print", species)
+    units = df_stats["unit"].unique()
+    if len(units) != 1:
+        logger.warning(f"Multiple units found: {units}")
     ax.set_title(f"Statistics for {specie_print}" if specie_print else "Statistics")
-    ax.set_ylabel(variable)
+    ax.set_ylabel(f"variable [{units[0]}]")
     ax.legend()
 
     ax.set_xticks(x + sim_obs_offset / 2, np.repeat(unique_models, len(unique_sites)))
