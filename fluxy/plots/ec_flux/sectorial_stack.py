@@ -99,12 +99,6 @@ def plot_stacked(
         "marker": "x",
         "label": "Measurements",
     }
-    # ax.errorbar(
-    #    df_eddy_plot.index,
-    #    df_eddy_plot["mean"].values.reshape(-1),
-    #    yerr=df_eddy_plot["std"].values.reshape(-1),
-    #    **ef_kwargs,
-    # )
 
     if "sector_ordering" in sectors_config:
         sector_order = [
