@@ -15,7 +15,7 @@ dss = read_model_output(
     test_models,
 )
 
-config = read_config_files(data_dir / "ecflux")
+config = read_config_files()
 
 
 def test_stats():

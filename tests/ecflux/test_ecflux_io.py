@@ -20,6 +20,6 @@ def test_read_ecflux(model):
 
 
 def test_sectorial_config():
-    config_dict = read_config_files(data_dir / "ecflux")
+    config_dict = read_config_files()
 
     assert "sectors" in config_dict, "Sectors should be defined in the config"
