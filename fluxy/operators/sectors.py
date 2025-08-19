@@ -57,8 +57,20 @@ def group_sectors(
     ds: xr.Dataset,
     sector_groups: dict[str, list[str]] | None = None,
     sectors_config: dict[str, str] | None = None,
-):
+) -> xr.Dataset:
+    """Group sectors in the dataset based on the provided sector groups.
 
+    One of the two must be provided:
+    `sector_groups` or `sectors_config`.
+
+    Args:
+        ds: The xarray dataset to group.
+        sector_groups: A dictionary mapping sector names to their group names.
+        sectors_config: A dictionary containing sector configuration.
+
+    Returns:
+        The grouped xarray dataset.
+    """
     if "sector" not in ds.dims:
         return ds
 
