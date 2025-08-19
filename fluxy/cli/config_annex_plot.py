@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__name__)
+
 # Cities to plot
 point_markers = {
     "UK": ["london", "edinburgh", "cardiff", "belfast"],
@@ -163,10 +166,9 @@ fluxlim_percentiles = {
     },
 }
 
-
 class AnnexConfig:
     """
-    Class containing all the parameters necessray to make the plots and tables for the annex report.
+    Class containing all the parameters necessary to make the plots and tables for the annex report.
 
     Attributes:
         data_dir (str): directory where the data are stored
@@ -188,8 +190,9 @@ class AnnexConfig:
         fluxlim_percentile (dict): flux limits to use in flux map plots for every species of the selected region
         start_date_fgases (dict): start date to use for every species of the selected region
     """
+
     ### Path to results directory
-    data_dir = "/project/paris/inverse_modelling/"
+    data_dir = "/project/paris/NID2025/"
 
     ### Species
     monthly_species = ["ch4", "n2o"]
@@ -214,18 +217,33 @@ class AnnexConfig:
 
     combined_species = ["all_hfc", "all_pfc"]
 
+    ### Start/end date
+    start_date_monthly_species = "2008-01-01"
+    start_date_paris_window = "2018-01-01"
+    end_date = "2024-01-01"
+
     ### Settings for country fluxes
     ## Model definitions
-    # for monthly species
-    models_monthly_species = [
-        "InTEM_longrun",
-        "InTEM",
-        "ELRIS",
-        "RHIME",
-    ]  # NOTE: only options are basic model names w/ and w/o longrun
+    # for monthly species (list or dictionary if different between species)
+    # no RHIME N2O results in NID2025
+    logger.warning("Excluding RHIME from N2O country fluxes!")
+    models_monthly_species = {
+        "default": [
+            "InTEM_longrun",
+            "InTEM",
+            "ELRIS",
+            "RHIME",
+        ],
+        "n2o": [
+            "InTEM_longrun",
+            "InTEM",
+            "ELRIS",
+        ],
+    }
 
-    # for annual species
+    # for annual species (list or dictionary if different between species)
     models_yearly_species = [
+        "InTEM_longrun",
         "InTEM",
         "ELRIS",
         "RHIME",
@@ -251,31 +269,45 @@ class AnnexConfig:
 
     # for monthly species on extended time window
     kwargs_country_flux_monthly_species = dict(
-        plot_separate=[True, False, False, False],
-        plot_combined=[False, True, True, True],
-        resample=[None, "year", "year", "year"],
+        resample="year",
         resample_uncert_correlation=False,
         rolling_mean=False,
     )
 
     # for monthly species on PARIS time window
     kwargs_country_flux_monthly_species_special = dict(
-        plot_separate=[True, False, False],
-        plot_combined=[True, True, True],
         resample=None,
         rolling_mean=False,
     )
 
     # for yearly species
     kwargs_country_flux_yearly_species = dict(
-        plot_separate=[True, False, False],
-        plot_combined=[True, True, True],
+        plot_separate=[True, False, False, False],
+        plot_combined=[False, True, True, True],
         resample=None,
-        rolling_mean=True,
+        rolling_mean=[False, True, True, True],
     )
 
-    ### Settings for spatial maps
-    models_spatial_maps = ["InTEM", "ELRIS", "RHIME"]
+    # Define separately for N2O because there are no RHIME N2O results in NID2025
+    # For NID2026, the default settings can be moved to kwargs_country_flux_general
+    kwargs_country_flux_monthly_species_per_species = {
+        "default": dict(
+            plot_separate=[True, False, False, False],
+            plot_combined=[False, True, True, True],
+        ),
+        "n2o": dict(
+            plot_separate=[True, False, False],
+            plot_combined=[False, True, True],
+        ),
+    }
+
+    ### Settings for spatial maps (list or dictionary if different between species)
+    # no RHIME N2O results in NID2025
+    logger.warning("Excluding RHIME from N2O spatial maps!")
+    models_spatial_maps = {
+        "default": ["InTEM", "ELRIS", "RHIME"],
+        "n2o": ["InTEM", "ELRIS"],
+    }
     flux_units_print = "kg km-2 yr-1"
 
     ## Kwargs for flux_map functions
@@ -300,7 +332,6 @@ class AnnexConfig:
         cmap="coolwarm",
         c_border="dimgrey",
         chop_by="season",
-        dt=[[12, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]],
     )
 
     def __init__(self, region, inventory_years):
@@ -310,10 +341,15 @@ class AnnexConfig:
         ### Settings for country fluxes
         self.kwargs_country_flux_general["plot_regions"] = region
         self.kwargs_country_flux_general["inventory_years"] = inventory_years
-        
+
         ### Settings for spatial maps
         self.fluxlim_percentile = fluxlim_percentiles.get(region, dict())
 
         self.start_date_fgases = start_date_fgases[region]
+
+        ### Settings for spatial maps
         self.kwargs_maps_general["region"] = region
         self.kwargs_maps_general["add_markers"] = point_markers[region]
+
+        if not hasattr(self, "kwargs_country_flux_monthly_species_per_species"):
+            self.kwargs_country_flux_monthly_species_per_species = {}

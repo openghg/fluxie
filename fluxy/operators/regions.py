@@ -84,28 +84,28 @@ def extract_region_flux(
                     dim="country", keep_attrs=True
                 )
 
-            if "percentile_flux_total_prior_country" in ds.variables:
+            if "percentile_flux_total_prior_country" in ds_region.variables:
                 ds_region["sigma_prior"] = np.sqrt(
                     (
                         (
-                            ds["flux_total_prior_country"]
-                            - ds["percentile_flux_total_prior_country"].isel(
+                            ds_region["flux_total_prior_country"]
+                            - ds_region["percentile_flux_total_prior_country"].isel(
                                 percentile=min_percentile_index
                             )
                         )
                         ** 2
                     ).sum(dim="country")
                 )
-            elif "stdev_flux_total_prior_country" in ds.variables:
+            elif "stdev_flux_total_prior_country" in ds_region.variables:
                 ds_region["sigma_prior"] = np.sqrt(
-                    ((ds["stdev_flux_total_prior_country"]) ** 2).sum(dim="country")
+                    ((ds_region["stdev_flux_total_prior_country"]) ** 2).sum(dim="country")
                 )
             else:
                 ds_region["sigma_prior"] = xr.zeros_like(
                     ds_region["flux_total_prior_country"]
                 ).sum(dim="country")
 
-            if "covariance_flux_total_posterior_country" in ds.variables:
+            if "covariance_flux_total_posterior_country" in ds_region.variables:
                 ds_region["sigma_posterior"] = np.sqrt(
                     ds_region["covariance_flux_total_posterior_country"]
                     .sum(dim="country")
