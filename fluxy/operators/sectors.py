@@ -34,7 +34,7 @@ def sectors_group_from_config_or_dict(
     ):
         # Modify sector groups for specific species
         additional_groups = sectors_config["sector_groups_per_species"][species]
-        # Sometimes the values are the keys of the other dict, so we need to update
+        # If the values are the keys of the other dict, so we need to update
         for key, values in additional_groups.items():
             if key not in sector_groups:
                 sector_groups[key] = []
