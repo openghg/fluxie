@@ -33,6 +33,7 @@ sectors_groups:
     - GNFR_H
     - GNFR_I
 
+# Some species have have sectors that should be grouped to other sector families
 sector_groups_per_species:
   CH4:
     Others:
