@@ -8,11 +8,18 @@ def sectors_group_from_config_or_dict(
     sector_groups: dict[str, list[str]] | None = None,
     sectors_config: dict[str, str] | None = None,
     species: str | None = None,
-):
-    """
-    Decorator to group sectors based on a configuration or a dictionary.
-    If `sector_groups` is provided, it will be used to group the sectors.
-    If `sectors_config` is provided, it will be used to map old sectors to new ones.
+) -> dict[str, list[str]]:
+    """Group sectors based on a configuration or a dictionary.
+
+    Args:
+        sector_groups: A dictionary mapping sector names to their group names.
+            If provided, it will be used to group the sectors.
+        sectors_config: A dictionary containing sector configuration.
+            If provided, it will be used to map old sectors to new ones.
+        species: The species name to modify sector groups for.
+
+    Returns:
+        A dictionary mapping group names to their sub-sectors.
     """
     if sector_groups is None and sectors_config is None:
         raise ValueError("Either 'sector_groups' or 'sectors_config' must be provided.")
