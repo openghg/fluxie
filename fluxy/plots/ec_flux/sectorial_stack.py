@@ -31,7 +31,6 @@ def plot_stacked(
     substance: str = " ",
     area: bool = False,
     y_lims: tuple[float, float] = (None, None),
-    model: str = "ecflux",
     plot_observation_counts: bool = False,
     sectors_config: dict[str, str] = {},
 ):
@@ -48,7 +47,6 @@ def plot_stacked(
         substance: Name of the substance to plot.
         area: Whether to plot the data as an area chart.
         y_lims: Limits for the y-axis.
-        model: Name of the model.
         plot_observation_counts: Whether to plot observation counts.
         sectors_config: Configuration for the sectors.
 
@@ -99,7 +97,7 @@ def plot_stacked(
     ef_kwargs = {
         "color": "black",
         "marker": "x",
-        "label": f"{model} flux\nmeasurements",
+        "label": "Measurements",
     }
     # ax.errorbar(
     #    df_eddy_plot.index,
@@ -173,7 +171,7 @@ def plot_stacked(
 
     ax.set_ylabel(f"{substance} Flux " " [ µmol m$^{-2}$ s$^{-1}$ ]")
     season_str = season if season else ""
-    ax.set_title(f"Footprint and {model} fluxes {season_str} ")
+    ax.set_title(f"Footprint and measured fluxes {season_str} ")
     # ax.set_xlabel()
     x_labels = {
         "%H": "Hour of the day (UTC)",
