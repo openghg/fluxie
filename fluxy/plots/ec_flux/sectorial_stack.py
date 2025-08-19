@@ -28,7 +28,7 @@ def plot_stacked(
     variable_observed: str = "ecflux_observed",
     season: str = None,
     group_format: str = "%H",
-    substance: str = " ",
+    species: str = " ",
     area: bool = False,
     y_lims: tuple[float, float] = (None, None),
     plot_observation_counts: bool = False,
@@ -44,7 +44,7 @@ def plot_stacked(
             Observed variable is expected to not have sectorial dimension.
         season: Season to filter the data.
         group_format: Format for grouping the data.
-        substance: Name of the substance to plot.
+        species: Name of the species to plot.
         area: Whether to plot the data as an area chart.
         y_lims: Limits for the y-axis.
         plot_observation_counts: Whether to plot observation counts.
@@ -169,7 +169,7 @@ def plot_stacked(
 
     ax.set_ylim(y_lims)
 
-    ax.set_ylabel(f"{substance} Flux " " [ µmol m$^{-2}$ s$^{-1}$ ]")
+    ax.set_ylabel(f"{species} Flux " " [ µmol m$^{-2}$ s$^{-1}$ ]")
     season_str = season if season else ""
     ax.set_title(f"Footprint and measured fluxes {season_str} ")
     # ax.set_xlabel()
