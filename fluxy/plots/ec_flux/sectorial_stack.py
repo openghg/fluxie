@@ -32,9 +32,27 @@ def plot_stacked(
     area: bool = False,
     y_lims: tuple[float, float] = (None, None),
     model: str = "ecflux",
-    plot_footprint_counts: bool = False,
+    plot_observation_counts: bool = False,
     sectors_config: dict[str, str] = {},
 ):
+    """Plot stacked bar chart for sectorial fluxes.
+
+    Args:
+        ds: xarray Dataset containing the data to plot.
+        variable_simulated: Name of the simulated variable.
+            Simulated variable is expected to have a sectorial dimension.
+        variable_observed: Name of the observed variable.
+            Observed variable is expected to not have sectorial dimension.
+        season: Season to filter the data.
+        group_format: Format for grouping the data.
+        substance: Name of the substance to plot.
+        area: Whether to plot the data as an area chart.
+        y_lims: Limits for the y-axis.
+        model: Name of the model.
+        plot_observation_counts: Whether to plot observation counts.
+        sectors_config: Configuration for the sectors.
+
+    """
 
     # Check that the variable is on the sector and index dimensions
 
@@ -134,7 +152,7 @@ def plot_stacked(
             **kwargs,
         )
 
-        if plot_footprint_counts:
+        if plot_observation_counts:
             ax.text(
                 row.name,
                 row["mean"].value - offset,
