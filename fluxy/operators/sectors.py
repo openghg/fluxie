@@ -32,7 +32,7 @@ def sectors_group_from_config_or_dict(
         "sector_groups_per_species" in sectors_config
         and species in sectors_config["sector_groups_per_species"]
     ):
-        # Provide additional sector groups for specific species
+        # Modify sector groups for specific species
         additional_groups = sectors_config["sector_groups_per_species"][species]
         # Sometimes the values are the keys of the other dict, so we need to update
         for key, values in additional_groups.items():
