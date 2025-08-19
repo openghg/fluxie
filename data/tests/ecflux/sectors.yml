@@ -34,22 +34,22 @@ sectors_groups:
     - GNFR_I
 
 sector_groups_per_species:
-  CH4:
+  ch4:
     Others:
       - Shipping
       - Fugitives
-  CO:
+  co:
     Others:
       - Shipping
       - Fugitives
       - Respiration
-  N2O:
+  n2o:
     Others:
       - Agriculture
-  NOx:
+  nox:
     Others:
       - Respiration
-  CO2:
+  co2:
     Others:
       - Livestock
       - Agriculture
