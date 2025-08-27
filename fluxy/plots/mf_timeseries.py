@@ -569,7 +569,7 @@ def plot_histogram(
             pos_xy = [0.65, 1.05]
 
         ax.annotate(
-            "$N_{obs}$: " + str(n_obs), xy=pos_xy, xycoords="axes fraction", color="k"
+            "$N$: " + str(n_obs), xy=pos_xy, xycoords="axes fraction", color="k"
         )
 
     # Set histogram x-axis label
