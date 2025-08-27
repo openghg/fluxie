@@ -346,7 +346,7 @@ def plot_timeseries(
     for iax, ax0 in enumerate(ax[:, 0]):
         ax0.set_ylim(y_lim)
 
-        if ncols == 2:
+        if ncols == 2 and (diff_include is None or len(diff_include) == 0):
             method = "set_ylim" if histogram_type == "violin" else "set_xlim"
             getattr(ax[iax, 1], method)(y_lim)
 
