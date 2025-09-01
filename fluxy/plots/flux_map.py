@@ -42,6 +42,7 @@ def plot_flux_map(
     zoom_degree: float = 1,
     only: Literal["posterior", "prior", "diff"] | None = None,
     fallback_sites: list[str] | None = None,
+    sector: str = 'total'
 ) -> plt.Figure:
     """
     Plot posterior and prior fluxes and the difference between them for all models, time averaged.
@@ -90,11 +91,17 @@ def plot_flux_map(
         fallback_sites (list[str] | None):
             A list of site names to use as a fallback if 'sites' is not found in the datasets.
             If None, the first available 'sites' in the datasets will be used as fallback.
-
+        sector (str):
+            Emissions sector to plot. Default 'total'.
     Returns:
         fig (figure):
             Three maps, for each model, of the flux prior, the flux posterior and the difference between both.
     """
+
+    # Check for inversion_grid and sector option
+    if plot_inversion_grid_flux == True and sector != 'total':
+        raise ValueError(f"Currently, you cannot plot sectors other than 'total' using the inversion_grid variable. "+
+                         "Set plot_inversion_grid_flux to False to plot other sectors.")
 
     # Determine geographical boundaries
     map_bounds = get_map_bounds(
@@ -105,11 +112,11 @@ def plot_flux_map(
     )
 
     # Define variables
-    var_prior = "flux_total_prior"
+    var_prior = f"flux_{sector}_prior"
     var_posterior = (
-        "flux_total_posterior_inversion_grid"
+        f"flux_{sector}_posterior_inversion_grid"
         if plot_inversion_grid_flux
-        else "flux_total_posterior"
+        else f"flux_{sector}_posterior"
     )
     var_diff = (
         "posterior_prior_diff_inversion_grid"
@@ -157,7 +164,7 @@ def plot_flux_map(
         for row, var in enumerate(vars_list):
             ax_i = model_axes if n_rows == 1 else model_axes[row]
 
-            ds_plot = define_var_plot(ds, var)
+            ds_plot = define_var_plot(ds, var, sector)
             ds_plot = get_flux_mean(ds_plot, season)
 
             # Determine plot settings
@@ -242,6 +249,7 @@ def plot_flux_map_model_comparison(
     set_fluxlim_percentile: float = None,
     zoom_degree: float = 1,
     fallback_sites: list[str] | None = None,
+    sector: str = 'total'
 ) -> plt.Figure:
     """
     Plot a given flux variable for two models and the difference between them.
@@ -294,10 +302,17 @@ def plot_flux_map_model_comparison(
         fallback_sites (list[str] | None):
             A list of site names to use as a fallback if 'sites' is not found in the datasets.
             If None, the first available 'sites' in the datasets will be used as fallback.
+        sector (str):
+            Emissions sector to plot. Default 'total'.
     Returns:
         fig (figure):
             Three maps of a target flux variable of the first and second models and the diffence between both.
     """
+
+    # Check for inversion_grid and sector option
+    if "inversion_grid" in var and sector != 'total':
+        raise ValueError(f"Currently, you cannot plot sectors other than 'total' using the inversion_grid variable. "+
+                         "Choose a non inversion_grid variable to plot other sectors.")
 
     # Models check
     model_names = list(ds_all.keys())
@@ -319,7 +334,7 @@ def plot_flux_map_model_comparison(
     )
 
     # Prepare datasets
-    ds_dict = {m: define_var_plot(ds, var) for m, ds in ds_all.items() if m in models}
+    ds_dict = {m: define_var_plot(ds, var, sector) for m, ds in ds_all.items() if m in models}
     ds_dict = align_map_data(ds_dict)
     ds_dict["diff"] = ds_dict[models[1]] - ds_dict[models[0]]
     # Copy attributes from models[0]
@@ -436,6 +451,7 @@ def plot_flux_map_over_time(
     set_fluxlim_percentile: float = None,
     zoom_degree: float = 1,
     fallback_sites: list[str] | None = None,
+    sector: str = 'total'
 ) -> plt.Figure:
     """
     Plot a given flux variable averaged over specific time intervals, for all models or the model mean.
@@ -487,11 +503,19 @@ def plot_flux_map_over_time(
         fallback_sites (list[str] | None):
             A list of site names to use as a fallback if 'sites' is not found in the datasets.
             If None, the first available 'sites' in the datasets will be used as fallback.
+        sector (str):
+            Emissions sector to plot. Default 'total'.
     Returns:
         fig (figure):
             A plot of spatial flux of the variable specified in var
             averaged over the number of time steps specified in dt.
     """
+    
+    # Check for inversion_grid and sector option
+    if 'inversion_grid' in var and sector != 'total':
+        raise ValueError(f"Currently, you cannot plot sectors other than 'total' using the inversion_grid variable. "+
+                         "Choose a non inversion_grid variable to plot other sectors.")
+    
     # Determine geographical boundaries
     map_bounds = get_map_bounds(
         region,
@@ -501,7 +525,7 @@ def plot_flux_map_over_time(
     )
 
     # Prepare datasets and average over given periods
-    ds_dict = {m: define_var_plot(ds, var) for m, ds in ds_all.items()}
+    ds_dict = {m: define_var_plot(ds, var, sector) for m, ds in ds_all.items()}
 
     if plot_combined:
         ds_dict = align_map_data(ds_dict)
@@ -611,7 +635,8 @@ def plot_flux_map_over_time(
 
     # Add colorbar
     cbar_label = print_cbar_label(
-        ds_plot, species_info, var, format=["variable", "species", "units"]
+        ds_plot, species_info, var, sector=sector,
+        format=["variable", "species", "sector", "units"]
     )
     add_colorbar(
         fig,

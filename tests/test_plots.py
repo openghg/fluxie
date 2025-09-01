@@ -11,15 +11,15 @@ from fluxy.plots.flux_map import (
     plot_flux_map_model_comparison,
     plot_flux_map_over_time,
 )
-from fluxy.plots.flux_timeseries import plot_country_flux
+from fluxy.plots.flux_timeseries import plot_country_flux,plot_country_sector_flux_bar
 from fluxy.plots.mf_timeseries import (
     plot_mf_timeseries,
-    plot_sites_timeseries,
+    plot_sites_timeseries
 )
 from fluxy.operators.mf import compute_mf_difference
 from fluxy.plots.mf_stats import plot_stats_mf, plot_taylor_diagram
-
-data_dir = Path(fluxy.__path__[0]).parent / "data" / "tests"
+from fluxy.test_utils import data_dir
+from fluxy.operators.flux_scale_by_sector_proportions import scale_by_sector_proportions
 
 config_data = read_config_files()
 annotate_coords = set_print_settings()
@@ -124,7 +124,7 @@ def test_flux_timeseries():
     plot_resample_and_original = False
     annex_mode = False
     rolling_mean = False
-    
+
     fig = plot_country_flux(
         ds_all_flux_scaled,
         species,
@@ -263,7 +263,7 @@ def test_plot_taylor_diagram():
         stats=stats,
         model_colors=model_colors,
         model_labels=model_labels,
-        include=taylor_stats2include
+        include=taylor_stats2include,
     )
 
 
@@ -335,4 +335,63 @@ def test_plot_flux_map_over_time():
         add_markers=add_markers,
         set_fluxlim=set_fluxlim,
         set_fluxlim_percentile=set_fluxlim_percentile,
+    )
+
+
+def test_plot_country_sector_flux_bar():
+
+    species = "ch4"  # options for individual species, or 'all_hfc' or 'all_pfc'
+    models = [
+        "InTEM_NAME_EUROPE_EDGAR_old_format",
+        "ELRIS_NAME_EUROPE_EDGAR_old_format",
+        "RHIME_NAME_EUROPE_EDGAR_old_format",
+    ]
+    regions = ["GERMANY", "UK", "BENELUX", "NW_EU2"]
+    period = "monthly"  # use to override standard inversion periods, must be a list the same length as models, e.g. ['monthly','yearly']
+    country_flux_units_print = "Gg yr-1"
+    start_date = "2022-01-01"  # inclusive. Option to set as list of dates, e.g. ['2018-01-01','2019-01-01'] which is required for total fgases if one model is missing obs for a year
+    end_date = "2024-01-01"  # not inclusive. Option to set as list of dates, e.g. ['2023-01-01','2022-01-01'] which is required for total fgases if one model is missing obs for a year
+    get_labels_from_file = False
+    sector_file = "EUROPE_EDGAR"
+    create_region_sector_totals = True  # if True, uses country_fraction variable to sum spatial sector fluxes to region sector fluxes
+
+    ds_all_flux_scaled = {}
+
+    ds_all_flux = read_model_output(
+        data_dir, "flux", species, models, config_data, period=period
+    )
+
+    for m in models:
+        ds_all_flux_scaled[m] = slice_flux(
+            {m: ds_all_flux[m]},
+            config_data,
+            start_date,
+            end_date,
+            species=species,
+            country_flux_units_print=country_flux_units_print,
+        )[m]
+
+    ds_all_flux_scaled = scale_by_sector_proportions(
+        data_dir=data_dir,
+        ds_all=ds_all_flux_scaled,
+        species=species,
+        country_flux_units_print=country_flux_units_print,
+        config_data=config_data,
+        regions=regions,
+        sector_file=sector_file,
+        create_region_sector_totals=create_region_sector_totals,
+        cell_area_test_file=True
+    )
+
+    fig = plot_country_sector_flux_bar(
+        ds_all_flux_scaled,
+        species,
+        regions[1],
+        config_data,
+        model_colors,
+        model_labels,
+        plot_inventory_or_prior="prior",
+        inventory_years=None,
+        inventory_filename="UNFCCC_inventory",
+        sectors=["agriculture", "waste", "energy", "industry"],
     )

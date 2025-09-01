@@ -12,6 +12,11 @@ variables:
 		flux_total_inventory_country:_FillValue = NaN ;
 		flux_total_inventory_country:longname = "UNFCCC inventory emissions estimate from <year>" ;
 		flux_total_inventory_country:units = "kg/yr" ;
+    // sector-level data can also be included using similar variables, e.g.:
+    double flux_agriculture_inventory_country(time, country) ;            // mandatory
+		flux_agriculture_inventory_country:_FillValue = NaN ;
+		flux_agriculture_inventory_country:longname = "UNFCCC inventory agriculture emissions estimate from <year>" ;
+		flux_agriculture_inventory_country:units = "kg/yr" ;
 	double stdev_flux_total_inventory_country(time, country) ;      // mandatory
 		stdev_flux_total_inventory_country:_FillValue = NaN ;
 		stdev_flux_total_inventory_country:longname = "Standard deviation UNFCCC inventory emissions estimate from <year>, extrapolated back from current inventory uncertainty" ;
