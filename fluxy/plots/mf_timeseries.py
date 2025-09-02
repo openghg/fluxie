@@ -313,12 +313,14 @@ def plot_mf_timeseries(
 
 
 def plot_sites_timeseries(
-    ds_all,
-    var,
-    start_date,
-    end_date,
-    model_colors,
-    model_labels,
+    ds_all: dict[str, xr.Dataset],
+    var: str,
+    species: str,
+    start_date: str,
+    end_date: str,
+    model_colors: dict[str, str],
+    model_labels: dict[str, str],
+    config_data: dict[str, dict],
     margin: float = 0.1,
     separate_by_height: bool = False,
 ):
@@ -326,10 +328,12 @@ def plot_sites_timeseries(
     Plot the timeseries of data available for each site and model.
 
     Args:
-        ds_all :
+        ds_all (dictionary xarray Datasets):
             Dictionnary of xarray returned by read_output_model.
-        var :
+        var (str):
             Var for which the timeseries should be plotted
+        species (str):
+            Gas species, e.g. 'ch4'.
         start_date (str):
             Date to plot data from, e.g. '2021-01-01'
         end_date (str):
@@ -339,6 +343,11 @@ def plot_sites_timeseries(
             Models and corresponding colours used to plot the model.
         model_labels (dict of dict):
             Dictionary with model lables.
+        config_data (dict of dict):
+            Dictionary with settings read from json file.
+            Use json filenames as keys.
+        margin (float):
+            Horizontal space between datapoints from different models. 
         separate_by_height (bool):
             If True, separates obs by intake height and by site.
     """
@@ -419,7 +428,15 @@ def plot_sites_timeseries(
 
     ax.set_xlim(-0.5, len(site_list) - 0.5)
 
-    plt.legend(loc="lower right", markerscale=4, bbox_to_anchor=(1, 1))
+    plt.legend(loc="upper left", markerscale=4, bbox_to_anchor=(1, 1))
+
+    species_info = config_data.get("species_info",{}).get(species,{})
+    fig.suptitle(
+        (
+            f'Timestamps with {species_info.get("species_print","")} assimilated observations between'
+            f"\n{start_date} and {end_date}"
+        )
+    )
 
     return fig
 
