@@ -105,6 +105,11 @@
         "gwp": 23500,
         "molar_mass": 146.06
     },
+    "nf3": {
+        "species_print": "NF$_3$",
+        "gwp": 16100,
+        "molar_mass": 71
+    },
     "n2o": {
         "species_print": "N$_2$O",
         "gwp": 265,
