@@ -135,8 +135,9 @@ def get_filename(
         data_dir (str):
             Path to top data directory.
         read_standard_run (bool):
-            If True, constructs filename from models_info['standard_run'][<model>].
-            If key "<model>" don't exist, constructs filename from items in "default".
+            If True, constructs filename from models_info['standard_run'][<model_run_keys>].
+            If entry "<model_run_keys>" don't exist, constructs filename from items in "<run_keys>".
+            If entry "<run_keys>" don't exist, constructs filename from items in "default".
 
     Returns:
         filepath (Path):
@@ -147,7 +148,8 @@ def get_filename(
 
     # Get model name
     sub_dir, model_name = os.path.split(model)
-    base_model_name = model_name.split("_")[0]
+    base_model_name, *run_keys = model_name.split("_")
+    run_keys = "_".join(run_keys)
 
     # Get model name from standard_run dictionary
     if read_standard_run:
@@ -157,15 +159,18 @@ def get_filename(
             all_standard_run_dict := models_info.get("standard_run")
         ):
             standard_run_dict = all_standard_run_dict.get(model_name, {})
+            standard_run_dict_key = all_standard_run_dict.get(run_keys, {})
             standard_run_dict_default = all_standard_run_dict.get("default", {})
 
             if species in standard_run_dict:
                 model_name = f"{base_model_name}_{standard_run_dict[species]}"
+            elif species in standard_run_dict_key:
+                model_name = f"{base_model_name}_{standard_run_dict_key[species]}"
             elif species in standard_run_dict_default:
                 model_name = f"{base_model_name}_{standard_run_dict_default[species]}"
             else:
                 raise ValueError(
-                    f"No standard run provided for {species}, neither in '{model_name}' nor in 'default'. Please update variable 'standard_run' in models_info.json."
+                    f"No standard run provided for {species}, neither in '{model_name}', '{run_keys}' nor in 'default'. Please update variable 'standard_run' in models_info.json."
                 )
         else:
             raise ValueError(
