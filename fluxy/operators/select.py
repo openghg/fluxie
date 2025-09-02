@@ -76,7 +76,7 @@ def slice_flux(
             logger.warning(
                 f"No {m} fluxes found between {start_date[im]} and {end_date[im]}."
             )
-            ds_all.pop(m)
+            ds_all_sliced.pop(m)
             continue
 
         # Scale fluxes
