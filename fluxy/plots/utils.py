@@ -505,7 +505,7 @@ def get_map_bounds(
     else:
         if not isinstance(region, str):
             raise ValueError(
-                "Invalid input: 'region' must be a string or a list of numbers."
+                "Invalid input: 'region' must be a string or a list = [min_lon, max_lon, min_lat, max_lat]."
             )
 
     return map_bounds
