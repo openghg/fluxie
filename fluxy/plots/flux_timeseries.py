@@ -53,7 +53,6 @@ def prepare_data_to_plot(
     rolling_mean: bool | list[bool] = False,
     resample_uncert_correlation: bool = False,
     plot_resample_and_original: bool = False,
-    annex_mode: bool = False,
 ) -> dict[str, xr.Dataset]:
     """
     Create a single xarray dataset for each set of data to be plotted.
@@ -71,7 +70,6 @@ def prepare_data_to_plot(
         resample_uncert_correlation: If True, calculates the resampled uncertainty as the mean from all averaged periods.
             If False, recalculates uncertainty assuming no correlation between all averaged periods, by taking the square root of the summed variances, divided by the number of averaging periods.
         plot_resample_and_original: If True, plots both the resampled data and the data as its original frequency. If False, only plots the resampled data.
-        annex_mode: If True, removes "(resampled)" from label (more concise labels for NID Annexes).
         
     Returns:
         ds_to_plot : dictionnary of datasets to plot
@@ -162,7 +160,7 @@ def prepare_data_to_plot(
             model_color = map_model_colors[key_mc][nb % len(map_model_colors[key_mc])]
             color_usage[key_mc] = color_usage[key_mc] + 1
 
-        if ("_resample" in m) and (not annex_mode):
+        if ("_resample" in m) and plot_resample_and_original:
             include_label += " (resampled)"
 
         ds_to_plot[m].attrs["model_label"] = include_label
