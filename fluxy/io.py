@@ -256,6 +256,7 @@ def read_model_output(
     models: list[str],
     config_data: dict[str, dict] = {},
     period: str | list[str | None] | None = None,
+    add_sites_to_flux: bool = False,
     read_standard_run: bool = False,
 ) -> dict[str, xr.Dataset]:
     """
@@ -277,6 +278,9 @@ def read_model_output(
             Inversion period as specified in the model filename.
             If it is a string, the same period is considered for all models.
             If it is a list, one value per model must be specified, e.g. ['monthly','yearly']
+        add_sites_to_flux (bool):
+            If true, add sites variable to flux dataset.
+
     Returns:
         ds_all (dictionary of datasets):
             xarray dataset read directly from each model's mole fraction netCDF.
@@ -309,7 +313,7 @@ def read_model_output(
             read_standard_run,
         )
 
-        # Check if files exists
+        # Check if file exists
         if not filepath.is_file():
             logger.warning(f"Cannot find {file_type.value} file: {filepath}.")
             continue
@@ -328,6 +332,10 @@ def read_model_output(
             config_data.get("site_info", {}),
             species=species,
         )
+
+        # Add sites variable to flux dataset
+        if add_sites_to_flux and file_type == "flux":
+            ds_all[m] = add_sites_var(ds_all[m], filepath, m, period[i], config_data)
 
     return ds_all
 
@@ -723,9 +731,9 @@ def edit_vars_and_attributes(
                         "time",
                     ],
                     coords={"time": ds_bel.time},
-                    attrs=ds['country'].attrs,
+                    attrs=ds["country"].attrs,
                 )
-                
+
                 ds_lux["country_merge"] = xr.DataArray(
                     data=[
                         "LUXEMBOURG",
@@ -735,16 +743,16 @@ def edit_vars_and_attributes(
                         "time",
                     ],
                     coords={"time": ds_lux.time},
-                    attrs=ds['country'].attrs,
+                    attrs=ds["country"].attrs,
                 )
-                
+
                 ds_bellux = xr.concat(
                     [ds_bel, ds_lux], pd.Index(["BEL", "LUX"], name="country")
                 )
 
                 ds = xr.merge([ds, ds_bellux])
                 ds = ds.drop_vars("country_merge")
-                
+
         elif m0 == "rhime":
             ds["country"] = [
                 regions_info["country_codes"].get(x, x) for x in ds["country"].values
@@ -886,3 +894,100 @@ def edit_vars_and_attributes(
                 "units", "umol m-2 s-1"
             )
     return ds
+
+
+def add_sites_var(
+    ds_flux: xr.Dataset,
+    filepath_flux: Path,
+    model: str,
+    frequency: str,
+    config_data: dict[str, dict],
+) -> xr.Dataset:
+    """
+    Add a 'sites' variable to a flux dataset indicating which sites are used for each flux timestamp,
+    using the corresponding concentration dataset.
+
+    Args:
+        ds_flux (xarray dataset):
+            xarray dataset with model data.
+        filepath_flux (Path):
+            Path to the flux NetCDF file.
+        model (str):
+            Model name tag corresponding to ds_flux.
+        frequency (str):
+            Frequency of the inversion results present in the dataset.
+        config_data (dict of str):
+            Dictionary with settings read from json file.
+
+    Returns:
+        ds_flux (xarray dataset):
+            xarray dataset with a new 'sites' variable added if the concentration
+            file exists. If not, returns the original ds_flux unchanged.
+    """
+
+    # Derive the path for the concentration file
+    filepath_conc = filepath_flux.with_name(filepath_flux.stem + "_concentrations.nc")
+
+    # Check if file exists
+    if not filepath_conc.is_file():
+        logger.warning(
+            f"Cannot find {filepath_conc} to add sites to {model} flux dataset."
+        )
+        return ds_flux
+
+    # Open the concentration dataset
+    ds_conc = xr.open_dataset(filepath_conc)
+
+    # Fix variables and attributes
+    ds_conc = edit_vars_and_attributes(
+        ds_conc,
+        model,
+        frequency,
+        "concentration",
+        config_data.get("regions_info", {}),
+        config_data.get("site_info", {}),
+    )
+
+    # Get list of observation platforms (sites) and flux time points
+    sites_list = ds_conc.platform.values.tolist()
+    flux_times = ds_flux.time
+
+    # Initialize empty binary array [time, site] to store presence (1) or absence (0) of data
+    sites = xr.DataArray(
+        data=np.zeros((len(flux_times), len(sites_list)), dtype=int),
+        coords={"time": flux_times, "platform": sites_list},
+        dims=["time", "platform"],
+        attrs={
+            "units": "1",
+            "long_name": "Site availability (1 if observations present during this period)",
+        },
+    )
+
+    if frequency == "yearly":
+        flux_keys = flux_times.dt.year.values
+    elif frequency == "monthly":
+        flux_keys = list(zip(flux_times.dt.year.values, flux_times.dt.month.values))
+        flux_keys = np.array(flux_keys, dtype=[("year", "i4"), ("month", "i4")])
+
+    for site in sites_list:
+        site_index = get_site_index(ds_conc, site)
+        mask = (ds_conc["number_of_identifier"] == site_index) & ds_conc[
+            "mf_observed"
+        ].notnull()
+        valid_times = ds_conc["time"].where(mask, drop=True)
+
+        if frequency == "yearly":
+            mf_keys = valid_times.dt.year.values
+        elif frequency == "monthly":
+            mf_keys = list(zip(valid_times.dt.year.values, valid_times.dt.month.values))
+            mf_keys = np.array(mf_keys, dtype=[("year", "i4"), ("month", "i4")])
+
+        # Mark time steps in flux where observations from this site exist
+        sites.loc[dict(platform=site)] = np.isin(flux_keys, mf_keys).astype(int)
+
+    # Add the 'sites' variable to the flux dataset
+    ds_flux["sites"] = sites
+
+    logger.info(f"Adding sites from {filepath_conc} to {model} flux dataset.")
+
+    return ds_flux

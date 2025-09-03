@@ -93,7 +93,11 @@ def align_map_data(
     ds_all: dict[xr.Dataset | xr.DataArray],
 ) -> dict[xr.Dataset | xr.DataArray]:
     """
-    Prepare flux datasets/dataarray for flux maps by filtering variables, removing unused dimensions, and aligning time and spatial coordinates.
+    Prepare flux datasets for flux maps by:
+      - filtering variables to only those with expected spatial or platform dimensions,
+      - keeping only variables common to all datasets,
+      - removing unused dimensions,
+      - aligning time and spatial coordinates.
 
     Args:
         ds_all (dict[xr.Dataset | xr.DataArray]):
@@ -101,28 +105,38 @@ def align_map_data(
 
     Returns:
         dict[xr.Dataset | xr.DataArray]:
-            Aligned Datasets/DataArrays, after removing non-geographic variables.
+            Aligned Datasets/DataArrays, with consistent variables and coordinates.
     """
 
+    # Step 1: Filter variables based on dimension criteria
     for key, ds in ds_all.items():
         if isinstance(ds, xr.DataArray):
             continue
         # Applied only if Dataset and not DataArray
-        # Step 1: Remove variables without 'time', 'latitude' and 'longitude'
         ds = ds.drop_vars(
             [
                 var
                 for var in ds.data_vars
-                if not {"time", "latitude", "longitude"}.issubset(ds[var].dims)
+                if not (
+                    {"time", "latitude", "longitude"}.issubset(ds[var].dims)
+                    or {"time", "platform"}.issubset(ds[var].dims)
+                )
             ]
         )
-        # Step 2: Remove unused coordinates (dimensions that are no longer used)
+        # Remove unused coordinates
         unused_dims = set(ds.dims) - set(
             dim for var_i in ds.data_vars for dim in ds[var_i].dims
         )
         ds_all[key] = ds.drop_dims(unused_dims)
 
-    # Align dataset coordinates
+    # Step 2: Keep only variables common to all datasets
+    var_sets = [set(ds.data_vars) for ds in ds_all.values()]
+    common_vars = set.intersection(*var_sets)
+
+    for key in ds_all:
+        ds_all[key] = ds_all[key][list(common_vars)]
+
+    # Step 3: Align dataset coordinates
     models = list(ds_all.keys())
     ds_list = list(ds_all.values())
     ds_list = align_time(ds_list)

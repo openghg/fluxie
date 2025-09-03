@@ -8,7 +8,7 @@ version = "v2.0"
 dependencies = [
   "matplotlib",
   "xarray>=2023.08",
-  "netcdf4",
+  "h5netcdf",
   "geopandas",
   "PyYAML",
 ]
