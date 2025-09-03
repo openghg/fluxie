@@ -1,0 +1,88 @@
+sectors_groups:
+  Vegetation:
+    - GEE
+    - RE
+  Public Power:
+    - GNFR_A
+  Industry:
+    - GNFR_B
+  Heating:
+    - GNFR_C
+  Road Transport:
+    - GNFR_F-cars
+    - GNFR_F-heavy_duty
+    - GNFR_F-light_duty
+    - GNFR_F-two_wheels
+    - GNFR_F
+  Waste:
+    - GNFR_J
+  Respiration:
+    - GNFR_O-home
+    - GNFR_O-work
+  Livestock:
+    - GNFR_K
+  Fugitives:
+    - GNFR_D
+  Agriculture:
+    - GNFR_L
+  Shipping:
+    - GNFR_G
+  Others:
+    - GNFR_E
+    - GNFR_R
+    - GNFR_H
+    - GNFR_I
+
+# Some species have have sectors that should be grouped to other sector families
+sector_groups_per_species:
+  CH4:
+    Others:
+      - Shipping
+      - Fugitives
+  CO:
+    Others:
+      - Shipping
+      - Fugitives
+      - Respiration
+  N2O:
+    Others:
+      - Agriculture
+  NOx:
+    Others:
+      - Respiration
+  CO2:
+    Others:
+      - Livestock
+      - Agriculture
+      - Waste
+      - Shipping
+      - Fugitives
+
+# The order of the sectors in the plot
+sector_ordering:
+  - Vegetation
+  - Heating
+  - Public Power
+  - Industry
+  - Road Transport
+  - Waste
+  - Respiration
+  - Livestock
+  - Agriculture
+  - Fugitives
+  - Shipping
+  - Others
+
+colors_of_sector:
+  Vegetation: "#8EBA42"
+  Public Power: "#348ABD"
+  Industry: "#988ED5"
+  Heating: "#777777"
+  Road Transport: "#FBC15E"
+  Waste: "#377eb8"
+  Respiration: "#FFB5B8"
+  Others: "#E24A33"
+  Livestock: "#FBC15E"
+  Agriculture: "#ff7f00"
+  Fugitives: "#a65628"
+  Shipping: "#FFB5B8"

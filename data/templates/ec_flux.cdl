@@ -1,0 +1,91 @@
+// 
+// placeholders to be replaced in long_name attributes and variable names
+// <species>: 
+species name in lower case no separators (e.g., ch4, n2o, hfc13a)
+// 
+netcdf EDDY_HARDAU_<species>_eddy_flux {
+
+dimensions:
+	index = 155 ; // mandatory
+	platform = 1 ; // mandatory
+	sector = 21 ; // optional
+
+coordinates:
+    int64 time(index) ; 
+        time:units = "minutes since 2022-07-12T12:30:00" ; 
+        time:calendar = "proleptic_gregorian" ; 
+    int index(index) ;  // mandatory
+	string sector(sector) ;
+	string platform(platform) ; 
+  	int number_of_identifier(index) ;
+	
+variables: 
+	double ecflux_measured(index) ; // mandatory
+      	ecflux_measured:_FillValue = NaN ; 
+		ecflux_measured:units = "umol m-2 s-1" ; 
+        ecflux_measured:coordinates = "number_of_identifier time" ; 
+	double qa_flag(index) ; 		// optional  
+		qa_flag:_FillValue = NaN ; 
+   		qa_flag:units = "-" ; 
+        qa_flag:coordinates = "number_of_identifier time" ; 
+    double stdev_ecflux_observed(index) ; // optional  
+		stdev_ecflux_observed:_FillValue = NaN ; 
+        stdev_ecflux_observed:units = "umol m-2 s-1" ; 
+        stdev_ecflux_observed:coordinates = "number_of_identifier time" ; 
+  double ecflux_observed_storage(index) ; // optional  
+   		ecflux_observed_storage:_FillValue = NaN ; 
+        ecflux_observed_storage:units = "umol m-2 s-1" ; 
+        ecflux_observed_storage:coordinates = "number_of_identifier time" ; 
+	double md_observed(index) ;  	// optional  
+    	md_observed:_FillValue = NaN ; 
+    	md_observed:units = "mol m-3" ; 
+   		md_observed:coordinates = "number_of_identifier time" ; 
+    double mf_observed(index) ; 	// optional  
+    	mf_observed:_FillValue = NaN ; 
+    	mf_observed:units = "umol mol-1" ; 
+		mf_observed:coordinates = "number_of_identifier time" ; 
+    double mr_observed(index) ; 	// optional  
+    	mr_observed:_FillValue = NaN ; 
+    	mr_observed:units = "umol mol-1" ; 
+		mr_observed:coordinates = "number_of_identifier time" ; 
+    double wind_speed(index) ; 		// optional  
+        wind_speed:_FillValue = NaN ; 
+		wind_speed:units = "m s-1" ; 
+ 		wind_speed:coordinates = "number_of_identifier time" ; 
+    double wind_direction(index) ; 	// optional  
+       	wind_direction:_FillValue = NaN ; 
+ 		wind_direction:units = "degrees" ; 
+		wind_direction:coordinates = "number_of_identifier time" ; 
+	double air_temperature(index) ; // optional  
+      	air_temperature:_FillValue = NaN ; 
+		air_temperature:units = "K" ; 
+		air_temperature:coordinates = "number_of_identifier time" ; 
+	double air_pressure(index) ; 	// optional  
+        air_pressure:_FillValue = NaN ; 
+   		air_pressure:units = "Pa" ; 
+  		air_pressure:coordinates = "number_of_identifier time" ; 
+   	double pitch(index) ; 			// optional  
+        pitch:_FillValue = NaN ; 
+     	pitch:units = "degrees" ; 
+    	pitch:coordinates = "number_of_identifier time" ; 
+    double ecflux_sectorial_prior(sector, index) ; // optional  
+        ecflux_sectorial_prior:_FillValue = NaN ; 
+        ecflux_sectorial_prior:coordinates = "number_of_identifier time" ; 
+ 	float footprint_coverage_fraction(index) ; 
+		footprint_coverage_fraction:_FillValue = NaNf ; 
+		footprint_coverage_fraction:coordinates = "number_of_identifier time" ; 
+	float qa_blh(index) ; 
+        qa_blh:_FillValue = NaNf ; 
+   		qa_blh:coordinates = "number_of_identifier time" ; 
+
+	// global attributes: 
+		:title = "Eddy covariance fluxes from Hardau" ; 
+		:institution = "Empa" ; 
+		:source = "Eddypro V2" ; 
+		:comment = "Data processed with Eddypro V2 for fluxy plots" ; 
+		:creation_date = "2025-07-21T16:55:02.806705" ; 
+		:fluxy_substance = "<species>" ; 
+		:fluxy_data_type = "eddy_flux" ; 
+		:fluxy_model = "EDDY_HARDAU" ; 
+                     
+}   

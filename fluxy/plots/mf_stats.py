@@ -19,9 +19,9 @@ class TaylorDiagram:
 
     def __init__(
         self,
-        sd_range: tuple[float, float],
-        sd_unit: str,
-        sd_obs: float = None,
+        std_range: tuple[float, float],
+        std_unit: str,
+        std_obs: float = None,
         fig: Figure = None,
         position: tuple[int, int, int] = (1, 1, 1),
         markersize: int = 100,
@@ -31,11 +31,11 @@ class TaylorDiagram:
         Initialize the axis for the Taylor Diagram.
 
         Args:
-            sd_range (tuple):
+            std_range (tuple):
                 Two floats (min, max). It indicates the range for the radial coordinate.
-            sd_unit (str):
+            std_unit (str):
                 Unit for the standard deviation. It is only used for the axis label.
-            sd_obs (float):
+            std_obs (float):
                 Observed standard deviation.
                 It makes sense to have it only if all markers share the same observed standard deviation.
             fig (Figure):
@@ -51,10 +51,10 @@ class TaylorDiagram:
                 If False, the standard deviation is plotted in absolute units.
         """
 
-        self.sd_obs = sd_obs  # Standard deviation of the reference
+        self.std_obs = std_obs  # Standard deviation of the reference
         self.markersize = markersize
-        self.smin = sd_range[0]  # Minimum standard deviation
-        self.smax = sd_range[1]  # Maximum standard deviation
+        self.smin = std_range[0]  # Minimum standard deviation
+        self.smax = std_range[1]  # Maximum standard deviation
 
         # Polar transformation for the Taylor diagram
         tr = PolarAxes.PolarTransform()
@@ -81,8 +81,8 @@ class TaylorDiagram:
         fig.add_subplot(ax)
 
         # Set the label for standard deviation
-        label_sd = (
-            "Normalized standard deviation [unitless]" if normalized else "Standard deviation [{}]".format(sd_unit)
+        label_std = (
+            "Normalized standard deviation [unitless]" if normalized else "Standard deviation [{}]".format(std_unit)
         )
 
         # Customize the axes
@@ -97,13 +97,13 @@ class TaylorDiagram:
                 "axis_direction": "bottom",
                 "major_tick_labels_axis_direction": "bottom",
                 "label_axis_direction": "bottom",
-                "label": label_sd,
+                "label": label_std,
             },
             "right": {
                 "axis_direction": "top",
                 "major_tick_labels_axis_direction": "left",
                 "label_axis_direction": "top",
-                "label": label_sd,
+                "label": label_std,
             },
         }
 
@@ -128,24 +128,24 @@ class TaylorDiagram:
         self.ax = ax.get_aux_axes(tr)  # Polar coordinates
 
         # Add reference line and RMSE contours
-        if self.sd_obs != None:
+        if self.std_obs != None:
 
             # Plot the reference line and point
-            l = self.ax.scatter([0], self.sd_obs, color="k", marker="*", s=self.markersize)  # Reference point
-            t = np.linspace(0, np.pi / 2)  # Angles for sd_obs contour
-            r = np.zeros_like(t) + self.sd_obs
-            self.ax.plot(t, r, "k--", label="_")  # Reference sd_obs line
+            l = self.ax.scatter([0], self.std_obs, color="k", marker="*", s=self.markersize)  # Reference point
+            t = np.linspace(0, np.pi / 2)  # Angles for std_obs contour
+            r = np.zeros_like(t) + self.std_obs
+            self.ax.plot(t, r, "k--", label="_")  # Reference std_obs line
 
             # Add RMSE countours
             contours = self.add_contours(colors="0.5")
             self.ax.clabel(contours, inline=1, fontsize=10)
 
-    def add_samples(self, sds: list[float], pearsons: list[float], label: str, *args, **kwargs):
+    def add_samples(self, stds: list[float], pearsons: list[float], label: str, *args, **kwargs):
         """
         Add markers representing sample points to the Taylor diagram.
 
         Args:
-            sds (list of floats):
+            stds (list of floats):
                 Standard deviations of the sample points
             pearsons (list of floats):
                 Pearson's correlation coefficiens of the sample points
@@ -157,7 +157,7 @@ class TaylorDiagram:
         ms = kwargs.pop("markersize") if "markersize" in kwargs else self.markersize
 
         lines = self.ax.scatter(
-            np.arccos(pearsons), sds, s=ms, zorder=10, label=label, *args, **kwargs
+            np.arccos(pearsons), stds, s=ms, zorder=10, label=label, *args, **kwargs
         )  # Plot in polar coordinates
 
         return lines
@@ -178,7 +178,7 @@ class TaylorDiagram:
         )
         xs = rs * np.cos(ts)
         ys = rs * np.sin(ts)
-        crmse = np.sqrt(self.sd_obs**2 + rs**2 - 2 * self.sd_obs * rs * np.cos(ts))
+        crmse = np.sqrt(self.std_obs**2 + rs**2 - 2 * self.std_obs * rs * np.cos(ts))
         contours = self._ax.contour(xs, ys, crmse, levels=levels, **kwargs)
         return contours
 
@@ -294,8 +294,8 @@ def plot_taylor_diagram(
     plot_type_model: Literal["separate", "together"] = "separate",
     plot_type_stat: Literal["separate", "together"] = "separate",
     include: list[Literal["prior", "posterior", "prior_above_BC", "posterior_above_BC"]] = ["prior", "posterior"],
-    sd_range: tuple[float, float] = (0, 2.5),
-    sd_unit: str = "ppb",
+    std_range: tuple[float, float] = (0, 2.5),
+    std_unit: str = "ppb",
     check_sites: bool = False,
 ) -> Figure:
     """
@@ -324,9 +324,9 @@ def plot_taylor_diagram(
         include (list of str):
             List of statistics to include in the plot.
             Options are 'prior' and 'posterior'.
-        sd_range (tuple of float):
-            Range for the standard deviation axis, in units provided with `sd_unit` if `normalize` = True.
-        sd_unit (str):
+        std_range (tuple of float):
+            Range for the standard deviation axis, in units provided with `std_unit` if `normalize` = True.
+        std_unit (str):
             Unit for the standard deviation axis label.
         check_sites (bool):
             If True, color different sites with different colors.
@@ -391,13 +391,13 @@ def plot_taylor_diagram(
             continue
 
         # Fetch statistical data
-        long_stat = pd.melt(stat, id_vars=["model", "site"], value_vars=["pearson", "sd_obs", "sd_sim"])
+        long_stat = pd.melt(stat, id_vars=["model", "site"], value_vars=["pearson", "std_obs", "std_sim"])
         fetch_stat = lambda s: long_stat[long_stat["variable"] == s].pivot(
             index="site", columns="model", values="value"
         )
         df_pearson = fetch_stat("pearson")
-        df_sds_obs = fetch_stat("sd_obs")
-        df_sds_sim = fetch_stat("sd_sim")
+        df_stds_obs = fetch_stat("std_obs")
+        df_stds_sim = fetch_stat("std_sim")
 
         # Loop over models
         for j, m in enumerate(models):
@@ -416,24 +416,24 @@ def plot_taylor_diagram(
                 index_pos = j + 1
 
             # Get the statistics for the model m
-            sds_obs = df_sds_obs[m].values
-            sds_sim = df_sds_sim[m].values
+            stds_obs = df_stds_obs[m].values
+            stds_sim = df_stds_sim[m].values
             pearsons = df_pearson[m].values
 
             # Normalize the data if needed
             if normalize:
-                sds_sim /= sds_obs
-                sds_obs /= sds_obs
+                stds_sim /= stds_obs
+                stds_obs /= stds_obs
 
-            # Remove observation reference if multiple sd_obs and normalize = False
-            sd_obs = sds_obs[~np.isnan(sds_obs)][0] if (len(sds_obs) == 1 or normalize) else None
+            # Remove observation reference if multiple std_obs and normalize = False
+            std_obs = stds_obs[~np.isnan(stds_obs)][0] if (len(stds_obs) == 1 or normalize) else None
 
             # Create the Taylor diagram using the corresponding class or fetch it
             if index_pos not in dict_diags_pos:
                 diag = TaylorDiagram(
-                    sd_range=sd_range,
-                    sd_unit=sd_unit,
-                    sd_obs=sd_obs,
+                    std_range=std_range,
+                    std_unit=std_unit,
+                    std_obs=std_obs,
                     fig=fig,
                     position=(nrows, ncols, index_pos),
                     markersize=150,
@@ -454,13 +454,13 @@ def plot_taylor_diagram(
 
                 for (
                     site,
-                    sd_sim,
+                    std_sim,
                     pearson,
-                ) in zip(sites, sds_sim, pearsons):
+                ) in zip(sites, stds_sim, pearsons):
 
                     # Add samples for each site with different colors
                     site_handles = diag.add_samples(
-                        [sd_sim], [pearson], c=site_colors[site], edgecolor="k", marker=marker, label=site
+                        [std_sim], [pearson], c=site_colors[site], edgecolor="k", marker=marker, label=site
                     )
 
                     # Add all site handles to the combined legend
@@ -470,7 +470,7 @@ def plot_taylor_diagram(
 
                     # Add inner circles to indicate model/statistic
                     inner_handles = diag.add_samples(
-                        [sd_sim], [pearson], c=color, edgecolor="k", marker="o", label=label, markersize=40
+                        [std_sim], [pearson], c=color, edgecolor="k", marker="o", label=label, markersize=40
                     )
 
                 # Add only last inner_handle to the combined legend
@@ -478,7 +478,7 @@ def plot_taylor_diagram(
                 combined_labels += [label]
 
             else:
-                handles = diag.add_samples(sds_sim, pearsons, c=color, edgecolor=edgecolor, marker=marker, label=label)
+                handles = diag.add_samples(stds_sim, pearsons, c=color, edgecolor=edgecolor, marker=marker, label=label)
 
                 # Check if diag.add_samples returns artists or not
                 if not isinstance(handles, list):

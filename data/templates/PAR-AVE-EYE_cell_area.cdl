@@ -1,0 +1,29 @@
+netcdf EUROPE_cell_area {
+dimensions:
+	latitude = 293 ;
+	longitude = 391 ;
+variables:
+	double latitude(latitude) ;
+		latitude:_FillValue = NaN ;
+		latitude:units = "degrees_north" ;
+		latitude:long_name = "latitude of grid cell centre" ;
+		latitude:standard_name = "latitude" ;
+		latitude:axis = "Y" ;
+	double longitude(longitude) ;
+		longitude:_FillValue = NaN ;
+		longitude:units = "degrees_east" ;
+		longitude:long_name = "longitude of grid cell centre" ;
+		longitude:standard_name = "longitude" ;
+		longitude:axis = "X" ;
+	double cell_area(latitude, longitude) ;
+		cell_area:_FillValue = NaN ;
+		cell_area:standard_name = "cell_area" ;
+		cell_area:units = "m2" ;
+		cell_area:long_name = "surface area of grid cell" ;
+		cell_area:domain = "EUROPE" ;
+
+// global attributes:
+		:description = "area per latitude longitude grid cell, used in fluxy to calculate region/country flux annual totals from spatial fluxes" ;
+		:creator = "Alice Ramsden, Met Office" ;
+		:creation_date = "2025-07-10" ;
+}

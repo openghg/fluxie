@@ -174,6 +174,7 @@ def produce_plots(
             models_std,
             config_data,
             period="monthly",
+            add_sites_to_flux = True,
             read_standard_run=True,
         )
         ds_all_flux_scaled = slice_flux(
@@ -339,6 +340,7 @@ def produce_plots(
             models_std,
             config_data,
             period="yearly",
+            add_sites_to_flux = True,
             read_standard_run=True,
         )
         ds_all_flux_scaled = slice_flux(

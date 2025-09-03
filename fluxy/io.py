@@ -1,22 +1,24 @@
 import itertools
+import json
+import logging
 import os
-import xarray as xr
+from io import BytesIO
+from pathlib import Path
+from urllib.request import urlopen
+from zipfile import ZipFile
+
+import yaml
+import geopandas as gpd
 import numpy as np
 import pandas as pd
-import json
-import geopandas as gpd
-import logging
-
-from io import BytesIO
-from zipfile import ZipFile
-from urllib.request import urlopen
-from pathlib import Path
-from typing import Literal
+import xarray as xr
 
 from fluxy import config
+from fluxy.operators.flux_align_dataset import align_time
 from fluxy.operators.regions import extract_region_flux
 from fluxy.operators.select import slice_flux, get_intake_height, get_site_index
 from fluxy.operators.flux_align_dataset import align_time
+from fluxy.types import DataType, DataTypes, file_pattern
 
 logger = logging.getLogger(__name__)
 
@@ -71,34 +73,67 @@ def read_json(filepath: os.PathLike) -> dict[str, dict]:
     return json_data
 
 
+def read_yaml(filepath: os.PathLike) -> dict[str, dict]:
+    """
+    Reads yaml file.
+
+    Args:
+        filepath (str or Path):
+            Path to yaml file including filename.
+    Returns:
+        yaml_data (dictionary of dictionaries):
+            Dictionary with data read from filepath.
+    """
+
+    filepath = Path(filepath)
+
+    if not filepath.is_file():
+        raise FileNotFoundError(f"Cannot find {filepath}.")
+
+    with open(filepath, "r") as f:
+        yaml_data = yaml.safe_load(f)
+
+    return yaml_data
+
+
 def read_config_files(
     configs_dir: os.PathLike | None = None,
 ) -> dict[str, dict]:
     """
-    Reads all configuration json files.
+    Reads all configuration files.
 
     Returns:
         data_dict (dictionary of dictionaries):
-            Dictionary with keys equal to json basename (without extension).
-            Each key points to a dictionary with the data from each json file.
+            Dictionary with keys equal to files basename (without extension).
+            Each key points to a dictionary with the data from each config file.
     """
 
     if configs_dir is None:
-        # Get location of json files
+        # Get location of config files
         parent_dir = Path(__file__).parent.parent
         configs_dir = parent_dir / "configs"
+    else:
+        configs_dir = Path(configs_dir)
 
-    # List of json files to be read
-    json_files = configs_dir.glob("*.json")
+    logger.info(f"Reading config files from {configs_dir}")
 
-    # Read json files
+    read_func = {
+        ".json": read_json,
+        ".yaml": read_yaml,
+        ".yml": read_yaml,
+    }
+
+    # List of files to be read
+    files = itertools.chain(*(configs_dir.glob(f"*{ext}") for ext in read_func.keys()))
+
+    # Read config files
     data_dict = {}
-    for file in json_files:
-        data = read_json(file)
+    for file in files:
+        data = read_func[file.suffix](file)
         filename = file.stem
         data_dict[filename] = data
 
-    # Join dictionaries from regions_info.json
+    # Join dictionaries from regions_info config
     regions_info = data_dict.get("regions_info", {})
     if "regions" in regions_info.keys():
         if "country_codes" not in regions_info.keys():
@@ -130,8 +165,8 @@ def get_filename(
         file_pattern (str):
             String that should be added at the end of the filename.
         config_data (dict of dict):
-            Dictionary with settings read from json file.
-            Use json filenames as keys.
+            Dictionary with settings read from config file.
+            Use config filenames as keys.
         data_dir (str):
             Path to top data directory.
         read_standard_run (bool):
@@ -205,6 +240,9 @@ def get_filename(
 
     # Define filepath
     data_dir = Path(data_dir)
+    if not period and file_pattern.startswith("_"):
+        # Remove leading underscore if no period is given
+        file_pattern = file_pattern[1:]
     filepath = (
         data_dir
         / base_model_name
@@ -218,11 +256,12 @@ def get_filename(
 
 def read_model_output(
     data_dir: os.PathLike,
-    file_type: Literal["concentration", "flux"],
+    file_type: DataType,
     species: str,
     models: list[str],
     config_data: dict[str, dict] = {},
-    period: str | list[str] = "yearly",
+    period: str | list[str | None] | None = None,
+    add_sites_to_flux: bool = False,
     read_standard_run: bool = False,
 ) -> dict[str, xr.Dataset]:
     """
@@ -238,49 +277,50 @@ def read_model_output(
             i.e. '<inversionModel>_<optional_identifying_tags>', preceded by subdirectory if applicable,
             e.g. ['InTEM_NAME_EUROPE_EDGAR','ELRIS_NAME_EUROPE_EDGAR']
         config_data (dict of dict):
-            Dictionary with settings read from json file.
-            Use json filenames as keys.
+            Dictionary with settings read from config file.
+            Use config filenames as keys.
         period (str or list of str):
             Inversion period as specified in the model filename.
             If it is a string, the same period is considered for all models.
             If it is a list, one value per model must be specified, e.g. ['monthly','yearly']
+        add_sites_to_flux (bool):
+            If true, add sites variable to flux dataset.
+
     Returns:
         ds_all (dictionary of datasets):
             xarray dataset read directly from each model's mole fraction netCDF.
     """
+    file_type = DataTypes(file_type)
 
-    if isinstance(period, str):
+    if period is None and file_type in (DataTypes.FLUX, DataTypes.CONCENTRATION):
+        # Default period
+        period = "yearly"
+
+    if isinstance(period, str | None):
         period = [period] * len(models)
 
-    if len(period) != len(models):
+    elif len(period) != len(models):
         raise ValueError(
-            f"period must be a string or a list of the same length as models."
+            f"period must be None, a string or a list of the same length as models."
         )
-
-    # Define file pattern
-    if file_type == "flux":
-        file_pattern = ".nc"
-    elif file_type == "concentration":
-        file_pattern = "_concentrations.nc"
-    else:
-        raise ValueError(f'file_pattern must be equal to "concentration" or "flux".')
 
     ds_all = {}
 
     for i, m in enumerate(models):
+        period_str = period[i] or ""
         filepath = get_filename(
             m,
             species,
-            period[i],
-            file_pattern,
+            period_str,
+            file_pattern(file_type),
             config_data,
             data_dir,
             read_standard_run,
         )
 
-        # Check if files exists
+        # Check if file exists
         if not filepath.is_file():
-            logger.warning(f"Cannot find {file_type} file: {filepath}.")
+            logger.warning(f"Cannot find {file_type.value} file: {filepath}.")
             continue
 
         # Read file
@@ -291,11 +331,16 @@ def read_model_output(
         ds_all[m] = edit_vars_and_attributes(
             ds_all[m],
             m,
-            period[i],
+            period_str,
             file_type,
             config_data.get("regions_info", {}),
             config_data.get("site_info", {}),
+            species=species,
         )
+
+        # Add sites variable to flux dataset
+        if add_sites_to_flux and file_type == "flux":
+            ds_all[m] = add_sites_var(ds_all[m], filepath, m, period[i], config_data)
 
     return ds_all
 
@@ -329,8 +374,8 @@ def read_flux_total_fgases(
         regions (list of str):
             Region names used to extract fluxes. Only these regions can then be plotted.
         config_data (dict of dict):
-            Dictionary with settings read from json file.
-            Use json filenames as keys.
+            Dictionary with settings read from config file.
+            Use config filenames as keys.
         start_date (str):
             Date to slice data from, e.g. '2021-01-01'
         end_date (str):
@@ -555,9 +600,10 @@ def edit_vars_and_attributes(
     ds: xr.Dataset,
     model: str,
     frequency: str,
-    file_type: Literal["flux", "concentration"],
+    file_type: DataType,
     regions_info: dict[str, str],
     site_info: dict[str, dict],
+    species: str | None = None,
 ) -> xr.Dataset:
     """
     Edit dataset variables and attributes.
@@ -574,9 +620,11 @@ def edit_vars_and_attributes(
             Options for "monthly" and "yearly".
         file_type (str):
             Output file type.
-            Options for "flux" and "concentration".
+            See :py:class:`fluxy.types.DataType` for options.
         regions_info (dict of str):
-            Dictionary with country and region names (read from json file).
+            Dictionary with country and region names (read from config file).
+        species (str, optional):
+            Gas species, e.g. 'ch4'. If None, no species attribute is added.
 
     Returns:
         ds (xarray dataset):
@@ -602,8 +650,19 @@ def edit_vars_and_attributes(
     filename_tags = os.path.basename(model)
     m0 = filename_tags.split("_")[0].lower()
 
+    # check the species
+    if species is not None:
+        if "species" not in ds.attrs:
+            ds.attrs["species"] = species
+        elif ds.attrs["species"] != species:
+            logger.warning(
+                f"Species {ds.attrs['species']} in dataset does not match species {species} in model {model}."
+            )
+
+    file_type = DataTypes(file_type)
+
     # Fix flux dataset
-    if file_type == "flux":
+    if file_type == DataTypes.FLUX:
 
         # Apply model specific corrections
         if m0 in ("elris", "flexinvert"):
@@ -677,9 +736,9 @@ def edit_vars_and_attributes(
                         "time",
                     ],
                     coords={"time": ds_bel.time},
-                    attrs=ds['country'].attrs,
+                    attrs=ds["country"].attrs,
                 )
-                
+
                 ds_lux["country_merge"] = xr.DataArray(
                     data=[
                         "LUXEMBOURG",
@@ -689,16 +748,16 @@ def edit_vars_and_attributes(
                         "time",
                     ],
                     coords={"time": ds_lux.time},
-                    attrs=ds['country'].attrs,
+                    attrs=ds["country"].attrs,
                 )
-                
+
                 ds_bellux = xr.concat(
                     [ds_bel, ds_lux], pd.Index(["BEL", "LUX"], name="country")
                 )
 
                 ds = xr.merge([ds, ds_bellux])
                 ds = ds.drop_vars("country_merge")
-                
+
         elif m0 == "rhime":
             ds["country"] = [
                 regions_info["country_codes"].get(x, x) for x in ds["country"].values
@@ -729,7 +788,7 @@ def edit_vars_and_attributes(
                 attrs=ds[var_to_change].attrs,
             )
 
-    elif file_type == "concentration":
+    elif file_type in (DataTypes.CONCENTRATION, DataTypes.EDDY_FLUX):
         # Ensure integer dtype
         ds["number_of_identifier"] = ds["number_of_identifier"].astype(int)
 
@@ -816,4 +875,124 @@ def edit_vars_and_attributes(
             # Fill intake_height and stdev_mf_model with fake values
             ds["intake_height"][:] = 0
             ds["stdev_mf_model"][:] = 0
+
+    if file_type == DataTypes.EDDY_FLUX:
+        # check some eddy flux variables
+        if "ecflux_observed" not in ds:
+            var1, var2 = "ecflux_measured", "ecflux_observed_storage"
+            if var1 in ds and var2 in ds:
+                if ds[var1].units != ds[var2].units:
+                    raise ValueError(
+                        f"Units of {var1} and {var2} do not match: "
+                        f"{ds[var1].units} != {ds[var2].units}"
+                    )
+                # Calculate the observed flux
+                ds["ecflux_observed"] = ds[var1] + ds[var2]
+                ds["ecflux_observed"].attrs["units"] = ds[var1].attrs.get(
+                    "units", "umol m-2 s-1"
+                )
+
+        if "ecflux_prior" not in ds:
+            # Calculate it from sectorial prior
+            ds["ecflux_prior"] = ds["ecflux_sectorial_prior"].sum(dim="sector")
+            ds["ecflux_prior"].attrs["units"] = ds["ecflux_sectorial_prior"].attrs.get(
+                "units", "umol m-2 s-1"
+            )
     return ds
+
+
+def add_sites_var(
+    ds_flux: xr.Dataset,
+    filepath_flux: Path,
+    model: str,
+    frequency: str,
+    config_data: dict[str, dict],
+) -> xr.Dataset:
+    """
+    Add a 'sites' variable to a flux dataset indicating which sites are used for each flux timestamp,
+    using the corresponding concentration dataset.
+
+    Args:
+        ds_flux (xarray dataset):
+            xarray dataset with model data.
+        filepath_flux (Path):
+            Path to the flux NetCDF file.
+        model (str):
+            Model name tag corresponding to ds_flux.
+        frequency (str):
+            Frequency of the inversion results present in the dataset.
+        config_data (dict of str):
+            Dictionary with settings read from json file.
+
+    Returns:
+        ds_flux (xarray dataset):
+            xarray dataset with a new 'sites' variable added if the concentration
+            file exists. If not, returns the original ds_flux unchanged.
+    """
+
+    # Derive the path for the concentration file
+    filepath_conc = filepath_flux.with_name(filepath_flux.stem + "_concentrations.nc")
+
+    # Check if file exists
+    if not filepath_conc.is_file():
+        logger.warning(
+            f"Cannot find {filepath_conc} to add sites to {model} flux dataset."
+        )
+        return ds_flux
+
+    # Open the concentration dataset
+    ds_conc = xr.open_dataset(filepath_conc)
+
+    # Fix variables and attributes
+    ds_conc = edit_vars_and_attributes(
+        ds_conc,
+        model,
+        frequency,
+        "concentration",
+        config_data.get("regions_info", {}),
+        config_data.get("site_info", {}),
+    )
+
+    # Get list of observation platforms (sites) and flux time points
+    sites_list = ds_conc.platform.values.tolist()
+    flux_times = ds_flux.time
+
+    # Initialize empty binary array [time, site] to store presence (1) or absence (0) of data
+    sites = xr.DataArray(
+        data=np.zeros((len(flux_times), len(sites_list)), dtype=int),
+        coords={"time": flux_times, "platform": sites_list},
+        dims=["time", "platform"],
+        attrs={
+            "units": "1",
+            "long_name": "Site availability (1 if observations present during this period)",
+        },
+    )
+
+    if frequency == "yearly":
+        flux_keys = flux_times.dt.year.values
+    elif frequency == "monthly":
+        flux_keys = list(zip(flux_times.dt.year.values, flux_times.dt.month.values))
+        flux_keys = np.array(flux_keys, dtype=[("year", "i4"), ("month", "i4")])
+
+    for site in sites_list:
+        site_index = get_site_index(ds_conc, site)
+        mask = (ds_conc["number_of_identifier"] == site_index) & ds_conc[
+            "mf_observed"
+        ].notnull()
+        valid_times = ds_conc["time"].where(mask, drop=True)
+
+        if frequency == "yearly":
+            mf_keys = valid_times.dt.year.values
+        elif frequency == "monthly":
+            mf_keys = list(zip(valid_times.dt.year.values, valid_times.dt.month.values))
+            mf_keys = np.array(mf_keys, dtype=[("year", "i4"), ("month", "i4")])
+
+        # Mark time steps in flux where observations from this site exist
+        sites.loc[dict(platform=site)] = np.isin(flux_keys, mf_keys).astype(int)
+
+    # Add the 'sites' variable to the flux dataset
+    ds_flux["sites"] = sites
+
+    logger.info(f"Adding sites from {filepath_conc} to {model} flux dataset.")
+
+    return ds_flux

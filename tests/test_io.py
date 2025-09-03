@@ -8,7 +8,8 @@ import pytest
 
 
 @pytest.mark.parametrize("model", test_models)
-def test_read_flux(model):
+@pytest.mark.parametrize("add_sites_to_flux", [True, False])
+def test_read_flux(model, add_sites_to_flux):
     # This test fails sometimes when runned with all the other tests
     # Because of a xarray cache problem
     config_data = read_config_files()
@@ -18,8 +19,10 @@ def test_read_flux(model):
     period = "yearly"
 
     ds_all_flux = read_model_output(
-        data_dir, "flux", species, [model], config_data, period=period
+        data_dir, "flux", species, [model], config_data, period=period, add_sites_to_flux=add_sites_to_flux
     )
+
+    assert model in ds_all_flux, f"Model {model} not found in the loaded flux datasets"
 
 
 @pytest.mark.parametrize("model", test_models)
@@ -34,6 +37,8 @@ def test_read_mf(model):
     ds_all_mf = read_model_output(
         data_dir, "concentration", species, [model], config_data, period=period
     )
+
+    assert model in ds_all_mf, f"Model {model} not found in the loaded mole fraction datasets"
 
 
 def test_read_config_default():

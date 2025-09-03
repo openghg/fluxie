@@ -6,6 +6,8 @@ from fluxy.operators.select import get_unique_sites, get_site_index
 from fluxy.operators.convert import get_variables
 from typing import Literal
 
+from fluxy.operators.stats import stats_observed_vs_simulated
+
 logger = logging.getLogger(__name__)
 
 
@@ -116,8 +118,8 @@ def stats_mf(
     """
     Calculates multiple statistical measures of the fit between the posterior
     mean mf and the observed mole fraction.
-    Implemented statistics: Pearson correlation coefficent, root mean square
-    error, normalised root mean square error, standard deviation.
+
+    This calls :py:func:`fluxy.operators.stats.stats_observed_vs_simulated`
 
     Args:
         ds_all (dictionary of datasets):
@@ -130,84 +132,47 @@ def stats_mf(
             BC contribution subtracted from both observation and simulation.
     Returns:
         stats (pandas.DataFrame):
-            Statistical measures, for each site and for each model between observations and
-            simulations. Columns: 'model': model string,
-            'site': observation platform ID, 'pearson': Pearson correlation coefficient,
-            'rmse': root mean square error, 'crmse': centered root mean square error,
-            'bias': bias, 'sd_sim': standard deviation of simulation,
-            'sd_obs': standard deviation of observation (reference),
-            'sd_res': standard deviation of simulation - observation (residuals) ,
-            'nrmse': root mean square error normalised by observation mean,
-            'nn': number of value pairs. Index: integer.
+            Dataframe containing the statistical measures.
     """
 
     # assure that stats_type in allowed options
     type_options = ["prior", "posterior", "prior_above_BC", "posterior_above_BC"]
     assert stats_type in type_options, f"'{stats_type}' is not in {type_options}"
 
-    # names of sites
-    sites_all = get_unique_sites(ds_all)
+    # select what to compare
+    if stats_type == "prior":
+        obs = "mf_observed"
+        sim = "mf_prior"
+    elif stats_type == "posterior":
+        obs = "mf_observed"
+        sim = "mf_posterior"
+    elif stats_type == "prior_above_BC":
+        obs = "mf_observed_no_bc_prior"
+        sim = "mf_prior_no_bc_prior"
+        ds_all = {
+            model: ds.assign(
+                mf_observed_no_bc_prior=ds["mf_observed"] - ds["mf_bc_prior"],
+                mf_prior_no_bc_prior=ds["mf_prior"] - ds["mf_bc_prior"],
+            )
+            for model, ds in ds_all.items()
+        }
+    elif stats_type == "posterior_above_BC":
+        obs = "mf_observed_no_bc_posterior"
+        sim = "mf_posterior_no_bc_posterior"
+        ds_all = {
+            model: ds.assign(
+                mf_observed_no_bc_posterior=ds["mf_observed"] - ds["mf_bc_posterior"],
+                mf_posterior_no_bc_posterior=ds["mf_posterior"] - ds["mf_bc_posterior"],
+            )
+            for model, ds in ds_all.items()
+        }
+    else:
+        # Should not happen due to the assert above
+        raise ValueError()
 
-    # init empty list to hold results for individual sites
-    stats = []
+    return stats_observed_vs_simulated(
+        ds_all,
+        obs_var=obs,
+        sim_var=sim,
+    )
 
-    # Compute stats for all sites and all models
-    for site in sites_all:
-        for model, ds in ds_all.items():
-            # Mask by site
-            site_index = get_site_index(ds, site)
-            if site_index is None:
-                continue
-            mask_site = ds["number_of_identifier"] == site_index
-            if not mask_site.any():
-                continue
-            ds_site = ds.where(mask_site, drop=True)
-
-            # Remove indexes with no obs
-            ds_site = ds_site.dropna("index", subset=["mf_observed"])
-
-            # select what to compare
-            if stats_type == "prior":
-                obs = ds_site["mf_observed"]
-                sim = ds_site["mf_prior"]
-            elif stats_type == "posterior":
-                obs = ds_site["mf_observed"]
-                sim = ds_site["mf_posterior"]
-            elif stats_type == "prior_above_BC":
-                obs = ds_site["mf_observed"] - ds_site["mf_bc_prior"]
-                sim = ds_site["mf_prior"] - ds_site["mf_bc_prior"]
-            elif stats_type == "posterior_above_BC":
-                obs = ds_site["mf_observed"] - ds_site["mf_bc_posterior"]
-                sim = ds_site["mf_posterior"] - ds_site["mf_bc_posterior"]
-            else:
-                raise ValueError()
-
-            obs, sim = obs.values, sim.values
-
-            # calculate stats
-            stats_site = {
-                "model": model,
-                "site": site,
-                "pearson": np.corrcoef(obs, sim)[0, 1],
-                "rmse": np.sqrt(np.mean((sim - obs) ** 2)),
-                "crmse": np.sqrt(np.mean((sim - obs - np.mean(sim - obs)) ** 2)),
-                "bias": np.mean(sim - obs),
-                "sd_sim": np.std(sim),
-                "sd_obs": np.std(obs),
-                "sd_res": np.std(sim - obs),
-                "nn": np.size(sim),
-            }
-
-            # change to DataFrame
-            stats_site = pd.DataFrame(data=stats_site, index=[0])
-
-            # additional derived stats
-            stats_site["nrmse"] = stats_site["rmse"].values / np.mean(obs)
-
-            # append to list of all stats
-            stats.append(stats_site)
-
-    # fold list of DataFrames into a single DataFrame
-    stats = pd.concat(stats, ignore_index=True)
-
-    return stats

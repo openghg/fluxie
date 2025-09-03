@@ -178,13 +178,6 @@ def slice_mf(
         # Round time to seconds (for consistency between models)
         ds_all[m]["time"] = ds_all[m]["time"].dt.round("s")
 
-        # Slice data according to time window
-        mask = (ds_all[m]["time"] >= start_date) & (ds_all[m]["time"] <= end_date)
-        if not keep_unassimilated:
-            # Mask assimilated data only
-            mask &= ds_all[m]["assimilation_flag"] == 1
-        ds_all[m] = ds_all[m].where(mask, drop=True)
-
         # Slice data according to site
         if site is not None:
             try:
@@ -193,6 +186,13 @@ def slice_mf(
                 logger.warning(f"Error slicing site {site} from {m}: {e}")
                 ds_all.pop(m)
                 continue
+            
+        # Slice data according to time window
+        mask = (ds_all[m]["time"] >= start_date) & (ds_all[m]["time"] <= end_date)
+        if not keep_unassimilated:
+            # Mask assimilated data only
+            mask &= ds_all[m]["assimilation_flag"] == 1
+        ds_all[m] = ds_all[m].where(mask, drop=True)
 
         # Slice according to intake height
         if intake_height is not None:

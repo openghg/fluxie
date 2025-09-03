@@ -1,13 +1,17 @@
+import itertools
 import numpy as np
+import pandas as pd
 import xarray as xr
 import geopandas as gpd
 import logging
 import re
+import warnings
 
 from shapely.geometry import MultiPolygon, Polygon
 from typing import Literal
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib.collections import LineCollection
+import matplotlib.pyplot as plt
 from copy import deepcopy
 
 from fluxy import config
@@ -88,8 +92,8 @@ def print_cbar_label(
     ds: xr.Dataset,
     species_info: dict,
     var: str = None,
-    season: str = None,
-    format: list[str] = ["variable", "species", "units", "time"],
+    sector: str = "total",
+    format: list[str] = ["variable", "sector", "species", "units", "time"],
 ) -> str:
     """
     Generate a colorbar label for a dataset variable.
@@ -102,8 +106,6 @@ def print_cbar_label(
             A dictionary with metadata for species, including display names.
         var (str, optional):
             The variable name in the dataset.
-        season (str, optional):
-            The season to include in the label (e.g., 'DJF', 'MAM').
         format (list[str], optional):
             Specifies the components to include in the label.
             Options: ['variable', 'species', 'units', 'time']. Default includes all.
@@ -121,15 +123,13 @@ def print_cbar_label(
 
     units_label = f"({get_units(ds[var])})" if "units" in format else ""
 
-    middle_label = " ".join(filter(None, [species_label, units_label]))
+    sector_label = f"{sector}" if "sector" in format else ""
+
+    middle_label = " ".join(filter(None, [species_label, sector_label, units_label]))
 
     time_label = ""
     if "time" in format:
-        freq = get_frequency(ds)
-        period = print_period(
-            ds, freq, season
-        )  # TODO Here, based on the last iteration. Check if consistent for all models?
-        time_label = f"{period}"
+        time_label = ds.attrs["time_label"]
 
     # Construct the final label with proper line breaks
     label_parts = [var_label, middle_label, time_label]
@@ -322,13 +322,56 @@ def add_site_markers(ax, site_info, color):
         )
 
 
+def get_active_sites_coordinates(
+    ds: xr.Dataset,
+    config_data: dict,
+    fallback_sites: list[str] | None = None,
+) -> dict:
+    """
+    Retrieve coordinates for active platforms/sites from an xarray Dataset.
+
+    Args:
+        ds (xr.Dataset):
+           xarray flux dataset.
+        config_data (dict):
+            Dictionary of sites with information for plotting (read from json file).
+        fallback_sites (list[str] | None):
+            A list of site/platform names to use if no active sites are found in `ds`.
+
+    Returns:
+        dict:
+            A dictionary of site coordinates for either the active sites or the fallback sites.
+            Returns an empty dict if no sites are found and no fallback_sites are provided.
+    """
+
+    sites = ds["sites"] if "sites" in ds else None
+
+    if sites is None:
+        if fallback_sites:
+            logger.warning(
+                "No active 'sites' found in dataset, using fallback sites from the list provided."
+            )
+            return extract_site_info(fallback_sites, config_data)
+
+        else:
+            logger.warning(
+                "No 'sites' found in dataset. "
+                "Please ensure 'add_sites_to_flux' is True in 'read_model_output' "
+                "or that a 'fallback_sites' list is provided in plot_flux_map."
+            )
+            return {}
+
+    active_sites = sites.platform.values[sites.any(dim="time").values].tolist()
+    return extract_site_info(active_sites, config_data)
+
+
 def get_sites_coordinates(
     ds_all: dict[xr.Dataset],
     config_data: dict,
     fallback_sites: list[str] | None = None,
 ) -> dict:
-    # TODO DODGY FUNCTION!!! Modify this function once 'sites' is included in all the attributes.
     """
+    DEPRECATED: Use `get_active_sites_coordinates` instead.
     Collect the 'sites' attribute from a dictionary of xarray datasets.
     If 'sites' is missing, use it from another dataset where it's available.
 
@@ -345,47 +388,17 @@ def get_sites_coordinates(
         dict:
             A mapping of dataset keys to their respective 'sites' attribute.
     """
+    warnings.warn(
+        "'get_sites_coordinates' is deprecated and will be removed in a future release. "
+        "Please use 'get_active_sites_coordinates' instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
-    sites_list = {}
-
-    # First pass: Extract 'sites' where available
-    for key, ds in ds_all.items():
-        try:
-            # Parse the 'sites' attribute if it exists
-            if hasattr(ds, "sites"):
-                sites = eval(ds.sites)
-                this_sites = sites
-                # Store fallback sites if not already set
-                if fallback_sites is None:
-                    fallback_sites = sites
-            else:
-                this_sites = None
-        except (ValueError, SyntaxError) as e:
-            logger.warning(f"Could not parse 'sites' for {key}: {e}")
-            this_sites = None
-        sites_list[key] = this_sites
-
-    if fallback_sites is None:
-        # If no 'sites' attribute is found in any dataset, raise an error
-        logger.warning(
-            "No 'sites' attribute found in any dataset. "
-            "Please ensure at least one dataset has the 'sites' attribute."
-        )
-        return {}
-
-    # Second pass: Fill in missing 'sites' using the fallback
-    for key, sites in sites_list.items():
-        if sites_list[key] is None:
-            logger.warning(
-                f"No 'sites' attribute in {key}, using fallback from the list provided. If no list was provided, sites from other dataset will be used."
-            )
-            sites_list[key] = fallback_sites
-
-    sites_coordinates = {}
-    for key in sites_list.keys():
-        sites_coordinates[key] = extract_site_info(sites_list[key], config_data)
-
-    return sites_coordinates
+    return {
+        key: get_active_sites_coordinates(ds, config_data, fallback_sites)
+        for key, ds in ds_all.items()
+    }
 
 
 def extract_site_info(
@@ -400,21 +413,28 @@ def extract_site_info(
                                        where 'site_info' holds the latitude and longitude info.
 
     Returns:
-        site_data (dict[str, dict]): A dictionary mapping site names to their respective latitude and longitude.
+        sites_coordinates (dict[str, dict]): A dictionary mapping site names to their respective latitude and longitude.
     """
 
-    site_info = config_data["site_info"]
+    site_info = config_data.get("site_info", {})
+    sites_coordinates = {}
 
-    site_data = {
-        site: {
-            "latitude": site_data_info[next(iter(site_data_info))]["latitude"],
-            "longitude": site_data_info[next(iter(site_data_info))]["longitude"],
+    for site in sites:
+        if site not in site_info:
+            logger.warning(
+                f"Site '{site}' not found in config_data['site_info']. It will be skipped."
+            )
+            continue
+
+        # Take the first entry in site_info[site]
+        first_key = next(iter(site_info[site]))
+
+        sites_coordinates[site] = {
+            "latitude": site_info[site][first_key]["latitude"],
+            "longitude": site_info[site][first_key]["longitude"],
         }
-        for site, site_data_info in site_info.items()
-        if site in sites
-    }
 
-    return site_data
+    return sites_coordinates
 
 
 def get_bounds_from_datasets(
@@ -778,3 +798,55 @@ def define_map_figsize(
         fig_height = n_rows * subplot_height
 
     return (fig_width, fig_height)
+
+
+def stack_plot(
+    df: pd.DataFrame,
+    ax: plt.Axes | None = None,
+    area: bool = False,
+    colors_of_category: dict[str, str] = {},
+):
+    """Function to plot stacked bar plots for the emissions data.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame containing the emissions data.
+    ax : matplotlib.axes.Axes, optional
+        Axes object to plot on, by default None
+    area : bool, optional
+        If True, use area plot instead of bar plot, by default False
+    """
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(10, 6))
+    default_colors = itertools.cycle(plt.rcParams["axes.prop_cycle"].by_key()["color"])
+    colors = {
+        cat: colors_of_category.get(cat, next(default_colors)) for cat in df.columns
+    }
+    if area:
+        # Use the same labels and colors for the positive and negative values
+        total_pos = np.zeros(df.shape[0])
+        total_neg = np.zeros(df.shape[0])
+        for i, column in enumerate(df.columns):
+            values = df[column].values
+            ax.fill_between(
+                df.index,
+                y1=np.where(values >= 0, total_pos, total_neg),
+                y2=np.where(values >= 0, total_pos + values, total_neg + values),
+                color=colors.get(column, None),
+                label=column,
+            )
+            total_pos += np.clip(values, 0, None)
+            total_neg += np.clip(values, None, 0)
+
+        # ax.set_ylim(df_neg.sum(axis=1).min() * 1.1, df_pos.sum(axis=1).max() * 1.1)
+    else:
+        ax = df.plot.bar(stacked=True, ax=ax, color=colors)
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(
+        list(reversed(handles)),
+        list(reversed(labels)),
+        loc="center left",
+        bbox_to_anchor=(1, 0.5),
+    )
+    return ax
