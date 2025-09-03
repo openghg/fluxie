@@ -4,6 +4,7 @@ import xarray as xr
 def define_var_plot(
     ds: xr.Dataset,
     var: str | list[str],
+    sector: str = 'total'
 ) -> xr.DataArray:
     """
     Define the variable to be plotted based on the specified `var` string.
@@ -29,21 +30,21 @@ def define_var_plot(
 
     ds_output = xr.Dataset()
     for var_p in var:
-        unit_var = "flux_total_posterior"
+        unit_var = f"flux_{sector}_posterior"
 
         if var_p == "posterior_prior_diff":
-            ds_output[var_p] = ds["flux_total_posterior"] - ds["flux_total_prior"]
+            ds_output[var_p] = ds[f"flux_{sector}_posterior"] - ds[f"flux_{sector}_prior"]
         elif var_p == "posterior_mean_diff":
-            ds_output[var_p] = ds["flux_total_posterior"] - ds[
-                "flux_total_posterior"
+            ds_output[var_p] = ds[f"flux_{sector}_posterior"] - ds[
+                f"flux_{sector}_posterior"
             ].mean(dim="time")
         elif var_p == "posterior_prior_diff_inversion_grid":
             ds_output[var_p] = (
-                ds["flux_total_posterior_inversion_grid"] - ds["flux_total_prior"]
+                ds[f"flux_{sector}_posterior_inversion_grid"] - ds[f"flux_{sector}_prior"]
             )
         elif var_p == "posterior_mean_diff_inversion_grid":
-            ds_output[var_p] = ds["flux_total_posterior_inversion_grid"] - ds[
-                "flux_total_posterior_inversion_grid"
+            ds_output[var_p] = ds[f"flux_{sector}_posterior_inversion_grid"] - ds[
+                f"flux_{sector}_posterior_inversion_grid"
             ].mean(dim="time")
         else:
             if var_p not in ds:

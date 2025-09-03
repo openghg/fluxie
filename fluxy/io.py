@@ -16,7 +16,8 @@ import xarray as xr
 from fluxy import config
 from fluxy.operators.flux_align_dataset import align_time
 from fluxy.operators.regions import extract_region_flux
-from fluxy.operators.select import slice_flux
+from fluxy.operators.select import slice_flux, get_intake_height, get_site_index
+from fluxy.operators.flux_align_dataset import align_time
 from fluxy.types import DataType, DataTypes, file_pattern
 
 logger = logging.getLogger(__name__)
@@ -324,6 +325,7 @@ def read_model_output(
             period_str,
             file_type,
             config_data.get("regions_info", {}),
+            config_data.get("site_info", {}),
             species=species,
         )
 
@@ -587,6 +589,7 @@ def edit_vars_and_attributes(
     frequency: str,
     file_type: DataType,
     regions_info: dict[str, str],
+    site_info: dict[str, dict],
     species: str | None = None,
 ) -> xr.Dataset:
     """
@@ -683,7 +686,8 @@ def edit_vars_and_attributes(
                     ds[var].attrs["units"] = ds[var].attrs["unit"]
                     ds[var].attrs.pop("unit")
 
-            ds = ds.rename({"countrynumber": "country"})
+            if "countrynumber" in ds:
+                ds = ds.rename({"countrynumber": "country"})
 
             if "BEL-LUX" in ds.country and (
                 "BEL" not in ds.country and "LUX" not in ds.country
@@ -710,7 +714,7 @@ def edit_vars_and_attributes(
                 del ds_bel["country"]
                 del ds_lux["country"]
 
-                ds_bel["countryname"] = xr.DataArray(
+                ds_bel["country_merge"] = xr.DataArray(
                     data=[
                         "BELGIUM",
                     ]
@@ -719,10 +723,10 @@ def edit_vars_and_attributes(
                         "time",
                     ],
                     coords={"time": ds_bel.time},
-                    attrs=ds.countryname.attrs,
+                    attrs=ds['country'].attrs,
                 )
-
-                ds_lux["countryname"] = xr.DataArray(
+                
+                ds_lux["country_merge"] = xr.DataArray(
                     data=[
                         "LUXEMBOURG",
                     ]
@@ -731,14 +735,16 @@ def edit_vars_and_attributes(
                         "time",
                     ],
                     coords={"time": ds_lux.time},
-                    attrs=ds.countryname.attrs,
+                    attrs=ds['country'].attrs,
                 )
-
+                
                 ds_bellux = xr.concat(
                     [ds_bel, ds_lux], pd.Index(["BEL", "LUX"], name="country")
                 )
-                ds = xr.merge([ds, ds_bellux])
 
+                ds = xr.merge([ds, ds_bellux])
+                ds = ds.drop_vars("country_merge")
+                
         elif m0 == "rhime":
             ds["country"] = [
                 regions_info["country_codes"].get(x, x) for x in ds["country"].values

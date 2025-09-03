@@ -5,7 +5,7 @@ from fluxy.operators.flux_map_resample import (
     average_over_period,
 )
 
-dss = get_loaded_models("flux")
+dss = get_loaded_models(test_models,"flux")
 
 
 @pytest.mark.parametrize("model", test_models)

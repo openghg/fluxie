@@ -102,6 +102,7 @@ def slice_mf(
     data_dir: os.PathLike | None = None,
     mf_units_print: str = None,
     keep_unassimilated: bool = False,
+    intake_height: float | None = None,
 ) -> dict[str, xr.Dataset]:
     """
     Slices down the mole fraction timeseries data, to within the
@@ -141,7 +142,7 @@ def slice_mf(
 
     # Get logical array with baseline timestamps
     if baseline_site is not None:
-        
+
         if data_dir is None:
             raise ValueError(
                 "Baseline site is set, but no data_dir provided. "
@@ -149,9 +150,7 @@ def slice_mf(
             )
         data_dir = Path(data_dir)
         baseline_file = (
-            data_dir
-            / "baseline_timestamps"
-            / f"{baseline_site}_{baseline_filename}.nc"
+            data_dir / "baseline_timestamps" / f"{baseline_site}_{baseline_filename}.nc"
         )
 
         # Check if files exists
@@ -179,13 +178,6 @@ def slice_mf(
         # Round time to seconds (for consistency between models)
         ds_all[m]["time"] = ds_all[m]["time"].dt.round("s")
 
-        # Slice data according to time window
-        mask = (ds_all[m]["time"] >= start_date) & (ds_all[m]["time"] <= end_date)
-        if not keep_unassimilated:
-            # Mask assimilated data only
-            mask &= ds_all[m]["assimilation_flag"] == 1
-        ds_all[m] = ds_all[m].where(mask, drop=True)
-
         # Slice data according to site
         if site is not None:
             try:
@@ -194,11 +186,22 @@ def slice_mf(
                 logger.warning(f"Error slicing site {site} from {m}: {e}")
                 ds_all.pop(m)
                 continue
+            
+        # Slice data according to time window
+        mask = (ds_all[m]["time"] >= start_date) & (ds_all[m]["time"] <= end_date)
+        if not keep_unassimilated:
+            # Mask assimilated data only
+            mask &= ds_all[m]["assimilation_flag"] == 1
+        ds_all[m] = ds_all[m].where(mask, drop=True)
+
+        # Slice according to intake height
+        if intake_height is not None:
+            ds_all[m] = slice_height(ds_all[m], intake_height)
 
         if len(ds_all[m]["time"]) == 0:
             # Remove model if no data left after time slicing
             logger.warning(
-                f"No {m} obs found for {site=} between {start_date} and {end_date}."
+                f"No {m} obs found for {site=} {intake_height=} between {start_date} and {end_date}."
             )
             ds_all.pop(m)
             continue
@@ -219,8 +222,7 @@ def slice_mf(
             b_masked = b.sel(time=b["time"][np.where(b["baseline"] == 1.0)])
 
             # mask dataset using only baseline times
-            ds_all[m] = ds_all[m].where(ds_all[m].time.isin(b_masked.time),
-                                        drop=True)
+            ds_all[m] = ds_all[m].where(ds_all[m].time.isin(b_masked.time), drop=True)
 
     return ds_all
 
@@ -246,6 +248,35 @@ def slice_site(ds: xr.Dataset, site: str) -> xr.Dataset:
 
     mask = ds["number_of_identifier"] == site_index
     ds = ds.where(mask, drop=True)
+
+    return ds
+
+
+def slice_height(ds: xr.Dataset, intake_height: float) -> xr.Dataset:
+    """
+    Slices the dataset to only include data for a given intake height.
+
+    Args:
+        ds (xarray dataset):
+            Dataset with mf data of a given model.
+        intake_height (str):
+            intake_height of interest.
+    Returns:
+        ds (xarray dataset):
+            Dataset with mf data of a given model, sliced to only include data for the given intake_height.
+    """
+
+    if "intake_height" in ds.keys():
+
+        mask = ds["intake_height"] == float(intake_height)
+        ds = ds.where(mask, drop=True)
+
+    else:
+        raise ValueError(
+            f"Variable intake_height not found in dateset. "
+            + "slice_height must be set to None if intake_height "
+            + "is not available for all models."
+        )
 
     return ds
 
@@ -291,6 +322,104 @@ def get_unique_sites(ds_all: dict[str, xr.Dataset]) -> list[str]:
     sites = np.sort(np.unique(sites))
 
     return sites
+
+
+def get_intake_height(site: str, site_info: dict[str, dict]) -> int | None:
+    """
+    Extract the inlet height from site_info.json.
+    This function is used to insert the 'inlet' variable if this is missing.
+    This assumes use of the heighest height from all available at the specified site.
+
+    Args:
+        site (str):
+            3-letter site code.
+        site_info (dict of dict):
+            Data extracted from site_info.json.
+    Returns:
+        max_height (int):
+            Maximum height from all networks and inlets available at the site.
+    """
+
+    if site not in site_info:
+        logger.warning(
+            f"No height info available for {site} in site_info.json so using 0m."
+        )
+
+        max_height = 0
+
+        return max_height
+
+    all_heights = []
+
+    for network in site_info[site].keys():
+        if "height" in site_info[site][network].keys():
+            all_heights += site_info[site][network]["height"]
+
+    if not all_heights:
+        logger.warning(
+            f"No height info available for {site} in site_info.json so using 0m."
+        )
+
+        max_height = 0
+
+        return max_height
+
+    max_height = np.max([int(h.strip("m")) for h in all_heights])
+
+    return max_height
+
+
+def get_unique_site_height_pairs(
+    ds_all: dict[str, xr.Dataset],
+    separate_by_height: bool = False,
+) -> list[tuple]:
+    """
+    Finds all unique pairs of site-height from all datasets.
+    e.g. if one dataset has MHD-10, TAC-185, RGL-90 and one dataset has
+    MHD-10, TAC-100, this function will return MHD-10, TAC-100, TAC-185 and RGL-90.
+
+    Args:
+        ds_all:
+            Dictionary of datasets with mf data from all models.
+        site_list:
+            List of unique sites from all models.
+        separate_by_height:
+            If True, includes a tuple per site height, if False, returns a tuple per
+            site, with the second index set to None for all sites,
+            e.g. [('MHD',None),('TAC',None)]
+    Returns:
+        site_list:
+            Pairs of sites and heights, e.g. [('MHD',10),(TAC,100),(TAC,185)]
+    """
+    
+    site_list = get_unique_sites(ds_all)
+
+    if separate_by_height:
+
+        unique_pairs = set()
+
+        for d, ds in enumerate(ds_all.values()):
+            if "intake_height" not in ds.keys():
+                raise ValueError(
+                    f"Varible intake_height not present in {list(ds_all.keys())[d]} so cannot plot separate_by_height"
+                )
+
+            platform_names = ds["platform"].values
+            number_ids = ds["number_of_identifier"].values
+            intake_heights = ds["intake_height"].values
+
+            platform_for_obs = platform_names[number_ids]
+
+            pairs = zip(platform_for_obs, intake_heights)
+
+            unique_pairs.update(pairs)
+
+        site_list = sorted(unique_pairs)
+
+    else:
+        site_list = list(zip(site_list, [None] * len(site_list)))
+
+    return site_list
 
 
 def clean_timeseries_missing_data(

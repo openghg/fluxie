@@ -11,8 +11,13 @@ test_models = [
     "ELRIS_NAME_EUROPE_EDGAR",
 ]
 
+test_models_with_inlet = [
+    "InTEM_NAME_EUROPE_EDGAR"
+]
+
 
 def get_loaded_models(
+    test_models: list[str],
     file_type: DataType,
 ) -> dict[str, xr.Dataset]:
     """

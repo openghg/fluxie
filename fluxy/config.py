@@ -12,6 +12,13 @@ color_palette = {
     3: [["darkorange", "orange"], ["gold", "khaki"], ["yellow", "lightyellow"]],
 }
 
+sector_color_palette = {
+    "agriculture": "darkgreen",
+    "waste": "purple",
+    "industry": "darkblue",
+    "energy": "dodgerblue",
+}
+
 # population from 2018 to 2023 (at Jan 1 each year)
 bel_pop = np.array([11.399, 11.455, 11.522, 11.555, 11.618, 11.723])
 lux_pop = np.array([0.602, 0.614, 0.626, 0.635, 0.645, 0.661])
@@ -53,6 +60,18 @@ flux_labels = {
     "flux_total_prior": "Prior",
     "flux_total_posterior_inversion_grid": "Posterior",
     "flux_total_posterior": "Posterior",
+    "flux_agriculture_prior": "Agriculture Prior",
+    "flux_agriculture_posterior_inversion_grid": "Agriculture Posterior",
+    "flux_agriculture_posterior": "Agriculture Posterior",
+    "flux_waste_prior": "Waste Prior",
+    "flux_waste_posterior_inversion_grid": "Waste Posterior",
+    "flux_waste_posterior": "Waste Posterior",
+    "flux_energy_prior": "Energy Prior",
+    "flux_energy_posterior_inversion_grid": "Energy Posterior",
+    "flux_energy_posterior": "Energy Posterior",
+    "flux_industry_prior": "Industry Prior",
+    "flux_industry_posterior_inversion_grid": "Industry Posterior",
+    "flux_industry_posterior": "Industry Posterior",
     "posterior_prior_diff": "Posterior - Prior",
     "posterior_prior_diff_inversion_grid": "Posterior - Prior",
     "posterior_mean_diff": "Posterior Anomaly",
@@ -249,3 +268,11 @@ def get_default_colors() -> list[str]:
     """
 
     return plt.rcParams["axes.prop_cycle"].by_key()["color"]
+
+
+def get_default_sector_colors() -> list[str]:
+    """
+    Returns colors to be used for sector bar chart plots.
+    """
+
+    return sector_color_palette

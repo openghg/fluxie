@@ -5,12 +5,25 @@ import pytest
 
 import xarray as xr
 import pandas as pd
+import numpy as np
 from fluxy.operators.mf import compute_mf_difference, stats_mf
-from fluxy.operators.select import slice_flux, slice_mf, clean_timeseries_missing_data
-from fluxy.test_utils.models import get_loaded_models, test_models
+from fluxy.operators.select import (
+    slice_flux,
+    slice_mf,
+    clean_timeseries_missing_data,
+    slice_height,
+    slice_site,
+)
+from fluxy.test_utils.models import (
+    get_loaded_models,
+    test_models,
+    test_models_with_inlet,
+)
 
-ds_all_mf = get_loaded_models("concentration")
-ds_all_flux = get_loaded_models("flux")
+ds_all_mf = get_loaded_models(test_models,"concentration")
+ds_all_flux = get_loaded_models(test_models,"flux")
+
+ds_all_mf_with_inlet = get_loaded_models(test_models_with_inlet,"concentration")
 
 
 # Test the difference between all available models
@@ -60,6 +73,17 @@ def test_stats_mf(stat):
         stats_type=stat,
     )
 
+
+@pytest.mark.parametrize("model", test_models_with_inlet)
+def test_slice_height(model):
+
+    ds_all_mf__with_inlet_sliced = slice_site(ds_all_mf_with_inlet[model], site="TAC")
+
+    ds_sliced = slice_height(ds_all_mf__with_inlet_sliced, intake_height=185)
+    
+    print(ds_sliced)
+
+    assert np.unique(ds_sliced["intake_height"].values == 185.0)
 
 ds_test = xr.Dataset(
     {
