@@ -2,9 +2,7 @@ import xarray as xr
 
 
 def define_var_plot(
-    ds: xr.Dataset,
-    var: str | list[str],
-    sector: str = 'total'
+    ds: xr.Dataset, var: str | list[str], sector: str = "total"
 ) -> xr.Dataset:
     """
     Define the variable to be plotted based on the specified `var` string.
@@ -33,14 +31,17 @@ def define_var_plot(
         unit_var = f"flux_{sector}_posterior"
 
         if var_p == "posterior_prior_diff":
-            ds_output[var_p] = ds[f"flux_{sector}_posterior"] - ds[f"flux_{sector}_prior"]
+            ds_output[var_p] = (
+                ds[f"flux_{sector}_posterior"] - ds[f"flux_{sector}_prior"]
+            )
         elif var_p == "posterior_mean_diff":
             ds_output[var_p] = ds[f"flux_{sector}_posterior"] - ds[
                 f"flux_{sector}_posterior"
             ].mean(dim="time")
         elif var_p == "posterior_prior_diff_inversion_grid":
             ds_output[var_p] = (
-                ds[f"flux_{sector}_posterior_inversion_grid"] - ds[f"flux_{sector}_prior"]
+                ds[f"flux_{sector}_posterior_inversion_grid"]
+                - ds[f"flux_{sector}_prior"]
             )
         elif var_p == "posterior_mean_diff_inversion_grid":
             ds_output[var_p] = ds[f"flux_{sector}_posterior_inversion_grid"] - ds[
@@ -71,9 +72,9 @@ def make_model_diff_ds(
     Create a difference xarray.Dataset between two model datasets.
 
     Args:
-        ds1 (xr.Dataset): 
+        ds1 (xr.Dataset):
             First model dataset.
-        ds2 (xr.Dataset): 
+        ds2 (xr.Dataset):
             Second model dataset.
 
     Returns:
@@ -91,17 +92,18 @@ def make_model_diff_ds(
 
         if set(dims) == {"time", "latitude", "longitude"}:
             diff[var] = v1 - v2
-            diff[var].attrs = v1.attrs # Copy attributes from ds1
-        
+            diff[var].attrs = v1.attrs  # Copy attributes from ds1
+
         elif var == "sites" and set(dims) == {"time", "platform"}:
             sites1, sites2 = xr.align(ds1[var], ds2[var], join="outer", fill_value=0)
             diff["sites"] = xr.where((sites1 == 1) | (sites2 == 1), 1, 0)
-            diff["sites"].attrs = v1.attrs # Copy attributes from ds1
+            diff["sites"].attrs = v1.attrs  # Copy attributes from ds1
 
         else:
-            logger.info(f"Variable '{var}' with dims {dims} not processed.") # eg, not keeping percentiles 
+            logger.info(
+                f"Variable '{var}' with dims {dims} not processed."
+            )  # eg, not keeping percentiles
     diff = xr.Dataset(diff)
     diff.attrs["frequency"] = ds1.attrs.get("frequency", "")
 
     return diff
-  

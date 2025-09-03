@@ -98,7 +98,7 @@ def align_map_data(
       - keeping only variables common to all datasets,
       - removing unused dimensions,
       - aligning time and spatial coordinates.
-    
+
     Args:
         ds_all (dict[xr.Dataset | xr.DataArray]):
             Dictionary of model names and corresponding xarray Datasets/DataArrays.
@@ -108,7 +108,7 @@ def align_map_data(
             Aligned Datasets/DataArrays, with consistent variables and coordinates.
     """
 
-     # Step 1: Filter variables based on dimension criteria
+    # Step 1: Filter variables based on dimension criteria
     for key, ds in ds_all.items():
         if isinstance(ds, xr.DataArray):
             continue
@@ -118,7 +118,7 @@ def align_map_data(
                 var
                 for var in ds.data_vars
                 if not (
-                    {"time", "latitude", "longitude"}.issubset(ds[var].dims) 
+                    {"time", "latitude", "longitude"}.issubset(ds[var].dims)
                     or {"time", "platform"}.issubset(ds[var].dims)
                 )
             ]

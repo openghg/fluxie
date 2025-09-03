@@ -42,8 +42,8 @@ def plot_flux_map(
     zoom_degree: float = 1,
     only: Literal["posterior", "prior", "diff"] | None = None,
     fallback_sites: list[str] | None = None,
-    resample_uncert_correlation = False,
-    sector: str = 'total'
+    resample_uncert_correlation=False,
+    sector: str = "total",
 ) -> plt.Figure:
     """
     Plot posterior and prior fluxes and the difference between them for all models, time averaged.
@@ -106,9 +106,11 @@ def plot_flux_map(
     """
 
     # Check for inversion_grid and sector option
-    if plot_inversion_grid_flux == True and sector != 'total':
-        raise ValueError(f"Currently, you cannot plot sectors other than 'total' using the inversion_grid variable. "+
-                         "Set plot_inversion_grid_flux to False to plot other sectors.")
+    if plot_inversion_grid_flux == True and sector != "total":
+        raise ValueError(
+            f"Currently, you cannot plot sectors other than 'total' using the inversion_grid variable. "
+            + "Set plot_inversion_grid_flux to False to plot other sectors."
+        )
 
     # Determine geographical boundaries
     map_bounds = get_map_bounds(
@@ -141,11 +143,15 @@ def plot_flux_map(
         var_fluxlim = var_diff
     else:
         vars_list = [var_prior, var_posterior, var_diff]
-        var_fluxlim = var_posterior #TODO Flux limits based on posterior, is this the right way to do?
+        var_fluxlim = var_posterior  # TODO Flux limits based on posterior, is this the right way to do?
 
     # Prepare datasets and resample over the whole time period (season=None) or a given season
     ds_dict = {
-        m: resample_over_period(define_var_plot(ds, vars_list, sector), chop_by=season, resample_uncert_correlation=resample_uncert_correlation)[0]
+        m: resample_over_period(
+            define_var_plot(ds, vars_list, sector),
+            chop_by=season,
+            resample_uncert_correlation=resample_uncert_correlation,
+        )[0]
         for m, ds in ds_all.items()
     }
 
@@ -173,7 +179,9 @@ def plot_flux_map(
     for col, (model, ds) in enumerate(ds_dict.items()):
         lon, lat = ds.longitude, ds.latitude
         sites_info = (
-            get_active_sites_coordinates(ds, config_data, fallback_sites) if add_sites else ""
+            get_active_sites_coordinates(ds, config_data, fallback_sites)
+            if add_sites
+            else ""
         )
 
         model_axes = ax if n_cols == 1 else (ax[:, col] if n_rows > 1 else ax[col])
@@ -229,7 +237,7 @@ def plot_flux_map(
                     species_info,
                     var,
                     format=["variable", "species", "units", "time"],
-                ) # TODO Here, based on the last iteration. Check if consistent for all models?
+                )  # TODO Here, based on the last iteration. Check if consistent for all models?
                 add_colorbar(
                     fig,
                     ax_i,
@@ -263,7 +271,7 @@ def plot_flux_map_model_comparison(
     zoom_degree: float = 1,
     fallback_sites: list[str] | None = None,
     resample_uncert_correlation: bool = False,
-    sector: str = 'total'
+    sector: str = "total",
 ) -> plt.Figure:
     """
     Plot a given flux variable for two models and the difference between them.
@@ -327,9 +335,11 @@ def plot_flux_map_model_comparison(
     """
 
     # Check for inversion_grid and sector option
-    if "inversion_grid" in var and sector != 'total':
-        raise ValueError(f"Currently, you cannot plot sectors other than 'total' using the inversion_grid variable. "+
-                         "Choose a non inversion_grid variable to plot other sectors.")
+    if "inversion_grid" in var and sector != "total":
+        raise ValueError(
+            f"Currently, you cannot plot sectors other than 'total' using the inversion_grid variable. "
+            + "Choose a non inversion_grid variable to plot other sectors."
+        )
 
     # Models check
     model_names = list(ds_all.keys())
@@ -351,12 +361,16 @@ def plot_flux_map_model_comparison(
     )
 
     # Prepare datasets and resample over the whole time period (season=None) or a given season
-    ds_dict = {m: define_var_plot(ds, var, sector) for m, ds in ds_all.items() if m in models}
+    ds_dict = {
+        m: define_var_plot(ds, var, sector) for m, ds in ds_all.items() if m in models
+    }
     ds_dict = align_map_data(ds_dict)
     ds_dict["diff"] = make_model_diff_ds(ds_dict[models[0]], ds_dict[models[1]])
 
     for m, ds in ds_dict.items():
-        ds_dict[m] = resample_over_period(ds, chop_by=season, resample_uncert_correlation=resample_uncert_correlation)[0]
+        ds_dict[m] = resample_over_period(
+            ds, chop_by=season, resample_uncert_correlation=resample_uncert_correlation
+        )[0]
 
     # Load country lines and species information
     country_lines = compute_boundary_geometry(map_bounds)
@@ -413,7 +427,9 @@ def plot_flux_map_model_comparison(
         # Add sites and markers if specified
         if add_sites:
             try:
-                sites_info = get_active_sites_coordinates(ds, config_data, fallback_sites)
+                sites_info = get_active_sites_coordinates(
+                    ds, config_data, fallback_sites
+                )
             except Exception as e:
                 raise RuntimeError(
                     "Failed to get active sites coordinates. "
@@ -432,7 +448,7 @@ def plot_flux_map_model_comparison(
             species_info,
             var,
             format=["variable", "species", "units", "time"],
-        ) # TODO Here, based on the last iteration. Check if consistent for all models?
+        )  # TODO Here, based on the last iteration. Check if consistent for all models?
         if model == "diff":
             cbar_lines = cbar_label.split("\n")
             cbar_lines[0] += " difference"
@@ -471,7 +487,7 @@ def plot_flux_map_over_time(
     zoom_degree: float = 1,
     fallback_sites: list[str] | None = None,
     resample_uncert_correlation: bool = False,
-    sector: str = 'total'
+    sector: str = "total",
 ) -> plt.Figure:
     """
     Plot a given flux variable averaged over specific time intervals, for all models or the model mean.
@@ -533,12 +549,14 @@ def plot_flux_map_over_time(
             A plot of spatial flux of the variable specified in var
             averaged over the number of time steps specified in dt.
     """
-    
+
     # Check for inversion_grid and sector option
-    if 'inversion_grid' in var and sector != 'total':
-        raise ValueError(f"Currently, you cannot plot sectors other than 'total' using the inversion_grid variable. "+
-                         "Choose a non inversion_grid variable to plot other sectors.")
-    
+    if "inversion_grid" in var and sector != "total":
+        raise ValueError(
+            f"Currently, you cannot plot sectors other than 'total' using the inversion_grid variable. "
+            + "Choose a non inversion_grid variable to plot other sectors."
+        )
+
     # Determine geographical boundaries
     map_bounds = get_map_bounds(
         region,
@@ -556,7 +574,9 @@ def plot_flux_map_over_time(
 
     time_labels = {}
     for key, ds in ds_dict.items():
-        ds_dict[key], time_labels[key] = resample_over_period(ds, dt, chop_by, resample_uncert_correlation)
+        ds_dict[key], time_labels[key] = resample_over_period(
+            ds, dt, chop_by, resample_uncert_correlation
+        )
 
     if all([v == time_labels[key] for v in time_labels.values()]):
         time_labels = time_labels[key]
@@ -639,7 +659,9 @@ def plot_flux_map_over_time(
             # Add sites and markers if specified
             if add_sites:
                 try:
-                    sites_info = get_active_sites_coordinates(ds.isel(time=[col]), config_data, fallback_sites)
+                    sites_info = get_active_sites_coordinates(
+                        ds.isel(time=[col]), config_data, fallback_sites
+                    )
                 except Exception as e:
                     raise RuntimeError(
                         "Failed to get active sites coordinates. "
@@ -647,7 +669,7 @@ def plot_flux_map_over_time(
                         "or that a `fallback_sites` list is provided in `plot_flux_map`."
                     ) from e
                 add_site_markers(ax_i, sites_info, marker_color)
-                
+
             if add_markers:
                 add_custom_markers(
                     ax_i, add_markers, marker_color, config_data["regions_info"]
@@ -655,8 +677,11 @@ def plot_flux_map_over_time(
 
     # Add colorbar
     cbar_label = print_cbar_label(
-        ds, species_info, var, sector=sector,
-        format=["variable", "species", "sector", "units"]
+        ds,
+        species_info,
+        var,
+        sector=sector,
+        format=["variable", "species", "sector", "units"],
     )
     add_colorbar(
         fig,

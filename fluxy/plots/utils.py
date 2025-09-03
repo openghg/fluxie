@@ -89,7 +89,7 @@ def print_cbar_label(
     ds: xr.Dataset,
     species_info: dict,
     var: str = None,
-    sector: str = 'total',
+    sector: str = "total",
     format: list[str] = ["variable", "sector", "species", "units", "time"],
 ) -> str:
     """
@@ -119,7 +119,7 @@ def print_cbar_label(
     )
 
     units_label = f"({get_units(ds[var])})" if "units" in format else ""
-    
+
     sector_label = f"{sector}" if "sector" in format else ""
 
     middle_label = " ".join(filter(None, [species_label, sector_label, units_label]))
@@ -322,7 +322,7 @@ def add_site_markers(ax, site_info, color):
 def get_active_sites_coordinates(
     ds: xr.Dataset,
     config_data: dict,
-    fallback_sites: list[str]  | None = None,
+    fallback_sites: list[str] | None = None,
 ) -> dict:
     """
     Retrieve coordinates for active platforms/sites from an xarray Dataset.
@@ -337,7 +337,7 @@ def get_active_sites_coordinates(
 
     Returns:
         dict:
-            A dictionary of site coordinates for either the active sites or the fallback sites. 
+            A dictionary of site coordinates for either the active sites or the fallback sites.
             Returns an empty dict if no sites are found and no fallback_sites are provided.
     """
 
@@ -357,8 +357,8 @@ def get_active_sites_coordinates(
                 "or that a 'fallback_sites' list is provided in plot_flux_map."
             )
             return {}
-        
-    active_sites = sites.platform.values[sites.any(dim='time').values].tolist()
+
+    active_sites = sites.platform.values[sites.any(dim="time").values].tolist()
     return extract_site_info(active_sites, config_data)
 
 
@@ -399,8 +399,7 @@ def get_sites_coordinates(
 
 
 def extract_site_info(
-    sites: list[str], 
-    config_data: dict[str, dict]
+    sites: list[str], config_data: dict[str, dict]
 ) -> dict[str, dict]:
     """
     Extract latitude and longitude for each site from site_info in the config data.
@@ -419,7 +418,9 @@ def extract_site_info(
 
     for site in sites:
         if site not in site_info:
-            logger.warning(f"Site '{site}' not found in config_data['site_info']. It will be skipped.")
+            logger.warning(
+                f"Site '{site}' not found in config_data['site_info']. It will be skipped."
+            )
             continue
 
         # Take the first entry in site_info[site]

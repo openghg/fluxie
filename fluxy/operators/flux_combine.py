@@ -40,9 +40,7 @@ def combine_dataset(
     return {"combined": ds_output}
 
 
-def combine_map_dataset(
-    ds_all: dict[str, xr.Dataset]
-) -> dict[str, xr.Dataset]:
+def combine_map_dataset(ds_all: dict[str, xr.Dataset]) -> dict[str, xr.Dataset]:
     """
     Combine multiple xarray datasets along the 'model' dimension and return the mean dataset.
     - Variables with "percentile" dimension will be collapsed into min (p0) and max (p1).
@@ -69,7 +67,9 @@ def combine_map_dataset(
         if "percentile" in dims:
             p0 = v.isel(percentile=0).min(**kwargs_combine)
             p1 = v.isel(percentile=1).max(**kwargs_combine)
-            ds_combined[var] = xr.concat([p0, p1], dim="percentile", combine_attrs="override")
+            ds_combined[var] = xr.concat(
+                [p0, p1], dim="percentile", combine_attrs="override"
+            )
 
         elif var == "sites" and dims == {"time", "platform"}:
             ds_combined[var] = v.any(**kwargs_combine).astype(int)
@@ -78,7 +78,9 @@ def combine_map_dataset(
             ds_combined[var] = v.mean(**kwargs_combine)
 
         else:
-            logger.info(f"{var} has no time dimension and will be skipped when combining datasets over time.")
+            logger.info(
+                f"{var} has no time dimension and will be skipped when combining datasets over time."
+            )
 
     ds_dict = {"combined": ds_combined}
 

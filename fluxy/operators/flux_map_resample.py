@@ -15,7 +15,7 @@ def get_flux_mean(
 ) -> xr.DataArray:
     """
     DEPRECATED: Use `resample_over_period` instead.
-    
+
     Calculate the mean flux along the 'time' dimension from a dataset, optionally for a specific season.
 
     Args:
@@ -36,7 +36,9 @@ def get_flux_mean(
         stacklevel=2,
     )
 
-    return resample_over_period(data, chop_by=season, resample_uncert_correlation=True)[0]
+    return resample_over_period(data, chop_by=season, resample_uncert_correlation=True)[
+        0
+    ]
 
 
 def calculate_resampled_flux(
@@ -47,18 +49,19 @@ def calculate_resampled_flux(
     Calculate the average of a flux variable over grouped time intervals.
 
     Args:
-        flux (xr.DataArray): 
+        flux (xr.DataArray):
             DataArray with 'time' dimension to average.
-        groups (xr.DataArray): 
+        groups (xr.DataArray):
             DataArray grouping each time step.
 
     Returns:
-        xr.DataArray: 
+        xr.DataArray:
             Flux averaged over each group.
     """
     da = flux.groupby(groups).mean(dim="time", keep_attrs=True)
 
     return da
+
 
 def calculate_resampled_uncertainties(
     unc: xr.DataArray,
@@ -71,18 +74,18 @@ def calculate_resampled_uncertainties(
     using the assumption that all periods in the resampled flux average are uncorrelated.
 
     Args:
-        unc (xr.DataArray): 
-            DataArray with 'percentile' and 'time' dims representing flux uncertainties. 
-        groups (xr.DataArray): 
+        unc (xr.DataArray):
+            DataArray with 'percentile' and 'time' dims representing flux uncertainties.
+        groups (xr.DataArray):
             DataArray grouping each time step.
-        flux (xr.DataArray): 
+        flux (xr.DataArray):
             Flux DataArray corresponding to the flux uncertainties.
         resample_uncert_correlation (bool):
             If True, uncertainties are averaged directly over groups.
             If False, uncertainties are calculated as RMSE-like aggregation.
 
     Returns:
-        xr.DataArray: 
+        xr.DataArray:
             Resampled flux uncertainties, with grouped time dims.
     """
     if resample_uncert_correlation:
@@ -93,13 +96,9 @@ def calculate_resampled_uncertainties(
 
         count = flux.groupby(groups).count(dim="time")
 
-        lower = (
-            np.sqrt(((flux - p0) ** 2).groupby(groups).sum(dim="time")) / count
-        )
+        lower = np.sqrt(((flux - p0) ** 2).groupby(groups).sum(dim="time")) / count
 
-        upper = (
-            np.sqrt(((p1 - flux) ** 2).groupby(groups).sum(dim="time")) / count
-        )
+        upper = np.sqrt(((p1 - flux) ** 2).groupby(groups).sum(dim="time")) / count
 
         flux_resampled = calculate_resampled_flux(flux, groups)
 
@@ -118,13 +117,13 @@ def group_sites(
     Resample the 'sites' variable by checking for presence (1) in any time step within a group.
 
     Args:
-        sites (xr.DataArray): 
+        sites (xr.DataArray):
             Binary indicator (e.g. 0 or 1) with dims ('time', 'platform').
-        groups (xr.DataArray): 
+        groups (xr.DataArray):
             DataArray grouping each time step.
 
     Returns:
-        xr.DataArray: 
+        xr.DataArray:
             Aggregated binary site indicator per group.
     """
     da = sites.groupby(groups).any(dim="time", keep_attrs=True).astype(int)
@@ -145,9 +144,9 @@ def calculate_resampled_dataset(
     - Other variables are averaged over time.
 
     Args:
-        ds (xr.Dataset): 
+        ds (xr.Dataset):
             Input dataset with time-dependent variables.
-        groups: 
+        groups:
             Grouping labels corresponding to each time step.
         resample_uncert_correlation (bool):
             If True, uncertainties are averaged directly over groups.
@@ -167,7 +166,9 @@ def calculate_resampled_dataset(
 
         elif "percentile" in dims:
             base_var = var.replace("percentile_", "")
-            output_vars[var] = calculate_resampled_uncertainties(da, groups, ds[base_var], resample_uncert_correlation)
+            output_vars[var] = calculate_resampled_uncertainties(
+                da, groups, ds[base_var], resample_uncert_correlation
+            )
 
         elif var == "sites" and dims == {"time", "platform"}:
             output_vars[var] = group_sites(da, groups)
@@ -221,7 +222,7 @@ def resample_over_dates_list(
     """
     Resample a dataset over custom time intervals defined in `dates_list`.
     Time labels indicating the date range of each resampled period are also generated.
-    
+
     Args:
         ds (xarray.Dataset):
             Dataset with a "time" dimension.
@@ -258,7 +259,9 @@ def resample_over_dates_list(
     groups_da = groups_da.where(~np.isnan(groups_da), drop=True)
 
     # Resample dataset
-    ds_resampled = calculate_resampled_dataset(ds, groups_da, resample_uncert_correlation)
+    ds_resampled = calculate_resampled_dataset(
+        ds, groups_da, resample_uncert_correlation
+    )
     ds_resampled = ds_resampled.rename({"group": "time"})
 
     # Create labels based on the first and last date in each group
@@ -272,6 +275,7 @@ def resample_over_dates_list(
         )
 
     return ds_resampled, time_labels
+
 
 def average_over_months_list(
     ds: xr.Dataset,
@@ -342,7 +346,9 @@ def resample_over_months_list(
     groups_da = xr.DataArray(groups, coords={"time": ds.time})
 
     # Resample dataset
-    ds_resampled = calculate_resampled_dataset(ds, groups_da, resample_uncert_correlation)
+    ds_resampled = calculate_resampled_dataset(
+        ds, groups_da, resample_uncert_correlation
+    )
     ds_resampled = ds_resampled.rename({"group": "time"})
 
     # Make time labels
@@ -388,7 +394,7 @@ def average_over_seasons(
 
 def resample_over_seasons(
     ds: xr.Dataset,
-    season: Literal['DJF', 'MAM', 'JJA', 'SON'] = None,
+    season: Literal["DJF", "MAM", "JJA", "SON"] = None,
     resample_uncert_correlation: bool = False,
 ) -> Tuple[xr.Dataset, List[str]]:
     """
@@ -403,7 +409,7 @@ def resample_over_seasons(
         resample_uncert_correlation (bool):
             If True, uncertainties are averaged directly over groups.
             If False, uncertainties are calculated as RMSE-like aggregation.
-        
+
 
     Returns:
         ds_resampled (xarray.Dataset):
@@ -438,7 +444,7 @@ def resample_over_seasons(
 
         freq = get_frequency(ds)
         time_labels = print_period(ds, freq, season)
-        ds_resampled.attrs["time_label"] = time_labels # needed for print_cbar_label
+        ds_resampled.attrs["time_label"] = time_labels  # needed for print_cbar_label
     return ds_resampled, time_labels
 
 
@@ -471,12 +477,14 @@ def resample_over_whole_period(
     ds_resampled = calculate_resampled_dataset(ds, groups, resample_uncert_correlation)
     ds_resampled = ds_resampled.isel(group=0, drop=True)
     if "sites" in ds_resampled.data_vars:
-        ds_resampled["sites"] = ds_resampled["sites"].expand_dims(time=[ds.time.min().values])
+        ds_resampled["sites"] = ds_resampled["sites"].expand_dims(
+            time=[ds.time.min().values]
+        )
 
     # Make time label
     freq = get_frequency(ds)
     time_labels = print_period(ds, freq)
-    ds_resampled.attrs["time_label"] = time_labels # needed for print_cbar_label
+    ds_resampled.attrs["time_label"] = time_labels  # needed for print_cbar_label
 
     return ds_resampled, time_labels
 
@@ -513,6 +521,7 @@ def average_over_years(
     )
 
     return resample_over_years(ds, N, resample_uncert_correlation=True)
+
 
 def resample_over_years(
     ds: xr.Dataset,
@@ -561,6 +570,7 @@ def resample_over_years(
     ds_resampled["time"].attrs = ds["time"].attrs
 
     return ds_resampled, time_labels
+
 
 def average_over_months(
     ds: xr.Dataset,
@@ -615,14 +625,16 @@ def resample_over_months(
             If False, uncertainties are calculated as RMSE-like aggregation.
 
     Returns:
-        ds_resampled (xarray.Dataset): 
+        ds_resampled (xarray.Dataset):
             Dataset resampled over the specified months.
-        time_labels (list of str): 
+        time_labels (list of str):
             Labels for each period (e.g., "2020/01", "2020/03—2020/05").
     """
 
     # Define groupings
-    ref_month_index = (ds.time.dt.year.min() * 12 + ds.time.dt.month[ds.time.dt.year.argmin()] - 1)
+    ref_month_index = (
+        ds.time.dt.year.min() * 12 + ds.time.dt.month[ds.time.dt.year.argmin()] - 1
+    )
     groups = ((ds.time.dt.year * 12 + ds.time.dt.month - 1) - ref_month_index) // N
     group_labels = np.unique(groups)
 
@@ -687,7 +699,9 @@ def average_over_period(
 def resample_over_period(
     ds: xr.Dataset,
     N: int = 1,
-    chop_by: Literal["year", "month", "season"] | List | Literal['DJF', 'MAM', 'JJA', 'SON'] = None,
+    chop_by: (
+        Literal["year", "month", "season"] | List | Literal["DJF", "MAM", "JJA", "SON"]
+    ) = None,
     resample_uncert_correlation: bool = False,
 ) -> Tuple[xr.Dataset, List[str]]:
     """
@@ -725,16 +739,26 @@ def resample_over_period(
             dates_list = np.array(
                 [np.datetime64(pd.to_datetime(date), "ns") for date in chop_by]
             )
-            return resample_over_dates_list(ds.copy(), dates_list, resample_uncert_correlation)
+            return resample_over_dates_list(
+                ds.copy(), dates_list, resample_uncert_correlation
+            )
 
         # Case where chop_by is either a list of lists or a list of numbers.
         if all(isinstance(i, (list, int, float)) for i in chop_by):
             months_list = chop_by
-            return resample_over_months_list(ds.copy(), months_list, resample_uncert_correlation)
-    elif chop_by in ['DJF', 'MAM', 'JJA', 'SON']:
-        return resample_over_seasons(ds.copy(), season=chop_by, resample_uncert_correlation=resample_uncert_correlation)
+            return resample_over_months_list(
+                ds.copy(), months_list, resample_uncert_correlation
+            )
+    elif chop_by in ["DJF", "MAM", "JJA", "SON"]:
+        return resample_over_seasons(
+            ds.copy(),
+            season=chop_by,
+            resample_uncert_correlation=resample_uncert_correlation,
+        )
     elif chop_by == "season":
-        return resample_over_seasons(ds.copy(), resample_uncert_correlation=resample_uncert_correlation)
+        return resample_over_seasons(
+            ds.copy(), resample_uncert_correlation=resample_uncert_correlation
+        )
     elif chop_by is None:
         return resample_over_whole_period(ds.copy(), resample_uncert_correlation)
     elif chop_by == "year":

@@ -298,9 +298,7 @@ def read_model_output(
 
         # Add sites variable to flux dataset
         if add_sites_to_flux and file_type == "flux":
-            ds_all[m] = add_sites_var(
-                ds_all[m], filepath, m, period[i], config_data
-            )
+            ds_all[m] = add_sites_var(ds_all[m], filepath, m, period[i], config_data)
 
     return ds_all
 
@@ -682,9 +680,9 @@ def edit_vars_and_attributes(
                         "time",
                     ],
                     coords={"time": ds_bel.time},
-                    attrs=ds['country'].attrs,
+                    attrs=ds["country"].attrs,
                 )
-                
+
                 ds_lux["country_merge"] = xr.DataArray(
                     data=[
                         "LUXEMBOURG",
@@ -694,16 +692,16 @@ def edit_vars_and_attributes(
                         "time",
                     ],
                     coords={"time": ds_lux.time},
-                    attrs=ds['country'].attrs,
+                    attrs=ds["country"].attrs,
                 )
-                
+
                 ds_bellux = xr.concat(
                     [ds_bel, ds_lux], pd.Index(["BEL", "LUX"], name="country")
                 )
 
                 ds = xr.merge([ds, ds_bellux])
                 ds = ds.drop_vars("country_merge")
-                
+
         elif m0 == "rhime":
             ds["country"] = [
                 regions_info["country_codes"].get(x, x) for x in ds["country"].values
@@ -825,10 +823,10 @@ def edit_vars_and_attributes(
 
 
 def add_sites_var(
-    ds_flux: xr.Dataset, 
-    filepath_flux: Path, 
-    model: str, 
-    frequency: str, 
+    ds_flux: xr.Dataset,
+    filepath_flux: Path,
+    model: str,
+    frequency: str,
     config_data: dict[str, dict],
 ) -> xr.Dataset:
     """
@@ -854,11 +852,13 @@ def add_sites_var(
     """
 
     # Derive the path for the concentration file
-    filepath_conc = filepath_flux.with_name(filepath_flux.stem + '_concentrations.nc')
+    filepath_conc = filepath_flux.with_name(filepath_flux.stem + "_concentrations.nc")
 
     # Check if file exists
     if not filepath_conc.is_file():
-        logger.warning(f"Cannot find {filepath_conc} to add sites to {model} flux dataset.")
+        logger.warning(
+            f"Cannot find {filepath_conc} to add sites to {model} flux dataset."
+        )
         return ds_flux
 
     # Open the concentration dataset
@@ -866,8 +866,12 @@ def add_sites_var(
 
     # Fix variables and attributes
     ds_conc = edit_vars_and_attributes(
-        ds_conc, model, frequency, "concentration", 
-        config_data.get("regions_info", {}), config_data.get("site_info", {}),
+        ds_conc,
+        model,
+        frequency,
+        "concentration",
+        config_data.get("regions_info", {}),
+        config_data.get("site_info", {}),
     )
 
     # Get list of observation platforms (sites) and flux time points
@@ -881,7 +885,7 @@ def add_sites_var(
         dims=["time", "platform"],
         attrs={
             "units": "1",
-            "long_name": "Site availability (1 if observations present during this period)"
+            "long_name": "Site availability (1 if observations present during this period)",
         },
     )
 
@@ -889,24 +893,26 @@ def add_sites_var(
         flux_keys = flux_times.dt.year.values
     elif frequency == "monthly":
         flux_keys = list(zip(flux_times.dt.year.values, flux_times.dt.month.values))
-        flux_keys = np.array(flux_keys, dtype=[('year', 'i4'), ('month', 'i4')])
+        flux_keys = np.array(flux_keys, dtype=[("year", "i4"), ("month", "i4")])
 
     for site in sites_list:
         site_index = get_site_index(ds_conc, site)
-        mask = (ds_conc["number_of_identifier"] == site_index) & ds_conc['mf_observed'].notnull()
+        mask = (ds_conc["number_of_identifier"] == site_index) & ds_conc[
+            "mf_observed"
+        ].notnull()
         valid_times = ds_conc["time"].where(mask, drop=True)
 
         if frequency == "yearly":
             mf_keys = valid_times.dt.year.values
         elif frequency == "monthly":
             mf_keys = list(zip(valid_times.dt.year.values, valid_times.dt.month.values))
-            mf_keys = np.array(mf_keys, dtype=[('year', 'i4'), ('month', 'i4')])
+            mf_keys = np.array(mf_keys, dtype=[("year", "i4"), ("month", "i4")])
 
         # Mark time steps in flux where observations from this site exist
         sites.loc[dict(platform=site)] = np.isin(flux_keys, mf_keys).astype(int)
 
     # Add the 'sites' variable to the flux dataset
-    ds_flux['sites'] = sites
+    ds_flux["sites"] = sites
 
     logger.info(f"Adding sites from {filepath_conc} to {model} flux dataset.")
 
