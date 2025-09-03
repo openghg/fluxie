@@ -866,7 +866,8 @@ def add_sites_var(
 
     # Fix variables and attributes
     ds_conc = edit_vars_and_attributes(
-        ds_conc, model, frequency, "concentration", config_data.get("regions_info", {})
+        ds_conc, model, frequency, "concentration", 
+        config_data.get("regions_info", {}), config_data.get("site_info", {}),
     )
 
     # Get list of observation platforms (sites) and flux time points
