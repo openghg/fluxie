@@ -43,6 +43,7 @@ def plot_flux_map(
     only: Literal["posterior", "prior", "diff"] | None = None,
     fallback_sites: list[str] | None = None,
     resample_uncert_correlation = False,
+    sector: str = 'total'
 ) -> plt.Figure:
     """
     Plot posterior and prior fluxes and the difference between them for all models, time averaged.
@@ -96,11 +97,18 @@ def plot_flux_map(
         resample_uncert_correlation (bool, optional):
             If True, uncertainties are averaged directly .
             If False, uncertainties are calculated as RMSE-like aggregation.
+        sector (str):
+            Emissions sector to plot. Default 'total'.
 
     Returns:
         fig (figure):
             Three maps, for each model, of the flux prior, the flux posterior and the difference between both.
     """
+
+    # Check for inversion_grid and sector option
+    if plot_inversion_grid_flux == True and sector != 'total':
+        raise ValueError(f"Currently, you cannot plot sectors other than 'total' using the inversion_grid variable. "+
+                         "Set plot_inversion_grid_flux to False to plot other sectors.")
 
     # Determine geographical boundaries
     map_bounds = get_map_bounds(
@@ -111,11 +119,11 @@ def plot_flux_map(
     )
 
     # Define variables
-    var_prior = "flux_total_prior"
+    var_prior = f"flux_{sector}_prior"
     var_posterior = (
-        "flux_total_posterior_inversion_grid"
+        f"flux_{sector}_posterior_inversion_grid"
         if plot_inversion_grid_flux
-        else "flux_total_posterior"
+        else f"flux_{sector}_posterior"
     )
     var_diff = (
         "posterior_prior_diff_inversion_grid"
@@ -137,7 +145,7 @@ def plot_flux_map(
 
     # Prepare datasets and resample over the whole time period (season=None) or a given season
     ds_dict = {
-        m: resample_over_period(define_var_plot(ds, vars_list), chop_by=season, resample_uncert_correlation=resample_uncert_correlation)[0]
+        m: resample_over_period(define_var_plot(ds, vars_list, sector), chop_by=season, resample_uncert_correlation=resample_uncert_correlation)[0]
         for m, ds in ds_all.items()
     }
 
@@ -255,6 +263,7 @@ def plot_flux_map_model_comparison(
     zoom_degree: float = 1,
     fallback_sites: list[str] | None = None,
     resample_uncert_correlation: bool = False,
+    sector: str = 'total'
 ) -> plt.Figure:
     """
     Plot a given flux variable for two models and the difference between them.
@@ -310,10 +319,17 @@ def plot_flux_map_model_comparison(
         resample_uncert_correlation (bool, optional):
             If True, uncertainties are averaged.
             If False, uncertainties are calculated as RMSE-like aggregation.
+        sector (str):
+            Emissions sector to plot. Default 'total'.
     Returns:
         fig (figure):
             Three maps of a target flux variable of the first and second models and the diffence between both.
     """
+
+    # Check for inversion_grid and sector option
+    if "inversion_grid" in var and sector != 'total':
+        raise ValueError(f"Currently, you cannot plot sectors other than 'total' using the inversion_grid variable. "+
+                         "Choose a non inversion_grid variable to plot other sectors.")
 
     # Models check
     model_names = list(ds_all.keys())
@@ -335,7 +351,7 @@ def plot_flux_map_model_comparison(
     )
 
     # Prepare datasets and resample over the whole time period (season=None) or a given season
-    ds_dict = {m: define_var_plot(ds, var) for m, ds in ds_all.items() if m in models}
+    ds_dict = {m: define_var_plot(ds, var, sector) for m, ds in ds_all.items() if m in models}
     ds_dict = align_map_data(ds_dict)
     ds_dict["diff"] = make_model_diff_ds(ds_dict[models[0]], ds_dict[models[1]])
 
@@ -455,6 +471,7 @@ def plot_flux_map_over_time(
     zoom_degree: float = 1,
     fallback_sites: list[str] | None = None,
     resample_uncert_correlation: bool = False,
+    sector: str = 'total'
 ) -> plt.Figure:
     """
     Plot a given flux variable averaged over specific time intervals, for all models or the model mean.
@@ -509,11 +526,19 @@ def plot_flux_map_over_time(
         resample_uncert_correlation (bool, optional):
             If True, uncertainties are averaged directly.
             If False, uncertainties are calculated as RMSE-like aggregation.
+        sector (str):
+            Emissions sector to plot. Default 'total'.
     Returns:
         fig (figure):
             A plot of spatial flux of the variable specified in var
             averaged over the number of time steps specified in dt.
     """
+    
+    # Check for inversion_grid and sector option
+    if 'inversion_grid' in var and sector != 'total':
+        raise ValueError(f"Currently, you cannot plot sectors other than 'total' using the inversion_grid variable. "+
+                         "Choose a non inversion_grid variable to plot other sectors.")
+    
     # Determine geographical boundaries
     map_bounds = get_map_bounds(
         region,
@@ -523,7 +548,7 @@ def plot_flux_map_over_time(
     )
 
     # Prepare datasets and resample over given periods
-    ds_dict = {m: define_var_plot(ds, var) for m, ds in ds_all.items()}
+    ds_dict = {m: define_var_plot(ds, var, sector) for m, ds in ds_all.items()}
 
     if plot_combined:
         ds_dict = align_map_data(ds_dict)
@@ -630,7 +655,8 @@ def plot_flux_map_over_time(
 
     # Add colorbar
     cbar_label = print_cbar_label(
-        ds, species_info, var, format=["variable", "species", "units"]
+        ds, species_info, var, sector=sector,
+        format=["variable", "species", "sector", "units"]
     )
     add_colorbar(
         fig,

@@ -15,6 +15,7 @@ def extract_region_flux(
     country: str,
     regions_info: dict[str, str],
     keep_country_dim: bool = False,
+    sector: str = 'total'
 ) -> dict[str, xr.Dataset]:
     """
     Finds the index of a chosen region name and extracts the country flux
@@ -80,34 +81,35 @@ def extract_region_flux(
                 ds_region = ds_region.sel({"country_2": country_list})
 
             for v in ["posterior", "prior"]:
-                ds_region[v] = ds_region[f"flux_total_{v}_country"].sum(
+                ds_region[v] = ds_region[f"flux_{sector}_{v}_country"].sum(
                     dim="country", keep_attrs=True
                 )
 
-            if "percentile_flux_total_prior_country" in ds.variables:
+
+            if f"percentile_flux_{sector}_prior_country" in ds_region.variables:
                 ds_region["sigma_prior"] = np.sqrt(
                     (
                         (
-                            ds["flux_total_prior_country"]
-                            - ds["percentile_flux_total_prior_country"].isel(
+                            ds_region[f"flux_{sector}_prior_country"]
+                            - ds_region[f"percentile_flux_{sector}_prior_country"].isel(
                                 percentile=min_percentile_index
                             )
                         )
                         ** 2
                     ).sum(dim="country")
                 )
-            elif "stdev_flux_total_prior_country" in ds.variables:
+            elif f"stdev_flux_{sector}_prior_country" in ds_region.variables:
                 ds_region["sigma_prior"] = np.sqrt(
-                    ((ds["stdev_flux_total_prior_country"]) ** 2).sum(dim="country")
+                    ((ds_region[f"stdev_flux_{sector}_prior_country"]) ** 2).sum(dim="country")
                 )
             else:
                 ds_region["sigma_prior"] = xr.zeros_like(
-                    ds_region["flux_total_prior_country"]
+                    ds_region[f"flux_{sector}_prior_country"]
                 ).sum(dim="country")
 
-            if "covariance_flux_total_posterior_country" in ds.variables:
+            if f"covariance_flux_{sector}_posterior_country" in ds_region.variables:
                 ds_region["sigma_posterior"] = np.sqrt(
-                    ds_region["covariance_flux_total_posterior_country"]
+                    ds_region[f"covariance_flux_{sector}_posterior_country"]
                     .sum(dim="country")
                     .sum(dim="country_2")
                 )
@@ -126,9 +128,9 @@ def extract_region_flux(
             ds_region = ds.sel({"country": country_search})
 
             for v in ["posterior", "prior"]:
-                ds_region[v] = ds_region[f"flux_total_{v}_country"]
-                var_percentile = f"percentile_flux_total_{v}_country"
-                var_stdev = f"stdev_flux_total_{v}_country"
+                ds_region[v] = ds_region[f"flux_{sector}_{v}_country"]
+                var_percentile = f"percentile_flux_{sector}_{v}_country"
+                var_stdev = f"stdev_flux_{sector}_{v}_country"
 
                 if var_percentile in ds_region.variables:
                     da = ds_region[var_percentile]
@@ -154,7 +156,7 @@ def extract_region_flux(
                         f"Using {var_stdev} to plot {m} {v} country flux 68.2% confidence interval."
                     )
                 else:
-                    da = ds_region[f"flux_total_{v}_country"]
+                    da = ds_region[f"flux_{sector}_{v}_country"]
                     ds_region[f"{v}_lower"] = da
                     ds_region[f"{v}_upper"] = da
 
@@ -194,6 +196,7 @@ def extract_region_inventory_flux(
     r_data: dict[str, str],
     inventory_year: int | str | None,
     inventory_filename: str,
+    sector: str = 'total'
 ) -> xr.Dataset:
     """
     Extracts inventory flux values for regions that exists,
@@ -240,9 +243,9 @@ def extract_region_inventory_flux(
             logger.warning(f"Inventory is missing data: {inv_ds_all.attrs['missing_data']}")
     else:
         logger.warning(f'No missing_data variable available in inventory files, assuming all data present.')
-    
+        
     #first option left for compatability with older inventory netcdfs, can be removed later
-    inv_ds = inv_ds_all['inventory'] if 'inventory' in inv_ds_all.keys() else inv_ds_all["flux_total_inventory_country"]
+    inv_ds = inv_ds_all['inventory'] if 'inventory' in inv_ds_all.keys() else inv_ds_all[f"flux_{sector}_inventory_country"]
 
     gwp = 1
     target_unit = unit
@@ -266,7 +269,7 @@ def extract_region_inventory_flux(
     country_codes = r_data.get("country_codes", {})
     # Look for the code if country_codes is defined, otherwise assume the code was given as input
     country_search = country_codes.get(country, country)
-    
+        
     if country_search in inv_ds["country"]:
         return inv_ds.sel(country=country_search) # new format
     elif country in inv_ds["country"]:
@@ -286,6 +289,6 @@ def extract_region_inventory_flux(
         )
     elif country_search in available_countries:
         inv_ds = inv_ds.sel({"country": country_search})
-
+        
     return inv_ds.sum(dim="country", keep_attrs=True)
 

@@ -20,6 +20,7 @@ authors = [
   {name = "Lionel Constantin", email = "lionel.constantin@empa.ch"},
   {name = "Stephan Henne", email = "stephan.henne@empa.ch"},
   {name = "Joël Thanwerdas", email = "joel.thanwerdas@empa.ch"},
+  {name = "Valentin Bruch"},
 ]
 maintainers = [
   {name = "Alexandre Danjou", email = "alexandre.danjou@bristol.ac.uk"},

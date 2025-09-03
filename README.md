@@ -14,6 +14,12 @@ pip install -e .
 ```
 Note: in the ICOS Jupyter Hub, you might need to restart the kernel so that package fluxy is found.
 
+## Quick start 
+
+If you want to try fluxy, the easiest way is to run the example notebook `scripts/example_basics.ipynb`.
+It will run with some test data and show you what fluxy can do.
+
+
 ## Prepare input files
 ### 1. Flux and concentration netCDF files with model results
 

@@ -11,7 +11,11 @@ test_models = [
     "ELRIS_NAME_EUROPE_EDGAR",
 ]
 
-def get_loaded_models(
+test_models_with_inlet = [
+    "InTEM_NAME_EUROPE_EDGAR"
+]
+
+def get_loaded_models(test_models: list[str],
     file_type: Literal["concentration", "flux"],
 ) -> dict[str, xr.Dataset]:
     """

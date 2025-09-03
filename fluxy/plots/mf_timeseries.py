@@ -14,6 +14,7 @@ from fluxy.operators.select import (
     get_site_index,
     get_unique_sites,
     slice_site,
+    get_unique_site_height_pairs,
 )
 from fluxy.plots.utils import set_min_decimal_points
 
@@ -37,6 +38,7 @@ def plot_mf_timeseries(
     diff_include: list[str] | None = None,
     y_lim: None | list[float] = None,
     time_freq_min: FrequencyType = None,
+    intake_height: int | None = None,
 ):
     """
     Timeseries plots of observations, modelled mole fractions, baseline mf and/or
@@ -189,7 +191,22 @@ def plot_mf_timeseries(
                     )
 
                 if unc_var not in ds_plot.keys():
-                    raise KeyError(f"Variable {unc_var} not found in {m}.")
+                    if "percentile" in unc_var:
+                        unc_var_in = unc_var
+                        unc_var = unc_var.replace("percentile", "stdev")
+
+                    elif "stdev" in unc_var:
+                        unc_var_in = unc_var
+                        unc_var = unc_var.replace("stdev", "percentile")
+
+                    if unc_var not in ds_plot.keys():
+                        raise KeyError(
+                            f"Variables {unc_var_in} and {unc_var} not found in {m}."
+                        )
+                    else:
+                        logger.warning(
+                            f"Variable {unc_var_in} not found in {m} so reading uncert from {unc_var}."
+                        )
 
                 if unc_var.split("_")[0] == "percentile":
                     # Add uncertainty band
@@ -245,9 +262,15 @@ def plot_mf_timeseries(
             )
 
         # Set timeseries y-axis label and legend
+
+        height_label = ""
+        if intake_height is not None:
+            height_label = f"-{intake_height}m"
+
         ax[iax, 0].set_ylabel(
-            f'{species_info["species_print"]} {site} ({plot_units[0]})'
+            f'{species_info["species_print"]} {site}{height_label} ({plot_units[0]})'
         )
+
         leg = ax[iax, 0].legend(ncol=2, borderpad=0.2, columnspacing=1.0)
         try:
             for l in leg.legend_handles:
@@ -290,7 +313,14 @@ def plot_mf_timeseries(
 
 
 def plot_sites_timeseries(
-    ds_all, var, start_date, end_date, model_colors, model_labels, margin: float = 0.1
+    ds_all,
+    var,
+    start_date,
+    end_date,
+    model_colors,
+    model_labels,
+    margin: float = 0.1,
+    separate_by_height: bool = False,
 ):
     """
     Plot the timeseries of data available for each site and model.
@@ -309,23 +339,30 @@ def plot_sites_timeseries(
             Models and corresponding colours used to plot the model.
         model_labels (dict of dict):
             Dictionary with model lables.
+        separate_by_height (bool):
+            If True, separates obs by intake height and by site.
     """
 
     models = ds_all.keys()
     dt_start_date = np.datetime64(start_date)
     dt_end_date = np.datetime64(end_date)
-    siteList = get_unique_sites(ds_all)
     model_labels_copy = model_labels.copy()
 
+    # create list of grouped site-height pairs
+    site_list = get_unique_site_height_pairs(ds_all,separate_by_height)
+
     # Create figure
-    fig, ax = plt.subplots(1, 1, figsize=(0.7 * len(siteList), 8))
+    fig, ax = plt.subplots(1, 1, figsize=(0.7 * len(site_list), 8))
 
     assert margin < 0.5, "Margin must be smaller than 0.5"
     assert margin > 0, "Margin must be positive"
 
-    model_offset = (1 - 2 * margin) / (len(models) - 1)
+    if len(models) > 1:
+        model_offset = (1 - 2 * margin) / (len(models) - 1)
+    else:
+        model_offset = 1
 
-    for site_iter, site in enumerate(siteList):
+    for site_iter, (site, height) in enumerate(site_list):
         if site_iter != 0:
             # Add grey vertical line between sites
             ax.plot(
@@ -346,6 +383,8 @@ def plot_sites_timeseries(
             mask = (ds_all[m]["number_of_identifier"] == site_index) & (
                 ds_all[m][var].notnull()
             )
+            if separate_by_height:
+                mask &= ds_all[m]["intake_height"] == height
             data = ds_all[m]["time"].where(mask, drop=True)
             ax.scatter(
                 (site_iter + model_offset * i - 0.5 + margin) * np.ones(data.size),
@@ -363,8 +402,9 @@ def plot_sites_timeseries(
         dt_start_date - np.timedelta64(1, "D"), dt_end_date + np.timedelta64(1, "D")
     )
 
-    ax.set_xticks(np.arange(siteList.size))
-    ax.set_xticklabels(siteList)
+    ax.set_xticks(np.arange(len(site_list)))
+    xticklabels = [f"{s}\n{int(h)}m" if separate_by_height else s for (s, h) in site_list]
+    ax.set_xticklabels(xticklabels)
 
     if (
         int(dt_end_date.astype("datetime64[M]") - dt_start_date.astype("datetime64[M]"))
@@ -377,7 +417,7 @@ def plot_sites_timeseries(
         ax.yaxis.set_major_locator(MonthLocator())
     ax.yaxis.grid(True, which="major")
 
-    ax.set_xlim(-0.5, siteList.size - 0.5)
+    ax.set_xlim(-0.5, len(site_list) - 0.5)
 
     plt.legend(loc="lower right", markerscale=4, bbox_to_anchor=(1, 1))
 

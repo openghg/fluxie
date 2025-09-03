@@ -89,7 +89,8 @@ def print_cbar_label(
     ds: xr.Dataset,
     species_info: dict,
     var: str = None,
-    format: list[str] = ["variable", "species", "units", "time"],
+    sector: str = 'total',
+    format: list[str] = ["variable", "sector", "species", "units", "time"],
 ) -> str:
     """
     Generate a colorbar label for a dataset variable.
@@ -118,8 +119,10 @@ def print_cbar_label(
     )
 
     units_label = f"({get_units(ds[var])})" if "units" in format else ""
+    
+    sector_label = f"{sector}" if "sector" in format else ""
 
-    middle_label = " ".join(filter(None, [species_label, units_label]))
+    middle_label = " ".join(filter(None, [species_label, sector_label, units_label]))
 
     time_label = ""
     if "time" in format:

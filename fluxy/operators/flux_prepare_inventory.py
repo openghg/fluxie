@@ -17,6 +17,7 @@ def retrieve_inventories(
     r_data: dict[str, dict],
     inventory_years: list[str] | None,
     inventory_filename: str,
+    sector: str = 'total'
 ) -> list[xr.Dataset]:
     """
     Load (in a list) inventories data to be plotted.
@@ -31,6 +32,7 @@ def retrieve_inventories(
         r_data: Dictionary with country and region names (read from json file).
         inventory_years: List of inventory data from different years to include. If None, only plots the most recent inventory data.
         inventory_filename: Name of inventory file: {inventory_filename}_{species}_{inventory_year}
+        sector: Emissions sector, default 'total'
     Returns:
         inventories_list : list of inventory data to be plotted.
 
@@ -53,7 +55,8 @@ def retrieve_inventories(
             s_data,
             r_data,
             inventory_year=year,
-            inventory_filename=inventory_filename
+            inventory_filename=inventory_filename,
+            sector=sector,
         )
         ds_inv.attrs["plot_color"] = inv_color
         inventories_list.append(ds_inv.sel(time=slice(start_date, end_date)))

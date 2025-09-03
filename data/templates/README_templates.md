@@ -95,3 +95,25 @@ The most important variables are described below. Please refer to the cdl files 
 | stdev_mf_model                  | mol mol-1 | index      | Model uncertainty of simulated mole fraction
 
 (3) fluxy also accepts ppm, ppb and ppt. However, please make sure that all variables have the same units.
+
+## 3. Inventory file
+
+Contains national inventory fluxes as submitted to the UNFCCC.
+
+## 4. Baseline timestamps file
+
+Timestamps that are defined as baseline timestamps. In the PAR-AVE-EYE setup, these timestamps are 
+found by InTEM, by considering wind direction and flux sensitivity information from back-trajectory
+transport model output.
+
+## 5. Cell area file
+
+By default, the cell_area variable is read from each model's flux file
+and used during the calculation of sector-level region/country monthly/annual flux totals from 
+sector-level spatial fluxes. The cell area file is only required when this 
+variable is not available.
+
+## 6. Sector flux file
+
+Spatial flux data for each emissions sector, either from an inventory or bottom-up model.
+This is data used to scale model total fluxes into model sector fluxes.
