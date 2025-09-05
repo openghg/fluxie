@@ -3,7 +3,6 @@ from typing import Literal
 import matplotlib.pyplot as plt
 import xarray as xr
 
-from fluxy import config
 from fluxy.operators.flux_align_dataset import align_map_data
 from fluxy.operators.flux_combine import combine_map_dataset
 from fluxy.operators.flux_map_diff import define_var_plot, make_model_diff_ds
@@ -14,6 +13,7 @@ from fluxy.plots.utils import (
     add_custom_markers,
     add_site_markers,
     compute_boundary_geometry,
+    define_flux_label,
     define_map_figsize,
     get_map_bounds,
     get_active_sites_coordinates,
@@ -122,16 +122,14 @@ def plot_flux_map(
 
     # Define variables
     var_prior = f"flux_{sector}_prior"
-    var_posterior = (
-        f"flux_{sector}_posterior_inversion_grid"
-        if plot_inversion_grid_flux
-        else f"flux_{sector}_posterior"
-    )
-    var_diff = (
-        "posterior_prior_diff_inversion_grid"
-        if plot_inversion_grid_flux
-        else "posterior_prior_diff"
-    )
+    var_posterior = f"flux_{sector}_posterior"
+    var_diff = "posterior_prior_diff"
+
+    if plot_inversion_grid_flux:
+        var_prior += "_inversion_grid"
+        var_posterior += "_inversion_grid"
+        var_diff += "_inversion_grid"
+
     if only == "posterior":
         vars_list = [var_posterior]
         var_fluxlim = var_posterior
@@ -220,7 +218,7 @@ def plot_flux_map(
                 ax_i.set_title(model_labels.get(model, model))
             # Row titles
             if col == 0:
-                ax_i.set_ylabel(config.flux_labels[var])
+                ax_i.set_ylabel(define_flux_label(var))
 
             # Add sites and markers if specified
             if add_sites and sites_info:
