@@ -215,6 +215,12 @@ def plot_flux_map(
             ax_i.set_ylim(map_bounds[2:])  # Latitude limits
             ax_i.set_aspect(1)
 
+            # Adjust ticks layout
+            if row < n_rows - 1:    
+                ax_i.set_xticklabels([])
+            if col > 0:
+                ax_i.set_yticklabels([])
+
             # Add titles
             # Column titles
             if row == 0:
@@ -421,6 +427,10 @@ def plot_flux_map_model_comparison(
         ax_i.set_xlim(map_bounds[:2])  # Longitude limits
         ax_i.set_ylim(map_bounds[2:])  # Latitude limits
         ax_i.set_aspect(1)
+
+        # Adjust ticks layout
+        if col > 0:
+            ax_i.set_yticklabels([])
 
         # Add titles
         if model == "diff":
