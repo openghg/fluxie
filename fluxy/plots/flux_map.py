@@ -2,6 +2,7 @@ from typing import Literal
 
 import matplotlib.pyplot as plt
 import xarray as xr
+import numpy as np
 
 from fluxy import config
 from fluxy.operators.flux_align_dataset import align_map_data
@@ -609,12 +610,18 @@ def plot_flux_map_over_time(
     n_rows = len(ds_dict.keys())
     n_cols = len(time_labels)
 
-    if n_rows * n_cols == 4:
-        # Re-organize the data for a nicer display
-        fig, ax = plt.subplots(2, 2, figsize=(2 * 4.2, 2 * 3))
+    is_single_season = chop_by == "season" and n_rows == 1
+    if is_single_season:
+        figsize = define_map_figsize(
+            map_bounds, 2, 2, fixed_value=7, fixed_dimension="width"
+        )
+        fig, ax = plt.subplots(2, 2, figsize=figsize, layout='compressed')
         ax = ax.flatten()
     else:
-        fig, ax = plt.subplots(n_rows, n_cols, figsize=(n_cols * 4, n_rows * 3))
+        figsize = define_map_figsize(
+            map_bounds, n_rows, n_cols, fixed_value=3*n_cols, fixed_dimension="width"
+        )
+        fig, ax = plt.subplots(n_rows, n_cols, figsize=figsize, layout='compressed')
 
     for row, (model, ds) in enumerate(ds_dict.items()):
         lon, lat = ds.longitude, ds.latitude
@@ -648,11 +655,23 @@ def plot_flux_map_over_time(
             ax_i.set_ylim(map_bounds[2:])  # Latitude limits
             ax_i.set_aspect(1)
 
+            # Adjust ticks layout
+            if is_single_season:
+                if col in [0, 1]:
+                    ax_i.set_xticklabels([])
+                if col in [1, 3]:
+                    ax_i.set_yticklabels([])
+            else:
+                if row < n_rows - 1:
+                    ax_i.set_xticklabels([])
+                if col > 0:
+                    ax_i.set_yticklabels([])
+
             # Add titles
             if row == 0:
                 # Column titles
                 ax_i.set_title(time_label)
-            if not plot_combined and col == 0:
+            if col == 0 and n_rows !=1:
                 # Row titles
                 ax_i.set_ylabel(model_labels.get(model, model))
 

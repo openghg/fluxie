@@ -73,11 +73,20 @@ def add_colorbar(fig, ax, im, extend, label, n_cbar, idx_cbar, colorbar_type="ro
         cbar = fig.colorbar(im, cax=cax, orientation="horizontal", extend=extend)
 
     elif colorbar_type == "figure":
-        cbar_ax = fig.add_axes(
-            [0.92, 0.11, 0.015, 0.77]
-        )  # [left, bottom, width, height]
+        nrows = fig.axes[0].get_subplotspec().get_gridspec().nrows
+        ncols = fig.axes[0].get_subplotspec().get_gridspec().ncols
+        ax_dim = np.array(ax).ndim
+
+        if ax_dim == 1:
+            if nrows ==2 and ncols ==2: # single_season case
+                target_ax = [ax[1], ax[3]]
+            else:
+                target_ax = ax[-1]
+        elif ax_dim == 2:
+            target_ax = ax[:, -1]
+
         cbar = fig.colorbar(
-            im, cax=cbar_ax, orientation="vertical", extend=extend, shrink=1, pad=0.01
+            im, ax=target_ax, orientation="vertical", extend=extend
         )
 
     else:
