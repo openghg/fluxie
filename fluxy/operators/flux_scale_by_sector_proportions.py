@@ -9,6 +9,79 @@ from fluxy.operators.flux_align_dataset import align_lat_lon
 logger = logging.getLogger(__name__)
 
 
+def open_and_align_sector_dataset(
+    sector_prop_path: str, ds_ref: xr.Dataset
+) -> xr.Dataset:
+    """
+    Open dataset containing prior sector fluxes and align it temporaly an spatially on reference dataset.
+
+    Args:
+        sector_prop_path: path to dataset containing prior sector fluxes
+        ds_ref: datset used as reference to align along
+
+    Returns:
+        ds_sectors: dataset with prior sector fluxes align on reference dataset
+    """
+
+    with xr.open_dataset(sector_prop_path) as f:
+        # timely align sector dataset on main dataset
+        freq_ds = ds_ref.attrs["frequency"]
+        if xr.infer_freq(f.time) not in ["YS-JAN", "AS-JAN"] or freq_ds not in [
+            "monthly",
+            "yearly",
+        ]:
+            raise ValueError(
+                "This part of the code as not be tested for a sector file with frequency not equal to 'YS-JAN' or dataset frequency not one of 'monthly'/'yearly'. In the current implementation, the sector file frequency is suppose to be bugger or equal to the dataset frequency and start before or at the same time as the dataset."
+            )
+
+        ds_sectors = f.sel(time=ds_ref["time"].values, method="ffill")
+        ds_sectors["time"] = ds_ref["time"]
+
+        # spatially align sector dataset on main dataset
+        ds_sectors = ds_sectors.rename({"lat": "latitude", "lon": "longitude"})
+        _, ds_sectors = align_lat_lon([ds_ref, ds_sectors], "latitude")
+        _, ds_sectors = align_lat_lon([ds_ref, ds_sectors], "longitude")
+
+    return ds_sectors
+
+
+def create_cell_area(
+    ds_ref: xr.Dataset, cell_area_test_file: bool, sector_file: str
+) -> xr.DataArray:
+    """
+    Open dataset containing prior sector fluxes and align it temporaly an spatially on reference dataset.
+
+    Args:
+        ds_ref: path to dataset containing prior sector fluxes
+        cell_area_test_file:
+            Only used in tests. If True, extracts cell_area from a smaller test file
+            with restricted lat/lons.
+        sector_file: used to define domain if domain not in ds_ref attributes
+
+    Returns:
+        cell_area: dataarray containing cell size
+    """
+    parent_dir = Path(__file__).parent.parent.parent
+    if cell_area_test_file:
+        configs_dir = parent_dir / "data" / "tests" / "configs"
+    else:
+        configs_dir = parent_dir / "configs"
+    if "domain" in ds_ref.attrs:
+        domain = ds_ref.attrs["domain"]
+    else:
+        domain = sector_file.split("_")[0]
+        logger.warning(
+            f"No domain info in dataset attributes, so reading domain from sector_filename: {domain}"
+        )
+    with xr.open_dataset(os.path.join(configs_dir, f"{domain}_cell_area.nc")) as f:
+        cell_area = f.cell_area
+
+    _, cell_area = align_lat_lon([ds_ref, cell_area], "latitude")
+    _, cell_area = align_lat_lon([ds_ref, cell_area], "longitude")
+
+    return cell_area
+
+
 def scale_by_sector_proportions(
     data_dir: str,
     ds_all: dict[xr.Dataset],
@@ -19,7 +92,7 @@ def scale_by_sector_proportions(
     sector_file: str = "EUROPE_EDGAR",
     create_region_sector_totals: bool = True,
     sectors: list[str] | None = None,
-    cell_area_test_file: bool = False
+    cell_area_test_file: bool = False,
 ) -> xr.Dataset:
     """
     Produces sector level fluxes by scaling prior and posterior fluxes by the
@@ -57,9 +130,10 @@ def scale_by_sector_proportions(
             If regions is not None, also contains region/country sector total variables.
     """
 
-    logger.warning(f"Scaling fluxes to create sector flux totals, this can be slow (>1 minute to run) if using lots of models and regions.")
+    logger.warning(
+        f"Scaling fluxes to create sector flux totals, this can be slow (>1 minute to run) if using lots of models and regions."
+    )
 
-    country_codes = config_data["regions_info"].get("country_codes", {})
     r_data = config_data.get("regions_info", {})["country_codes"]
 
     # list of both grouped country code (e.g. BEL-LUX-NLD) and separated country codes
@@ -77,39 +151,23 @@ def scale_by_sector_proportions(
         data_dir, "sector_flux", f"{sector_file}_{species}_yearly_flux_sectors.nc"
     )
 
-    logger.warning(f"Using {sector_prop_path} to scale total fluxes into sector fluxes.")
+    logger.warning(
+        f"Using {sector_prop_path} to scale total fluxes into sector fluxes."
+    )
 
     ds_all_out = {}
     scaling_factor_all = {}
 
-    for m, model in enumerate(ds_all.keys()):
+    for m, (model, ds) in enumerate(ds_all.items()):
 
-        ds = ds_all[model]
-        with xr.open_dataset(sector_prop_path) as f:
-            # timely align sector dataset on main dataset
-            freq_ds = ds.attrs["frequency"]
-            if xr.infer_freq(f.time) not in ["YS-JAN","AS-JAN"] or freq_ds not in [
-                "monthly",
-                "yearly",
-            ]:
-                raise ValueError(
-                    "This part of the code as not be tested for a sector file with frequency not equal to 'YS-JAN' or dataset frequency not one of 'monthly'/'yearly'. In the current implementation, the sector file frequency is suppose to be bugger or equal to the dataset frequency and start before or at the same time as the dataset."
-                )
-                
-            ds_sectors = f.sel(time=ds["time"].values, method="ffill")
-            ds_sectors["time"] = ds["time"]
+        ds_sectors = open_and_align_sector_dataset(sector_prop_path, ds)
 
-            # spatially align sector dataset on main dataset
-            ds_sectors = ds_sectors.rename({"lat": "latitude", "lon": "longitude"})
-            _, ds_sectors = align_lat_lon([ds, ds_sectors], "latitude")
-            _, ds_sectors = align_lat_lon([ds, ds_sectors], "longitude")
-
-            if m == 0 and sectors == None:
-                sectors = [v.split("_")[-1] for v in ds_sectors if "total" not in v]
-                logger.warning(
-                    "No sectors specified, so reading sector list from sector_flux file:"
-                )
-                logger.warning(f"Using sectors: {sectors}")
+        if m == 0 and sectors == None:
+            sectors = [v.split("_")[-1] for v in ds_sectors if "total" not in v]
+            logger.warning(
+                "No sectors specified, so reading sector list from sector_flux file:"
+            )
+            logger.warning(f"Using sectors: {sectors}")
 
         # Convert prior and posterior flux for each sector
         for s in sectors:
@@ -118,21 +176,16 @@ def scale_by_sector_proportions(
                 ds_sectors["flux_total"] != 0, 0
             )
 
-            ds[f"flux_{s}_prior"] = ds["flux_total_prior"] * scaling_factor_all[s]
-            ds[f"flux_{s}_prior"].attrs = {
-                "units": ds["flux_total_prior"].attrs["units"],
-                "_FillValue": np.nan,
-                "long_name": f"prior {s} {species} flux, created by scaling total flux by sector proportions",
-            }
+            for suff in ["posterior", "prior"]:
+                ds[f"flux_{s}_{suff}"] = (
+                    ds[f"flux_total_{suff}"] * scaling_factor_all[s]
+                )
+                ds[f"flux_{s}_{suff}"].attrs = {
+                    "units": ds[f"flux_total_{suff}"].attrs["units"],
+                    "_FillValue": np.nan,
+                    "long_name": f"{suff} {s} {species} flux, created by scaling total flux by sector proportions",
+                }
 
-            ds[f"flux_{s}_posterior"] = (
-                ds["flux_total_posterior"] * scaling_factor_all[s]
-            )
-            ds[f"flux_{s}_posterior"].attrs = {
-                "units": ds["flux_total_posterior"].attrs["units"],
-                "_FillValue": np.nan,
-                "long_name": f"posterior total {species} {s} flux, created by scaling total flux by sector proportions",
-            }
         # Convert prior and posterior country flux for each sector if needed
         if create_region_sector_totals:
             # derive factor for unit conversion
@@ -152,87 +205,59 @@ def scale_by_sector_proportions(
 
             # check for cell_area and create if needed
             if "cell_area" not in ds:
-                parent_dir = Path(__file__).parent.parent.parent
-                if cell_area_test_file:
-                    configs_dir = parent_dir / "data" / "tests" / "configs"
-                else:
-                    configs_dir = parent_dir / "configs"
-                if "domain" in ds.attrs:
-                    domain = ds.attrs["domain"]
-                else:
-                    domain = sector_file.split("_")[0]
-                    logger.warning(
-                        f"No domain info in dataset attributes, so reading domain from sector_filename: {domain}"
-                    )
-                with xr.open_dataset(
-                    os.path.join(configs_dir, f"{domain}_cell_area.nc")
-                ) as f:
-                    cell_area = f.cell_area
-
-                _, cell_area = align_lat_lon([ds, cell_area], "latitude")
-                _, cell_area = align_lat_lon([ds, cell_area], "longitude")
-                ds["cell_area"] = cell_area
-
+                ds["cell_area"] = create_cell_area(ds, cell_area_test_file, sector_file)
             logger.warning(
                 "cell_area should be in meter square and flux in something per m-2. No check is made on this for the moment."
             )
 
             # calculate sector country flux (prior/posterior) from sector flux (prior/posterior), cell_area, country_fraction and unit_factor
             for i, s in enumerate(sectors):
-
                 if regions:
+                    ds_flux_country_list = list()
 
-                    ds[f"flux_{s}_prior_country"] = ds[
-                        "flux_total_prior_country"
-                    ].copy()
-                    ds[f"flux_{s}_posterior_country"] = ds[
-                        "flux_total_posterior_country"
-                    ].copy()
+                    for country in np.unique(region_codes):
+                        if country not in ds.country:
+                            continue
+                        tmp_list = []
+                        for suff in ["posterior", "prior"]:
+                            tmp_list.append(
+                                (
+                                    ds[f"flux_{s}_{suff}"]
+                                    * ds["country_fraction"].sel(country=country)
+                                    * ds["cell_area"]
+                                ).sum(dim=["latitude", "longitude"])
+                                * units_factor
+                            )
+                            tmp_list[-1].name = f"flux_{s}_{suff}_country"
+                        ds_flux_country_list.append(
+                            xr.merge(tmp_list, compat="no_conflicts")
+                        )
 
-                    for c, c_test in enumerate(ds["country"].values):
+                    ds_flux_country = xr.concat(ds_flux_country_list, dim="country")
 
-                        if c_test in region_codes:
-                            ds[f"flux_{s}_prior_country"][:, c] = (
-                                ds[f"flux_{s}_prior"]
-                                * ds["country_fraction"][c, :, :]
-                                * ds["cell_area"]
-                            ).sum(dim=["latitude", "longitude"]) * units_factor
-                            ds[f"flux_{s}_posterior_country"][:, c] = (
-                                ds[f"flux_{s}_posterior"]
-                                * ds["country_fraction"][c, :, :]
-                                * ds["cell_area"]
-                            ).sum(dim=["latitude", "longitude"]) * units_factor
-
-                        else:
-                            ds[f"flux_{s}_prior_country"][:, c] = 0.0
-                            ds[f"flux_{s}_posterior_country"][:, c] = 0.0
+                    ds = xr.merge(
+                        [ds, ds_flux_country], compat="no_conflicts", join="outer"
+                    )
 
                 else:
                     if i == 0 and m == 0:
                         logger.warning(
                             "Calculating sector fluxes for all regions. This can be very slow."
                         )
+                    for suff in ["posterior", "prior"]:
+                        ds[f"flux_{s}_{suff}_country"] = (
+                            ds[f"flux_{s}_{suff}"]
+                            * ds["country_fraction"]
+                            * ds["cell_area"]
+                        ).sum(dim=["latitude", "longitude"]) * units_factor
 
-                    ds[f"flux_{s}_prior_country"] = (
-                        ds[f"flux_{s}_prior"] * ds["country_fraction"] * ds["cell_area"]
-                    ).sum(dim=["latitude", "longitude"]) * units_factor
-                    ds[f"flux_{s}_posterior_country"] = (
-                        ds[f"flux_{s}_posterior"]
-                        * ds["country_fraction"]
-                        * ds["cell_area"]
-                    ).sum(dim=["latitude", "longitude"]) * units_factor
-
-                ds[f"flux_{s}_prior_country"].attrs = {
-                    "units": country_flux_units_print,
-                    "_FillValue": np.nan,
-                    "long_name": f"country {s} {species} prior flux, created by scaling total flux by sector proportions",
-                }
-
-                ds[f"flux_{s}_posterior_country"].attrs = {
-                    "units": country_flux_units_print,
-                    "_FillValue": np.nan,
-                    "long_name": f"country {s} {species} posterior flux, created by scaling total flux by sector proportions",
-                }
+                # add atributes to created variables
+                for suff in ["posterior", "prior"]:
+                    ds[f"flux_{s}_{suff}_country"].attrs = {
+                        "units": country_flux_units_print,
+                        "_FillValue": np.nan,
+                        "long_name": f"country {s} {species} {suff} flux, created by scaling total flux by sector proportions",
+                    }
 
         ds_all_out[model] = ds
 
