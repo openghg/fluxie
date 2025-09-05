@@ -1,7 +1,8 @@
 import xarray as xr
-import logging 
+import logging
 
 logger = logging.getLogger(__name__)
+
 
 def define_var_plot(
     ds: xr.Dataset, var: str | list[str], sector: str = "total"
@@ -46,10 +47,12 @@ def define_var_plot(
             if f"flux_{sector}_prior_inversion_grid" in ds:
                 prior = f"flux_{sector}_prior_inversion_grid"
                 posterior = f"flux_{sector}_posterior_inversion_grid"
-            else :
+            else:
                 prior = f"flux_{sector}_prior"
                 posterior = f"flux_{sector}_posterior"
-                logger.warning(f"'flux_{sector}_prior_inversion_grid' not found in dataset(s) (inversion system = {ds.attrs['inversion_system']}), comparison is made on prior grid for this model.")
+                logger.warning(
+                    f"'flux_{sector}_prior_inversion_grid' not found in dataset(s) (inversion system = {ds.attrs['inversion_system']}), comparison is made on prior grid for this model."
+                )
             ds_output[var_p] = ds[posterior] - ds[prior]
 
         elif var_p == "posterior_mean_diff_inversion_grid":
@@ -62,8 +65,10 @@ def define_var_plot(
                 var_p_bis = var_p
             else:
                 if "prior_inversion_grid" in var_p:
-                    var_p_bis = var_p.replace("_inversion_grid","")
-                    logger.warning(f"'{var_p}' not found in dataset(s) (inversion system = {ds.attrs['inversion_system']}), replaced by '{var_p_bis}' for this model.")
+                    var_p_bis = var_p.replace("_inversion_grid", "")
+                    logger.warning(
+                        f"'{var_p}' not found in dataset(s) (inversion system = {ds.attrs['inversion_system']}), replaced by '{var_p_bis}' for this model."
+                    )
                 else:
                     raise ValueError(f"'{var_p}' not found in dataset(s)")
             ds_output[var_p] = ds[var_p_bis]

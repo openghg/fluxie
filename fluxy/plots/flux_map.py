@@ -2,7 +2,7 @@ from typing import Literal
 
 import matplotlib.pyplot as plt
 import xarray as xr
-import logging 
+import logging
 
 from fluxy.operators.flux_align_dataset import align_map_data
 from fluxy.operators.flux_combine import combine_map_dataset
@@ -24,6 +24,7 @@ from fluxy.plots.utils import (
 )
 
 logger = logging.getLogger(__name__)
+
 
 def plot_flux_map(
     ds_all: dict[xr.Dataset],
@@ -114,7 +115,9 @@ def plot_flux_map(
             + "Set plot_inversion_grid_flux to False to plot other sectors."
         )
     if "inversion_grid" in var:
-        logger.warning("Be sure that ALL your datasets contains posterior AND prior on inversion grid, otherwise it could lead to strange results.")
+        logger.warning(
+            "Be sure that ALL your datasets contains posterior AND prior on inversion grid, otherwise it could lead to strange results."
+        )
 
     # Determine geographical boundaries
     map_bounds = get_map_bounds(
@@ -343,7 +346,9 @@ def plot_flux_map_model_comparison(
             + "Choose a non inversion_grid variable to plot other sectors."
         )
     if "inversion_grid" in var:
-        logger.warning("Be sure that ALL your datasets contains posterior AND prior on inversion grid, otherwise it could lead to strange results.")
+        logger.warning(
+            "Be sure that ALL your datasets contains posterior AND prior on inversion grid, otherwise it could lead to strange results."
+        )
 
     # Models check
     model_names = list(ds_all.keys())
