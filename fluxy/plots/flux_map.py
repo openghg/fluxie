@@ -175,7 +175,7 @@ def plot_flux_map(
     figsize = define_map_figsize(
         map_bounds, n_rows, n_cols, fixed_value=3 * n_rows, fixed_dimension="height"
     )
-    fig, ax = plt.subplots(n_rows, n_cols, figsize=figsize, constrained_layout=True)
+    fig, ax = plt.subplots(n_rows, n_cols, figsize=figsize, layout='compressed')
 
     for col, (model, ds) in enumerate(ds_dict.items()):
         lon, lat = ds.longitude, ds.latitude
@@ -389,8 +389,11 @@ def plot_flux_map_model_comparison(
     # Initialize figure
     n_rows = 1
     n_cols = 3
+    figsize = define_map_figsize(
+            map_bounds, n_rows, n_cols, fixed_value=3*n_cols, fixed_dimension="width"
+        )
     fig, ax = plt.subplots(
-        n_rows, n_cols, constrained_layout=True, figsize=(n_cols * 5, 9)
+        n_rows, n_cols, figsize=figsize, layout='compressed'
     )
     for col, (model, ds) in enumerate(ds_dict.items()):
         ax_i = ax[col]
