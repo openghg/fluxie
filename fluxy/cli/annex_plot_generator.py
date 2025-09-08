@@ -136,7 +136,7 @@ def produce_plots(
 
     ### Initialization
     logger.warning(
-        "Each team should check that the right files are used. Still to be checked by RHIME, ELRIS, InTEM."
+        "Make sure standard filenames are correctly set in models_info.json."
     )
     config_data = read_config_files()
     annex_config_data = AnnexConfig(region, inventory_years)
@@ -190,7 +190,7 @@ def produce_plots(
         model_colors = set_model_colors(models_std)
         model_labels = {model: model.split("_")[0] for model in models_std}
 
-        # 1.1) Plot annual country fluxes from 2008 to 2023 from intem_longrun and combined from 3 std_run
+        # 1.1) Plot annual country fluxes over long time window
         print(f"- Annual country fluxes {start_date} - {end_date}")
         fig, res_dict = plot_country_flux(
             ds_all_flux_scaled,
@@ -223,7 +223,7 @@ def produce_plots(
             flux_units_print=annex_config_data.flux_units_print,
         )
 
-        # 1.2) Plot annual country fluxes from 2018 to 2023 from intem_longrun and combined from 3 std_run
+        # 1.2) Plot annual country fluxes over PARIS time window
         print(f"- Annual country fluxes {start_date} - {end_date}")
         fig, res_dict = plot_country_flux(
             ds_all_flux_scaled,
@@ -247,7 +247,7 @@ def produce_plots(
         annual_res = dict_to_str_dataframe(res_dict[region], inventory_years, species)
         annual_res_list.append(annual_res)
 
-        # 2) Plot monthly country fluxes from 2018 to 2023 from intem_longrun and combined from 3 std_run
+        # 2) Plot monthly country fluxes over PARIS time window
         print(f"- Monthly country fluxes")
         fig, res_dict = plot_country_flux(
             ds_all_flux_scaled,
