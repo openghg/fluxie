@@ -192,6 +192,22 @@ def test_obs_modelled_separate():
         y_lim=None,
     )
 
+def test_mf_timeseries_no_hist():
+    fig = plot_mf_timeseries(
+        ds_all_mf_sliced,
+        species,
+        site,
+        model_colors,
+        model_labels,
+        config_data,
+        annotate_coords,
+        histogram_type="none",
+        plot_type="separate",
+        include={"mf_observed": None, "mf_posterior": "percentile_mf_posterior"},
+        diff_include=["mf_posterior"],
+        y_lim=None,
+    )
+
 
 def test_obs_modelled_together():
 

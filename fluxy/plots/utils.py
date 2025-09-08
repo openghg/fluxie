@@ -1,4 +1,6 @@
+import itertools
 import numpy as np
+import pandas as pd
 import xarray as xr
 import geopandas as gpd
 import logging
@@ -9,6 +11,7 @@ from shapely.geometry import MultiPolygon, Polygon
 from typing import Literal
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib.collections import LineCollection
+import matplotlib.pyplot as plt
 from copy import deepcopy
 
 from fluxy import config
@@ -70,11 +73,22 @@ def add_colorbar(fig, ax, im, extend, label, n_cbar, idx_cbar, colorbar_type="ro
         cbar = fig.colorbar(im, cax=cax, orientation="horizontal", extend=extend)
 
     elif colorbar_type == "figure":
-        cbar_ax = fig.add_axes(
-            [0.92, 0.11, 0.015, 0.77]
-        )  # [left, bottom, width, height]
+        nrows = fig.axes[0].get_subplotspec().get_gridspec().nrows
+        ncols = fig.axes[0].get_subplotspec().get_gridspec().ncols
+        ax_dim = np.array(ax).ndim
+
+        if ax_dim == 1:
+            if nrows ==2 and ncols ==2: # single_season case
+                target_ax = [ax[1], ax[3]]
+            else:
+                target_ax = ax[:]
+        elif ax_dim == 2:
+            target_ax = ax[:, -1]
+        else:
+            target_ax = ax
+
         cbar = fig.colorbar(
-            im, cax=cbar_ax, orientation="vertical", extend=extend, shrink=1, pad=0.01
+            im, ax=target_ax, orientation="vertical", extend=extend
         )
 
     else:
@@ -792,13 +806,14 @@ def define_map_figsize(
     - n_rows: Number of subplot rows
     - n_cols: Number of subplot columns
     - fixed_value: Fixed height (if fixed_dimension="height") or fixed width (if fixed_dimension="width")
-    - fixed_dimension: "height" to fix height and adjust width, or "width" to fix width and adjust height.
+    - fixed_dimension: "height" to fix height and adjust width, or "width" to fix width and adjust height,
+    or None to adjust height and width.
 
     Returns:
     - figsize tuple (width, height)
     """
-    if fixed_dimension not in ["height", "width"]:
-        raise ValueError("fixed_dimension must be either 'height' or 'width'")
+    if fixed_dimension not in ["height", "width", None]:
+        raise ValueError("fixed_dimension must be either 'height' or 'width' or None")
 
     lon_min, lon_max, lat_min, lat_max = map_bounds
     aspect_ratio = (lat_max - lat_min) / (lon_max - lon_min)
@@ -808,10 +823,69 @@ def define_map_figsize(
         subplot_width = subplot_height / aspect_ratio
         fig_width = n_cols * subplot_width
         fig_height = fixed_value
-    else:
+    elif fixed_dimension == "width":
         subplot_width = fixed_value / n_cols
         subplot_height = subplot_width * aspect_ratio
         fig_width = fixed_value
         fig_height = n_rows * subplot_height
+    else:
+        subplot_height = fixed_value
+        fig_height = subplot_height * n_rows
+        fig_width = fig_height * aspect_ratio * n_cols
 
+    # Limit maximum figure size to avoid too large figures
+    fig_height = min(fig_height, 20)
+    fig_width = min(fig_width, 20)
     return (fig_width, fig_height)
+
+
+def stack_plot(
+    df: pd.DataFrame,
+    ax: plt.Axes | None = None,
+    area: bool = False,
+    colors_of_category: dict[str, str] = {},
+):
+    """Function to plot stacked bar plots for the emissions data.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame containing the emissions data.
+    ax : matplotlib.axes.Axes, optional
+        Axes object to plot on, by default None
+    area : bool, optional
+        If True, use area plot instead of bar plot, by default False
+    """
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(10, 6))
+    default_colors = itertools.cycle(plt.rcParams["axes.prop_cycle"].by_key()["color"])
+    colors = {
+        cat: colors_of_category.get(cat, next(default_colors)) for cat in df.columns
+    }
+    if area:
+        # Use the same labels and colors for the positive and negative values
+        total_pos = np.zeros(df.shape[0])
+        total_neg = np.zeros(df.shape[0])
+        for i, column in enumerate(df.columns):
+            values = df[column].values
+            ax.fill_between(
+                df.index,
+                y1=np.where(values >= 0, total_pos, total_neg),
+                y2=np.where(values >= 0, total_pos + values, total_neg + values),
+                color=colors.get(column, None),
+                label=column,
+            )
+            total_pos += np.clip(values, 0, None)
+            total_neg += np.clip(values, None, 0)
+
+        # ax.set_ylim(df_neg.sum(axis=1).min() * 1.1, df_pos.sum(axis=1).max() * 1.1)
+    else:
+        ax = df.plot.bar(stacked=True, ax=ax, color=colors)
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(
+        list(reversed(handles)),
+        list(reversed(labels)),
+        loc="center left",
+        bbox_to_anchor=(1, 0.5),
+    )
+    return ax

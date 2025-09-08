@@ -96,24 +96,77 @@ The most important variables are described below. Please refer to the cdl files 
 
 (3) fluxy also accepts ppm, ppb and ppt. However, please make sure that all variables have the same units.
 
-## 3. Inventory file
+## 3. Eddy covariance flux file
+
+| Characterising variables | Units                          | Dimensions | Description                                                                                   |
+| :----------------------- | :----------------------------- | :--------- | :-------------------------------------------------------------------------------------------- |
+| longitude                | degrees_east                   | index      | Sample longitude in decimal degrees                                                           |
+| latitude                 | degrees_north                  | index      | Sample latitude in decimal degrees                                                            |
+| time                     | days since 1970-01-01 00:00:00 | index      | Time of mid of observation interval in UTC                                                    |
+| time_bnds                | days since 1970-01-01 00:00:00 | index      | Start and end points of each time step                                                        |
+| altitude                 | m                              | index      | Sample altitude in meters above sea level                                                     |
+| number_of_identifier     | -                              | index      | Index of identifier of observing platform                                                     |
+| assimilation_flag        | -                              | index      | Flag indicating whether observation was used in inversion/assimilation (0: not used; 1: used) |
+| sector                   | string                         | sector     | Identifier of emission sector                                                                 |
+
+| Observation variables   | Units        | Dimensions | Description                                                                                                            |
+| :---------------------- | :----------- | :--------- | :--------------------------------------------------------------------------------------------------------------------- |
+| platform                | -            | platform   | Identifier of observing platform                                                                                       |
+| ecflux_observed         | μmol m-2 s-1 | index      | Observed eddy covariance flux of `<species>` (measured + storage flux)                                                 |
+| ecflux_measured         | μmol m-2 s-1 | index      | Measured eddy covariance flux of `<species>`                                                                           |
+| ecflux_observed_storage | μmol m-2 s-1 | index      | Measured storage flux of `<species>`                                                                                   |
+| stdev_flux_observed     | μmol m-2 s-1 | index      | Standard error of the measured flux                                                                                    |
+| md_observed             | mol m-3      | index      | Molar density observed                                                                                                 |
+| mf_observed             | μmol mol-1   | index      | Observed mole fraction of `<species>` in dry air                                                                       |
+| mr_observed             | μmol mol-1   | index      | Mixing ratio observed                                                                                                  |
+| wind_speed              | m s-1        | index      | Wind speed of the eddy covariance measurement                                                                          |
+| wind_direction          | degree       | index      | Wind direction of the eddy covariance measurement                                                                      |
+| air_temperature         | K            | index      | Air temperature of the eddy covariance measurement                                                                     |
+| air_pressure            | Pa           | index      | Air pressure of the eddy covariance measurement                                                                        |
+| qa_flag                 | int          | index      | Flag indicating quality of the eddy covariance flux measurement (0: high quality, 1: moderate quality, 2: low quality) |
+| qa_blh                  | int          | index      | Flag of the boundary layer height measurement (0 = below, 1= above)                                                    |
+| pitch                   | degree       | index      | Pitch value                                                                                                            |
+| friction_velocity       | m s-1        | index      | Friction velocity of the eddy covariance measurement                                                                   |
+
+| Simulated variables         | Units        | Dimensions | Description                                                                                      |
+| :-------------------------- | :----------- | :--------- | :----------------------------------------------------------------------------------------------- |
+| ecflux_prior                | μmol m-2 s-1 | index      | Simulated eddy covariance flux of `<species>`                                                    |
+| ecflux_posterior            | μmol m-2 s-1 | index      | Posterior simulated eddy covariance flux of `<species>`                                          |
+| stdev_ecflux_prior          | μmol m-2 s-1 | index      | Standard deviation of prior simulated eddy covariance fluxes due to state vector uncertainty     |
+| stdev_ecflux_posterior      | μmol m-2 s-1 | index      | Standard deviation of posterior simulated eddy covariance fluxes due to state vector uncertainty |
+| footprint_coverage_fraction | -            | index      | Fraction of the footprint covered by the model grid cell (max 1, min 0)                          |
+
+| _Sectorial based fluxes_
+| ecflux_sectorial_prior | μmol m-2 s-1 | index, sector | Same as `ecflux_prior` but sectorial
+| ecflux_sectorial_posterior| μmol m-2 s-1 | index, sector | Same as `ecflux_posterior` but sectorial
+| stdev_ecflux_sectorial_prior | μmol m-2 s-1 | index, sector | Same as `stdev_ecflux_prior` but sectorial
+| stdev_ecflux_sectorial_posterior| μmol m-2 s-1 | index, sector | Same as `stdev_ecflux_posterior` but sectorial
+
+| Uncertainty variables | Units        | Dimensions | Description                                      |
+| :-------------------- | :----------- | :--------- | :----------------------------------------------- |
+| stdev_ecflux_observed | μmol m-2 s-1 | index      | Total model-data-mismatch uncertainty applied in |
+| stdev_mf_model        | mol mol-1    | index      | Model uncertainty of simulated mole fraction     |
+
+
+## 4. Inventory file
 
 Contains national inventory fluxes as submitted to the UNFCCC.
 
-## 4. Baseline timestamps file
+## 5. Baseline timestamps file
 
 Timestamps that are defined as baseline timestamps. In the PAR-AVE-EYE setup, these timestamps are 
 found by InTEM, by considering wind direction and flux sensitivity information from back-trajectory
 transport model output.
 
-## 5. Cell area file
+## 6. Cell area file
 
 By default, the cell_area variable is read from each model's flux file
 and used during the calculation of sector-level region/country monthly/annual flux totals from 
 sector-level spatial fluxes. The cell area file is only required when this 
 variable is not available.
 
-## 6. Sector flux file
+## 7. Sector flux file
 
 Spatial flux data for each emissions sector, either from an inventory or bottom-up model.
 This is data used to scale model total fluxes into model sector fluxes.
+

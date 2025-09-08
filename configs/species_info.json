@@ -4,6 +4,19 @@
         "gwp": 28,
         "molar_mass": 16.04
     },
+    "co2": {
+        "species_print": "CO$_2$",
+        "gwp": 1,
+        "molar_mass": 44.01
+    },
+    "nox": {
+        "species_print": "NOx",
+        "molar_mass": 46.005
+    },
+    "co": {
+        "species_print": "CO",
+        "molar_mass": 28.01
+    },
     "hfc134a": {
         "species_print": "HFC-134a",
         "gwp": 1300,
@@ -108,7 +121,7 @@
     "n2o": {
         "species_print": "N$_2$O",
         "gwp": 265,
-        "molar_mass": 44.01
+        "molar_mass": 44.013
     },
     "ch3br": {
         "species_print": "CH$_3$Br",
