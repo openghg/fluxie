@@ -425,18 +425,21 @@ def produce_plots(
     for species in annex_config_data.combined_species:
         print(f"-- {species.upper()}")
 
+        models_std = get_species_specific_settings(
+            annex_config_data.models_yearly_species, species
+        )
+
         ### Read and scale fluxes
         ds_all_flux_scaled = read_flux_total_fgases(
             annex_config_data.data_dir,
             species,
-            annex_config_data.models_yearly_species,
+            models_std,
             config_data,
             region,
             start_date,
             end_date,
             period="yearly",
         )
-        models_std = list(ds_all_flux_scaled.keys())
 
         ### Define plotting colors
         model_colors = set_model_colors(models_std)
