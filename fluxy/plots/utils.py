@@ -496,8 +496,10 @@ def get_map_bounds(
             if all([r in ds_all[0].country for r in region.split("-")]):
                 da_mask = ds_all[0].country_fraction.sel(country=region.split("-"))
             elif region in config_data["regions_info"]["regions"]:
-                da_mask = ds_all[0].country_fraction.sel(country=config_data["regions_info"]["regions"][region].split("-"))
-            else :
+                da_mask = ds_all[0].country_fraction.sel(
+                    country=config_data["regions_info"]["regions"][region].split("-")
+                )
+            else:
                 da_mask = ds_all[0].country_fraction.sum(dim="country")
 
             clipped = (
