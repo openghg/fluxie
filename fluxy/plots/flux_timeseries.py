@@ -353,7 +353,7 @@ def plot_country_flux(
                 ds_region.time,
                 ds_region.posterior_lower,
                 ds_region.posterior_upper,
-                alpha=0.3,
+                alpha=0.2,
                 color=ds_region.attrs["model_color"],
             )
             max_cf[i] = np.nanmax(
