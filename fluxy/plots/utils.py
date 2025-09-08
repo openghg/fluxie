@@ -73,11 +73,22 @@ def add_colorbar(fig, ax, im, extend, label, n_cbar, idx_cbar, colorbar_type="ro
         cbar = fig.colorbar(im, cax=cax, orientation="horizontal", extend=extend)
 
     elif colorbar_type == "figure":
-        cbar_ax = fig.add_axes(
-            [0.92, 0.11, 0.015, 0.77]
-        )  # [left, bottom, width, height]
+        nrows = fig.axes[0].get_subplotspec().get_gridspec().nrows
+        ncols = fig.axes[0].get_subplotspec().get_gridspec().ncols
+        ax_dim = np.array(ax).ndim
+
+        if ax_dim == 1:
+            if nrows ==2 and ncols ==2: # single_season case
+                target_ax = [ax[1], ax[3]]
+            else:
+                target_ax = ax[:]
+        elif ax_dim == 2:
+            target_ax = ax[:, -1]
+        else:
+            target_ax = ax
+
         cbar = fig.colorbar(
-            im, cax=cbar_ax, orientation="vertical", extend=extend, shrink=1, pad=0.01
+            im, ax=target_ax, orientation="vertical", extend=extend
         )
 
     else:
@@ -775,13 +786,14 @@ def define_map_figsize(
     - n_rows: Number of subplot rows
     - n_cols: Number of subplot columns
     - fixed_value: Fixed height (if fixed_dimension="height") or fixed width (if fixed_dimension="width")
-    - fixed_dimension: "height" to fix height and adjust width, or "width" to fix width and adjust height.
+    - fixed_dimension: "height" to fix height and adjust width, or "width" to fix width and adjust height,
+    or None to adjust height and width.
 
     Returns:
     - figsize tuple (width, height)
     """
-    if fixed_dimension not in ["height", "width"]:
-        raise ValueError("fixed_dimension must be either 'height' or 'width'")
+    if fixed_dimension not in ["height", "width", None]:
+        raise ValueError("fixed_dimension must be either 'height' or 'width' or None")
 
     lon_min, lon_max, lat_min, lat_max = map_bounds
     aspect_ratio = (lat_max - lat_min) / (lon_max - lon_min)
@@ -791,12 +803,19 @@ def define_map_figsize(
         subplot_width = subplot_height / aspect_ratio
         fig_width = n_cols * subplot_width
         fig_height = fixed_value
-    else:
+    elif fixed_dimension == "width":
         subplot_width = fixed_value / n_cols
         subplot_height = subplot_width * aspect_ratio
         fig_width = fixed_value
         fig_height = n_rows * subplot_height
+    else:
+        subplot_height = fixed_value
+        fig_height = subplot_height * n_rows
+        fig_width = fig_height * aspect_ratio * n_cols
 
+    # Limit maximum figure size to avoid too large figures
+    fig_height = min(fig_height, 20)
+    fig_width = min(fig_width, 20)
     return (fig_width, fig_height)
 
 

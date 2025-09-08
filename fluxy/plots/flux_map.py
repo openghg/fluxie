@@ -2,6 +2,7 @@ from typing import Literal
 
 import matplotlib.pyplot as plt
 import xarray as xr
+import numpy as np
 
 from fluxy import config
 from fluxy.operators.flux_align_dataset import align_map_data
@@ -174,7 +175,7 @@ def plot_flux_map(
     figsize = define_map_figsize(
         map_bounds, n_rows, n_cols, fixed_value=3 * n_rows, fixed_dimension="height"
     )
-    fig, ax = plt.subplots(n_rows, n_cols, figsize=figsize, constrained_layout=True)
+    fig, ax = plt.subplots(n_rows, n_cols, figsize=figsize, layout='compressed')
 
     for col, (model, ds) in enumerate(ds_dict.items()):
         lon, lat = ds.longitude, ds.latitude
@@ -213,6 +214,12 @@ def plot_flux_map(
             ax_i.set_xlim(map_bounds[:2])  # Longitude limits
             ax_i.set_ylim(map_bounds[2:])  # Latitude limits
             ax_i.set_aspect(1)
+
+            # Adjust ticks layout
+            if row < n_rows - 1:    
+                ax_i.set_xticklabels([])
+            if col > 0:
+                ax_i.set_yticklabels([])
 
             # Add titles
             # Column titles
@@ -388,8 +395,11 @@ def plot_flux_map_model_comparison(
     # Initialize figure
     n_rows = 1
     n_cols = 3
+    figsize = define_map_figsize(
+            map_bounds, n_rows, n_cols, fixed_value=5*n_cols, fixed_dimension="width"
+        )
     fig, ax = plt.subplots(
-        n_rows, n_cols, constrained_layout=True, figsize=(n_cols * 5, 9)
+        n_rows, n_cols, figsize=figsize, layout='compressed'
     )
     for col, (model, ds) in enumerate(ds_dict.items()):
         ax_i = ax[col]
@@ -417,6 +427,10 @@ def plot_flux_map_model_comparison(
         ax_i.set_xlim(map_bounds[:2])  # Longitude limits
         ax_i.set_ylim(map_bounds[2:])  # Latitude limits
         ax_i.set_aspect(1)
+
+        # Adjust ticks layout
+        if col > 0:
+            ax_i.set_yticklabels([])
 
         # Add titles
         if model == "diff":
@@ -609,12 +623,21 @@ def plot_flux_map_over_time(
     n_rows = len(ds_dict.keys())
     n_cols = len(time_labels)
 
-    if n_rows * n_cols == 4:
-        # Re-organize the data for a nicer display
-        fig, ax = plt.subplots(2, 2, figsize=(2 * 4.2, 2 * 3))
-        ax = ax.flatten()
+    is_single_season = chop_by == "season" and n_rows == 1
+    if is_single_season:
+        fig_rows = 2
+        fig_cols = 2
+        fixed_value = 7
     else:
-        fig, ax = plt.subplots(n_rows, n_cols, figsize=(n_cols * 4, n_rows * 3))
+        fig_rows = n_rows
+        fig_cols = n_cols
+        fixed_value = 4*n_rows
+
+    figsize = define_map_figsize(
+            map_bounds, fig_rows, fig_cols, fixed_value=fixed_value, fixed_dimension='height'
+        )
+    fig, ax = plt.subplots(fig_rows, fig_cols, figsize=figsize, layout='compressed')
+    ax = ax.flatten() if is_single_season else ax
 
     for row, (model, ds) in enumerate(ds_dict.items()):
         lon, lat = ds.longitude, ds.latitude
@@ -648,11 +671,23 @@ def plot_flux_map_over_time(
             ax_i.set_ylim(map_bounds[2:])  # Latitude limits
             ax_i.set_aspect(1)
 
+            # Adjust ticks layout
+            if is_single_season:
+                if col in [0, 1]:
+                    ax_i.set_xticklabels([])
+                if col in [1, 3]:
+                    ax_i.set_yticklabels([])
+            else:
+                if row < n_rows - 1:
+                    ax_i.set_xticklabels([])
+                if col > 0:
+                    ax_i.set_yticklabels([])
+
             # Add titles
             if row == 0:
                 # Column titles
                 ax_i.set_title(time_label)
-            if not plot_combined and col == 0:
+            if col == 0 and not plot_combined:
                 # Row titles
                 ax_i.set_ylabel(model_labels.get(model, model))
 
