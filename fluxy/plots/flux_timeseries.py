@@ -334,7 +334,6 @@ def plot_country_flux(
             rolling_mean=rolling_mean,
             plot_resample_and_original=plot_resample_and_original,
             resample_uncert_correlation=resample_uncert_correlation,
-            annex_mode=annex_mode,
         )
 
         for m, ds_region in ds_to_plot.items():
