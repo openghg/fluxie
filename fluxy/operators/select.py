@@ -192,7 +192,8 @@ def slice_mf(
         if not keep_unassimilated:
             # Mask assimilated data only
             mask &= ds_all[m]["assimilation_flag"] == 1
-        ds_all[m] = ds_all[m].where(mask, drop=True)
+        index = ds_all[m]["time"].where(mask, drop = True).index.values
+        ds_all[m] = ds_all[m].sel(index = index)
 
         # Slice according to intake height
         if intake_height is not None:
