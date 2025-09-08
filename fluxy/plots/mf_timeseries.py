@@ -205,7 +205,7 @@ def plot_timeseries(
             if var == "mf_observed" and len(vars_to_plot) > 1:
                 plot_color = "black"
 
-            x, y = ds_all[m]["time"].values, ds_all[m][var].values
+            x, y = ds_plot["time"].values, ds_plot[var].values
             kwargs = {
                 "label": f"{model_label} {config.mf_labels.get(var, var)}",
                 "color": plot_color,
@@ -241,6 +241,7 @@ def plot_timeseries(
                         f"Option plot_type='diff' does not accept uncertainties. Replace '{unc_var}' by None."
                     )
 
+                # Accept both percentile and stdev as uncertainty variables
                 if unc_var not in ds_plot.keys():
                     if "percentile" in unc_var:
                         unc_var_in = unc_var
@@ -263,12 +264,23 @@ def plot_timeseries(
                     "color": plot_color,
                 }
 
+                # Define uncertainty band
+                flag_fill_between = False
                 if unc_var.split("_")[0] == "percentile":
+                    y1 = ds_plot[unc_var][0, :].values
+                    y2 = ds_plot[unc_var][1, :].values
+                    flag_fill_between = True
+                elif unc_var.split("_")[-1] in ["prior", "posterior"]:
+                    y1 = ds_plot[var].values - ds_plot[unc_var].values
+                    y2 = ds_plot[var].values + ds_plot[unc_var].values
+                    flag_fill_between = True
+
+                if flag_fill_between:
                     # Add uncertainty band
                     ax[iax, 0].fill_between(
                         x,
-                        y1=ds_all[m][unc_var][0, :].values,
-                        y2=ds_all[m][unc_var][1, :].values,
+                        y1=y1,
+                        y2=y2,
                         alpha=0.2,
                         **kwargs,
                     )
@@ -277,8 +289,8 @@ def plot_timeseries(
                     # Add error bar
                     ax[iax, 0].errorbar(
                         x,
-                        y=ds_all[m][var].values,
-                        yerr=ds_all[m][unc_var].values,
+                        y=ds_plot[var].values,
+                        yerr=ds_plot[unc_var].values,
                         alpha=0.4,
                         fmt="none",
                         **kwargs,
