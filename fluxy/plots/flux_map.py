@@ -115,7 +115,7 @@ def plot_flux_map(
             f"Currently, you cannot plot sectors other than 'total' using the inversion_grid variable. "
             + "Set plot_inversion_grid_flux to False to plot other sectors."
         )
-    if "inversion_grid" in var:
+    if plot_inversion_grid_flux:
         logger.warning(
             "Be sure that ALL your datasets contains posterior AND prior on inversion grid, otherwise it could lead to strange results."
         )
