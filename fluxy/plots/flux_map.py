@@ -396,7 +396,7 @@ def plot_flux_map_model_comparison(
     n_rows = 1
     n_cols = 3
     figsize = define_map_figsize(
-            map_bounds, n_rows, n_cols, fixed_value=3*n_cols, fixed_dimension="width"
+            map_bounds, n_rows, n_cols, fixed_value=5*n_cols, fixed_dimension="width"
         )
     fig, ax = plt.subplots(
         n_rows, n_cols, figsize=figsize, layout='compressed'
@@ -625,16 +625,19 @@ def plot_flux_map_over_time(
 
     is_single_season = chop_by == "season" and n_rows == 1
     if is_single_season:
-        figsize = define_map_figsize(
-            map_bounds, 2, 2, fixed_value=7, fixed_dimension="width"
-        )
-        fig, ax = plt.subplots(2, 2, figsize=figsize, layout='compressed')
-        ax = ax.flatten()
+        fig_rows = 2
+        fig_cols = 2
+        fixed_value = 7
     else:
-        figsize = define_map_figsize(
-            map_bounds, n_rows, n_cols, fixed_value=3*n_cols, fixed_dimension="width"
+        fig_rows = n_rows
+        fig_cols = n_cols
+        fixed_value = 4*n_rows
+
+    figsize = define_map_figsize(
+            map_bounds, fig_rows, fig_cols, fixed_value=fixed_value, fixed_dimension='height'
         )
-        fig, ax = plt.subplots(n_rows, n_cols, figsize=figsize, layout='compressed')
+    fig, ax = plt.subplots(fig_rows, fig_cols, figsize=figsize, layout='compressed')
+    ax = ax.flatten() if is_single_season else ax
 
     for row, (model, ds) in enumerate(ds_dict.items()):
         lon, lat = ds.longitude, ds.latitude
@@ -684,7 +687,7 @@ def plot_flux_map_over_time(
             if row == 0:
                 # Column titles
                 ax_i.set_title(time_label)
-            if col == 0 and n_rows !=1:
+            if col == 0 and not plot_combined:
                 # Row titles
                 ax_i.set_ylabel(model_labels.get(model, model))
 
