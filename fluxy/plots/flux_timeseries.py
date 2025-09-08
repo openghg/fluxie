@@ -338,11 +338,16 @@ def plot_country_flux(
 
         for m, ds_region in ds_to_plot.items():
 
+            linew = 1.5
+            if annex_mode and (m == "combined"):
+                linew = 3
+
             ax.plot(
                 ds_region.time,
                 ds_region.posterior,
                 label=ds_region.attrs["model_label"],
                 color=ds_region.attrs["model_color"],
+                linewidth=linew,
             )
             ax.fill_between(
                 ds_region.time,
