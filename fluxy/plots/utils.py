@@ -503,7 +503,16 @@ def get_map_bounds(
     if isinstance(region, str):
         # Use the non-zero country_fraction to define the clipping region, for coherence in the country definition
         if len(ds_all) > 0 and "country_fraction" in ds_all[0]:
-            da_mask = ds_all[0].country_fraction.sum(dim="country")
+            
+            if all([r in ds_all[0].country for r in region.split("-")]):
+                da_mask = ds_all[0].country_fraction.sel(country=region.split("-"))
+            elif region in config_data["regions_info"]["regions"]:
+                da_mask = ds_all[0].country_fraction.sel(
+                    country=config_data["regions_info"]["regions"][region].split("-")
+                )
+            else:
+                da_mask = ds_all[0].country_fraction.sum(dim="country")
+
             clipped = (
                 da_mask.where(da_mask != 0)
                 .dropna(dim="longitude", how="all")
