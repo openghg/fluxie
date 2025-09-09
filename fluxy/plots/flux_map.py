@@ -115,10 +115,6 @@ def plot_flux_map(
             f"Currently, you cannot plot sectors other than 'total' using the inversion_grid variable. "
             + "Set plot_inversion_grid_flux to False to plot other sectors."
         )
-    if plot_inversion_grid_flux:
-        logger.warning(
-            "Be sure that ALL your datasets contains posterior AND prior on inversion grid, otherwise it could lead to strange results."
-        )
 
     # Determine geographical boundaries
     map_bounds = get_map_bounds(
@@ -180,7 +176,7 @@ def plot_flux_map(
     figsize = define_map_figsize(
         map_bounds, n_rows, n_cols, fixed_value=3 * n_rows, fixed_dimension="height"
     )
-    fig, ax = plt.subplots(n_rows, n_cols, figsize=figsize, layout='compressed')
+    fig, ax = plt.subplots(n_rows, n_cols, figsize=figsize, layout="compressed")
 
     for col, (model, ds) in enumerate(ds_dict.items()):
         lon, lat = ds.longitude, ds.latitude
@@ -221,7 +217,7 @@ def plot_flux_map(
             ax_i.set_aspect(1)
 
             # Adjust ticks layout
-            if row < n_rows - 1:    
+            if row < n_rows - 1:
                 ax_i.set_xticklabels([])
             if col > 0:
                 ax_i.set_yticklabels([])
@@ -352,10 +348,6 @@ def plot_flux_map_model_comparison(
             f"Currently, you cannot plot sectors other than 'total' using the inversion_grid variable. "
             + "Choose a non inversion_grid variable to plot other sectors."
         )
-    if "inversion_grid" in var:
-        logger.warning(
-            "Be sure that ALL your datasets contains posterior AND prior on inversion grid, otherwise it could lead to strange results."
-        )
 
     # Models check
     model_names = list(ds_all.keys())
@@ -405,11 +397,9 @@ def plot_flux_map_model_comparison(
     n_rows = 1
     n_cols = 3
     figsize = define_map_figsize(
-            map_bounds, n_rows, n_cols, fixed_value=5*n_cols, fixed_dimension="width"
-        )
-    fig, ax = plt.subplots(
-        n_rows, n_cols, figsize=figsize, layout='compressed'
+        map_bounds, n_rows, n_cols, fixed_value=5 * n_cols, fixed_dimension="width"
     )
+    fig, ax = plt.subplots(n_rows, n_cols, figsize=figsize, layout="compressed")
     for col, (model, ds) in enumerate(ds_dict.items()):
         ax_i = ax[col]
         lon, lat = ds.longitude, ds.latitude
@@ -640,12 +630,16 @@ def plot_flux_map_over_time(
     else:
         fig_rows = n_rows
         fig_cols = n_cols
-        fixed_value = 4*n_rows
+        fixed_value = 4 * n_rows
 
     figsize = define_map_figsize(
-            map_bounds, fig_rows, fig_cols, fixed_value=fixed_value, fixed_dimension='height'
-        )
-    fig, ax = plt.subplots(fig_rows, fig_cols, figsize=figsize, layout='compressed')
+        map_bounds,
+        fig_rows,
+        fig_cols,
+        fixed_value=fixed_value,
+        fixed_dimension="height",
+    )
+    fig, ax = plt.subplots(fig_rows, fig_cols, figsize=figsize, layout="compressed")
     ax = ax.flatten() if is_single_season else ax
 
     for row, (model, ds) in enumerate(ds_dict.items()):

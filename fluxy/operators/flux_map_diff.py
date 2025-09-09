@@ -44,7 +44,10 @@ def define_var_plot(
             ].mean(dim="time")
 
         elif var_p == "posterior_prior_diff_inversion_grid":
-            if f"flux_{sector}_prior_inversion_grid" in ds: # fix because ELRIS don't have (yet) prior on inversion grid
+            if (
+                f"flux_{sector}_prior_inversion_grid" in ds
+                and f"flux_{sector}_posterior_inversion_grid" in ds
+            ):  # ensure both prior and posterior exists for inversion grid
                 prior = f"flux_{sector}_prior_inversion_grid"
                 posterior = f"flux_{sector}_posterior_inversion_grid"
             else:
@@ -64,7 +67,9 @@ def define_var_plot(
             if var_p in ds:
                 var_p_bis = var_p
             else:
-                if "prior_inversion_grid" in var_p: # fix because ELRIS don't have (yet) prior on inversion grid
+                if (
+                    "_inversion_grid" in var_p
+                ):  # fix if variable doesn't exist on inversion grid
                     var_p_bis = var_p.replace("_inversion_grid", "")
                     logger.warning(
                         f"'{var_p}' not found in dataset(s) (inversion system = {ds.attrs['inversion_system']}), replaced by '{var_p_bis}' for this model."
