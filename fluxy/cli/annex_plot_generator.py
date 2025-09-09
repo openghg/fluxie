@@ -268,11 +268,24 @@ def produce_plots(
         plt.close()
 
         ### Spatial maps
+        start_date = annex_config_data.start_date_spatial_maps
+        end_date = annex_config_data.end_date
+
         # Reselect datasets to plot
         models_std = get_species_specific_settings(
             annex_config_data.models_spatial_maps, species
         )
-        ds_all_flux_scaled = {m: ds_all_flux_scaled[m] for m in models_std}
+
+        # Re-slice the data
+        ds_all_flux_scaled = slice_flux(
+            ds_all_flux,
+            config_data,
+            start_date,
+            end_date,
+            species=species,
+            country_flux_units_print=annex_config_data.country_flux_units_print,
+            flux_units_print=annex_config_data.flux_units_print,
+        )
 
         # Define plotting labels
         model_labels = set_model_labels(models_std,config_data,get_labels_from_file=True)
@@ -378,7 +391,8 @@ def produce_plots(
         annual_res_list.append(annual_res)
 
         ### Spatial maps
-        start_date = annex_config_data.start_date_paris_window
+        start_date = annex_config_data.start_date_spatial_maps
+        end_date = annex_config_data.end_date
         dt = int(end_date[:4]) - int(start_date[:4])
 
         # Select and reslice the data
