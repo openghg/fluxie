@@ -11,7 +11,7 @@ from pathlib import Path
 
 from fluxy.io import read_config_files, read_model_output, read_flux_total_fgases
 from fluxy.operators.select import slice_flux
-from fluxy.config import set_model_colors
+from fluxy.config import set_model_colors, set_model_labels
 from fluxy.plots.flux_timeseries import plot_country_flux
 from fluxy.plots.flux_map import plot_flux_map_over_time
 
@@ -188,7 +188,7 @@ def produce_plots(
 
         # Define plotting colors and labels
         model_colors = set_model_colors(models_std)
-        model_labels = {model: model.split("_")[0] for model in models_std}
+        model_labels = set_model_labels(models_std,config_data,get_labels_from_file=True)
 
         # 1.1) Plot annual country fluxes over long time window
         print(f"- Annual country fluxes {start_date} - {end_date}")
@@ -275,7 +275,7 @@ def produce_plots(
         ds_all_flux_scaled = {m: ds_all_flux_scaled[m] for m in models_std}
 
         # Define plotting labels
-        model_labels = {model: model.split("_")[0] for model in models_std}
+        model_labels = set_model_labels(models_std,config_data,get_labels_from_file=True)
 
         # 3) Plot spatial map of the posterior fluxes averaged between 2018 and 2023 (combined from 3 std_run)
         print(f"- Average map")
@@ -354,7 +354,7 @@ def produce_plots(
 
         # Define plotting colors and labels
         model_colors = set_model_colors(models_std)
-        model_labels = {model: model.split("_")[0] for model in models_std}
+        model_labels = set_model_labels(models_std,config_data,get_labels_from_file=True)
 
         # 1) Plot annual country fluxes from 2008 to 2023 from intem_longrun and combined from 3 std_run
         print(f"- Annual country fluxes {start_date} - {end_date}")
@@ -396,8 +396,8 @@ def produce_plots(
             flux_units_print=annex_config_data.flux_units_print,
         )
 
-        ### Define plotting labels
-        model_labels = {model: model.split("_")[0] for model in models_std}
+        # Define plotting labels
+        model_labels = set_model_labels(models_std,config_data,get_labels_from_file=True)
 
         # 3) Plot spatial map of the posterior fluxes averaged between 2018 and 2023 (combined from 3 std_run)
         print(f"- Average map")
@@ -441,9 +441,9 @@ def produce_plots(
             period="yearly",
         )
 
-        ### Define plotting colors
+        # Define plotting colors and labels
         model_colors = set_model_colors(models_std)
-        model_labels = {model: model.split("_")[0] for model in models_std}
+        model_labels = set_model_labels(models_std,config_data,get_labels_from_file=True)
 
         # 3) Plot annual country fluxes from 2008 to 2023 from intem_longrun and combined from 3 std_run
         print(f"- Annual country fluxes {start_date} - {end_date}")
