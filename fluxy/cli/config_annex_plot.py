@@ -320,7 +320,7 @@ class AnnexConfig:
             plot_separate=[True, False, False, False, False, False],
         ),
         "sf6": dict(
-            plot_separate=False,
+            plot_separate=[True, False, False, False, False],
         ),
     }
 
