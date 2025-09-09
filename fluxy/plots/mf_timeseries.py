@@ -619,9 +619,11 @@ def plot_histogram(
         # Write mean/std to histogram
         # If plot_type = togehter, print only mean/std of the first variable
         if not (plot_type == "together" and v != 0):
+            xcoord = annotate_coords["x"]
+            ycoord = annotate_coords["ytop"] - index * annotate_coords["dy"]
             ax.annotate(
                 f"$\\mu$: {str_mean}\n$\\sigma$: {str_std}",
-                xy=annotate_coords[index],
+                xy=[xcoord, ycoord],
                 xycoords="axes fraction",
                 color=model_color[config.mf_color_index.get(var, 0)],
             )
