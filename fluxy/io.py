@@ -979,12 +979,17 @@ def add_sites_var(
         mask = (ds_conc["number_of_identifier"] == site_index) & ds_conc[
             "mf_observed"
         ].notnull()
-        valid_times = ds_conc["time"].where(mask, drop=True)
+        # Note: drop=True leads to problems when the platform exists but there is absolutely no data
+        valid_times = ds_conc["time"].where(mask, drop=False)
 
         if frequency == "yearly":
             mf_keys = valid_times.dt.year.values
         elif frequency == "monthly":
-            mf_keys = list(zip(valid_times.dt.year.values, valid_times.dt.month.values))
+            years = valid_times.dt.year.values
+            months = valid_times.dt.month.values
+            # Mask NaN, otherwise conversion to int won't work
+            valid_mask = ~np.isnan(years) & ~np.isnan(months)
+            mf_keys = list(zip(years[valid_mask], months[valid_mask]))
             mf_keys = np.array(mf_keys, dtype=[("year", "i4"), ("month", "i4")])
 
         # Mark time steps in flux where observations from this site exist
