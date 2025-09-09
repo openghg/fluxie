@@ -340,6 +340,12 @@ def produce_plots(
             annex_config_data.models_yearly_species, species
         )
 
+        # Species-specific settings
+        kwargs_species_specific = get_species_specific_settings(
+            annex_config_data.kwargs_country_flux_yearly_species_per_species,
+            species,
+        )
+
         # Read and slice data
         ds_all_flux = read_model_output(
             annex_config_data.data_dir,
@@ -376,6 +382,7 @@ def produce_plots(
             config_data=config_data,
             **annex_config_data.kwargs_country_flux_general,
             **annex_config_data.kwargs_country_flux_yearly_species,
+            **kwargs_species_specific,
         )
         full_path = output_path / f"{species}_country_flux_annual_longrun_{region}.png"
         fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
@@ -466,6 +473,7 @@ def produce_plots(
             config_data=config_data,
             **annex_config_data.kwargs_country_flux_general,
             **annex_config_data.kwargs_country_flux_yearly_species,
+            **kwargs_species_specific,
         )
         full_path = output_path / f"{species}_country_flux_annual_longrun_{region}.png"
         fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
