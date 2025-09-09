@@ -655,7 +655,7 @@ def edit_vars_and_attributes(
         if "species" not in ds.attrs:
             ds.attrs["species"] = species
         elif ds.attrs["species"] != species:
-            logger.warning(
+            logger.info(
                 f"Species {ds.attrs['species']} in dataset does not match species {species} in model {model}."
             )
 
