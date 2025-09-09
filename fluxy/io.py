@@ -339,7 +339,7 @@ def read_model_output(
         )
 
         # Add sites variable to flux dataset
-        if add_sites_to_flux and file_type == "flux":
+        if add_sites_to_flux and file_type == DataTypes.FLUX:
             ds_all[m] = add_sites_var(ds_all[m], filepath, m, period[i], config_data)
 
     return ds_all
