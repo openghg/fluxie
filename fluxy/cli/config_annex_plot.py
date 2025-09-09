@@ -228,7 +228,7 @@ class AnnexConfig:
     ### Settings for country fluxes
     ## Model definitions
     # for monthly species (list or dictionary if different between species)
-    logger.warning("Excluding InTEM from N2O and InTEM-FLEXPART from CH4 country fluxes!")
+    logger.warning("Excluding InTEM-FLEXPART from CH4 and N2O country fluxes!")
     models_monthly_species = {
         "default": [
             "InTEM_NAME",
@@ -247,7 +247,7 @@ class AnnexConfig:
             "RHIME_FLEXPART",
         ],
         "n2o": [
-            #"InTEM_NAME",
+            "InTEM_NAME",
             #"InTEM_FLEXPART",
             "ELRIS_NAME",
             "ELRIS_FLEXPART",
@@ -334,14 +334,13 @@ class AnnexConfig:
             plot_separate=[True, False, False, False, False],
         ),
         "n2o": dict(
-            plot_separate=False,
+            plot_separate=[True, False, False, False, False],
         ),
     }
 
     ### Settings for spatial maps (list or dictionary if different between species)
     # no RHIME N2O results in NID2025
-    logger.warning("Excluding InTEM from N2O and InTEM-FLEXPART from CH4 spatial maps!")
-    logger.warning("Excluding InTEM-FLEXPART from SF6 spatial maps!")
+    logger.warning("Excluding InTEM-FLEXPART from CH4, N2O and SF6 spatial maps!")
     models_spatial_maps = {
         "default": [
             "InTEM_NAME",
@@ -360,7 +359,7 @@ class AnnexConfig:
             "RHIME_FLEXPART",
         ],
         "n2o": [
-            # "InTEM_NAME",
+            "InTEM_NAME",
             # "InTEM_FLEXPART",
             "ELRIS_NAME",
             "ELRIS_FLEXPART",
