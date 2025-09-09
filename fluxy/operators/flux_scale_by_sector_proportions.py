@@ -13,11 +13,11 @@ def open_and_align_sector_dataset(
     sector_prop_path: str, ds_ref: xr.Dataset
 ) -> xr.Dataset:
     """
-    Open dataset containing prior sector fluxes and align it temporaly an spatially on reference dataset.
+    Open dataset containing prior sector fluxes and align it temporaly and spatially on reference dataset.
 
     Args:
         sector_prop_path: path to dataset containing prior sector fluxes
-        ds_ref: datset used as reference to align along
+        ds_ref: dataset used as reference to align along
 
     Returns:
         ds_sectors: dataset with prior sector fluxes align on reference dataset
@@ -31,7 +31,7 @@ def open_and_align_sector_dataset(
             "yearly",
         ]:
             raise ValueError(
-                "This part of the code as not be tested for a sector file with frequency not equal to 'YS-JAN' or dataset frequency not one of 'monthly'/'yearly'. In the current implementation, the sector file frequency is suppose to be bugger or equal to the dataset frequency and start before or at the same time as the dataset."
+                "This part of the code has not been tested with a sector file whith a frequency different from “YS-JAN” or with a dataset frequency different from 'monthly'/'annual'. In the current implementation, the frequency of the sector file is assumed to be greater than or equal to that of the data set and to start before or at the same time as the data set."
             )
 
         ds_sectors = f.sel(time=ds_ref["time"].values, method="ffill")
@@ -49,14 +49,13 @@ def create_cell_area(
     ds_ref: xr.Dataset, cell_area_test_file: bool, sector_file: str
 ) -> xr.DataArray:
     """
-    Open dataset containing prior sector fluxes and align it temporaly an spatially on reference dataset.
+    Open dataset containing prior sector fluxes and align it temporaly and spatially on reference dataset.
 
     Args:
-        ds_ref: path to dataset containing prior sector fluxes
-        cell_area_test_file:
-            Only used in tests. If True, extracts cell_area from a smaller test file
+        ds_ref: dataset for which we want to calculate the area of the grid cells
+        cell_area_test_file: Only used in tests. If True, extracts cell_area from a smaller test file
             with restricted lat/lons.
-        sector_file: used to define domain if domain not in ds_ref attributes
+        sector_file: path to sector dataset, used to define domain if domain not in ds_ref attributes
 
     Returns:
         cell_area: dataarray containing cell size
