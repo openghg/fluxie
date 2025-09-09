@@ -327,8 +327,6 @@ def produce_plots(
         plt.close()
 
     #### F-gases
-    end_date = annex_config_data.end_date
-
     print("\n--- PLOTTING ANNUAL SPECIES ---")
     for species in annex_config_data.annual_species:
         print(f"-- {species.upper()}")
@@ -336,10 +334,7 @@ def produce_plots(
         ### Country fluxes
         ## Long time window
         start_date = annex_config_data.start_date_fgases
-        start_year = start_date.split("-")[0]
-        if species == "hfc4310mee" and int(start_year) < 2011:
-            start_date = "2011-01-01"  # Fix for InTEM longrun which is zero in 2010
-            logger.warning(f"Using special settings for HFC-4310mee: {start_date=}")
+        end_date = annex_config_data.end_date
 
         models_std = get_species_specific_settings(
             annex_config_data.models_yearly_species, species
