@@ -99,6 +99,26 @@ def add_colorbar(fig, ax, im, extend, label, n_cbar, idx_cbar, colorbar_type="ro
     cbar.set_label(label)
 
 
+def define_flux_label(var: str) -> str:
+    """
+    Define flux label following config.special_flux_labels or by analyzing
+    the var name if the var is not a key of config.special_flux_labels.
+
+    Args:
+        var (str):
+            The variable name in the dataset.
+    Returns:
+        label(str):
+            Flux label.
+    """
+    if var in config.special_flux_labels:
+        label = config.special_flux_labels[var]
+    else:
+        label = (" ").join([t.capitalize() for t in var.split("_")[1:3]])
+        label = label.replace("Total ", "")
+    return label
+
+
 def print_cbar_label(
     ds: xr.Dataset,
     species_info: dict,
@@ -126,7 +146,7 @@ def print_cbar_label(
             A formatted colorbar label including variable, species, units, and period.
     """
 
-    var_label = f"{config.flux_labels[var]}" if "variable" in format else ""
+    var_label = f"{define_flux_label(var)}" if "variable" in format else ""
 
     species_label = (
         f"{species_info.get('species_print')}" if "species" in format else ""

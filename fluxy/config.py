@@ -56,22 +56,7 @@ mf_color_index = {
     "stdev_mf_total": 1,
 }
 
-flux_labels = {
-    "flux_total_prior": "Prior",
-    "flux_total_posterior_inversion_grid": "Posterior",
-    "flux_total_posterior": "Posterior",
-    "flux_agriculture_prior": "Agriculture Prior",
-    "flux_agriculture_posterior_inversion_grid": "Agriculture Posterior",
-    "flux_agriculture_posterior": "Agriculture Posterior",
-    "flux_waste_prior": "Waste Prior",
-    "flux_waste_posterior_inversion_grid": "Waste Posterior",
-    "flux_waste_posterior": "Waste Posterior",
-    "flux_energy_prior": "Energy Prior",
-    "flux_energy_posterior_inversion_grid": "Energy Posterior",
-    "flux_energy_posterior": "Energy Posterior",
-    "flux_industry_prior": "Industry Prior",
-    "flux_industry_posterior_inversion_grid": "Industry Posterior",
-    "flux_industry_posterior": "Industry Posterior",
+special_flux_labels = {
     "posterior_prior_diff": "Posterior - Prior",
     "posterior_prior_diff_inversion_grid": "Posterior - Prior",
     "posterior_mean_diff": "Posterior Anomaly",
