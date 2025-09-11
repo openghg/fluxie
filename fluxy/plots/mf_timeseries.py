@@ -205,7 +205,7 @@ def plot_timeseries(
             if var == "mf_observed" and len(vars_to_plot) > 1:
                 plot_color = "black"
 
-            x, y = ds_all[m]["time"].values, ds_all[m][var].values
+            x, y = ds_plot["time"].values, ds_plot[var].values
             kwargs = {
                 "label": f"{model_label} {config.mf_labels.get(var, var)}",
                 "color": plot_color,
@@ -241,6 +241,7 @@ def plot_timeseries(
                         f"Option plot_type='diff' does not accept uncertainties. Replace '{unc_var}' by None."
                     )
 
+                # Accept both percentile and stdev as uncertainty variables
                 if unc_var not in ds_plot.keys():
                     if "percentile" in unc_var:
                         unc_var_in = unc_var
@@ -263,12 +264,23 @@ def plot_timeseries(
                     "color": plot_color,
                 }
 
+                # Define uncertainty band
+                flag_fill_between = False
                 if unc_var.split("_")[0] == "percentile":
+                    y1 = ds_plot[unc_var][0, :].values
+                    y2 = ds_plot[unc_var][1, :].values
+                    flag_fill_between = True
+                elif unc_var.split("_")[-1] in ["prior", "posterior"]:
+                    y1 = ds_plot[var].values - ds_plot[unc_var].values
+                    y2 = ds_plot[var].values + ds_plot[unc_var].values
+                    flag_fill_between = True
+
+                if flag_fill_between:
                     # Add uncertainty band
                     ax[iax, 0].fill_between(
                         x,
-                        y1=ds_all[m][unc_var][0, :].values,
-                        y2=ds_all[m][unc_var][1, :].values,
+                        y1=y1,
+                        y2=y2,
                         alpha=0.2,
                         **kwargs,
                     )
@@ -277,8 +289,8 @@ def plot_timeseries(
                     # Add error bar
                     ax[iax, 0].errorbar(
                         x,
-                        y=ds_all[m][var].values,
-                        yerr=ds_all[m][unc_var].values,
+                        y=ds_plot[var].values,
+                        yerr=ds_plot[unc_var].values,
                         alpha=0.4,
                         fmt="none",
                         **kwargs,
@@ -381,12 +393,14 @@ def plot_timeseries(
 
 
 def plot_sites_timeseries(
-    ds_all,
-    var,
-    start_date,
-    end_date,
-    model_colors,
-    model_labels,
+    ds_all: dict[str, xr.Dataset],
+    var: str,
+    species: str,
+    start_date: str,
+    end_date: str,
+    model_colors: dict[str, str],
+    model_labels: dict[str, str],
+    config_data: dict[str, dict],
     margin: float = 0.1,
     separate_by_height: bool = False,
 ):
@@ -394,10 +408,12 @@ def plot_sites_timeseries(
     Plot the timeseries of data available for each site and model.
 
     Args:
-        ds_all :
+        ds_all (dictionary xarray Datasets):
             Dictionnary of xarray returned by read_output_model.
-        var :
+        var (str):
             Var for which the timeseries should be plotted
+        species (str):
+            Gas species, e.g. 'ch4'.
         start_date (str):
             Date to plot data from, e.g. '2021-01-01'
         end_date (str):
@@ -407,6 +423,11 @@ def plot_sites_timeseries(
             Models and corresponding colours used to plot the model.
         model_labels (dict of dict):
             Dictionary with model lables.
+        config_data (dict of dict):
+            Dictionary with settings read from json file.
+            Use json filenames as keys.
+        margin (float):
+            Horizontal space between datapoints from different models. 
         separate_by_height (bool):
             If True, separates obs by intake height and by site.
     """
@@ -487,7 +508,15 @@ def plot_sites_timeseries(
 
     ax.set_xlim(-0.5, len(site_list) - 0.5)
 
-    plt.legend(loc="lower right", markerscale=4, bbox_to_anchor=(1, 1))
+    plt.legend(loc="upper left", markerscale=4, bbox_to_anchor=(1, 1))
+
+    species_info = config_data.get("species_info",{}).get(species,{})
+    fig.suptitle(
+        (
+            f'Timestamps with {species_info.get("species_print","")} assimilated observations between'
+            f"\n{start_date} and {end_date}"
+        )
+    )
 
     return fig
 
@@ -590,9 +619,11 @@ def plot_histogram(
         # Write mean/std to histogram
         # If plot_type = togehter, print only mean/std of the first variable
         if not (plot_type == "together" and v != 0):
+            xcoord = annotate_coords["x"]
+            ycoord = annotate_coords["ytop"] - index * annotate_coords["dy"]
             ax.annotate(
                 f"$\\mu$: {str_mean}\n$\\sigma$: {str_std}",
-                xy=annotate_coords[index],
+                xy=[xcoord, ycoord],
                 xycoords="axes fraction",
                 color=model_color[config.mf_color_index.get(var, 0)],
             )

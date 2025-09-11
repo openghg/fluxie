@@ -11,7 +11,7 @@ from pathlib import Path
 
 from fluxy.io import read_config_files, read_model_output, read_flux_total_fgases
 from fluxy.operators.select import slice_flux
-from fluxy.config import set_model_colors
+from fluxy.config import set_model_colors, set_model_labels
 from fluxy.plots.flux_timeseries import plot_country_flux
 from fluxy.plots.flux_map import plot_flux_map_over_time
 
@@ -136,7 +136,7 @@ def produce_plots(
 
     ### Initialization
     logger.warning(
-        "Each team should check that the right files are used. Still to be checked by RHIME, ELRIS, InTEM."
+        "Make sure standard filenames are correctly set in models_info.json."
     )
     config_data = read_config_files()
     annex_config_data = AnnexConfig(region, inventory_years)
@@ -188,9 +188,9 @@ def produce_plots(
 
         # Define plotting colors and labels
         model_colors = set_model_colors(models_std)
-        model_labels = {model: model.split("_")[0] for model in models_std}
+        model_labels = set_model_labels(models_std,config_data,get_labels_from_file=True)
 
-        # 1.1) Plot annual country fluxes from 2008 to 2023 from intem_longrun and combined from 3 std_run
+        # 1.1) Plot annual country fluxes over long time window
         print(f"- Annual country fluxes {start_date} - {end_date}")
         fig, res_dict = plot_country_flux(
             ds_all_flux_scaled,
@@ -223,7 +223,7 @@ def produce_plots(
             flux_units_print=annex_config_data.flux_units_print,
         )
 
-        # 1.2) Plot annual country fluxes from 2018 to 2023 from intem_longrun and combined from 3 std_run
+        # 1.2) Plot annual country fluxes over PARIS time window
         print(f"- Annual country fluxes {start_date} - {end_date}")
         fig, res_dict = plot_country_flux(
             ds_all_flux_scaled,
@@ -247,7 +247,7 @@ def produce_plots(
         annual_res = dict_to_str_dataframe(res_dict[region], inventory_years, species)
         annual_res_list.append(annual_res)
 
-        # 2) Plot monthly country fluxes from 2018 to 2023 from intem_longrun and combined from 3 std_run
+        # 2) Plot monthly country fluxes over PARIS time window
         print(f"- Monthly country fluxes")
         fig, res_dict = plot_country_flux(
             ds_all_flux_scaled,
@@ -268,16 +268,29 @@ def produce_plots(
         plt.close()
 
         ### Spatial maps
+        start_date = annex_config_data.start_date_spatial_maps
+        end_date = annex_config_data.end_date
+
         # Reselect datasets to plot
         models_std = get_species_specific_settings(
             annex_config_data.models_spatial_maps, species
         )
-        ds_all_flux_scaled = {m: ds_all_flux_scaled[m] for m in models_std}
+
+        # Re-slice the data
+        ds_all_flux_scaled = slice_flux(
+            ds_all_flux,
+            config_data,
+            start_date,
+            end_date,
+            species=species,
+            country_flux_units_print=annex_config_data.country_flux_units_print,
+            flux_units_print=annex_config_data.flux_units_print,
+        )
 
         # Define plotting labels
-        model_labels = {model: model.split("_")[0] for model in models_std}
+        model_labels = set_model_labels(models_std,config_data,get_labels_from_file=True)
 
-        # 3) Plot spatial map of the posterior fluxes averaged between 2018 and 2023 (combined from 3 std_run)
+        # 3) Plot spatial map of the posterior fluxes averaged over PARIS time window
         print(f"- Average map")
         dt = int(end_date[:4]) - int(start_date[:4])
         fig = plot_flux_map_over_time(
@@ -314,8 +327,6 @@ def produce_plots(
         plt.close()
 
     #### F-gases
-    end_date = annex_config_data.end_date
-
     print("\n--- PLOTTING ANNUAL SPECIES ---")
     for species in annex_config_data.annual_species:
         print(f"-- {species.upper()}")
@@ -323,13 +334,17 @@ def produce_plots(
         ### Country fluxes
         ## Long time window
         start_date = annex_config_data.start_date_fgases
-        start_year = start_date.split("-")[0]
-        if species == "hfc4310mee" and int(start_year) < 2011:
-            start_date = "2011-01-01"  # Fix for InTEM longrun which is zero in 2010
-            logger.warning(f"Using special settings for HFC-4310mee: {start_date=}")
+        end_date = annex_config_data.end_date
 
+        # Models to plot
         models_std = get_species_specific_settings(
             annex_config_data.models_yearly_species, species
+        )
+
+        # Species-specific settings
+        kwargs_species_specific = get_species_specific_settings(
+            annex_config_data.kwargs_country_flux_yearly_species_per_species,
+            species,
         )
 
         # Read and slice data
@@ -354,9 +369,9 @@ def produce_plots(
 
         # Define plotting colors and labels
         model_colors = set_model_colors(models_std)
-        model_labels = {model: model.split("_")[0] for model in models_std}
+        model_labels = set_model_labels(models_std,config_data,get_labels_from_file=True)
 
-        # 1) Plot annual country fluxes from 2008 to 2023 from intem_longrun and combined from 3 std_run
+        # 1) Plot annual country fluxes over long time window
         print(f"- Annual country fluxes {start_date} - {end_date}")
         fig, res_dict = plot_country_flux(
             ds_all_flux_scaled,
@@ -368,6 +383,7 @@ def produce_plots(
             config_data=config_data,
             **annex_config_data.kwargs_country_flux_general,
             **annex_config_data.kwargs_country_flux_yearly_species,
+            **kwargs_species_specific,
         )
         full_path = output_path / f"{species}_country_flux_annual_longrun_{region}.png"
         fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
@@ -378,7 +394,8 @@ def produce_plots(
         annual_res_list.append(annual_res)
 
         ### Spatial maps
-        start_date = annex_config_data.start_date_paris_window
+        start_date = annex_config_data.start_date_spatial_maps
+        end_date = annex_config_data.end_date
         dt = int(end_date[:4]) - int(start_date[:4])
 
         # Select and reslice the data
@@ -396,10 +413,10 @@ def produce_plots(
             flux_units_print=annex_config_data.flux_units_print,
         )
 
-        ### Define plotting labels
-        model_labels = {model: model.split("_")[0] for model in models_std}
+        # Define plotting labels
+        model_labels = set_model_labels(models_std,config_data,get_labels_from_file=True)
 
-        # 3) Plot spatial map of the posterior fluxes averaged between 2018 and 2023 (combined from 3 std_run)
+        # 3) Plot spatial map of the posterior fluxes averaged over PARIS window
         print(f"- Average map")
         fig = plot_flux_map_over_time(
             ds_all_flux_scaled,
@@ -417,7 +434,7 @@ def produce_plots(
         fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
         plt.close()
 
-    #### Total HFCs/PFCs (w/o HFC-4310mee)
+    #### Total HFCs/PFCs
     start_date = annex_config_data.start_date_fgases
     end_date = annex_config_data.end_date
 
@@ -425,24 +442,30 @@ def produce_plots(
     for species in annex_config_data.combined_species:
         print(f"-- {species.upper()}")
 
-        ### Read and scale fluxes
+        ### Country fluxes
+        ## Long time window
+        # Models to plot
+        models_std = get_species_specific_settings(
+            annex_config_data.models_yearly_species, species
+        )
+
+        # Read and scale fluxes
         ds_all_flux_scaled = read_flux_total_fgases(
             annex_config_data.data_dir,
             species,
-            annex_config_data.models_yearly_species,
+            models_std,
             config_data,
             region,
             start_date,
             end_date,
             period="yearly",
         )
-        models_std = list(ds_all_flux_scaled.keys())
 
-        ### Define plotting colors
+        # Define plotting colors and labels
         model_colors = set_model_colors(models_std)
-        model_labels = {model: model.split("_")[0] for model in models_std}
+        model_labels = set_model_labels(models_std,config_data,get_labels_from_file=True)
 
-        # 3) Plot annual country fluxes from 2008 to 2023 from intem_longrun and combined from 3 std_run
+        # 3) Plot annual country fluxes over long time window
         print(f"- Annual country fluxes {start_date} - {end_date}")
         fig, res_dict = plot_country_flux(
             ds_all_flux_scaled,
@@ -454,6 +477,7 @@ def produce_plots(
             config_data=config_data,
             **annex_config_data.kwargs_country_flux_general,
             **annex_config_data.kwargs_country_flux_yearly_species,
+            **kwargs_species_specific,
         )
         full_path = output_path / f"{species}_country_flux_annual_longrun_{region}.png"
         fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)

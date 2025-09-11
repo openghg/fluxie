@@ -192,7 +192,7 @@ class AnnexConfig:
     """
 
     ### Path to results directory
-    data_dir = "/project/paris/NID2025/"
+    data_dir = "/project/paris/inverse_modelling/"
 
     ### Species
     monthly_species = ["ch4", "n2o"]
@@ -205,6 +205,7 @@ class AnnexConfig:
         "hfc143a",
         "hfc152a",
         "hfc227ea",
+        "hfc236fa",
         "hfc245fa",
         "hfc365mfc",
         "hfc4310mee",
@@ -213,41 +214,68 @@ class AnnexConfig:
         "pfc218",
         "pfc318",
         "sf6",
+        "nf3"
     ]
 
     combined_species = ["all_hfc", "all_pfc"]
 
     ### Start/end date
     start_date_monthly_species = "2008-01-01"
-    start_date_paris_window = "2018-01-01"
-    end_date = "2024-01-01"
+    start_date_paris_window = "2017-01-01"
+    start_date_spatial_maps = "2019-01-01"
+    end_date = "2025-01-01"
 
     ### Settings for country fluxes
     ## Model definitions
     # for monthly species (list or dictionary if different between species)
-    # no RHIME N2O results in NID2025
-    logger.warning("Excluding RHIME from N2O country fluxes!")
+    logger.warning("Excluding InTEM-FLEXPART from CH4 and N2O country fluxes!")
     models_monthly_species = {
         "default": [
-            "InTEM_longrun",
-            "InTEM",
-            "ELRIS",
-            "RHIME",
+            "InTEM_NAME",
+            "InTEM_FLEXPART",
+            "ELRIS_NAME",
+            "ELRIS_FLEXPART",
+            "RHIME_NAME",
+            "RHIME_FLEXPART",
+        ],
+        "ch4": [
+            "InTEM_NAME",
+            #"InTEM_FLEXPART",
+            "ELRIS_NAME",
+            "ELRIS_FLEXPART",
+            "RHIME_NAME",
+            "RHIME_FLEXPART",
         ],
         "n2o": [
-            "InTEM_longrun",
-            "InTEM",
-            "ELRIS",
+            "InTEM_NAME",
+            #"InTEM_FLEXPART",
+            "ELRIS_NAME",
+            "ELRIS_FLEXPART",
+            "RHIME_NAME",
+            "RHIME_FLEXPART",
         ],
     }
 
     # for annual species (list or dictionary if different between species)
-    models_yearly_species = [
-        "InTEM_longrun",
-        "InTEM",
-        "ELRIS",
-        "RHIME",
-    ]
+    logger.warning("Excluding InTEM-FLEXPART from SF6 country fluxes!")
+    models_yearly_species = {
+        "default": [
+            "InTEM_NAME",
+            "InTEM_FLEXPART",
+            "ELRIS_NAME",
+            "ELRIS_FLEXPART",
+            "RHIME_NAME",
+            "RHIME_FLEXPART",
+        ],
+        "sf6": [
+            "InTEM_NAME",
+            #"InTEM_FLEXPART",
+            "ELRIS_NAME",
+            "ELRIS_FLEXPART",
+            "RHIME_NAME",
+            "RHIME_FLEXPART",
+        ],
+    }
 
     ## Units for plot
     country_flux_units_print = "Tg CO2-eq yr-1"
@@ -263,6 +291,7 @@ class AnnexConfig:
         add_prior_unc=False,
         set_global_leg=False,
         country_codes_as_titles=None,
+        plot_combined=True,
         plot_resample_and_original=False,
         return_res=True,
     )
@@ -282,31 +311,69 @@ class AnnexConfig:
 
     # for yearly species
     kwargs_country_flux_yearly_species = dict(
-        plot_separate=[True, False, False, False],
-        plot_combined=[False, True, True, True],
         resample=None,
-        rolling_mean=[False, True, True, True],
+        rolling_mean=True,
     )
+
+    kwargs_country_flux_yearly_species_per_species = {
+        "default": dict(
+            plot_separate=[True, False, False, False, False, False],
+        ),
+        "sf6": dict(
+            plot_separate=[True, False, False, False, False],
+        ),
+    }
 
     # Define separately for N2O because there are no RHIME N2O results in NID2025
     # For NID2026, the default settings can be moved to kwargs_country_flux_general
     kwargs_country_flux_monthly_species_per_species = {
         "default": dict(
-            plot_separate=[True, False, False, False],
-            plot_combined=[False, True, True, True],
+            plot_separate=[True, False, False, False, False, False],
+        ),
+        "ch4": dict(
+            plot_separate=[True, False, False, False, False],
         ),
         "n2o": dict(
-            plot_separate=[True, False, False],
-            plot_combined=[False, True, True],
+            plot_separate=[True, False, False, False, False],
         ),
     }
 
     ### Settings for spatial maps (list or dictionary if different between species)
     # no RHIME N2O results in NID2025
-    logger.warning("Excluding RHIME from N2O spatial maps!")
+    logger.warning("Excluding InTEM-FLEXPART from CH4, N2O and SF6 spatial maps!")
     models_spatial_maps = {
-        "default": ["InTEM", "ELRIS", "RHIME"],
-        "n2o": ["InTEM", "ELRIS"],
+        "default": [
+            "InTEM_NAME",
+            "InTEM_FLEXPART",
+            "ELRIS_NAME",
+            "ELRIS_FLEXPART",
+            "RHIME_NAME",
+            "RHIME_FLEXPART",
+        ],
+        "ch4": [
+            "InTEM_NAME",
+            # "InTEM_FLEXPART",
+            "ELRIS_NAME",
+            "ELRIS_FLEXPART",
+            "RHIME_NAME",
+            "RHIME_FLEXPART",
+        ],
+        "n2o": [
+            "InTEM_NAME",
+            # "InTEM_FLEXPART",
+            "ELRIS_NAME",
+            "ELRIS_FLEXPART",
+            "RHIME_NAME",
+            "RHIME_FLEXPART",
+        ],
+        "sf6": [
+            "InTEM_NAME",
+            # "InTEM_FLEXPART",
+            "ELRIS_NAME",
+            "ELRIS_FLEXPART",
+            "RHIME_NAME",
+            "RHIME_FLEXPART",
+        ],
     }
     flux_units_print = "kg km-2 yr-1"
 

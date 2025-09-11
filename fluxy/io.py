@@ -170,8 +170,9 @@ def get_filename(
         data_dir (str):
             Path to top data directory.
         read_standard_run (bool):
-            If True, constructs filename from models_info['standard_run'][<model>].
-            If key "<model>" don't exist, constructs filename from items in "default".
+            If True, constructs filename from models_info['standard_run'][<model_run_keys>].
+            If entry "<model_run_keys>" don't exist, constructs filename from items in "<run_keys>".
+            If entry "<run_keys>" don't exist, constructs filename from items in "default".
 
     Returns:
         filepath (Path):
@@ -182,7 +183,8 @@ def get_filename(
 
     # Get model name
     sub_dir, model_name = os.path.split(model)
-    base_model_name = model_name.split("_")[0]
+    base_model_name, *run_keys = model_name.split("_")
+    run_keys = "_".join(run_keys)
 
     # Get model name from standard_run dictionary
     if read_standard_run:
@@ -192,19 +194,22 @@ def get_filename(
             all_standard_run_dict := models_info.get("standard_run")
         ):
             standard_run_dict = all_standard_run_dict.get(model_name, {})
+            standard_run_dict_key = all_standard_run_dict.get(run_keys, {})
             standard_run_dict_default = all_standard_run_dict.get("default", {})
 
             if species in standard_run_dict:
                 model_name = f"{base_model_name}_{standard_run_dict[species]}"
+            elif species in standard_run_dict_key:
+                model_name = f"{base_model_name}_{standard_run_dict_key[species]}"
             elif species in standard_run_dict_default:
                 model_name = f"{base_model_name}_{standard_run_dict_default[species]}"
             else:
-                raise ValueError(
-                    f"No standard run provided for {species}, neither in '{model_name}' nor in 'default'. Please update variable 'standard_run' in models_info.json."
+                logger.warning(
+                    f"No standard run provided for {species}, neither in '{model_name}', '{run_keys}' nor in 'default'. Please update variable 'standard_run' in models_info.json. Trying to find {model} instead."
                 )
         else:
-            raise ValueError(
-                f"Config file models_info.json does not exist or variable 'standard_run' is not defined. Please update models_info.json."
+            logger.warning(
+                f"Config file models_info.json does not exist or variable 'standard_run' is not defined. Please update models_info.json. Trying to find {model} instead."
             )
 
     # Replace parameter tags by dict values in config
@@ -334,7 +339,7 @@ def read_model_output(
         )
 
         # Add sites variable to flux dataset
-        if add_sites_to_flux and file_type == "flux":
+        if add_sites_to_flux and file_type == DataTypes.FLUX:
             ds_all[m] = add_sites_var(ds_all[m], filepath, m, period[i], config_data)
 
     return ds_all
@@ -650,7 +655,7 @@ def edit_vars_and_attributes(
         if "species" not in ds.attrs:
             ds.attrs["species"] = species
         elif ds.attrs["species"] != species:
-            logger.warning(
+            logger.info(
                 f"Species {ds.attrs['species']} in dataset does not match species {species} in model {model}."
             )
 
@@ -974,12 +979,17 @@ def add_sites_var(
         mask = (ds_conc["number_of_identifier"] == site_index) & ds_conc[
             "mf_observed"
         ].notnull()
-        valid_times = ds_conc["time"].where(mask, drop=True)
+        # Note: drop=True leads to problems when the platform exists but there is absolutely no data
+        valid_times = ds_conc["time"].where(mask, drop=False)
 
         if frequency == "yearly":
             mf_keys = valid_times.dt.year.values
         elif frequency == "monthly":
-            mf_keys = list(zip(valid_times.dt.year.values, valid_times.dt.month.values))
+            years = valid_times.dt.year.values
+            months = valid_times.dt.month.values
+            # Mask NaN, otherwise conversion to int won't work
+            valid_mask = ~np.isnan(years) & ~np.isnan(months)
+            mf_keys = list(zip(years[valid_mask], months[valid_mask]))
             mf_keys = np.array(mf_keys, dtype=[("year", "i4"), ("month", "i4")])
 
         # Mark time steps in flux where observations from this site exist

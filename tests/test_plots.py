@@ -170,10 +170,12 @@ def test_mf_timeseries():
     fig = plot_sites_timeseries(
         ds_all_mf,
         "mf_posterior",
+        species,
         start_date,
         end_date,
         model_colors,
         model_labels,
+        config_data
     )
 
 

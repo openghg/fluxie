@@ -70,7 +70,7 @@ def prepare_data_to_plot(
         resample_uncert_correlation: If True, calculates the resampled uncertainty as the mean from all averaged periods.
             If False, recalculates uncertainty assuming no correlation between all averaged periods, by taking the square root of the summed variances, divided by the number of averaging periods.
         plot_resample_and_original: If True, plots both the resampled data and the data as its original frequency. If False, only plots the resampled data.
-
+        
     Returns:
         ds_to_plot : dictionnary of datasets to plot
     """
@@ -160,7 +160,7 @@ def prepare_data_to_plot(
             model_color = map_model_colors[key_mc][nb % len(map_model_colors[key_mc])]
             color_usage[key_mc] = color_usage[key_mc] + 1
 
-        if "_resample" in m:
+        if ("_resample" in m) and plot_resample_and_original:
             include_label += " (resampled)"
 
         ds_to_plot[m].attrs["model_label"] = include_label
@@ -338,17 +338,22 @@ def plot_country_flux(
 
         for m, ds_region in ds_to_plot.items():
 
+            linew = 1.5
+            if annex_mode and (m == "combined"):
+                linew = 3
+
             ax.plot(
                 ds_region.time,
                 ds_region.posterior,
                 label=ds_region.attrs["model_label"],
                 color=ds_region.attrs["model_color"],
+                linewidth=linew,
             )
             ax.fill_between(
                 ds_region.time,
                 ds_region.posterior_lower,
                 ds_region.posterior_upper,
-                alpha=0.3,
+                alpha=0.2,
                 color=ds_region.attrs["model_color"],
             )
             max_cf[i] = np.nanmax(
