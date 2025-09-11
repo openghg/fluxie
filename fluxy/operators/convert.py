@@ -59,63 +59,64 @@ def scale_variables(
 
     # Loop over variable types
     for scale_var, print_unit in print_units.items():
-        if print_unit is not None:
-
-            if var_type_name.get(scale_var) is None:
-                raise ValueError(
-                    f"{scale_var} is not implemented. Acceptable keys are: {var_type_name.keys()}."
-                )
-
-            # Get list of variables to scale
-            var_names, var_unit = get_variables(
-                ds_model, unit_type=unit_type[scale_var]
+        if print_unit is None:
+            continue
+        
+        if var_type_name.get(scale_var) is None:
+            raise ValueError(
+                f"{scale_var} is not implemented. Acceptable keys are: {var_type_name.keys()}."
             )
 
-            if (not var_names) and (opt_unit_type := optional_unit_type.get(scale_var)):
-                var_names, var_unit = get_variables(ds_model, unit_type=opt_unit_type)
+        # Get list of variables to scale
+        var_names, var_unit = get_variables(
+            ds_model, unit_type=unit_type[scale_var]
+        )
 
-            if not var_names:
-                raise ValueError(
-                    f"There are no variables in {model} with {var_type_name[scale_var]} units in the attributes. Scaling to {print_unit} cannot be applied."
-                )
+        if (not var_names) and (opt_unit_type := optional_unit_type.get(scale_var)):
+            var_names, var_unit = get_variables(ds_model, unit_type=opt_unit_type)
 
-            if var_unit is None:
-                raise ValueError(
-                    f"{model} dataset considers different {var_type_name[scale_var]} units. Uniform scaling to {print_unit} cannot be applied."
-                )
-
-            # Get scaling factor
-            gwp = 1
-            target_unit = print_unit
-            if (scale_var == "country_flux_unit") and ("CO2-eq" in target_unit):
-                gwp = species_info["gwp"]
-                target_unit = target_unit.replace("CO2-eq", "")
-                logger.info(f"Converting to mass of CO2-eq using GWP = {gwp}.")
-
-            molar_mass = None
-            if species_info is not None:
-                molar_mass = species_info["molar_mass"]
-
-            scaling_factor = get_units_conversion_factor(
-                var_unit, target_unit, molar_mass
+        if not var_names:
+            raise ValueError(
+                f"There are no variables in {model} with {var_type_name[scale_var]} units in the attributes. Scaling to {print_unit} cannot be applied."
             )
 
-            # Apply scaling
-            for v in var_names:
-                ds_scaled[v] = ds_model[v] * scaling_factor * gwp
-                ds_scaled[v].attrs["units"] = print_unit
-
-            logger.info(
-                f"Scaling {model} {var_type_name[scale_var]} by {scaling_factor*gwp}."
+        if var_unit is None:
+            raise ValueError(
+                f"{model} dataset considers different {var_type_name[scale_var]} units. Uniform scaling to {print_unit} cannot be applied."
             )
 
-            # Apply scaling to covariance matrix
-            # NOTE: covariance units are assumed consistent with country flux units (see issue #35)
-            cov_var = "covariance_flux_total_posterior_country"
-            if (scale_var == "country_flux_unit") and (cov_var in ds_model.keys()):
-                cov_scaling_factor = scaling_factor**2 * gwp**2
-                ds_scaled[cov_var] = ds_model[cov_var] * cov_scaling_factor
-                logger.info(f"Scaling covariance in {model} by {cov_scaling_factor}")
+        # Get scaling factor
+        gwp = 1
+        target_unit = print_unit
+        if (scale_var == "country_flux_unit") and ("CO2-eq" in target_unit):
+            gwp = species_info["gwp"]
+            target_unit = target_unit.replace("CO2-eq", "")
+            logger.info(f"Converting to mass of CO2-eq using GWP = {gwp}.")
+
+        molar_mass = None
+        if species_info is not None:
+            molar_mass = species_info["molar_mass"]
+
+        scaling_factor = get_units_conversion_factor(
+            var_unit, target_unit, molar_mass
+        )
+
+        # Apply scaling
+        for v in var_names:
+            ds_scaled[v] = ds_model[v] * scaling_factor * gwp
+            ds_scaled[v].attrs["units"] = print_unit
+
+        logger.info(
+            f"Scaling {model} {var_type_name[scale_var]} by {scaling_factor*gwp}."
+        )
+
+        # Apply scaling to covariance matrix
+        # NOTE: covariance units are assumed consistent with country flux units (see issue #35)
+        cov_var = "covariance_flux_total_posterior_country"
+        if (scale_var == "country_flux_unit") and (cov_var in ds_model.keys()):
+            cov_scaling_factor = scaling_factor**2 * gwp**2
+            ds_scaled[cov_var] = ds_model[cov_var] * cov_scaling_factor
+            logger.info(f"Scaling covariance in {model} by {cov_scaling_factor}")
 
     return ds_scaled
 

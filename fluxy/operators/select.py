@@ -164,6 +164,7 @@ def slice_mf(
             baseline = f.sel(time=slice(start_date, end_date))
 
     for m in models:
+        print(m)
         logger.info(f"Masking data from {m}.")
 
         # Compute offset
@@ -192,8 +193,11 @@ def slice_mf(
         if not keep_unassimilated:
             # Mask assimilated data only
             mask &= ds_all[m]["assimilation_flag"] == 1
-        index = ds_all[m]["time"].where(mask, drop = True).index.values
-        ds_all[m] = ds_all[m].sel(index = index)
+        # create index coordinate and use .sel to select data as there was performance issue when using directly .where
+        ds_all[m] = ds_all[m].assign_coords(index=np.arange(ds_all[m].index.size))
+        index = ds_all[m]["time"].where(mask, drop = True).index
+        ds_all[m] = ds_all[m].sel(index=index)
+        del ds_all[m]["index"], index
 
         # Slice according to intake height
         if intake_height is not None:
