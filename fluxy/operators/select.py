@@ -248,13 +248,6 @@ def slice_site(ds: xr.Dataset, site: str) -> xr.Dataset:
 
     mask = ds["number_of_identifier"] == site_index
     ds = ds.where(mask, drop=True)
-    
-    #quick fix for bug in InTEM conc files with repeated TAC timestamps
-    if site == "TAC" and "InTEM" in ds.attrs["source"]:
-        if np.where(ds['time'] == ds['time'][0])[0].shape[0] > 1:
-            logger.warning(f"Masking out nan values for TAC, as a quick fix for a bug in InTEM concentration files.")
-            mask = np.isnan(ds["mf_observed"])
-            ds["assimilation_flag"][mask] = 0
 
     return ds
 

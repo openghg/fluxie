@@ -875,6 +875,12 @@ def edit_vars_and_attributes(
             # Fill intake_height and stdev_mf_model with fake values
             ds["intake_height"][:] = 0
             ds["stdev_mf_model"][:] = 0
+        if m0 == "intem":
+            # Set assimilation_flag to zero is mf_observed = NaN
+            mask = np.isnan(ds["mf_observed"])
+            if any(mask):
+                ds["assimilation_flag"][mask] = 0
+                logger.warning(f"Masking out nan values in {model}, as a quick fix for a bug in InTEM concentration files.")
 
     if file_type == DataTypes.EDDY_FLUX:
         # check some eddy flux variables
