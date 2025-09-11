@@ -204,12 +204,12 @@ def get_filename(
             elif species in standard_run_dict_default:
                 model_name = f"{base_model_name}_{standard_run_dict_default[species]}"
             else:
-                raise ValueError(
-                    f"No standard run provided for {species}, neither in '{model_name}', '{run_keys}' nor in 'default'. Please update variable 'standard_run' in models_info.json."
+                logger.warning(
+                    f"No standard run provided for {species}, neither in '{model_name}', '{run_keys}' nor in 'default'. Please update variable 'standard_run' in models_info.json. Trying to find {model} instead."
                 )
         else:
-            raise ValueError(
-                f"Config file models_info.json does not exist or variable 'standard_run' is not defined. Please update models_info.json."
+            logger.warning(
+                f"Config file models_info.json does not exist or variable 'standard_run' is not defined. Please update models_info.json. Trying to find {model} instead."
             )
 
     # Replace parameter tags by dict values in config
