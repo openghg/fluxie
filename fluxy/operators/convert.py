@@ -61,16 +61,14 @@ def scale_variables(
     for scale_var, print_unit in print_units.items():
         if print_unit is None:
             continue
-        
+
         if var_type_name.get(scale_var) is None:
             raise ValueError(
                 f"{scale_var} is not implemented. Acceptable keys are: {var_type_name.keys()}."
             )
 
         # Get list of variables to scale
-        var_names, var_unit = get_variables(
-            ds_model, unit_type=unit_type[scale_var]
-        )
+        var_names, var_unit = get_variables(ds_model, unit_type=unit_type[scale_var])
 
         if (not var_names) and (opt_unit_type := optional_unit_type.get(scale_var)):
             var_names, var_unit = get_variables(ds_model, unit_type=opt_unit_type)
@@ -97,9 +95,7 @@ def scale_variables(
         if species_info is not None:
             molar_mass = species_info["molar_mass"]
 
-        scaling_factor = get_units_conversion_factor(
-            var_unit, target_unit, molar_mass
-        )
+        scaling_factor = get_units_conversion_factor(var_unit, target_unit, molar_mass)
 
         # Apply scaling
         for v in var_names:

@@ -76,7 +76,7 @@ def slice_flux(
             logger.warning(
                 f"No {m} fluxes found between {start_date[im]} and {end_date[im]}."
             )
-            ds_all_sliced.pop(m)
+            ds_all.pop(m)
             continue
 
         # Scale fluxes
@@ -164,7 +164,6 @@ def slice_mf(
             baseline = f.sel(time=slice(start_date, end_date))
 
     for m in models:
-        print(m)
         logger.info(f"Masking data from {m}.")
 
         # Compute offset
@@ -187,7 +186,7 @@ def slice_mf(
                 logger.warning(f"Error slicing site {site} from {m}: {e}")
                 ds_all.pop(m)
                 continue
-            
+
         # Slice data according to time window
         mask = (ds_all[m]["time"] >= start_date) & (ds_all[m]["time"] <= end_date)
         if not keep_unassimilated:
@@ -195,7 +194,7 @@ def slice_mf(
             mask &= ds_all[m]["assimilation_flag"] == 1
         # create index coordinate and use .sel to select data as there was performance issue when using directly .where
         ds_all[m] = ds_all[m].assign_coords(index=np.arange(ds_all[m].index.size))
-        index = ds_all[m]["time"].where(mask, drop = True).index
+        index = ds_all[m]["time"].where(mask, drop=True).index
         ds_all[m] = ds_all[m].sel(index=index)
         del ds_all[m]["index"], index
 
@@ -396,7 +395,7 @@ def get_unique_site_height_pairs(
         site_list:
             Pairs of sites and heights, e.g. [('MHD',10),(TAC,100),(TAC,185)]
     """
-    
+
     site_list = get_unique_sites(ds_all)
 
     if separate_by_height:
