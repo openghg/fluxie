@@ -522,28 +522,35 @@ def get_map_bounds(
     ds_all = list(ds_all)
     if isinstance(region, str):
         # Use the non-zero country_fraction to define the clipping region, for coherence in the country definition
-        if len(ds_all) > 0 and "country_fraction" in ds_all[0]:
-            
-            if all([r in ds_all[0].country for r in region.split("-")]):
-                da_mask = ds_all[0].country_fraction.sel(country=region.split("-"))
-            elif region in config_data["regions_info"]["regions"]:
-                da_mask = ds_all[0].country_fraction.sel(
-                    country=config_data["regions_info"]["regions"][region].split("-")
-                )
-            else:
-                da_mask = ds_all[0].country_fraction.sum(dim="country")
+        clip_region = list()
+        for ds in ds_all:
+            if "country_fraction" in ds:                
+                if all([r in ds.country for r in region.split("-")]):
+                    da_mask = ds.country_fraction.sel(country=region.split("-")).sum(dim="country")
+                elif region in config_data["regions_info"]["regions"]:
+                    da_mask = ds.country_fraction.sel(
+                        country=config_data["regions_info"]["regions"][region].split("-")
+                    ).sum(dim="country")
+                else:
+                    da_mask = ds.country_fraction.sum(dim="country")
 
-            clipped = (
-                da_mask.where(da_mask != 0)
-                .dropna(dim="longitude", how="all")
-                .dropna(dim="latitude", how="all")
-            )
-            clip_region = [
-                clipped.longitude.values.min(),
-                clipped.latitude.values.min(),
-                clipped.longitude.values.max(),
-                clipped.latitude.values.max(),
-            ]
+                clipped = (
+                    da_mask.where(da_mask != 0)
+                    .dropna(dim="longitude", how="all")
+                    .dropna(dim="latitude", how="all")
+                )
+                clip_region.append([
+                    clipped.longitude.values.min(),
+                    clipped.latitude.values.min(),
+                    clipped.longitude.values.max(),
+                    clipped.latitude.values.max(),
+                ])
+        if clip_region:
+            clip_region = [min([clpr[0] for clpr in clip_region]),
+                           min([clpr[1] for clpr in clip_region]),
+                           max([clpr[2] for clpr in clip_region]),
+                           max([clpr[3] for clpr in clip_region]),
+                           ]
         else:
             clip_region = None
 
