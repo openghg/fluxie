@@ -78,7 +78,7 @@ def add_colorbar(fig, ax, im, extend, label, n_cbar, idx_cbar, colorbar_type="ro
         ax_dim = np.array(ax).ndim
 
         if ax_dim == 1:
-            if nrows ==2 and ncols ==2: # single_season case
+            if nrows == 2 and ncols == 2:  # single_season case
                 target_ax = [ax[1], ax[3]]
             else:
                 target_ax = ax[:]
@@ -87,9 +87,7 @@ def add_colorbar(fig, ax, im, extend, label, n_cbar, idx_cbar, colorbar_type="ro
         else:
             target_ax = ax
 
-        cbar = fig.colorbar(
-            im, ax=target_ax, orientation="vertical", extend=extend
-        )
+        cbar = fig.colorbar(im, ax=target_ax, orientation="vertical", extend=extend)
 
     else:
         raise ValueError(
@@ -524,12 +522,16 @@ def get_map_bounds(
         # Use the non-zero country_fraction to define the clipping region, for coherence in the country definition
         clip_region = list()
         for ds in ds_all:
-            if "country_fraction" in ds:                
+            if "country_fraction" in ds:
                 if all([r in ds.country for r in region.split("-")]):
-                    da_mask = ds.country_fraction.sel(country=region.split("-")).sum(dim="country")
+                    da_mask = ds.country_fraction.sel(country=region.split("-")).sum(
+                        dim="country"
+                    )
                 elif region in config_data["regions_info"]["regions"]:
                     da_mask = ds.country_fraction.sel(
-                        country=config_data["regions_info"]["regions"][region].split("-")
+                        country=config_data["regions_info"]["regions"][region].split(
+                            "-"
+                        )
                     ).sum(dim="country")
                 else:
                     da_mask = ds.country_fraction.sum(dim="country")
@@ -539,18 +541,21 @@ def get_map_bounds(
                     .dropna(dim="longitude", how="all")
                     .dropna(dim="latitude", how="all")
                 )
-                clip_region.append([
-                    clipped.longitude.values.min(),
-                    clipped.latitude.values.min(),
-                    clipped.longitude.values.max(),
-                    clipped.latitude.values.max(),
-                ])
+                clip_region.append(
+                    [
+                        clipped.longitude.values.min(),
+                        clipped.latitude.values.min(),
+                        clipped.longitude.values.max(),
+                        clipped.latitude.values.max(),
+                    ]
+                )
         if clip_region:
-            clip_region = [min([clpr[0] for clpr in clip_region]),
-                           min([clpr[1] for clpr in clip_region]),
-                           max([clpr[2] for clpr in clip_region]),
-                           max([clpr[3] for clpr in clip_region]),
-                           ]
+            clip_region = [
+                min([clpr[0] for clpr in clip_region]),
+                min([clpr[1] for clpr in clip_region]),
+                max([clpr[2] for clpr in clip_region]),
+                max([clpr[3] for clpr in clip_region]),
+            ]
         else:
             clip_region = None
 
