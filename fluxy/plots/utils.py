@@ -7,7 +7,6 @@ import logging
 import re
 import warnings
 
-from shapely.geometry import MultiPolygon, Polygon
 from typing import Literal
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib.collections import LineCollection
@@ -519,12 +518,10 @@ def get_map_bounds(
     """
     ds_all = list(ds_all)
     if isinstance(region, str):
-        if False:  # any(["country_fraction" in ds for ds in ds_all]):
-            map_bounds = get_bounds_from_country_fraction(
-                ds_all, region, config_data.get("regions_info", {})
-            )
-
-        else:
+        map_bounds = get_bounds_from_country_fraction(
+            ds_all, region, config_data.get("regions_info", {})
+        )
+        if not map_bounds:
             clip_region = get_bounds_from_datasets(ds_all)
 
             map_bounds = get_bounds_from_gpd_regions(
@@ -563,7 +560,7 @@ def get_map_bounds(
 
 def get_bounds_from_country_fraction(
     ds_all: list[xr.Dataset], region: str, regions_info: dict
-) -> tuple[float, float, float, float]:
+) -> tuple[float, float, float, float] | None:
     """
     Get the bounding coordinates of a region based on the "country_fracion" of the regions in the inoput datasets.
 
@@ -580,41 +577,54 @@ def get_bounds_from_country_fraction(
             The bounding coordinates of the region or dataset (lon_min, lon_max, lat_min, lat_max).
     """
     clip_regions = list()
-    for ds in ds_all:
-        if "country_fraction" in ds:
-            if all([r in ds.country for r in region.split("-")]):
-                da_mask = ds.country_fraction.sel(country=region.split("-")).sum(
-                    dim="country"
-                )
-            elif region in regions_info["regions"]:
-                da_mask = ds.country_fraction.sel(
-                    country=regions_info["regions"][region].split("-")
-                ).sum(dim="country")
-            else:
-                da_mask = ds.country_fraction.sum(dim="country")
 
-            clipped = (
-                da_mask.where(da_mask != 0)
-                .dropna(dim="longitude", how="all")
-                .dropna(dim="latitude", how="all")
-            )
-            clip_regions.append(
-                [
-                    clipped.longitude.values.min(),
-                    clipped.longitude.values.max(),
-                    clipped.latitude.values.min(),
-                    clipped.latitude.values.max(),
-                ]
-            )
+    for ax_i, ds in zip(ax, ds_all):
+        if "country_fraction" not in ds:
+            continue
 
-    map_bounds = [
-        min([clpr[0] for clpr in clip_regions]),
-        max([clpr[1] for clpr in clip_regions]),
-        min([clpr[2] for clpr in clip_regions]),
-        max([clpr[3] for clpr in clip_regions]),
-    ]
+        region_ds_names = list()
+        for rg in region.split("-"):
+            if rg in ds.country:
+                region_ds_names.append(rg)
+            elif (
+                rg in regions_info["regions"]
+                and regions_info["regions"][rg] in ds.country
+            ):
+                region_ds_names.append(regions_info["regions"][rg])
+            elif (
+                rg in regions_info["country_codes"]
+                and regions_info["country_codes"][rg] in ds.country
+            ):
+                region_ds_names.append(regions_info["country_codes"][rg])
 
-    return map_bounds
+        if not region_ds_names:
+            continue
+
+        da_mask = ds.country_fraction.sel(country=region_ds_names).sum(dim="country")
+
+        clipped = (
+            da_mask.where(da_mask != 0)
+            .dropna(dim="longitude", how="all")
+            .dropna(dim="latitude", how="all")
+        )
+        clip_regions.append(
+            [
+                clipped.longitude.values.min(),
+                clipped.longitude.values.max(),
+                clipped.latitude.values.min(),
+                clipped.latitude.values.max(),
+            ]
+        )
+
+    if clip_regions:
+        map_bounds = [
+            min([clpr[0] for clpr in clip_regions]),
+            max([clpr[1] for clpr in clip_regions]),
+            min([clpr[2] for clpr in clip_regions]),
+            max([clpr[3] for clpr in clip_regions]),
+        ]
+
+        return map_bounds
 
 
 def get_bounds_from_gpd_regions(
