@@ -477,10 +477,10 @@ def get_bounds_from_datasets(
     Returns:
         bounds: tuple of min and max values for latitude and longitude
     """
-    lat_min = min([ds.latitude.min() for ds in ds_list])
-    lat_max = max([ds.latitude.max() for ds in ds_list])
-    lon_min = min([ds.longitude.min() for ds in ds_list])
-    lon_max = max([ds.longitude.max() for ds in ds_list])
+    lat_min = min([ds.latitude.values.min() for ds in ds_list])
+    lat_max = max([ds.latitude.values.max() for ds in ds_list])
+    lon_min = min([ds.longitude.values.min() for ds in ds_list])
+    lon_max = max([ds.longitude.values.max() for ds in ds_list])
 
     return lon_min, lon_max, lat_min, lat_max
 
@@ -519,61 +519,39 @@ def get_map_bounds(
     """
     ds_all = list(ds_all)
     if isinstance(region, str):
-        # Use the non-zero country_fraction to define the clipping region, for coherence in the country definition
-        clip_region = list()
-        for ds in ds_all:
-            if "country_fraction" in ds:
-                if all([r in ds.country for r in region.split("-")]):
-                    da_mask = ds.country_fraction.sel(country=region.split("-")).sum(
-                        dim="country"
-                    )
-                elif region in config_data["regions_info"]["regions"]:
-                    da_mask = ds.country_fraction.sel(
-                        country=config_data["regions_info"]["regions"][region].split(
-                            "-"
-                        )
-                    ).sum(dim="country")
-                else:
-                    da_mask = ds.country_fraction.sum(dim="country")
+        if False:  # any(["country_fraction" in ds for ds in ds_all]):
+            map_bounds = get_bounds_from_country_fraction(
+                ds_all, region, config_data.get("regions_info", {})
+            )
 
-                clipped = (
-                    da_mask.where(da_mask != 0)
-                    .dropna(dim="longitude", how="all")
-                    .dropna(dim="latitude", how="all")
-                )
-                clip_region.append(
-                    [
-                        clipped.longitude.values.min(),
-                        clipped.latitude.values.min(),
-                        clipped.longitude.values.max(),
-                        clipped.latitude.values.max(),
-                    ]
-                )
-        if clip_region:
-            clip_region = [
-                min([clpr[0] for clpr in clip_region]),
-                min([clpr[1] for clpr in clip_region]),
-                max([clpr[2] for clpr in clip_region]),
-                max([clpr[3] for clpr in clip_region]),
-            ]
         else:
-            clip_region = None
+            clip_region = get_bounds_from_datasets(ds_all)
 
-        map_bounds = get_region_coordinates(
-            region,
-            config_data.get("regions_info", {}),
-            zoom_degree=zoom_degree,
-            clip_region=clip_region,
-        )
+            map_bounds = get_bounds_from_gpd_regions(
+                region.split("-"),
+                regions_info=config_data.get("regions_info", {}),
+                clip_region=clip_region,
+            )
+
+        # Apply zoom adjustment
+        lon_min = map_bounds[0] - zoom_degree
+        lon_max = map_bounds[1] + zoom_degree
+        lat_min = map_bounds[2] - zoom_degree
+        lat_max = map_bounds[3] + zoom_degree
+
+        map_bounds = (lon_min, lon_max, lat_min, lat_max)
+
     elif isinstance(region, (list, tuple)) and all(
         isinstance(coord, (int, float)) for coord in region
     ):
         map_bounds = tuple(region)
+
     elif region is None:
         if len(ds_all) == 0:
             raise ValueError("No datasets provided to determine bounds.")
         # Read the bounds from the dataset
         map_bounds = get_bounds_from_datasets(ds_all)
+
     else:
         if not isinstance(region, str):
             raise ValueError(
@@ -583,14 +561,97 @@ def get_map_bounds(
     return map_bounds
 
 
-def get_region_coordinates(
+def get_bounds_from_country_fraction(
+    ds_all: list[xr.Dataset], region: str, regions_info: dict
+) -> tuple[float, float, float, float]:
+    """
+    Get the bounding coordinates of a region based on the "country_fracion" of the regions in the inoput datasets.
+
+    Args:
+        ds_all (list[xr.Dataset]):
+            A list of xarray datasets to get the bounds from.
+        region (str | list[float] | None):
+            The region name .
+        config_data (dict[str, any]):
+            Configuration data containing regions information.
+
+    Returns:
+        map_bounds (tuple[float, float, float, float]):
+            The bounding coordinates of the region or dataset (lon_min, lon_max, lat_min, lat_max).
+    """
+    clip_regions = list()
+    for ds in ds_all:
+        if "country_fraction" in ds:
+            if all([r in ds.country for r in region.split("-")]):
+                da_mask = ds.country_fraction.sel(country=region.split("-")).sum(
+                    dim="country"
+                )
+            elif region in regions_info["regions"]:
+                da_mask = ds.country_fraction.sel(
+                    country=regions_info["regions"][region].split("-")
+                ).sum(dim="country")
+            else:
+                da_mask = ds.country_fraction.sum(dim="country")
+
+            clipped = (
+                da_mask.where(da_mask != 0)
+                .dropna(dim="longitude", how="all")
+                .dropna(dim="latitude", how="all")
+            )
+            clip_regions.append(
+                [
+                    clipped.longitude.values.min(),
+                    clipped.longitude.values.max(),
+                    clipped.latitude.values.min(),
+                    clipped.latitude.values.max(),
+                ]
+            )
+
+    map_bounds = [
+        min([clpr[0] for clpr in clip_regions]),
+        max([clpr[1] for clpr in clip_regions]),
+        min([clpr[2] for clpr in clip_regions]),
+        max([clpr[3] for clpr in clip_regions]),
+    ]
+
+    return map_bounds
+
+
+def get_bounds_from_gpd_regions(
+    region_list: list[str], **kwargs
+) -> tuple[float, float, float, float]:
+    """
+    Get the bounding coordinates of a list of regions using geopandas library by recursively calling _get_bounds_from_gpd_region.
+
+    Args:
+        region_name (list):
+            List of country/region/continent names to get the coordinates for.
+        **kwargs: parameters to pass to _get_bounds_from_gpd_region
+
+    Returns:
+        region_coordinates (tuple):
+            The bounding coordinates of the region (lon_min, lon_max, lat_min, lat_max).
+    """
+
+    region_coordinates_list = [
+        _get_bounds_from_gpd_region(region, **kwargs) for region in region_list
+    ]
+    region_coordinates = [
+        min([clpr[0] for clpr in region_coordinates_list]),
+        max([clpr[1] for clpr in region_coordinates_list]),
+        min([clpr[2] for clpr in region_coordinates_list]),
+        max([clpr[3] for clpr in region_coordinates_list]),
+    ]
+    return region_coordinates
+
+
+def _get_bounds_from_gpd_region(
     region_name: str,
     regions_info: dict[str, str],
-    zoom_degree: float = 1,
     clip_region: list[float] = None,
 ) -> tuple[float, float, float, float]:
     """
-    Get the bounding coordinates of a specified region with an option to zoom in/out.
+    Get the bounding coordinates of a specified country/region/continent using geopandas library.
 
     Args:
         region_name (str):
@@ -606,7 +667,7 @@ def get_region_coordinates(
 
     Returns:
         region_coordinates (tuple):
-            The bounding coordinates of the region (lon_min, lon_max, lat_min, lat_max), after zooming.
+            The bounding coordinates of the region (lon_min, lon_max, lat_min, lat_max).
     """
     world = load_countries_shape()
     region_code = regions_info.get("country_codes", {})
@@ -656,14 +717,12 @@ def get_region_coordinates(
     # Get the bounding box of the region of interest
     region_boundaries = region.total_bounds  # [minx, miny, maxx, maxy]
 
-    # Apply zoom adjustment
-    lon_min = region_boundaries[0] - zoom_degree
-    lat_min = region_boundaries[1] - zoom_degree
-    lon_max = region_boundaries[2] + zoom_degree
-    lat_max = region_boundaries[3] + zoom_degree
-
-    region_coordinates = (lon_min, lon_max, lat_min, lat_max)
-    return region_coordinates
+    return (
+        region_boundaries[0],
+        region_boundaries[2],
+        region_boundaries[1],
+        region_boundaries[3],
+    )
 
 
 def compute_boundary_geometry(map_bounds):
