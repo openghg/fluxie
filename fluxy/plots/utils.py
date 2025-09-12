@@ -490,7 +490,7 @@ Region = str | list[float] | tuple[float] | None
 
 def get_map_bounds(
     region: Region = None,
-    ds_all: list[xr.Dataset] = [],
+    ds_all: list[xr.Dataset] | None = [],
     config_data: dict[str, any] = {},
     zoom_degree: float = 1,
 ) -> tuple[float, float, float, float]:
@@ -516,14 +516,17 @@ def get_map_bounds(
 
 
     """
-    ds_all = list(ds_all)
-    if isinstance(region, str):
-        map_bounds = get_bounds_from_country_fraction(
-            ds_all, region, config_data.get("regions_info", {})
-        )
-        if not map_bounds:
-            clip_region = get_bounds_from_datasets(ds_all)
 
+    if isinstance(region, str):
+        clip_region, map_bounds = None, None
+
+        if ds_all:
+            clip_region = get_bounds_from_datasets(ds_all)
+            map_bounds = get_bounds_from_country_fraction(
+                ds_all, region, config_data.get("regions_info", {})
+            )
+
+        if not map_bounds:
             map_bounds = get_bounds_from_gpd_regions(
                 region.split("-"),
                 regions_info=config_data.get("regions_info", {}),
@@ -578,7 +581,7 @@ def get_bounds_from_country_fraction(
     """
     clip_regions = list()
 
-    for ax_i, ds in zip(ax, ds_all):
+    for ds in ds_all:
         if "country_fraction" not in ds:
             continue
 
@@ -588,9 +591,9 @@ def get_bounds_from_country_fraction(
                 region_ds_names.append(rg)
             elif (
                 rg in regions_info["regions"]
-                and regions_info["regions"][rg] in ds.country
+                and all([r in ds.country for r in regions_info["regions"][rg].split("-")])
             ):
-                region_ds_names.append(regions_info["regions"][rg])
+                region_ds_names += regions_info["regions"][rg].split("-")
             elif (
                 rg in regions_info["country_codes"]
                 and regions_info["country_codes"][rg] in ds.country
@@ -600,7 +603,7 @@ def get_bounds_from_country_fraction(
         if not region_ds_names:
             continue
 
-        da_mask = ds.country_fraction.sel(country=region_ds_names).sum(dim="country")
+        da_mask = ds.country_fraction.sel(country=np.unique(region_ds_names)).sum(dim="country")
 
         clipped = (
             da_mask.where(da_mask != 0)
