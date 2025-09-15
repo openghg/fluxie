@@ -78,9 +78,15 @@ def produce_plots(
         ### Get settings
         period = "monthly" if species in annex_config_data.monthly_species else "yearly"
         start_date = annex_config_data.start_date[period]
-        models_country_flux = get_species_specific_settings(species, period, annex_config_data.models_country_flux)
-        models_spatial_maps = get_species_specific_settings(species, period, annex_config_data.models_spatial_maps)
-        kwargs_country_flux_species_specific = get_species_specific_settings(species, period, annex_config_data.kwargs_country_flux_species_specific)
+        models_country_flux = get_species_specific_settings(
+            species, period, annex_config_data.models_country_flux
+        )
+        models_spatial_maps = get_species_specific_settings(
+            species, period, annex_config_data.models_spatial_maps
+        )
+        kwargs_country_flux_species_specific = get_species_specific_settings(
+            species, period, annex_config_data.kwargs_country_flux_species_specific
+        )
 
         ### Country fluxes
         # Read and slice data
