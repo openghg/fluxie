@@ -226,26 +226,25 @@ class AnnexConfig:
     end_date = "2025-01-01"
 
     ### Settings for country fluxes
-    ## Model definitions
-    # for monthly species (list or dictionary if different between species)
-    models_monthly_species = [
-        "InTEM_NAME",
-        "InTEM_FLEXPART",
-        "ELRIS_NAME",
-        "ELRIS_FLEXPART",
-        "RHIME_NAME",
-        "RHIME_FLEXPART",
-    ]
-
-    # for annual species (list or dictionary if different between species)
-    models_yearly_species = [
-        "InTEM_NAME",
-        "InTEM_FLEXPART",
-        "ELRIS_NAME",
-        "ELRIS_FLEXPART",
-        "RHIME_NAME",
-        "RHIME_FLEXPART",
-    ]
+    ## Model definitions (list or dict["<period>": list(), "<species>": list()] if different between species)
+    models_country_flux = {
+        "monthly": [
+            "InTEM_NAME",
+            "InTEM_FLEXPART",
+            "ELRIS_NAME",
+            "ELRIS_FLEXPART",
+            "RHIME_NAME",
+            "RHIME_FLEXPART",
+        ],
+        "yearly": [
+            "InTEM_NAME",
+            "InTEM_FLEXPART",
+            "ELRIS_NAME",
+            "ELRIS_FLEXPART",
+            "RHIME_NAME",
+            "RHIME_FLEXPART",
+        ],
+    }
 
     ## Units for plot
     country_flux_units_print = "Tg CO2-eq yr-1"
@@ -267,12 +266,19 @@ class AnnexConfig:
         return_res=True,
     )
 
-    # for monthly species on extended time window
-    kwargs_country_flux_monthly_species = dict(
-        resample="year",
-        resample_uncert_correlation=False,
-        rolling_mean=False,
-    )
+    # for monthly/yearly species on extended time window
+    # add entries for specific species if different from monthly/yearly default
+    kwargs_country_flux_species_specific = {
+        "monthly": dict(
+            resample="year",
+            resample_uncert_correlation=False,
+            rolling_mean=False,
+        ),
+        "yearly": dict(
+            resample=None,
+            rolling_mean=True,
+        ),
+    }
 
     # for monthly species on PARIS time window
     kwargs_country_flux_monthly_species_special = dict(
@@ -280,13 +286,9 @@ class AnnexConfig:
         rolling_mean=False,
     )
 
-    # for yearly species
-    kwargs_country_flux_yearly_species = dict(
-        resample=None,
-        rolling_mean=True,
-    )
-
-    ### Settings for spatial maps (list or dictionary if different between species)
+    ### Settings for spatial maps
+    ## Model definitions (list or dict["<period>": list(), "<species>": list()] if different between species)
+    # NOTE: it is assumed that models_spatial_maps exist in models_monthly/yearly_species
     models_spatial_maps = [
         "InTEM_NAME",
         "InTEM_FLEXPART",
@@ -332,14 +334,12 @@ class AnnexConfig:
         ### Settings for spatial maps
         self.fluxlim_percentile = fluxlim_percentiles.get(region, dict())
 
-        self.start_date_fgases = start_date_fgases[region]
+        ### Start dates
+        self.start_date = {
+            "monthly": self.start_date_monthly_species,
+            "yearly": start_date_fgases[region],
+        }
 
         ### Settings for spatial maps
         self.kwargs_maps_general["region"] = region
         self.kwargs_maps_general["add_markers"] = point_markers[region]
-
-        if not hasattr(self, "kwargs_country_flux_monthly_species_per_species"):
-            self.kwargs_country_flux_monthly_species_per_species = {}
-
-        if not hasattr(self, "kwargs_country_flux_yearly_species_per_species"):
-            self.kwargs_country_flux_yearly_species_per_species = {}
