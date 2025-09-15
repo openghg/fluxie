@@ -541,8 +541,10 @@ def get_map_bounds(
 
         map_bounds = (lon_min, lon_max, lat_min, lat_max)
 
-    elif isinstance(region, (list, tuple)) and all(
-        isinstance(coord, (int, float)) for coord in region
+    elif (
+        isinstance(region, (list, tuple))
+        and all(isinstance(coord, (int, float)) for coord in region)
+        and len(region) == 4
     ):
         map_bounds = tuple(region)
 
