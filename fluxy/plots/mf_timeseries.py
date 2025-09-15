@@ -374,6 +374,8 @@ def plot_timeseries(
             ax[iax, 0].xaxis.set_major_locator(MonthLocator())
             if presentation_mode:
                 ax[iax, 0].tick_params(axis="x", rotation=70)
+        ax[iax, 0].grid(color = 'lightgrey', linestyle = '-', linewidth = 0.7)
+        ax[iax, 0].set_axisbelow(True)
 
     if y_lim is None:
         y_lim = [min_mf - 0.02 * min_mf, max_mf + 0.05 * max_mf]
