@@ -880,7 +880,7 @@ def edit_vars_and_attributes(
             mask = np.isnan(ds["mf_observed"])
             if any(mask):
                 ds["assimilation_flag"][mask] = 0
-                logger.warning(f"Masking out nan values in {model}, as a quick fix for a bug in InTEM concentration files.")
+                logger.info(f"Masking out nan values in {model}, as a quick fix for a bug in InTEM concentration files.")
 
     if file_type == DataTypes.EDDY_FLUX:
         # check some eddy flux variables
