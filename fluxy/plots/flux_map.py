@@ -615,7 +615,7 @@ def plot_flux_map_over_time(
     is_diff = "diff" in var
     cmap = cmap_diff if is_diff else cmap
     border_color = c_border_diff if is_diff else c_border
-    marker_color = "black" if is_diff else "red"
+    marker_color = "black" if is_diff else "magenta"
     extend = "both" if is_diff else "max"
 
     # Initialise figure
@@ -630,7 +630,7 @@ def plot_flux_map_over_time(
     else:
         fig_rows = n_rows
         fig_cols = n_cols
-        fixed_value = 4 * n_rows
+        fixed_value = 5 * n_rows
 
     figsize = define_map_figsize(
         map_bounds,
@@ -687,9 +687,9 @@ def plot_flux_map_over_time(
                     ax_i.set_yticklabels([])
 
             # Add titles
-            if row == 0:
-                # Column titles
-                ax_i.set_title(time_label)
+            # if row == 0:
+            #     # Column titles
+            # ax_i.set_title(species_info['species_print'])
             if col == 0 and not plot_combined:
                 # Row titles
                 ax_i.set_ylabel(model_labels.get(model, model))
@@ -718,8 +718,8 @@ def plot_flux_map_over_time(
         ds,
         species_info,
         var,
-        sector=sector if sector != "total" else "",
-        format=["variable", "species", "sector", "units"],
+        sector=sector,
+        format=["species", "units"],
     )
     add_colorbar(
         fig,

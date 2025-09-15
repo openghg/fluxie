@@ -133,21 +133,21 @@ def prepare_data_to_plot(
             ds_combined = combine_dataset(ds_to_combine, plot_combined)
             ds_combined["combined"].attrs[
                 "model_label"
-            ] = "PARIS mean (from resampled data)"
+            ] = "Mean (from resampled data)"
         else:
             ds_to_combine = {
                 m: calc_rolling_mean(ds) if rm else ds
                 for rm, (m, ds) in zip(rolling_mean, ds_all_region.items())
             }
             ds_combined = combine_dataset(ds_to_combine, plot_combined)
-            ds_combined["combined"].attrs["model_label"] = "PARIS mean"
+            ds_combined["combined"].attrs["model_label"] = "Mean"
         ds_to_plot.update(ds_combined)
 
     # Determine plot color and label of each dataset
     color_usage = {k: 0 for k in map_model_colors.keys()}
     for m in ds_to_plot.keys():
         if m == "combined":
-            include_label = "PARIS mean"
+            include_label = "Mean"
             model_color = "black"
         else:
             include_label = ds_to_plot[m].attrs.get("model_label", None)
@@ -313,6 +313,7 @@ def plot_country_flux(
                     fill=False,
                     label=f"Inventory {inventory.year}",
                     zorder=0,
+                    linewidth=3,
                 )
                 if return_res:
                     res_dict[country][f"inventory_{inventory.year}"] = {
@@ -347,15 +348,16 @@ def plot_country_flux(
                 ds_region.posterior,
                 label=ds_region.attrs["model_label"],
                 color=ds_region.attrs["model_color"],
-                linewidth=linew,
+                linewidth=3,
             )
-            ax.fill_between(
-                ds_region.time,
-                ds_region.posterior_lower,
-                ds_region.posterior_upper,
-                alpha=0.2,
-                color=ds_region.attrs["model_color"],
-            )
+            if m != "combined":
+                ax.fill_between(
+                    ds_region.time,
+                    ds_region.posterior_lower,
+                    ds_region.posterior_upper,
+                    alpha=0.2,
+                    color=ds_region.attrs["model_color"],
+                )
             max_cf[i] = np.nanmax(
                 (
                     max_cf[i],
@@ -399,7 +401,7 @@ def plot_country_flux(
                 )
 
         ax.set_ylabel(
-            f"{s_data.get(species, {}).get('species_print', species)} {sector.title() if sector != 'total' else ''}"
+            f"{s_data.get(species, {}).get('species_print', species)}"
             f" ({unit.replace('2','$_{{2}}$').replace('-1','$^{{-1}}$')})"
         )
 
@@ -468,7 +470,7 @@ def plot_country_flux(
         if plot_separate or resample:
             ncol = len(ds_all.keys())
         if plot_combined and plot_separate:
-            ncol = math.floor(len(ds_all.keys()) / 2) + 2
+            ncol = len(ds_all.keys()) + 1
         elif plot_combined:
             ncol = 3
         if plot_inventory:

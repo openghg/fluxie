@@ -86,7 +86,9 @@ def add_colorbar(fig, ax, im, extend, label, n_cbar, idx_cbar, colorbar_type="ro
         else:
             target_ax = ax
 
-        cbar = fig.colorbar(im, ax=target_ax, orientation="vertical", extend=extend)
+        cbar = fig.colorbar(
+            im, ax=target_ax, orientation="horizontal", extend=extend
+        )
 
     else:
         raise ValueError(
@@ -94,6 +96,8 @@ def add_colorbar(fig, ax, im, extend, label, n_cbar, idx_cbar, colorbar_type="ro
         )
 
     cbar.set_label(label)
+    cbar.ax.xaxis.set_label_position("top")
+    # cbar.ax.yaxis.set_label_position("left")
 
 
 def define_flux_label(var: str) -> str:
@@ -342,10 +346,11 @@ def add_site_markers(ax, site_info, color):
         ax.scatter(
             site_data["longitude"],
             site_data["latitude"],
-            facecolor="none",
-            edgecolor=color,
-            marker="o",
-            s=30,
+            color=color,
+            # facecolor="none",
+            # edgecolor=color,
+            marker="x",
+            s=40,
             zorder=2,
         )
 

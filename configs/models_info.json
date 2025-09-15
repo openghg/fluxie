@@ -9,14 +9,30 @@
         "ELRIS_NAME_EDGAR_std" : "ELRIS",
         "InTEM_NAME_EDGAR_std" : "InTEM",
         "RHIME_NAME_EDGAR_std" : "RHIME",
-        "ELRIS_NAME_EUROPE_HOSSAINI" : "ELRIS Hossaini",
-        "InTEM_NAME_EUROPE_hossaini_prior_20250118_obs" : "InTEM Hossaini",
-        "RHIME_NAME_EUROPE_HOSSAINI" : "RHIME Hossaini",
-        "Flexinvert_Flexpart_EUROPE_hossaini" : "Flexinvert Hossaini",
-        "ELRIS_NAME_EUROPE_UNIFORM" : "ELRIS uniform",
-        "InTEM_NAME_EUROPE_uniform_prior_20250118_obs" : "InTEM uniform",
-        "RHIME_NAME_EUROPE_UNIFORM" : "RHIME uniform",
-        "Flexinvert_Flexpart_EUROPE_uniform" : "Flexinvert uniform"
+        "ELRIS_NAME_EUROPE_EDGAR_PARISNID2026" : "ELRIS NAME NID2026",
+        "InTEM_NAME_EUROPE_EDGAR_PARISNID2026" : "InTEM NAME NID2026",
+        "RHIME_NAME_EUROPE_EDGAR_PARISNID2026" : "RHIME NAME NID2026",
+        "ELRIS_FLEXPART_EUROPE_EDGAR_PARISNID2026" : "ELRIS FLEXPART NID2026",
+        "InTEM_FLEXPART_EUROPE_EDGAR_PARISNID2026" : "InTEM FLEXPART NID2026",
+        "RHIME_FLEXPART_EUROPE_EDGAR_PARISNID2026" : "RHIME FLEXPART NID2026",
+        "ELRIS_NAME_EUROPE_EDGAR_7sitesHFCpaper" : "ELRIS NAME 7 sites",
+        "InTEM_NAME_EUROPE_EDGAR_PARISNID2026_forHelene" : "InTEM NAME 7 sites",
+        "RHIME_NAME_EUROPE_EDGAR_7sitesHFCpaper" : "RHIME NAME 7 sites",
+        "ELRIS_FLEXPART_EUROPE_EDGAR_7sitesHFCpaper" : "ELRIS FLEXPART 7 sites",
+        "InTEM_FLEXPART_EUROPE_EDGAR_PARISNID2026_forHelene" : "InTEM FLEXPART 7 sites",
+        "RHIME_FLEXPART_EUROPE_EDGAR_7sitesHFCpaper" : "RHIME FLEXPART 7 sites",
+        "ELRIS_NAME_EUROPE_FLAT_PARISNID2026" : "ELRIS NAME NID2026",
+        "InTEM_NAME_EUROPE_FLAT_PARISNID2026" : "InTEM NAME NID2026",
+        "RHIME_NAME_EUROPE_FLAT_PARISNID2026" : "RHIME NAME NID2026",
+        "ELRIS_FLEXPART_EUROPE_FLAT_PARISNID2026" : "ELRIS FLEXPART NID2026",
+        "InTEM_FLEXPART_EUROPE_FLAT_PARISNID2026" : "InTEM FLEXPART NID2026",
+        "RHIME_FLEXPART_EUROPE_FLAT_PARISNID2026" : "RHIME FLEXPART NID2026",
+        "ELRIS_NAME_EUROPE_FLAT_7sitesHFCpaper" : "ELRIS NAME 7 sites",
+        "InTEM_NAME_EUROPE_FLAT_PARISNID2026_forHelene" : "InTEM NAME 7 sites",
+        "RHIME_NAME_EUROPE_FLAT_7sitesHFCpaper" : "RHIME NAME 7 sites",
+        "ELRIS_FLEXPART_EUROPE_FLAT_7sitesHFCpaper" : "ELRIS FLEXPART 7 sites",
+        "InTEM_FLEXPART_EUROPE_FLAT_PARISNID2026_forHelene" : "InTEM FLEXPART 7 sites",
+        "RHIME_FLEXPART_EUROPE_FLAT_7sitesHFCpaper" : "RHIME FLEXPART 7 sites"
     },
 
     "species_name":{
@@ -66,9 +82,31 @@
                     "hcfo1233zde": "NAME_EUROPE_POPULATION",
                     "clch2ch2cl": "NAME_EUROPE_POPULATION"
     },
-        "flexinvert-dca": {"clch2ch2cl": "FLEXPART_EUROPE_POPULATION"
+    "NAME": {
+                    "hfc134a": "NAME_EUROPE_EDGAR_PARISNID2026",
+                    "hfc143a": "NAME_EUROPE_EDGAR_PARISNID2026",
+                    "hfc125": "NAME_EUROPE_EDGAR_PARISNID2026",
+                    "hfc152a": "NAME_EUROPE_FLAT_PARISNID2026",
+                    "hfc32": "NAME_EUROPE_EDGAR_PARISNID2026",
+                    "hfc227ea": "NAME_EUROPE_FLAT_PARISNID2026",
+                    "hfc23": "NAME_EUROPE_FLAT_PARISNID2026",
+                    "hfc245fa": "NAME_EUROPE_FLAT_PARISNID2026",
+                    "hfc365mfc": "NAME_EUROPE_FLAT_PARISNID2026",
+                    "hfc4310mee": "NAME_EUROPE_FLAT_PARISNID2026",
+                    "hfc236fa": "NAME_EUROPE_FLAT_PARISNID2026"
     },
-        "elris-n2o": {"n2o": "NAME_EUROPE_EDGAR_28sites"
+    "FLEXPART": {
+            "hfc134a": "FLEXPART_EUROPE_EDGAR_PARISNID2026",
+            "hfc143a": "FLEXPART_EUROPE_EDGAR_PARISNID2026",
+            "hfc125": "FLEXPART_EUROPE_EDGAR_PARISNID2026",
+            "hfc152a": "FLEXPART_EUROPE_FLAT_PARISNID2026",
+            "hfc32": "FLEXPART_EUROPE_EDGAR_PARISNID2026",
+            "hfc227ea": "FLEXPART_EUROPE_FLAT_PARISNID2026",
+            "hfc23": "FLEXPART_EUROPE_FLAT_PARISNID2026",
+            "hfc245fa": "FLEXPART_EUROPE_FLAT_PARISNID2026",
+            "hfc365mfc": "FLEXPART_EUROPE_FLAT_PARISNID2026",
+            "hfc4310mee": "FLEXPART_EUROPE_FLAT_PARISNID2026",
+            "hfc236fa": "FLEXPART_EUROPE_FLAT_PARISNID2026"
     }
     }
 }
