@@ -283,10 +283,12 @@ class AnnexConfig:
     }
 
     # for monthly species on PARIS time window
-    kwargs_country_flux_monthly_species_special = dict(
-        resample=None,
-        rolling_mean=False,
-    )
+    kwargs_country_flux_monthly_species_special = {
+        "monthly": dict(
+            resample=None,
+            rolling_mean=False,
+        )
+    }
 
     ### Settings for spatial maps
     ## Model definitions (list or dict["<period>": list(), "<species>": list()] if different between species)
