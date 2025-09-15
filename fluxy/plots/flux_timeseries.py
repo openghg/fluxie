@@ -399,7 +399,7 @@ def plot_country_flux(
                 )
 
         ax.set_ylabel(
-            f"{s_data.get(species, {}).get('species_print', species)} {sector.title()}"
+            f"{s_data.get(species, {}).get('species_print', species)} {sector.title() if sector != 'total' else ''}"
             f" ({unit.replace('2','$_{{2}}$').replace('-1','$^{{-1}}$')})"
         )
 

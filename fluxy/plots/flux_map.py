@@ -718,7 +718,7 @@ def plot_flux_map_over_time(
         ds,
         species_info,
         var,
-        sector=sector,
+        sector=sector if sector != "total" else "",
         format=["variable", "species", "sector", "units"],
     )
     add_colorbar(
