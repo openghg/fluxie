@@ -602,6 +602,7 @@ def plot_histogram(
                 bins=n_bins,
                 color=model_color[config.mf_color_index.get(var, 0)],
                 density=1,
+                alpha=0.7,
                 **kwargs,
             )
 
