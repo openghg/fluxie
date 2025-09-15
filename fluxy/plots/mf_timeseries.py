@@ -157,6 +157,7 @@ def plot_timeseries(
         gridspec_kw={"width_ratios": [0.8, 0.2]} if ncols == 2 else {},
         constrained_layout=True,
         sharey="row" if histogram_type == "violin" else False,
+        sharex="col",
         squeeze=False,
     )
 
