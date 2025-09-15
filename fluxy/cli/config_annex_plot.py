@@ -173,7 +173,7 @@ class AnnexConfig:
     Attributes:
         data_dir (str): directory where the data are stored
         monthly_species (list): species with monthly inversions (see documentation of annex_plot_generator.produce_plots to know which plots will be made)
-        annual_species (list): species with yearly inversions (see documentation of annex_plot_generator.produce_plots to know which plots will be made)
+        yearly_species (list): species with yearly inversions (see documentation of annex_plot_generator.produce_plots to know which plots will be made)
         combined_species (list): combined species (e.g. ["all_hfc", "all_pfc"])
         models_monthly_species (list): models used for country flux plots of the monthly species
         models_yearly_species (list): models used for country flux plots of the yearly species
@@ -197,7 +197,7 @@ class AnnexConfig:
     ### Species
     monthly_species = ["ch4", "n2o"]
 
-    annual_species = [
+    yearly_species = [
         "hfc23",
         "hfc32",
         "hfc125",
