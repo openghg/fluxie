@@ -147,6 +147,13 @@ def produce_plots(
         # Zoomed-in plots for monthly species only
         if species in annex_config_data.monthly_species:
 
+            # Get settings
+            kwargs_country_flux_monthly_species_special = get_species_specific_settings(
+                species,
+                period,
+                annex_config_data.kwargs_country_flux_monthly_species_special,
+            )
+
             # Re-slice the data
             start_date = annex_config_data.start_date_paris_window
             ds_all_flux_scaled = slice_flux(
@@ -195,7 +202,7 @@ def produce_plots(
                 end_date=end_date,
                 config_data=config_data,
                 **annex_config_data.kwargs_country_flux_general,
-                **kwargs_country_flux_species_specific,
+                **kwargs_country_flux_monthly_species_special,
             )
             full_path = (
                 output_path / f"{species}_country_flux_monthly_parisonly_{region}.png"
