@@ -1,4 +1,5 @@
 import logging
+
 logger = logging.getLogger(__name__)
 
 # Cities to plot
@@ -166,6 +167,7 @@ fluxlim_percentiles = {
     },
 }
 
+
 class AnnexConfig:
     """
     Class containing all the parameters necessary to make the plots and tables for the annex report.
@@ -214,7 +216,7 @@ class AnnexConfig:
         "pfc218",
         "pfc318",
         "sf6",
-        "nf3"
+        "nf3",
     ]
 
     combined_species = ["all_hfc", "all_pfc"]
