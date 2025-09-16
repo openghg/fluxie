@@ -282,7 +282,7 @@ class AnnexConfig:
 
     ### Settings for spatial maps
     ## Model definitions (list or dict["<period>": list(), "<species>": list()] if different between species)
-    # NOTE: it is assumed that models_spatial_maps exist in models_monthly/yearly_species
+    # NOTE: in produce_plots, it is assumed that models_spatial_maps exist in models_country_flux
     models_spatial_maps = models_country_flux
     flux_units_print = "kg km-2 yr-1"
 
