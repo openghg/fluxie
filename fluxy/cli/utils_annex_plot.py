@@ -42,7 +42,7 @@ def dict_to_str_dataframe(
         res :
             dictionnary outputed by plot_flux_timeseries
         inventory_years :
-            Inventory year to use. If a list is given, only the first will be used. The data will be lloked at in the `res` dictionnary with the key f"inventory_{inventory_years}"
+            Inventory year to use. If a list is given, only the last will be used. The data will be looked at in the `res` dictionnary with the key f"inventory_{inventory_years}"
         species :
             Gas species.
 
@@ -51,7 +51,7 @@ def dict_to_str_dataframe(
             Dataframe with columns ["species","source", *<years present in res>] and two rows : one for the PARIS mean estimates and one for the UNFCCC inventory estimates.
     """
     if isinstance(inventory_years, list):
-        inventory_years = inventory_years[0]
+        inventory_years = inventory_years[-1]
 
     comb = res["combined"]
 
