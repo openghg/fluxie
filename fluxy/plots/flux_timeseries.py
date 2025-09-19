@@ -516,7 +516,7 @@ def set_xlims_and_ticks(
     for country in res_dict["posterior"].keys():
         for m in res_dict["posterior"][country].keys():
             post_time = res_dict["posterior"][country][m]["time"]
-            prior_time = res_dict["prior"][country][m]["time"]
+            prior_time = res_dict["prior"][country].get(m,{"time":[min_x, max_x]})["time"]
             min_x = np.nanmin([*post_time, *prior_time, min_x])
             max_x = np.nanmax([*post_time, *prior_time, max_x])
 
