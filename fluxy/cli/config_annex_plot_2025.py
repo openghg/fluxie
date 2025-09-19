@@ -1,4 +1,5 @@
 import logging
+
 logger = logging.getLogger(__name__)
 
 # Cities to plot
@@ -165,6 +166,7 @@ fluxlim_percentiles = {
         "sf6": 0.95,
     },
 }
+
 
 class AnnexConfig:
     """

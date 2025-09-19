@@ -186,9 +186,7 @@ def produce_plots(
             plt.close()
 
             # Store results for .csv and table
-            annual_res = dict_to_str_dataframe(
-                res_dict[region], inventory_years, species
-            )
+            annual_res = dict_to_str_dataframe(res_dict, inventory_years, species)
             annual_res_list.append(annual_res)
 
             # 1.2) Plot monthly country fluxes over PARIS time window

@@ -3,7 +3,9 @@ import numpy as np
 from pathlib import Path
 
 
-def get_species_specific_settings(species: str, period: str, settings: list | dict) -> list | dict:
+def get_species_specific_settings(
+    species: str, period: str, settings: list | dict
+) -> list | dict:
     """
     Get species-specific setting from dictionary.
     Returns the input settings if it is already a list.
@@ -33,18 +35,24 @@ def get_species_specific_settings(species: str, period: str, settings: list | di
 
 
 def dict_to_str_dataframe(
-    res: dict, inventory_years: list | str | int, species: str
+    res: dict,
+    inventory_years: list | str | int,
+    species: str,
+    region: str | None = None,
+    model: str = "combined",
 ) -> pd.DataFrame:
     """
     Transform the dictionnary outputed by plot_flux_timeseries into a pandas.DataFrame of string that will be used in the latex tables for the annex reports.
 
     Args:
         res :
-            dictionnary outputed by plot_flux_timeseries
+            dictionnary outputted by plot_flux_timeseries
         inventory_years :
             Inventory year to use. If a list is given, only the last will be used. The data will be looked at in the `res` dictionnary with the key f"inventory_{inventory_years}"
         species :
             Gas species.
+        model: model name used as key to get data in dict `res`.
+        region: region name we want to format the results of. Is used as key to res["posterior"] and res["inventory"]
 
     Returns:
         pd.DataFrame(output) :
@@ -53,7 +61,14 @@ def dict_to_str_dataframe(
     if isinstance(inventory_years, list):
         inventory_years = inventory_years[-1]
 
-    comb = res["combined"]
+    if not region:
+        if len(res.keys()) > 1:
+            raise ValueError(
+                f"`region` parameter should be provided when there is more than one region in `res` (currently present: {list(res['posterior'].keys())})."
+            )
+        region = list(res["posterior"].keys())[0]
+
+    comb = res["posterior"][region][model]
 
     inv_default = {
         "time": comb["time"],
@@ -64,7 +79,11 @@ def dict_to_str_dataframe(
             * len(comb["time"])
         ),
     }
-    inv = res.get(f"inventory_{inventory_years}", inv_default)
+    inv = (
+        res["inventory"]
+        .get(region, dict())
+        .get(f"inventory_{inventory_years}", inv_default)
+    )
 
     if species in ["n2o", "ch4"]:
         n_digits = 0
