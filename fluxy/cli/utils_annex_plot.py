@@ -50,7 +50,7 @@ def dict_to_str_dataframe(
         inventory_years :
             Inventory year to use. If a list is given, only the last will be used. The data will be looked at in the `res` dictionnary with the key f"inventory_{inventory_years}"
         species :
-            Gas species.
+            Gas species. Used to determine the number of digits to store.
         model: model name used as key to get data in dict `res`.
         region: region name we want to format the results of. Is used as key to res["posterior"] and res["inventory"]
 
@@ -62,7 +62,7 @@ def dict_to_str_dataframe(
         inventory_years = inventory_years[-1]
 
     if not region:
-        if len(res.keys()) > 1:
+        if len(res["posterior"].keys()) > 1:
             raise ValueError(
                 f"`region` parameter should be provided when there is more than one region in `res` (currently present: {list(res['posterior'].keys())})."
             )
