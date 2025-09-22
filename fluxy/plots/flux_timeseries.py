@@ -44,7 +44,7 @@ def format_plot_regions(
     return plot_regions
 
 
-def get_unit(ds_all: dict[str, xr.Dataset]) -> str:
+def get_posterior_unit(ds_all: dict[str, xr.Dataset]) -> str:
     """
     Determine unit of posterior estimations from datasets. If incoherencies between datasets, an error is raised.
     Args:
@@ -713,7 +713,7 @@ def plot_country_flux(
     r_data = config_data.get("regions_info", {})
 
     plot_regions = format_plot_regions(plot_regions, ds_all)
-    unit = get_unit(ds_all)
+    unit = get_posterior_unit(ds_all)
 
     inventory_data = dict()
     posterior_data = {m: dict() for m in plot_regions}
@@ -905,6 +905,10 @@ def plot_country_sector_flux_bar(
         figsize=(n_cols * 6, n_rows * 4),
     )
 
+    ds_all_region = extract_region_flux(
+        ds_all, plot_region, r_data, sectors=sectors
+    )
+
     for i, m in enumerate(ds_all.keys()):
 
         if n_rows == 1:
@@ -919,11 +923,8 @@ def plot_country_sector_flux_bar(
 
         for s, sector in enumerate(sectors):
 
-            ds_all_region = extract_region_flux(
-                {m: ds_all[m]}, plot_region, r_data, sector=sector
-            )
             ds_to_plot = prepare_data_to_plot(
-                ds_all_region,
+                {m: ds_all_region.sel(sector=sector)},
                 model_labels,
                 model_colors,
                 plot_separate=True,
