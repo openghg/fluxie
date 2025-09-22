@@ -44,20 +44,23 @@ def format_plot_regions(
     return plot_regions
 
 
-def get_unit(ds_all: dict[str, xr.Dataset], species: str) -> str:
+def get_unit(ds_all: dict[str, xr.Dataset]) -> str:
     """
     Determine unit of posterior estimations from datasets. If incoherencies between datasets, an error is raised.
     Args:
         ds_all: dictionnary of datasets from which read the units.
-        species: species of interest, used as "all_hfc"/"all_pfc" use a different name for the prior variable.
     Returns:
         unit: unit of posterior variables in dataset.
     """
 
-    if "all" in species:
+    if all(["flux_total_posterior_country" in ds for ds in ds_all.values()]):
+        units = {ds["flux_total_posterior_country"].units for ds in ds_all.values()}
+    elif all(["posterior" in ds for ds in ds_all.values()]):
         units = {ds.posterior.units for ds in ds_all.values()}
     else:
-        units = {ds["flux_total_posterior_country"].units for ds in ds_all.values()}
+        raise ValueError(
+            "Did not find variable 'posterior' or 'flux_total_posterior_country' in every dataset. Thus couldn't determine unit."
+        )
 
     if len(units) == 1:
         unit = list(units)[0]
@@ -140,14 +143,18 @@ def prepare_data_to_plot(
         model_colors: colors to associate to each dataset. should have the same keys as ds_all_region.
         plot_separate: If True, plots model result as separate line. List must be of same size as models, e.g. [True, False, False].
             If a single boolean is provided, the same flag is assumed for all models.
-        plot_combined: If True, the model is included in combined average result to be plotted. List must be of same size as models, e.g. [False, True, True].
+        plot_combined: If True, the model is included in combined average result to be plotted. List must be of same size as models,
+            e.g. [False, True, True].
             If a single boolean is provided, the same flag is assumed for all models.
-        resample: Option to be passed to resample built-in function of xarray Dataset. For yearly average, 'YS' option should be used; 'QS-DEC' for seasonaly average.
+        resample: Option to be passed to resample built-in function of xarray Dataset. For yearly average, 'YS' option should be used;
+            'QS-DEC' for seasonaly average.
             See http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
         rolling_mean : If True, calculates a rolling mean (xx years) for each of the data to plot.
         resample_uncert_correlation: If True, calculates the resampled uncertainty as the mean from all averaged periods.
-            If False, recalculates uncertainty assuming no correlation between all averaged periods, by taking the square root of the summed variances, divided by the number of averaging periods.
-        plot_resample_and_original: If True, plots both the resampled data and the data as its original frequency. If False, only plots the resampled data.
+            If False, recalculates uncertainty assuming no correlation between all averaged periods, by taking the square root of the summed
+            variances, divided by the number of averaging periods.
+        plot_resample_and_original: If True, plots both the resampled data and the data as its original frequency. If False, only plots the
+            resampled data.
         aggreg_month: if True, plot the data aggregated by month. Used to study seasonnal cycle.
 
     Returns:
@@ -164,7 +171,7 @@ def prepare_data_to_plot(
     if aggreg_month:
         if any(resample):
             raise ValueError(
-                f"`resample` and `aggreg_month` cannot be both set to True. Please correct."
+                f"`resample` and `aggreg_month` cannot be both set to True. Please set only one of them to True."
             )
         ds_all_region = {
             k: ds.groupby(f"time.month").mean().rename({"month": "time"})
@@ -262,7 +269,8 @@ def add_posterior_plot(
     ax: Axes, ds_region: xr.Dataset, highlighted_line: bool
 ) -> dict[str, dict]:
     """
-    Plot the posterior data on the axis. The variable posterior of the dataset ds_region is plotted as a line (color and label found in the dataset attributes) and the uncertainty (variables lower_posterior, upper_posterior in the dataset) is plotted as a semi-transparent filled space.
+    Plot the posterior data on the axis. The variable posterior of the dataset ds_region is plotted as a line (color and label found in the dataset
+    attributes) and the uncertainty (variables lower_posterior, upper_posterior in the dataset) is plotted as a semi-transparent filled space.
     Axes:
         ax: axes on which to plot
         ds_region: dataset containing posterior data
@@ -306,7 +314,8 @@ def add_prior_plot(
     Axes:
         ax: axes on which to plot
         ds_region: dataset containing prior data
-        annex_bool: if True, the linewidth is made slighty bigger (1.5) and the transparency alpha is higher (1.0 -no transparency) than when False (resp. 1.0 and 0.7).
+        annex_bool: if True, the linewidth is made slighty smaller (1.0) and a transparency of 0.7 is applied to the prior uncertainty.
+            If False, linewidth is set to standard value (1.5) and no transparency s applied to the prior uncertainty (alpha=1.0).
         add_prior_unc: if True add prior uncertainty on the plot as a semi-transparent filled space.
     Returns:
         res_dict: dictionnary containing prior data plotted - 2 keys: "time" and "mean", 4 if add_prior_unc: "min" and "max" added.
@@ -357,7 +366,8 @@ def add_inventory_barplot(
     sector: str | list[str],
 ) -> dict[str, dict]:
     """
-    Retrieve and plot the inventories as bar plots. If multiple inventories are plotted, the older the inventory is, the smaller the used width of the bar is and the whiter is the grey of the bar.
+    Retrieve and plot the inventories as bar plots. If multiple inventories are plotted, the older the inventory is, the smaller
+    the used width of the bar is and the whiter is the grey of the bar.
     The inventory data will be looked for using {dat_dor}/inventory/{inventory_filename}_{species}_{inventory_year[x]}
     Args:
         ax: axis on which plot the inventory.
@@ -429,8 +439,10 @@ def set_ylim(
     Args:
         axes: list of axes to set the ylim to.
         plot_regions: list of regions corresponding to the axes (should be the same length and order).
-        res_dict: dictionnary containing the data plotted. Should have one key per regions plotted, the values being dictionnaries with 3 keys: "inventory", "posterior" and "prior"; whose values are the output of add_inventory_barplot, add_posterior_plot, add_prior_plot). The data stored in them is used to infer the ylims.
-        fix_y_axes: if list, use it as params to ax.set_ylim; if bool and True, all subplots have the same y lim (the max value that can be found in res_dict); else the max of the data plotted in each subplots is used.
+        res_dict: dictionnary containing the data plotted. Should have one key per regions plotted, the values being dictionnaries with 3 keys: "inventory", "posterior" and "prior";
+            whose values are the output of add_inventory_barplot, add_posterior_plot, add_prior_plot). The data stored in them is used to infer the ylims.
+        fix_y_axes: if list, use it as params to ax.set_ylim; if bool and True, all subplots have the same y lim (the max value that can be found in res_dict); else the max of the data
+            plotted in each subplots is used.
         set_global_leg: if True (and thus one common legend is plotted for all subplots in set_legend), a zoom of only 1.1 is made on the ymax, else it is 1.2 to make space for the legend.
     """
 
@@ -485,11 +497,12 @@ def set_xlims_and_ticks(
     ax: Axes, yearly_freq: bool, res_dict: dict[str, dict], aggreg_month: bool
 ):
     """
-    Set x limits, ticks and ticks labels of matplotlib axes. Optimize them by looking at if theye monthly, yearly, or monthly aggregated, and covered time range.
+    Set x limits, ticks and ticks labels of matplotlib axes. Optimize them by looking at if they are monthly, yearly, or monthly aggregated, and covered time range.
     Args:
         ax: axis to set xlim and xticks to.
         yearly_freq: set to True if the data plotted have a yearly frequency.
-        res_dict: dictionnary containing the data plotted. Should have one key per regions plotted, the values being dictionnaries with 3 keys: "inventory", "posterior" and "prior"; whose values are the output of add_inventory_barplot, add_posterior_plot, add_prior_plot). The time data stored in them is used to infer the xlims.
+        res_dict: dictionnary containing the data plotted. Should have one key per regions plotted, the values being dictionnaries with 3 keys: "inventory", "posterior" and "prior";
+            whose values are the output of add_inventory_barplot, add_posterior_plot, add_prior_plot). The time data stored in them is used to infer the xlims.
         aggreg_month: if True, the data plotted are supposed to be a monthly aggregated so 12 stciks are created, whose labels are the 3 first letters of each month.
     """
     if aggreg_month:
@@ -516,7 +529,9 @@ def set_xlims_and_ticks(
     for country in res_dict["posterior"].keys():
         for m in res_dict["posterior"][country].keys():
             post_time = res_dict["posterior"][country][m]["time"]
-            prior_time = res_dict["prior"][country].get(m,{"time":[min_x, max_x]})["time"]
+            prior_time = res_dict["prior"][country].get(m, {"time": [min_x, max_x]})[
+                "time"
+            ]
             min_x = np.nanmin([*post_time, *prior_time, min_x])
             max_x = np.nanmax([*post_time, *prior_time, max_x])
 
@@ -559,7 +574,8 @@ def set_legend(
         fig: figure object for which we want to make the legend
         set_global_legend: if True, set one legend object for all subplots, else plot one legend per subplot
         annex_mode: if in annex_mode,
-        plot_inventory: used only if set_global_legend is False. When True, avoid enhancing the width of the last object. Not sure that if it is really used and if we shouldn't suppress this.
+        plot_inventory: used only if set_global_legend is False. When True, avoid enhancing the width of the last object. Not sure that if it is really
+            used and if we shouldn't suppress this.
     """
 
     if set_global_leg:
@@ -697,7 +713,7 @@ def plot_country_flux(
     r_data = config_data.get("regions_info", {})
 
     plot_regions = format_plot_regions(plot_regions, ds_all)
-    unit = get_unit(ds_all, species)
+    unit = get_unit(ds_all)
 
     inventory_data = dict()
     posterior_data = {m: dict() for m in plot_regions}
