@@ -427,7 +427,7 @@ def add_inventory_barplot(
     return res_dict
 
 
-def set_ylim(
+def add_ylim(
     axes: list[Axes],
     plot_regions: list[str],
     res_dict: dict[str, dict],
@@ -435,7 +435,7 @@ def set_ylim(
     set_global_leg: bool,
 ):
     """
-    Set limits of y axes based on results in res_dict, or the values given in fig_y_axes if it's a list.
+    Add limits of y axes based on results in res_dict, or the values given in fig_y_axes if it's a list.
     Args:
         axes: list of axes to set the ylim to.
         plot_regions: list of regions corresponding to the axes (should be the same length and order).
@@ -443,7 +443,7 @@ def set_ylim(
             whose values are the output of add_inventory_barplot, add_posterior_plot, add_prior_plot). The data stored in them is used to infer the ylims.
         fix_y_axes: if list, use it as params to ax.set_ylim; if bool and True, all subplots have the same y lim (the max value that can be found in res_dict); else the max of the data
             plotted in each subplots is used.
-        set_global_leg: if True (and thus one common legend is plotted for all subplots in set_legend), a zoom of only 1.1 is made on the ymax, else it is 1.2 to make space for the legend.
+        set_global_leg: if True (and thus one common legend is plotted for all subplots in add_legend), a zoom of only 1.1 is made on the ymax, else it is 1.2 to make space for the legend.
     """
 
     if isinstance(fix_y_axes, list):
@@ -477,9 +477,9 @@ def set_ylim(
             ax.set_ylim(0, np.nanmax(max_cf) * fac)
 
 
-def set_ylabel(ax: Axes, s_data: dict[str, dict], species: str, sector: str, unit: str):
+def add_ylabel(ax: Axes, s_data: dict[str, dict], species: str, sector: str, unit: str):
     """
-    Set label of y axis.
+    Add label to y axis.
     Args:
         ax: axis to set the y label to.
         s_data: dictionnary containing info for each species (like name to use for label). See configs/species_infos.json.
@@ -493,11 +493,11 @@ def set_ylabel(ax: Axes, s_data: dict[str, dict], species: str, sector: str, uni
     )
 
 
-def set_xlims_and_ticks(
+def add_xlims_and_ticks(
     ax: Axes, yearly_freq: bool, res_dict: dict[str, dict], aggreg_month: bool
 ):
     """
-    Set x limits, ticks and ticks labels of matplotlib axes. Optimize them by looking at if they are monthly, yearly, or monthly aggregated, and covered time range.
+    Add x limits, ticks and ticks labels to matplotlib axes. Optimize them by looking at if they are monthly, yearly, or monthly aggregated, and covered time range.
     Args:
         ax: axis to set xlim and xticks to.
         yearly_freq: set to True if the data plotted have a yearly frequency.
@@ -537,8 +537,8 @@ def set_xlims_and_ticks(
 
         if country in res_dict["inventory"].keys():
             for inv_year in res_dict["inventory"][country].values():
-                min_x = np.nanmin([*inv_year["time"].min(skipna=True), min_x])
-                max_x = np.nanmax([*inv_year["time"].max(skipna=True), max_x])
+                min_x = np.nanmin([*inv_year["time"], min_x])
+                max_x = np.nanmax([*inv_year["time"], max_x])
 
     # set xticks
     year_range = max_x.astype("datetime64[Y]") - min_x.astype("datetime64[Y]")
@@ -565,7 +565,7 @@ def set_xlims_and_ticks(
     ax.set_xlim(xlim)
 
 
-def set_legend(
+def add_legend(
     fig: Figure, set_global_leg: bool, annex_mode: bool, plot_inventory: bool
 ):
     """
@@ -615,9 +615,9 @@ def set_legend(
                 l.set_linewidth(3.0)
 
 
-def set_title(ax: Axes, country: str, r_data: dict, country_codes_as_titles: bool):
+def add_title(ax: Axes, country: str, r_data: dict, country_codes_as_titles: bool):
     """
-    Set title of matplotlib axes either to the region code or the full region name whose flux are plotted.
+    Add title to matplotlib axes either as the region code or as the full region name whose flux are plotted.
     Args:
         ax: axis to set title to.
         country: country name, should correspond to the data plotted on the axes.
@@ -757,6 +757,10 @@ def plot_country_flux(
 
         # plot inventory
         if plot_inventory:
+            if aggreg_month:
+                raise ValueError(
+                    "`plot_inventory` is not yet supported for monthly aggregate plots (`aggreg_month=True`)."
+                )
             inventory_data[country] = add_inventory_barplot(
                 ax,
                 data_dir,
@@ -773,30 +777,30 @@ def plot_country_flux(
             )
 
         # set y label
-        set_ylabel(ax, s_data, species, sector, unit)
+        add_ylabel(ax, s_data, species, sector, unit)
 
         # set grid
         ax.grid(visible=True, which="major", alpha=0.4)
 
         # set ax title
-        set_title(ax, country, r_data, country_codes_as_titles)
+        add_title(ax, country, r_data, country_codes_as_titles)
 
     res_dict: dict[str, dict] = {
         "inventory": inventory_data,
         "posterior": posterior_data,
         "prior": prior_data,
     }
-    set_ylim(axes, plot_regions, res_dict, fix_y_axes, set_global_leg)
+    add_ylim(axes, plot_regions, res_dict, fix_y_axes, set_global_leg)
     yearly_freq = (
         "yearly" in [ds.attrs["frequency"] for ds in ds_to_plot.values()]
         or resample == "year"
     )
-    set_xlims_and_ticks(axes[-1], yearly_freq, res_dict, aggreg_month)
+    add_xlims_and_ticks(axes[-1], yearly_freq, res_dict, aggreg_month)
 
-    set_legend(fig, set_global_leg, annex_mode, plot_inventory)
+    add_legend(fig, set_global_leg, annex_mode, plot_inventory)
 
     logger.info(
-        "NOTE: If all the data is not within axis limits, adjust the set_ylim parameter"
+        "NOTE: If all the data is not within axis limits, adjust the fix_y_axes parameter"
     )
 
     if return_res:
