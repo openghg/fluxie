@@ -709,6 +709,12 @@ def plot_country_flux(
         res_dict : If return_res, return also a dictionnary containing the plotted results
 
     """
+    if aggreg_month and plot_inventory:
+        logger.warning(
+            "`plot_inventory` is not yet supported for monthly aggregate plots (`aggreg_month=True`). `plot_inventory` is set to False."
+        )
+        plot_inventory = False
+
     s_data = config_data.get("species_info", {})
     r_data = config_data.get("regions_info", {})
 
@@ -757,10 +763,6 @@ def plot_country_flux(
 
         # plot inventory
         if plot_inventory:
-            if aggreg_month:
-                raise ValueError(
-                    "`plot_inventory` is not yet supported for monthly aggregate plots (`aggreg_month=True`)."
-                )
             inventory_data[country] = add_inventory_barplot(
                 ax,
                 data_dir,
