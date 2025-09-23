@@ -161,7 +161,7 @@ def prepare_data_to_plot(
         ds_to_plot : dictionnary of datasets to plot
     """
 
-    # Convert some inputs to list and check there size
+    # Convert some inputs to list and check their size
     plot_separate, plot_combined, resample, rolling_mean = update_list_params(
         [plot_separate, plot_combined, resample, rolling_mean],
         expected_size=len(ds_all_region.keys()),
@@ -447,8 +447,20 @@ def add_ylim(
     """
 
     if isinstance(fix_y_axes, list):
-        for ax in axes:
-            ax.set_ylim(*fix_y_axes)
+        if isinstance(fix_y_axes[0], list):
+            if len(fix_y_axes) != len(plot_regions):
+                raise ValueError(
+                    "'fix_y_axes' must be a boolean, a list with 2 floats, or a list of lists of the same length as regions."
+                )
+            for i, ax in enumerate(axes):
+                ax.set_ylim(*fix_y_axes[i])
+        else:
+            if len(fix_y_axes) != 2:
+                raise ValueError(
+                    "'fix_y_axes' must be a boolean, a list with 2 floats, or a list of lists of the same length as regions."
+                )
+            for ax in axes:
+                ax.set_ylim(*fix_y_axes)
         return
 
     max_cf = []

@@ -21,7 +21,9 @@ logger = logging.getLogger(__name__)
 
 def update_list_params(params_to_check: list, expected_size: int) -> list:
     """
-    Check if parameters are list of the expected lenght. If they are not list, convert them to list (except is it is None), raise an erro if it is a list but not of the expected size.
+    Check if parameters are list of the expected lenght. If they are not list, convert them to list (except if it is None).
+    Raise an error if it is a list but not of the expected size.
+    
     Args:
         params_to_check : parameters to be checked
         expected_size : expected size for the list (should be the number of models used in the plots)
