@@ -23,8 +23,10 @@ def extract_region_flux(
     ds_sectors = {m: list() for m in ds_all.keys()}
     for sector in sectors:
         tmp = _extract_region_flux_sector(ds_all,country,regions_info,keep_country_dim,sector)
-        ds_sectors= {ds_sectors[m].append(tmp[m].expand_dims(dim={"sector": sector})) for m in ds_all.keys()}
-    return {m: xr.concat(ds_sectors[m]) for m in ds_all.keys()}
+        for m in ds_all.keys():
+            ds_sectors[m].append(tmp[m].expand_dims(dim={"sector": [sector,]}))
+            
+    return {m: xr.concat(ds_sectors[m], dim = "sector") for m in ds_all.keys()}
 
 def _extract_region_flux_sector(
     ds_all: dict[str, xr.Dataset],
