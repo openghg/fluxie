@@ -950,9 +950,7 @@ def plot_country_sector_flux_bar(
     for i, m in enumerate(ds_to_plot.keys()):
 
         ax_data = axes[2*i]
-        if plot_inventory_or_prior == "inventory":
-            ax_comp = axes[-1]
-        else:
+        if plot_inventory_or_prior == "prior":
             ax_comp = axes[2*i+1]
 
         total_s = np.zeros(ds_to_plot[m].time.shape[0])
