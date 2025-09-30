@@ -176,7 +176,7 @@ def prepare_data_to_plot(
         ds_to_plot : dictionnary of datasets to plot
     """
 
-    # Convert some inputs to list and check there size
+    # Convert some inputs to list and check their size
     plot_separate, plot_combined, resample, rolling_mean = update_list_params(
         [plot_separate, plot_combined, resample, rolling_mean],
         expected_size=len(ds_all_region.keys()),
@@ -571,6 +571,7 @@ def add_ylim(
 ):
     """
     Add limits to y axes based on results in res_dict, or the values given in fig_y_axes if it's a list.
+    
     Args:
         axes: list of axes to add the ylim to.
         plot_regions: list of regions corresponding to the axes (should be the same length and order).
@@ -578,7 +579,7 @@ def add_ylim(
             whose values are the output of add_inventory_barplot, add_posterior_plot, add_prior_plot). The data stored in them is used to infer the ylims.
         fix_y_axes: if list, use it as params to ax.set_ylim; if bool and True, all subplots have the same y lim (the max value that can be found in res_dict); else the max of the data
             plotted in each subplots is used.
-        set_global_leg: if True (and thus one common legend is plotted for all subplots in set_legend), a zoom of only 1.1 is made on the ymax, else it is 1.2 to make space for the legend.
+        set_global_leg: if True (and thus one common legend is plotted for all subplots in add_legend), a zoom of only 1.1 is made on the ymax, else it is 1.2 to make space for the legend.
     """
 
     if isinstance(fix_y_axes, list):
@@ -770,7 +771,7 @@ def add_legend(
 
 def add_title(ax: Axes, country: str, r_data: dict, country_codes_as_titles: bool):
     """
-    Add title to matplotlib axes either as the region code or the full region name whose flux are plotted.
+    Add title to matplotlib axes either as the region code or as the full region name whose flux are plotted.
     Args:
         ax: axis to add title to.
         country: country name, should correspond to the data plotted on the axes.
@@ -857,6 +858,12 @@ def plot_country_flux(
         res_dict : If return_res, return also a dictionnary containing the plotted results
 
     """
+    if aggreg_month and plot_inventory:
+        logger.warning(
+            "`plot_inventory` is not yet supported for monthly aggregate plots (`aggreg_month=True`). `plot_inventory` is set to False."
+        )
+        plot_inventory = False
+
     s_data = config_data.get("species_info", {})
     r_data = config_data.get("regions_info", {})
 
@@ -944,7 +951,7 @@ def plot_country_flux(
     add_legend(fig, set_global_leg, annex_mode, plot_inventory)
 
     logger.info(
-        "NOTE: If all the data is not within axis limits, adjust the set_ylim parameter"
+        "NOTE: If all the data is not within axis limits, adjust the fix_y_axes parameter"
     )
 
     if return_res:
