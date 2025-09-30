@@ -5,8 +5,59 @@ from matplotlib.cm import get_cmap
 
 from fluxy.operators.regions import extract_region_inventory_flux
 
-
 def retrieve_inventories(
+    data_dir: str,
+    country: str,
+    species: str,
+    start_date: str,
+    end_date: str,
+    unit: str,
+    s_data: dict[str, dict],
+    r_data: dict[str, dict],
+    inventory_years: list[str] | None,
+    inventory_filename: str,
+    sectors: str | list[str] = 'total'
+) -> list[xr.Dataset]:
+    
+    if not isinstance(inventory_years, list):
+        inventory_years = [inventory_years]
+
+    if isinstance(sectors,str):
+       return _retrieve_inventories(
+           data_dir,
+           country,
+           species,
+           start_date,
+           end_date,
+           unit,
+           s_data,
+           r_data,
+           inventory_years,
+           inventory_filename,
+           sectors,
+           )
+       
+    ds_sectors = {y: list() for y in inventory_years}
+    for sector in sectors:
+        tmp = _retrieve_inventories(
+           data_dir,
+           country,
+           species,
+           start_date,
+           end_date,
+           unit,
+           s_data,
+           r_data,
+           inventory_years,
+           inventory_filename,
+           sector,
+           )
+        for i, y in enumerate(inventory_years):
+            ds_sectors[y].append(tmp[i].expand_dims(dim={"sector": [sector,]}))
+            
+    return [xr.concat(ds_sectors[y], dim = "sector") for y in inventory_years]
+
+def _retrieve_inventories(
     data_dir: str,
     country: str,
     species: str,
@@ -39,9 +90,6 @@ def retrieve_inventories(
     """
     
     inventories_list = list()
-
-    if not isinstance(inventory_years, list):
-        inventory_years = [inventory_years]
 
     inv_cmap = get_cmap("Greys")
     inv_colors = [inv_cmap(i) for i in np.linspace(0.5, 0.9, len(inventory_years))]
