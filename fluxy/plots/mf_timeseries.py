@@ -72,6 +72,7 @@ def plot_timeseries(
     intake_height: int | None = None,
     histogram_type: Literal["hist", "violin", "none"] | None = "hist",
     hist_kwargs: dict[str, any] = {},
+    aggreg_month: bool = False,
 ):
     """
     Timeseries plots of observations, modelled mole fractions, baseline mf and/or
@@ -179,24 +180,50 @@ def plot_timeseries(
             model_label = model_labels.get(m, m)
             model_color = model_colors[m]
 
-        ds_plot = ds_all[m]
+        ds_plot_org = ds_all[m]
         # Check there is only one site in the dataset
-        if len(np.unique(ds_plot["number_of_identifier"])) > 1:
+        if len(np.unique(ds_plot_org["number_of_identifier"])) > 1:
             raise ValueError(
                 f"Dataset {m} contains more than one site. "
                 "Use slice_site to select a single site."
             )
 
         # Clean the time dimension
-        ds_plot = clean_timeseries_missing_data(
-            ds_plot, variables_nans=vars_to_plot, min_freq=time_freq_min
+        ds_plot_org = clean_timeseries_missing_data(
+            ds_plot_org, variables_nans=vars_to_plot, min_freq=time_freq_min
         )
 
         # Loop over all variables to plot
         for var in vars_to_plot:
 
-            if var not in ds_plot.keys():
+            if var not in ds_plot_org.keys():
                 raise KeyError(f"Variable {var} not found in {m}.")
+
+            if aggreg_month:
+                if var.split("_")[0] != "mf":
+                    raise NotImplementedError(
+                        "`aggreg_month` disabled this for variable that are not mole fractions (i.e. names not starting with `mf`)."
+                    )
+                ds_plot = (
+                    ds_plot_org[[var]]
+                    .groupby("time.month")
+                    .mean()
+                    .rename({"month": "time"})
+                )
+                ds_plot[f"percentile_{var}"] = (
+                    ds_plot_org[var]
+                    .groupby("time.month")
+                    .quantile([0.159, 0.841])
+                    .rename({"month": "time", "quantile": "percentile"})
+                )
+                if include[var] is not None:
+                    logger.warning(
+                        f"`{include[var]}` prensent as value of include dict for {var} is overwritten as you put `aggreg_month=True`."
+                        + " The uncertainty plotted is the 0.159 and 0.851 percentile of the variable for the corresponfing month."
+                    )
+                include[var] = f"percentile_{var}"
+            else:
+                ds_plot = ds_plot_org
 
             # Get var unit
             plot_units.append(ds_plot[var].attrs["units"])
@@ -268,8 +295,8 @@ def plot_timeseries(
                 # Define uncertainty band
                 flag_fill_between = False
                 if unc_var.split("_")[0] == "percentile":
-                    y1 = ds_plot[unc_var][0, :].values
-                    y2 = ds_plot[unc_var][1, :].values
+                    y1 = ds_plot[unc_var].sel(percentile=0.159).values
+                    y2 = ds_plot[unc_var].sel(percentile=0.841).values
                     flag_fill_between = True
                 elif unc_var.split("_")[-1] in ["prior", "posterior"]:
                     y1 = ds_plot[var].values - ds_plot[unc_var].values
@@ -301,7 +328,7 @@ def plot_timeseries(
         if ncols == 2:
             plot_histogram(
                 ax[iax, 1],
-                ds_plot,
+                ds_plot_org,
                 m,
                 vars_to_plot,
                 diff_include,
@@ -357,10 +384,10 @@ def plot_timeseries(
             for l in leg.legendHandles:
                 l.set_linewidth(5.0)
 
-        if len(ds_plot["time"]) <= 1:
+        if len(ds_plot_org["time"]) <= 1:
             continue
-        start_date = ds_plot["time"].values.min()
-        end_date = ds_plot["time"].values.max()
+        start_date = ds_plot_org["time"].values.min()
+        end_date = ds_plot_org["time"].values.max()
 
         # Set timeseries x-axis ticks
         if (
@@ -374,7 +401,7 @@ def plot_timeseries(
             ax[iax, 0].xaxis.set_major_locator(MonthLocator())
             if presentation_mode:
                 ax[iax, 0].tick_params(axis="x", rotation=70)
-        ax[iax, 0].grid(color = 'lightgrey', linestyle = '-', linewidth = 0.7)
+        ax[iax, 0].grid(color="lightgrey", linestyle="-", linewidth=0.7)
         ax[iax, 0].set_axisbelow(True)
 
     if y_lim is None:
@@ -430,7 +457,7 @@ def plot_sites_timeseries(
             Dictionary with settings read from json file.
             Use json filenames as keys.
         margin (float):
-            Horizontal space between datapoints from different models. 
+            Horizontal space between datapoints from different models.
         separate_by_height (bool):
             If True, separates obs by intake height and by site.
     """
@@ -441,7 +468,7 @@ def plot_sites_timeseries(
     model_labels_copy = model_labels.copy()
 
     # create list of grouped site-height pairs
-    site_list = get_unique_site_height_pairs(ds_all,separate_by_height)
+    site_list = get_unique_site_height_pairs(ds_all, separate_by_height)
 
     # Create figure
     fig, ax = plt.subplots(1, 1, figsize=(0.7 * len(site_list), 8))
@@ -495,7 +522,9 @@ def plot_sites_timeseries(
     )
 
     ax.set_xticks(np.arange(len(site_list)))
-    xticklabels = [f"{s}\n{int(h)}m" if separate_by_height else s for (s, h) in site_list]
+    xticklabels = [
+        f"{s}\n{int(h)}m" if separate_by_height else s for (s, h) in site_list
+    ]
     ax.set_xticklabels(xticklabels)
 
     if (
@@ -513,7 +542,7 @@ def plot_sites_timeseries(
 
     plt.legend(loc="upper left", markerscale=4, bbox_to_anchor=(1, 1))
 
-    species_info = config_data.get("species_info",{}).get(species,{})
+    species_info = config_data.get("species_info", {}).get(species, {})
     fig.suptitle(
         (
             f'Timestamps with {species_info.get("species_print","")} assimilated observations between'
