@@ -1,4 +1,5 @@
 from pathlib import Path
+import pytest
 import fluxy
 from fluxy.config import set_print_settings
 from fluxy.config import set_model_colors
@@ -198,6 +199,23 @@ def test_mf_timeseries_no_hist():
         diff_include=["mf_posterior"],
         y_lim=None,
     )
+
+
+def test_mf_timeseries_bad_uncertainty_var():
+    with pytest.raises(KeyError):
+        fig = plot_mf_timeseries(
+            ds_all_mf_sliced,
+            species,
+            site,
+            model_colors,
+            model_labels,
+            config_data,
+            annotate_coords,
+            include={"mf_observed": None, "mf_posterior": "invalid_mf_posterior"},
+            diff_include=["mf_posterior"],
+            y_lim=None,
+        )
+
 
 
 def test_obs_modelled_together():
