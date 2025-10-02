@@ -1,4 +1,19 @@
 {
+    "isoflurane": {
+        "species_print": "Isoflurane",
+        "gwp": 1,
+        "molar_mass": 184.49
+    },
+    "sevoflurane": {
+        "species_print": "Sevoflurane",
+        "gwp": 1,
+        "molar_mass": 200.056
+    },
+    "desflurane": {
+        "species_print": "Desflurane",
+        "gwp": 1,
+        "molar_mass": 168.038
+    },
     "ch4": {
         "species_print": "CH$_4$",
         "gwp": 28,

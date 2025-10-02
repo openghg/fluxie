@@ -140,14 +140,14 @@ def prepare_data_to_plot(
                 for rm, (m, ds) in zip(rolling_mean, ds_all_region.items())
             }
             ds_combined = combine_dataset(ds_to_combine, plot_combined)
-            ds_combined["combined"].attrs["model_label"] = "PARIS mean"
+            ds_combined["combined"].attrs["model_label"] = "Inversion mean"
         ds_to_plot.update(ds_combined)
 
     # Determine plot color and label of each dataset
     color_usage = {k: 0 for k in map_model_colors.keys()}
     for m in ds_to_plot.keys():
         if m == "combined":
-            include_label = "PARIS mean"
+            include_label = "Inversion mean"
             model_color = "black"
         else:
             include_label = ds_to_plot[m].attrs.get("model_label", None)
@@ -186,6 +186,7 @@ def plot_country_flux(
     fix_y_axes: bool | list[float] = False,
     add_prior: bool = True,
     add_prior_unc: bool = False,
+    add_post_unc: bool = False, 
     set_global_leg: bool = False,
     country_codes_as_titles: bool = False,
     plot_separate: bool | list[bool] = True,
@@ -275,8 +276,10 @@ def plot_country_flux(
         n_cols,
         sharex=True,
         constrained_layout=True,
-        figsize=(n_cols * 6, n_rows * 4),
+        figsize=(n_cols * 6 * 1, n_rows * 4 * 1),
     )
+    
+    
     for i, country in enumerate(plot_regions):
 
         ax = axes if (n_rows, n_cols) == (1, 1) else axes.flatten()[i]
@@ -311,7 +314,7 @@ def plot_country_flux(
                     edgecolor=inventory.plot_color,
                     align="edge",
                     fill=False,
-                    label=f"Inventory {inventory.year}",
+                    label=f"Talbot {inventory.year}",
                     zorder=0,
                 )
                 if return_res:
@@ -349,13 +352,22 @@ def plot_country_flux(
                 color=ds_region.attrs["model_color"],
                 linewidth=linew,
             )
-            ax.fill_between(
-                ds_region.time,
-                ds_region.posterior_lower,
-                ds_region.posterior_upper,
-                alpha=0.2,
-                color=ds_region.attrs["model_color"],
-            )
+
+            if type(add_post_unc) is list:
+                post_unc_flag = False
+                if m in add_post_unc:
+                    post_unc_flag = True
+            else:
+                post_unc_flag = add_post_unc
+            if (m == "combined") or post_unc_flag:
+                ax.fill_between(
+                    ds_region.time,
+                    ds_region.posterior_lower,
+                    ds_region.posterior_upper,
+                    alpha=0.2,
+                    color=ds_region.attrs["model_color"],
+                )
+
             max_cf[i] = np.nanmax(
                 (
                     max_cf[i],
@@ -434,7 +446,7 @@ def plot_country_flux(
             ax.set_title(f"{print_country}")
 
         # set grid
-        ax.grid(visible=True, which="major", alpha=0.4)
+        #ax.grid(visible=True, which="major", alpha=0.4)
 
     # set xticks
     year_range = max_x.astype("datetime64[Y]") - min_x.astype("datetime64[Y]")

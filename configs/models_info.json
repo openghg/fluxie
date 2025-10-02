@@ -5,70 +5,99 @@
         "iall": "intem_obs_intem_baseline_fixed_intem_unc"
     },
 
-    "model_labels":{
-        "ELRIS_NAME_EDGAR_std" : "ELRIS",
-        "InTEM_NAME_EDGAR_std" : "InTEM",
-        "RHIME_NAME_EDGAR_std" : "RHIME",
-        "ELRIS_NAME_EUROPE_HOSSAINI" : "ELRIS Hossaini",
-        "InTEM_NAME_EUROPE_hossaini_prior_20250118_obs" : "InTEM Hossaini",
-        "RHIME_NAME_EUROPE_HOSSAINI" : "RHIME Hossaini",
-        "Flexinvert_Flexpart_EUROPE_hossaini" : "Flexinvert Hossaini",
-        "ELRIS_NAME_EUROPE_UNIFORM" : "ELRIS uniform",
-        "InTEM_NAME_EUROPE_uniform_prior_20250118_obs" : "InTEM uniform",
-        "RHIME_NAME_EUROPE_UNIFORM" : "RHIME uniform",
-        "Flexinvert_Flexpart_EUROPE_uniform" : "Flexinvert uniform"
+    "model_labels": {
+        "InTEM_NAME": "InTEM NAME",
+        "ELRIS_FLEXPART_EUROPE_POPULATIONplus": "FLEXPART population",
+        "ELRIS_NAME_EUROPE_POPULATIONplus": "NAME population",
+        "ELRIS_FLEXPART_EUROPE_UNIFORMplus": "FLEXPART uniform",
+        "ELRIS_NAME_EUROPE_UNIFORMplus": "NAME uniform",
+        "ELRIS_FLEXPART_EUROPE_POPULATION": "FLEXPART population",
+        "ELRIS_NAME_EUROPE_POPULATION": "NAME population",
+        "ELRIS_FLEXPART_EUROPE_UNIFORM": "FLEXPART uniform",
+        "ELRIS_NAME_EUROPE_UNIFORM": "NAME uniform",
+        "ELRIS_FLEXPART_EUROPE_UNILAND": "FLEXPART uniland",
+        "ELRIS_NAME_EUROPE_UNILAND": "NAME uniland"               
     },
-
-    "species_name":{
-        "ELRIS": {"ch4": "CH4",
-                  "n2o": "N2O",
-                  "sf6": "SF6",
-                  "hfc134a": "HFC_134a",
-                  "hfc143a": "HFC_143a",
-                  "hfc125": "HFC_125",
-                  "hfc152a": "HFC_152a",
-                  "hfc32": "HFC_32",
-                  "hfc227ea": "HFC_227ea",
-                  "hfc23": "HFC_23",
-                  "hfc245fa": "HFC_245fa",
-                  "hfc365mfc": "HFC_365mfc",
-                  "hfc4310mee": "HFC_4310mee",
-                  "hfc236fa": "HFC_236fa",
-                  "pfc218": "PFC_218",
-                  "pfc318": "PFC_318",
-                  "pfc116": "PFC_116",
-                  "cf4": "CF4",
-                  "clch2ch2cl": "ClCH2CH2Cl"
-                }
+    "species_name": {
+        "ELRIS": {
+            "ch4": "CH4",
+            "n2o": "N2O",
+            "sf6": "SF6",
+            "nf3": "NF3",
+            "hfc134a": "HFC_134a",
+            "hfc143a": "HFC_143a",
+            "hfc125": "HFC_125",
+            "hfc152a": "HFC_152a",
+            "hfc32": "HFC_32",
+            "hfc227ea": "HFC_227ea",
+            "hfc23": "HFC_23",
+            "hfc236fa": "HFC_236fa",
+            "hfc245fa": "HFC_245fa",
+            "hfc365mfc": "HFC_365mfc",
+            "hfc4310mee": "HFC_4310mee",
+            "pfc218": "PFC_218",
+            "pfc318": "PFC_318",
+            "pfc116": "PFC_116",
+            "cf4": "CF4"
+        }
     },
-
-    "standard_run":{
-        "default": {"ch4": "NAME_EUROPE_EDGARWETCHARTS_31sites",
-                    "n2o": "NAME_EUROPE_EDGAR_26sites",
-                    "sf6": "NAME_EUROPE_FLAT_std",
-                    "hfc134a": "NAME_EUROPE_EDGAR",
-                    "hfc143a": "NAME_EUROPE_EDGAR",
-                    "hfc125": "NAME_EUROPE_EDGAR",
-                    "hfc152a": "NAME_EUROPE_FLAT",
-                    "hfc32": "NAME_EUROPE_EDGAR",
-                    "hfc227ea": "NAME_EUROPE_FLAT",
-                    "hfc23": "NAME_EUROPE_FLAT",
-                    "hfc245fa": "NAME_EUROPE_FLAT",
-                    "hfc365mfc": "NAME_EUROPE_FLAT",
-                    "hfc4310mee": "NAME_EUROPE_FLAT",
-                    "hfc236fa": "NAME_EUROPE_FLAT",
-                    "pfc218": "NAME_EUROPE_FLAT_std",
-                    "pfc318": "NAME_EUROPE_FLAT_std",
-                    "pfc116": "NAME_EUROPE_EDGARMINVAL_std",
-                    "cf4": "NAME_EUROPE_EDGARMINVAL_std",
-                    "hfo1234yf": "NAME_EUROPE_POPULATION",
-                    "hfo1234zee": "NAME_EUROPE_POPULATION",
-                    "hcfo1233zde": "NAME_EUROPE_POPULATION",
-                    "clch2ch2cl": "NAME_EUROPE_POPULATION"
-    },
-        "flexinvert-dca": {"clch2ch2cl": "FLEXPART_EUROPE_POPULATION"
-    },
-        "elris-n2o": {"n2o": "NAME_EUROPE_EDGAR_28sites"
-    }
+    "standard_run": {
+        "NAME": {
+            "ch4": "NAME_EUROPE_EDGARWETCHARTS_PARISNID2026",
+            "n2o": "NAME_EUROPE_EDGAR_PARISNID2026",
+            "sf6": "NAME_EUROPE_FLAT_PARISNID2026",
+            "nf3": "NAME_EUROPE_FLAT_PARISNID2026",
+            "hfc134a": "NAME_EUROPE_EDGAR_PARISNID2026",
+            "hfc143a": "NAME_EUROPE_EDGAR_PARISNID2026",
+            "hfc125": "NAME_EUROPE_EDGAR_PARISNID2026",
+            "hfc152a": "NAME_EUROPE_FLAT_PARISNID2026",
+            "hfc32": "NAME_EUROPE_EDGAR_PARISNID2026",
+            "hfc227ea": "NAME_EUROPE_FLAT_PARISNID2026",
+            "hfc23": "NAME_EUROPE_FLAT_PARISNID2026",
+            "hfc236fa": "NAME_EUROPE_FLAT_PARISNID2026",
+            "hfc245fa": "NAME_EUROPE_FLAT_PARISNID2026",
+            "hfc365mfc": "NAME_EUROPE_FLAT_PARISNID2026",
+            "hfc4310mee": "NAME_EUROPE_FLAT_PARISNID2026",
+            "pfc218": "NAME_EUROPE_FLAT_PARISNID2026",
+            "pfc318": "NAME_EUROPE_FLAT_PARISNID2026",
+            "pfc116": "NAME_EUROPE_FLAT_PARISNID2026",
+            "cf4": "NAME_EUROPE_FLAT_PARISNID2026"
+        },
+        "FLEXPART": {
+            "ch4": "FLEXPART_EUROPE_EDGARWETCHARTS_PARISNID2026",
+            "n2o": "FLEXPART_EUROPE_EDGAR_PARISNID2026",
+            "sf6": "FLEXPART_EUROPE_FLAT_PARISNID2026",
+            "nf3": "FLEXPART_EUROPE_FLAT_PARISNID2026",
+            "hfc134a": "FLEXPART_EUROPE_EDGAR_PARISNID2026", 
+            "hfc143a": "FLEXPART_EUROPE_EDGAR_PARISNID2026",
+            "hfc125": "FLEXPART_EUROPE_EDGAR_PARISNID2026",
+            "hfc152a": "FLEXPART_EUROPE_FLAT_PARISNID2026",
+            "hfc32": "FLEXPART_EUROPE_EDGAR_PARISNID2026",
+            "hfc227ea": "FLEXPART_EUROPE_FLAT_PARISNID2026",
+            "hfc23": "FLEXPART_EUROPE_FLAT_PARISNID2026",
+            "hfc236fa": "FLEXPART_EUROPE_FLAT_PARISNID2026",
+            "hfc245fa": "FLEXPART_EUROPE_FLAT_PARISNID2026",
+            "hfc365mfc": "FLEXPART_EUROPE_FLAT_PARISNID2026",
+            "hfc4310mee": "FLEXPART_EUROPE_FLAT_PARISNID2026",
+            "pfc218": "FLEXPART_EUROPE_FLAT_PARISNID2026",
+            "pfc318": "FLEXPART_EUROPE_FLAT_PARISNID2026",
+            "pfc116": "FLEXPART_EUROPE_FLAT_PARISNID2026",
+            "cf4": "FLEXPART_EUROPE_FLAT_PARISNID2026"
+        },
+        "InTEM_NAME": {
+            "ch4": "NAME_EUROPE_EDGAR_PARISNID2026"
+        },
+        "InTEM_FLEXPART": {
+            "ch4": "FLEXPART_EUROPE_EDGAR_PARISNID2026"
+        },
+        "RHIME_NAME": {
+            "ch4": "NAME_EUROPE_EDGAR-WetCHARTs_PARISNID2026"
+        },
+        "RHIME_FLEXPART": {
+            "ch4": "FLEXPART_EUROPE_EDGAR-WetCHARTs_PARISNID2026"
+        },
+        "ITMS": {
+            "ch4": "ICON_EUROPE_avg"
+        }
     }
 }
