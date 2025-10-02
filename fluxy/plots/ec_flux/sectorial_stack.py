@@ -1,8 +1,29 @@
 import xarray as xr
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 
 from fluxy.plots.utils import stack_plot
+
+WIND_LABELS = {
+    4: ["N", "E", "S", "W"],
+    8: ["N", "NE", "E", "SE", "S", "SW", "W", "NW"],
+    12: [
+        "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"
+    ],
+}
+
+def _get_wind_bins_and_labels(n_bins: int):
+    if n_bins in WIND_LABELS:
+        labels = WIND_LABELS[n_bins]
+    else:
+        raise ValueError(
+            f"Number of wind bins {n_bins} not supported. "
+            f"Supported values are {list(WIND_LABELS.keys())}."
+        )
+    bins = np.deg2rad(np.arange(0, 361, 360 // n_bins))
+
+    return bins, labels
 
 
 def raise_var_missing(var_name, ds):
@@ -33,6 +54,15 @@ def plot_stacked(
     y_lims: tuple[float, float] = (None, None),
     plot_observation_counts: bool = False,
     sectors_config: dict[str, str] = {},
+    errorbar_kwargs = {
+        "color": "black",
+
+        "marker": "x",
+        "label": "Measurements",
+        "linestyle": "None",
+        "alpha": 0.7,
+    }, 
+    wind_bins: int = 8,
 ):
     """Plot stacked bar chart for sectorial fluxes.
 
@@ -44,11 +74,19 @@ def plot_stacked(
             Observed variable is expected to not have sectorial dimension.
         season: Season to filter the data.
         group_format: Format for grouping the data.
+            Typical values are:
+                * "%X" where x is a time identifer
+                    ex: "%H" for hour of the day
+                * "wind_direction" to group by wind direction sectors
+                    This will require a "wind_direction" variable in the dataset.
+                    The output will be a wind rose like plot.
+            
         species: Name of the species to plot.
         area: Whether to plot the data as an area chart.
         y_lims: Limits for the y-axis.
         plot_observation_counts: Whether to plot observation counts.
         sectors_config: Configuration for the sectors.
+        wind_bins: Number of wind bins to use if group_format is "wind_direction".
 
     """
 
@@ -71,11 +109,33 @@ def plot_stacked(
     )
     serie_obs = ds[variable_observed].swap_dims({"index": "time"}).to_series()
 
-    fmt_time = lambda x: x.index.strftime(group_format)
+    if group_format.startswith("wind"):
+        if "wind_direction" not in ds:
+            raise ValueError(
+                "Variable 'wind_direction' not found in the dataset. "
+                "Please check the variable name or `group_format` to another value."
+            )
 
-    df_sim.index = fmt_time(df_sim)
+        wind_bins, wind_labels = _get_wind_bins_and_labels(wind_bins)
+
+        fmt_index = lambda x: pd.cut(
+            np.deg2rad(x),
+            bins=wind_bins,
+            labels=wind_bins[:-1] + (wind_bins[1] - wind_bins[0]) / 2,
+            include_lowest=True,
+        )
+        wind_plot = True
+        wind_dir = ds["wind_direction"].to_series().values
+        df_sim.index = wind_dir
+        serie_obs.index = wind_dir
+    else:
+        fmt_index = lambda x: x.strftime(group_format)
+        wind_plot = False
+
+    df_sim.index = fmt_index(df_sim.index)
     df_sim = df_sim.groupby(df_sim.index).mean()
-    serie_obs.index = fmt_time(serie_obs)
+
+    serie_obs.index = fmt_index(serie_obs.index)
     serie_obs_groupped = serie_obs.groupby(serie_obs.index)
     serie_obs = serie_obs.groupby(serie_obs.index).mean()
     counts = serie_obs.groupby(serie_obs.index).count()
@@ -93,12 +153,14 @@ def plot_stacked(
         axis=1,
     )
 
-    fig, ax = plt.subplots(figsize=(12, 6))
-    ef_kwargs = {
-        "color": "black",
-        "marker": "x",
-        "label": "Measurements",
+    subplots_kwargs = {
+        "figsize": (12, 6),
     }
+    if wind_plot:
+        subplots_kwargs["subplot_kw"] = {"projection": "polar"}
+
+    fig, ax = plt.subplots(**subplots_kwargs)
+
 
     if "sector_ordering" in sectors_config:
         sector_order = [
@@ -114,16 +176,24 @@ def plot_stacked(
         ]
         df_sim = df_sim[sector_order]
 
+    if wind_plot and area:
+        # Add extra row, to close the circle
+        old_index = df_sim.index
+        df_sim = pd.concat([df_sim, df_sim.iloc[[0]]])
+        df_sim.index = np.append(old_index, 2 * np.pi + old_index[0])
+
+
     ax = stack_plot(
         df_sim,
         ax=ax,
         area=area,
         colors_of_category=sectors_config.get("colors_of_sector", {}),
     )
-    ax.scatter(
+    ax.errorbar(
         df_obs.index,
         df_obs["mean"].values.reshape(-1),
-        **ef_kwargs,
+        yerr=df_obs["std"].values.reshape(-1),
+        **errorbar_kwargs,
     )
     # scatter the total simulated
     ax.scatter(
@@ -136,7 +206,7 @@ def plot_stacked(
 
     offset = df_obs["mean"].max() * 0.03
     for _, row in df_obs.iterrows():
-        kwargs = {"color": "black", "ha": "center", "va": "bottom"}
+        kwargs = {"color": "black", "ha": "left", "va": "bottom"}
         ax.text(
             row.name,
             row["mean"] + offset,
@@ -161,6 +231,8 @@ def plot_stacked(
     labels.append("Count of valid\ncomparisons")
     ax.legend(handles, labels, loc="center left", bbox_to_anchor=(1, 0.5))
 
+    if wind_plot:
+        y_lims = (0, y_lims[1])  # No negative values in wind rose
     ax.set_ylim(y_lims)
 
     ax.set_ylabel(f"{species} Flux " " [ µmol m$^{-2}$ s$^{-1}$ ]")
@@ -174,11 +246,16 @@ def plot_stacked(
         "%m_%H": "Month and hour of the day",
         "%H_%M": "Hour and minute of the day",
     }
-    x_label = x_labels[group_format]
+    x_label = "Wind direction" if wind_plot else x_labels[group_format]
     ax.set_xlabel(x_label)
     if group_format == "%Y_%m":
         # Rotate the x labels
         ax.set_xticklabels(ax.get_xticklabels(), rotation=90, ha="right")
+    if wind_plot:
+        ax.set_theta_zero_location("N")
+        ax.set_theta_direction(-1)
+        ax.set_xticks(wind_bins[:-1])
+        ax.set_xticklabels(wind_labels)
     # Make sure to save all the figure and also waht is around it
     fig.tight_layout()
 
