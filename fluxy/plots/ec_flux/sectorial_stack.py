@@ -187,7 +187,9 @@ def plot_stacked(
         width=0.8 if not wind_plot else (wind_bins[1] - wind_bins[0]),
     )
     if "yerr" not in errorbar_kwargs:
-        errorbar_kwargs["yerr"] = df_obs["std"].values.reshape(-1)
+        yerr = df_obs["std"].values.reshape(-1)
+        yerr[np.isnan(yerr)] = 0
+        errorbar_kwargs["yerr"] = yerr
     ax.errorbar(
         df_obs.index,
         df_obs["mean"].values.reshape(-1),
