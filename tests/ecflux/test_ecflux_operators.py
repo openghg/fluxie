@@ -35,3 +35,10 @@ def test_plot():
     plot_stacked(
         dss["EDDY_HARDAU_STORAGE_2LAYERS"],
     )
+
+def test_plot_wind_rose():
+
+    plot_stacked(
+        dss["EDDY_HARDAU_STORAGE_2LAYERS"],
+        group_format="wind"
+    )
