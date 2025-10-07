@@ -275,7 +275,7 @@ def plot_stacked(
         ax.set_yticklabels(y_labels)
 
     ax.set_title(title)
-    # Make sure to save all the figure and also waht is around it
+    # Make sure to save all the figure and also what is around it
     fig.tight_layout()
 
     return fig, ax
