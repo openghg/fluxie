@@ -52,16 +52,20 @@ def plot_stacked(
     area: bool = False,
     y_lims: tuple[float, float] = (None, None),
     plot_observation_counts: bool = False,
-    sectors_config: dict[str, str] = {},
-    errorbar_kwargs={
-        "color": "black",
-        "marker": "x",
-        "label": "Measurements",
-        "linestyle": "None",
-        "alpha": 0.7,
-    },
+    sectors_config: dict[str, str] = None,
+    errorbar_kwargs: dict = None,
     wind_bins: int = 8,
 ):
+    if sectors_config is None:
+        sectors_config = {}
+    if errorbar_kwargs is None:
+        errorbar_kwargs = {
+            "color": "black",
+            "marker": "x",
+            "label": "Measurements",
+            "linestyle": "None",
+            "alpha": 0.7,
+        }
     """Plot stacked bar chart for sectorial fluxes.
 
     Args:
