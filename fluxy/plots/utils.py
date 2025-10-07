@@ -965,6 +965,7 @@ def stack_plot(
     total_neg = np.zeros(df.shape[0])
     for i, column in enumerate(df.columns):
         values = df[column].values
+        values[np.isnan(values)] = 0.0
         if area:
             ax.fill_between(
                 df.index,

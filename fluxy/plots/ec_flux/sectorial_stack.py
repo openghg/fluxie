@@ -186,11 +186,12 @@ def plot_stacked(
         colors_of_category=sectors_config.get("colors_of_sector", {}),
         width=0.8 if not wind_plot else (wind_bins[1] - wind_bins[0]),
     )
-    
+
     if "yerr" not in errorbar_kwargs:
+        errorbar_kwargs = errorbar_kwargs.copy()
         yerr = df_obs["std"].values.reshape(-1)
-        yerr[np.isnan(yerr)] = 0
-        errorbar_kwargs["yerr"] = yerr
+        yerr[np.isnan(yerr)] = 0.0
+        errorbar_kwargs["yerr"] = np.array(yerr)
     ax.errorbar(
         df_obs.index,
         df_obs["mean"].values.reshape(-1),
@@ -239,8 +240,8 @@ def plot_stacked(
     x_offset = 1.0 if not wind_plot else 1.06
     ax.legend(handles, labels, loc="center left", bbox_to_anchor=(x_offset, 0.5))
 
-    if wind_plot:
-        y_lims = (0, y_lims[1])  # No negative values in wind rose
+    # if wind_plot:
+    #     y_lims = (0, y_lims[1])  # No negative values in wind rose
     ax.set_ylim(y_lims)
 
     season_str = season if season else ""
