@@ -186,6 +186,7 @@ def plot_stacked(
         colors_of_category=sectors_config.get("colors_of_sector", {}),
         width=0.8 if not wind_plot else (wind_bins[1] - wind_bins[0]),
     )
+    
     if "yerr" not in errorbar_kwargs:
         yerr = df_obs["std"].values.reshape(-1)
         yerr[np.isnan(yerr)] = 0
