@@ -60,7 +60,9 @@ class TaylorDiagram:
         tr = PolarAxes.PolarTransform()
 
         # Correlation coefficient labels and positions
-        rlocs = np.concatenate(((np.arange(11.0) / 10.0), [0.95, 0.99]))  # Correlation values
+        rlocs = np.concatenate(
+            ((np.arange(11.0) / 10.0), [0.95, 0.99])
+        )  # Correlation values
         tlocs = np.arccos(rlocs)  # Convert correlations to polar angles
         gl1 = gf.FixedLocator(tlocs)  # Position of ticks
         tf1 = gf.DictFormatter(dict(zip(tlocs, map(str, rlocs))))  # Format tick labels
@@ -69,7 +71,12 @@ class TaylorDiagram:
 
         gh = fa.GridHelperCurveLinear(
             tr,
-            extremes=(0, np.pi / 2, self.smin, self.smax),  # (theta_min, theta_max, r_min, r_max)
+            extremes=(
+                0,
+                np.pi / 2,
+                self.smin,
+                self.smax,
+            ),  # (theta_min, theta_max, r_min, r_max)
             grid_locator1=gl1,
             tick_formatter1=tf1,
         )
@@ -82,7 +89,9 @@ class TaylorDiagram:
 
         # Set the label for standard deviation
         label_std = (
-            "Normalized standard deviation [unitless]" if normalized else "Standard deviation [{}]".format(std_unit)
+            "Normalized standard deviation [unitless]"
+            if normalized
+            else "Standard deviation [{}]".format(std_unit)
         )
 
         # Customize the axes
@@ -110,7 +119,9 @@ class TaylorDiagram:
         for key, params in dict_axes.items():
             ax.axis[key].set_axis_direction(params["axis_direction"])
             ax.axis[key].toggle(ticklabels=True, label=True)
-            ax.axis[key].major_ticklabels.set_axis_direction(params["major_tick_labels_axis_direction"])
+            ax.axis[key].major_ticklabels.set_axis_direction(
+                params["major_tick_labels_axis_direction"]
+            )
             ax.axis[key].label.set_axis_direction(params["label_axis_direction"])
             ax.axis[key].label.set_text(params["label"])
 
@@ -121,7 +132,9 @@ class TaylorDiagram:
         for angle in tlocs:  # Use tlocs for exact positions of correlation labels
             x = [0, self.smax * np.cos(angle)]  # Line endpoints (x-coordinates)
             y = [0, self.smax * np.sin(angle)]  # Line endpoints (y-coordinates)
-            ax.plot(x, y, color="gray", linestyle="--", linewidth=0.5)  # Dashed gray lines
+            ax.plot(
+                x, y, color="gray", linestyle="--", linewidth=0.5
+            )  # Dashed gray lines
 
         # Set main axes for plotting
         self._ax = ax  # Main axes
@@ -131,7 +144,9 @@ class TaylorDiagram:
         if self.std_obs != None:
 
             # Plot the reference line and point
-            l = self.ax.scatter([0], self.std_obs, color="k", marker="*", s=self.markersize)  # Reference point
+            l = self.ax.scatter(
+                [0], self.std_obs, color="k", marker="*", s=self.markersize
+            )  # Reference point
             t = np.linspace(0, np.pi / 2)  # Angles for std_obs contour
             r = np.zeros_like(t) + self.std_obs
             self.ax.plot(t, r, "k--", label="_")  # Reference std_obs line
@@ -140,7 +155,9 @@ class TaylorDiagram:
             contours = self.add_contours(colors="0.5")
             self.ax.clabel(contours, inline=1, fontsize=10)
 
-    def add_samples(self, stds: list[float], pearsons: list[float], label: str, *args, **kwargs):
+    def add_samples(
+        self, stds: list[float], pearsons: list[float], label: str, *args, **kwargs
+    ):
         """
         Add markers representing sample points to the Taylor diagram.
 
@@ -244,7 +261,9 @@ def plot_stats_mf(
     nrows = len(stats_to_plot)
     fig, ax = plt.subplots(nrows, 1, figsize=(10, 3 * nrows), tight_layout=True)
     for i, stat in enumerate(stats_to_plot):
-        df_this_stats = long_stats[long_stats["variable"] == stat].pivot(index="site", columns="model", values="value")
+        df_this_stats = long_stats[long_stats["variable"] == stat].pivot(
+            index="site", columns="model", values="value"
+        )
 
         df_this_stats.plot(
             kind="bar",
@@ -286,14 +305,19 @@ def plot_stats_mf(
 
 
 def plot_taylor_diagram(
-    stats: dict[Literal["prior", "posterior", "prior_above_BC", "posterior_above_BC"], pd.DataFrame],
+    stats: dict[
+        Literal["prior", "posterior", "prior_above_BC", "posterior_above_BC"],
+        pd.DataFrame,
+    ],
     model_colors: dict[str, str],
     model_labels: dict[str, str],
     stat_markers: list[str] = ["o"],
     normalize: bool = True,
     plot_type_model: Literal["separate", "together"] = "separate",
     plot_type_stat: Literal["separate", "together"] = "separate",
-    include: list[Literal["prior", "posterior", "prior_above_BC", "posterior_above_BC"]] = ["prior", "posterior"],
+    include: list[
+        Literal["prior", "posterior", "prior_above_BC", "posterior_above_BC"]
+    ] = ["prior", "posterior"],
     std_range: tuple[float, float] = (0, 2.5),
     std_unit: str = "ppb",
     check_sites: bool = False,
@@ -337,8 +361,10 @@ def plot_taylor_diagram(
 
     # Check that include is a subset of stats keys
     if not set(include).issubset(stats.keys()):
-        raise ValueError(f"include {include} must be a subset of stats keys {list(stats.keys())}")
-    
+        raise ValueError(
+            f"include {include} must be a subset of stats keys {list(stats.keys())}"
+        )
+
     # Ensure stats keys are valid
     type_options = ["prior", "posterior", "prior_above_BC", "posterior_above_BC"]
     for s in stats:
@@ -350,7 +376,9 @@ def plot_taylor_diagram(
     # Get site names
     sites = np.unique(stats[include[0]]["site"].to_numpy())
     num_colors = len(sites)
-    colormap = plt.get_cmap("Spectral", num_colors)  # Using 'hsv' colormap for more distinct colors
+    colormap = plt.get_cmap(
+        "Spectral", num_colors
+    )  # Using 'hsv' colormap for more distinct colors
     site_colors = {
         s: colormap(i / num_colors) for i, s in enumerate(sites)
     }  # Normalize index for better color distribution
@@ -391,7 +419,11 @@ def plot_taylor_diagram(
             continue
 
         # Fetch statistical data
-        long_stat = pd.melt(stat, id_vars=["model", "site"], value_vars=["pearson", "std_obs", "std_sim"])
+        long_stat = pd.melt(
+            stat,
+            id_vars=["model", "site"],
+            value_vars=["pearson", "std_obs", "std_sim"],
+        )
         fetch_stat = lambda s: long_stat[long_stat["variable"] == s].pivot(
             index="site", columns="model", values="value"
         )
@@ -426,7 +458,11 @@ def plot_taylor_diagram(
                 stds_obs /= stds_obs
 
             # Remove observation reference if multiple std_obs and normalize = False
-            std_obs = stds_obs[~np.isnan(stds_obs)][0] if (len(stds_obs) == 1 or normalize) else None
+            std_obs = (
+                stds_obs[~np.isnan(stds_obs)][0]
+                if (len(stds_obs) == 1 or normalize)
+                else None
+            )
 
             # Create the Taylor diagram using the corresponding class or fetch it
             if index_pos not in dict_diags_pos:
@@ -445,9 +481,15 @@ def plot_taylor_diagram(
 
             # Define labels, colors and markers
             label = f"{model_labels[m]} - {s}"
-            color = model_colors[m][1] if s.split('_')[0] == "prior" else model_colors[m][0]
+            color = (
+                model_colors[m][1] if s.split("_")[0] == "prior" else model_colors[m][0]
+            )
             edgecolor = "k"
-            marker = stat_markers[include.index(s)] if len(stat_markers) > 1 else stat_markers[0]
+            marker = (
+                stat_markers[include.index(s)]
+                if len(stat_markers) > 1
+                else stat_markers[0]
+            )
 
             # Add samples to the diagram
             if check_sites:
@@ -460,7 +502,12 @@ def plot_taylor_diagram(
 
                     # Add samples for each site with different colors
                     site_handles = diag.add_samples(
-                        [std_sim], [pearson], c=site_colors[site], edgecolor="k", marker=marker, label=site
+                        [std_sim],
+                        [pearson],
+                        c=site_colors[site],
+                        edgecolor="k",
+                        marker=marker,
+                        label=site,
                     )
 
                     # Add all site handles to the combined legend
@@ -470,7 +517,13 @@ def plot_taylor_diagram(
 
                     # Add inner circles to indicate model/statistic
                     inner_handles = diag.add_samples(
-                        [std_sim], [pearson], c=color, edgecolor="k", marker="o", label=label, markersize=40
+                        [std_sim],
+                        [pearson],
+                        c=color,
+                        edgecolor="k",
+                        marker="o",
+                        label=label,
+                        markersize=40,
                     )
 
                 # Add only last inner_handle to the combined legend
@@ -478,7 +531,14 @@ def plot_taylor_diagram(
                 combined_labels += [label]
 
             else:
-                handles = diag.add_samples(stds_sim, pearsons, c=color, edgecolor=edgecolor, marker=marker, label=label)
+                handles = diag.add_samples(
+                    stds_sim,
+                    pearsons,
+                    c=color,
+                    edgecolor=edgecolor,
+                    marker=marker,
+                    label=label,
+                )
 
                 # Check if diag.add_samples returns artists or not
                 if not isinstance(handles, list):

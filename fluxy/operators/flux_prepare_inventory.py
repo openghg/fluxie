@@ -17,7 +17,7 @@ def retrieve_inventories(
     r_data: dict[str, dict],
     inventory_years: list[str] | None,
     inventory_filename: str,
-    sector: str = 'total'
+    sector: str = "total",
 ) -> list[xr.Dataset]:
     """
     Load (in a list) inventories data to be plotted.
@@ -37,7 +37,7 @@ def retrieve_inventories(
         inventories_list : list of inventory data to be plotted.
 
     """
-    
+
     inventories_list = list()
 
     if not isinstance(inventory_years, list):

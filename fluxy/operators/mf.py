@@ -175,4 +175,3 @@ def stats_mf(
         obs_var=obs,
         sim_var=sim,
     )
-

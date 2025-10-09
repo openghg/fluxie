@@ -23,7 +23,7 @@ def update_list_params(params_to_check: list, expected_size: int) -> list:
     """
     Check if parameters are list of the expected lenght. If they are not list, convert them to list (except if it is None).
     Raise an error if it is a list but not of the expected size.
-    
+
     Args:
         params_to_check : parameters to be checked
         expected_size : expected size for the list (should be the number of models used in the plots)
@@ -593,9 +593,8 @@ def get_bounds_from_country_fraction(
         for rg in region.split("-"):
             if rg in ds.country:
                 region_ds_names.append(rg)
-            elif (
-                rg in regions_info["regions"]
-                and all([r in ds.country for r in regions_info["regions"][rg].split("-")])
+            elif rg in regions_info["regions"] and all(
+                [r in ds.country for r in regions_info["regions"][rg].split("-")]
             ):
                 region_ds_names += regions_info["regions"][rg].split("-")
             elif (
@@ -607,7 +606,9 @@ def get_bounds_from_country_fraction(
         if not region_ds_names:
             continue
 
-        da_mask = ds.country_fraction.sel(country=np.unique(region_ds_names)).sum(dim="country")
+        da_mask = ds.country_fraction.sel(country=np.unique(region_ds_names)).sum(
+            dim="country"
+        )
 
         clipped = (
             da_mask.where(da_mask != 0)

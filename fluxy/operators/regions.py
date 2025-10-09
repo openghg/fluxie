@@ -15,7 +15,7 @@ def extract_region_flux(
     country: str,
     regions_info: dict[str, str],
     keep_country_dim: bool = False,
-    sector: str = 'total'
+    sector: str = "total",
 ) -> dict[str, xr.Dataset]:
     """
     Finds the index of a chosen region name and extracts the country flux
@@ -85,7 +85,6 @@ def extract_region_flux(
                     dim="country", keep_attrs=True
                 )
 
-
             if f"percentile_flux_{sector}_prior_country" in ds_region.variables:
                 ds_region["sigma_prior"] = np.sqrt(
                     (
@@ -100,7 +99,9 @@ def extract_region_flux(
                 )
             elif f"stdev_flux_{sector}_prior_country" in ds_region.variables:
                 ds_region["sigma_prior"] = np.sqrt(
-                    ((ds_region[f"stdev_flux_{sector}_prior_country"]) ** 2).sum(dim="country")
+                    ((ds_region[f"stdev_flux_{sector}_prior_country"]) ** 2).sum(
+                        dim="country"
+                    )
                 )
             else:
                 ds_region["sigma_prior"] = xr.zeros_like(
@@ -196,7 +197,7 @@ def extract_region_inventory_flux(
     r_data: dict[str, str],
     inventory_year: int | str | None,
     inventory_filename: str,
-    sector: str = 'total'
+    sector: str = "total",
 ) -> xr.Dataset:
     """
     Extracts inventory flux values for regions that exists,
@@ -214,12 +215,13 @@ def extract_region_inventory_flux(
         dataset with country selected
 
     """
-        
+
     # Find filename
     if inventory_year is not None:
         filepath = (
-            Path(data_dir) / "inventory" /
-            f"{inventory_filename}_{species}_{inventory_year}.nc"
+            Path(data_dir)
+            / "inventory"
+            / f"{inventory_filename}_{species}_{inventory_year}.nc"
         )
     else:
         filelist = sorted(
@@ -237,15 +239,23 @@ def extract_region_inventory_flux(
             inventory_year = None
 
     inv_ds_all = xr.open_dataset(filepath)
-        
-    if 'missing_data' in inv_ds_all.attrs:
-        if inv_ds_all.attrs['missing_data'] != '[]':
-            logger.warning(f"Inventory is missing data: {inv_ds_all.attrs['missing_data']}")
+
+    if "missing_data" in inv_ds_all.attrs:
+        if inv_ds_all.attrs["missing_data"] != "[]":
+            logger.warning(
+                f"Inventory is missing data: {inv_ds_all.attrs['missing_data']}"
+            )
     else:
-        logger.warning(f'No missing_data variable available in inventory files, assuming all data present.')
-        
-    #first option left for compatability with older inventory netcdfs, can be removed later
-    inv_ds = inv_ds_all['inventory'] if 'inventory' in inv_ds_all.keys() else inv_ds_all[f"flux_{sector}_inventory_country"]
+        logger.warning(
+            f"No missing_data variable available in inventory files, assuming all data present."
+        )
+
+    # first option left for compatability with older inventory netcdfs, can be removed later
+    inv_ds = (
+        inv_ds_all["inventory"]
+        if "inventory" in inv_ds_all.keys()
+        else inv_ds_all[f"flux_{sector}_inventory_country"]
+    )
 
     gwp = 1
     target_unit = unit
@@ -258,37 +268,38 @@ def extract_region_inventory_flux(
             origin_unit = origin_unit.replace("CO2-eq", "").replace("CO2eq", "")
         target_unit = unit.replace("CO2-eq", "")
         logger.info(f"Converting to mass of CO2-eq using GWP = {gwp}.")
-        
+
     scaling_factor = get_units_conversion_factor(origin_unit, target_unit, molar_mass)
 
     inv_ds = inv_ds * scaling_factor * gwp
     inv_ds.attrs["units"] = unit
     inv_ds.attrs["year"] = inventory_year
 
-    # Get country_codes only if regions_info exists    
+    # Get country_codes only if regions_info exists
     country_codes = r_data.get("country_codes", {})
     # Look for the code if country_codes is defined, otherwise assume the code was given as input
     country_search = country_codes.get(country, country)
-        
+
     if country_search in inv_ds["country"]:
-        return inv_ds.sel(country=country_search) # new format
+        return inv_ds.sel(country=country_search)  # new format
     elif country in inv_ds["country"]:
-        return inv_ds.sel(country=country) # old format (would only work if the user specifies the country name)
+        return inv_ds.sel(
+            country=country
+        )  # old format (would only work if the user specifies the country name)
 
     # if grouped countries:
     available_countries = inv_ds["country"].values.astype(str)
     dict_regions: dict[str, str] = r_data.get("regions", {})
-    
-    if (country_search not in available_countries and country in dict_regions.keys()):
+
+    if country_search not in available_countries and country in dict_regions.keys():
         region_search = dict_regions[country]
         country_list = region_search.split("-")
         inv_ds = inv_ds.sel({"country": country_list})
-        
+
         logger.info(
-        f"No inventory data available for {country}. Considering sum of individual countries: {region_search}"
+            f"No inventory data available for {country}. Considering sum of individual countries: {region_search}"
         )
     elif country_search in available_countries:
         inv_ds = inv_ds.sel({"country": country_search})
-        
-    return inv_ds.sum(dim="country", keep_attrs=True)
 
+    return inv_ds.sum(dim="country", keep_attrs=True)

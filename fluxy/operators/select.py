@@ -186,7 +186,7 @@ def slice_mf(
                 logger.warning(f"Error slicing site {site} from {m}: {e}")
                 ds_all.pop(m)
                 continue
-            
+
         # Slice data according to time window
         mask = (ds_all[m]["time"] >= start_date) & (ds_all[m]["time"] <= end_date)
         if not keep_unassimilated:
@@ -391,7 +391,7 @@ def get_unique_site_height_pairs(
         site_list:
             Pairs of sites and heights, e.g. [('MHD',10),(TAC,100),(TAC,185)]
     """
-    
+
     site_list = get_unique_sites(ds_all)
 
     if separate_by_height:
