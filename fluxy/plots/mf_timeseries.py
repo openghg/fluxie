@@ -12,15 +12,12 @@ from matplotlib.dates import MonthLocator, YearLocator
 from matplotlib.ticker import NullFormatter
 
 from fluxy import config
-from fluxy.operators.select import get_site_index, get_unique_sites
 from fluxy.plots.utils import set_min_decimal_points
 from fluxy.types import VariableType
 from fluxy.operators.select import (
     FrequencyType,
     clean_timeseries_missing_data,
     get_site_index,
-    get_unique_sites,
-    slice_site,
     get_unique_site_height_pairs,
 )
 from fluxy.plots.utils import set_min_decimal_points
@@ -141,6 +138,37 @@ def _prepare_var(ds, var, unc_var):
     return xr.merge([mean, unc], compat="no_conflicts", join="outer")
 
 
+def _retrieve_variable(ds, var, unc_var):
+    if unc_var:
+        raise NotImplementedError()
+
+    acceptable_var = ["prior", "posterior", "observed"]
+
+    if var.endswith("_above_BC"):
+        if "posterior" in var:
+            bc = ds["mf_bc_posterior"]
+        else:
+            bc = ds["mf_bc_prior"]
+
+        var0 = var.split("_")[0]
+        if var0 not in acceptable_var:
+            raise ValueError()
+        ds[var] = ds["mf_" + var0] - bc
+        ds[var].attrs = ds["mf_" + var0].attrs
+
+    elif var.endswith("_diff"):
+        var1, var2 = var.split("_")[:2]
+        if var1 not in acceptable_var or var2 not in acceptable_var:
+            raise ValueError()
+        ds[var] = ds["mf_" + var1] - ds["mf_" + var2]
+        ds[var].attrs = ds["mf_" + var1].attrs
+    
+    else:
+        raise ValueError()
+    
+    return ds
+
+
 def _prepare_data_to_plot(
     ds_all, include, diff_include, aggreg_month, time_freq_min, plot_type
 ):
@@ -166,17 +194,19 @@ def _prepare_data_to_plot(
                 "Use slice_site to select a single site."
             )
 
+        for var, unc_var in include.items():
+            if var not in ds.keys():
+                ds = _retrieve_variable(ds, var, unc_var)
+
         # Clean the time dimension
         ds_clean = clean_timeseries_missing_data(
             ds, variables_nans=include.keys(), min_freq=time_freq_min
         )
 
         for var, unc_var in include.items():
-            if var not in ds_clean.keys():
-                raise KeyError(f"Variable {var} not found in {m}.")
 
             if aggreg_month:
-                if var.split("_")[0] != "mf":
+                if var.split("_")[0] != "mf" and not var.endswith("_above_BC") and not var.endswith("_diff"):
                     raise NotImplementedError(
                         "`aggreg_month` disabled this for variable that are not mole fractions (i.e. names not starting with `mf`)."
                     )
@@ -478,7 +508,6 @@ def plot_timeseries(
                 )
 
         # Plot histogram
-        print(ax.shape)
         if ax.shape[1] == 2:
             plot_histogram(
                 ax[iax, 1],
@@ -535,6 +564,7 @@ def plot_timeseries(
 
         if len(data_to_plot[m].time) <= 1:
             continue
+
         add_xlims_and_ticks(
             ax[iax, 0],
             yearly_freq=False,
