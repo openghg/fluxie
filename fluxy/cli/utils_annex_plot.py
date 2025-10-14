@@ -54,6 +54,7 @@ def dict_to_str_dataframe(
             Gas species. Used to determine the number of digits to store.
         model: model name used as key to get data in dict `res`.
         region: region name we want to format the results of. Is used as key to res["posterior"] and res["inventory"]
+        table_start_date: starting date to print data to table.
 
     Returns:
         pd.DataFrame(output) :
