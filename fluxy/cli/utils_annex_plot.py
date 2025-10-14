@@ -108,7 +108,7 @@ def dict_to_str_dataframe(
             species,
         ]
         * 2,
-        "source": ["NIR " + inventory_years, "PARIS mean"],
+        "source": ["NID " + inventory_years, "PARIS mean"],
     }
 
     # Print data in LaTeX format   
@@ -143,7 +143,7 @@ def make_table(
     tmp = (
         "Emissions estimation for "
         + species
-        + " in $\\rm{TgCO}_{2}\\rm{-eq} \\cdot \\rm{yr}^{-1}$ according to the National Inventory Report (NIR) 2024 and the inversions done in the PARIS project. For the PARIS estimation, the mean of the 3 inversion models is displayed, along with a range of uncertainty estimated via the half distance between the maximum and minimum uncertainties of the different models."
+        + " in $\\rm{TgCO}_{2}\\rm{-eq} \\cdot \\rm{yr}^{-1}$ according to the National Inventory Document (NID) 2025 and the inversions done in the PARIS project. For the PARIS estimation, the mean of the 3 inversion models is displayed, along with a range of uncertainty estimated via the half distance between the maximum and minimum uncertainties of the different models."
     )
     caption = "\n \\caption{" + tmp + "}"
     begin = (
