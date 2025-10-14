@@ -40,6 +40,7 @@ def dict_to_str_dataframe(
     species: str,
     region: str | None = None,
     model: str = "combined",
+    table_start_date: str | None = None,
 ) -> pd.DataFrame:
     """
     Transform the dictionnary outputed by plot_flux_timeseries into a pandas.DataFrame of string that will be used in the latex tables for the annex reports.
