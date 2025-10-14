@@ -58,9 +58,15 @@ def dict_to_str_dataframe(
         pd.DataFrame(output) :
             Dataframe with columns ["species","source", *<years present in res>] and two rows : one for the PARIS mean estimates and one for the UNFCCC inventory estimates.
     """
+
+    if type(table_start_date) is str:
+        table_start_date = np.datetime64(table_start_date)
+    
+    # Get last inventory year (most recent)
     if isinstance(inventory_years, list):
         inventory_years = inventory_years[-1]
 
+    # Get combined values
     if not region:
         if len(res["posterior"].keys()) > 1:
             raise ValueError(
@@ -70,6 +76,7 @@ def dict_to_str_dataframe(
 
     comb = res["posterior"][region][model]
 
+    # Get inventory values
     inv_default = {
         "time": comb["time"],
         "value": np.array(
@@ -85,6 +92,7 @@ def dict_to_str_dataframe(
         .get(f"inventory_{inventory_years}", inv_default)
     )
 
+    # Define number of digits to print to table
     if species in ["n2o", "ch4"]:
         n_digits = 0
     elif species in ["all_hfc", "all_pfc", "sf6"]:
@@ -92,6 +100,7 @@ def dict_to_str_dataframe(
     else:
         n_digits = 2
 
+    # Define row titles
     output = {
         "species": [
             species,
@@ -99,7 +108,11 @@ def dict_to_str_dataframe(
         * 2,
         "source": ["NIR " + inventory_years, "PARIS mean"],
     }
+
+    # Print data in LaTeX format   
     for it, time in enumerate(comb["time"].astype("datetime64[Y]")):
+        if table_start_date != None and time < table_start_date:
+            continue
         paris_val = f"{comb['mean'][it]:.{n_digits}f} \\pm {(comb['max'][it]-comb['min'][it])/2:.{n_digits}f}"
         inv_val = inv["value"][inv["time"].astype("datetime64[Y]") == time]
         if len(inv_val) == 1:
