@@ -33,6 +33,20 @@ start_date_fgases = {
     "NORWAY": "2018-01-01",
 }
 
+# Lat/Lon limits in spatial maps
+map_limits = {
+    "UK": [-12,7.5,45,65],
+    "SWITZERLAND": [3,13,44,52],
+    "GERMANY": "GERMANY",
+    "ITALY": [5,20,35,49],
+    "NETHERLANDS": "BENELUX",
+    "BELGIUM": "BENELUX",
+    "BENELUX": "BENELUX",
+    "IRELAND": [-12,3,49,60],
+    "HUNGARY": [8,24,45,55],
+    "NORWAY": [0,35,53,79],
+}
+
 # Specify the percentile to use for the color scales in the flux spatial map
 fluxlim_percentiles = {
     "UK": {
@@ -328,5 +342,5 @@ class AnnexConfig:
         }
 
         ### Settings for spatial maps
-        self.kwargs_maps_general["region"] = region
+        self.kwargs_maps_general["region"] = map_limits[region]
         self.kwargs_maps_general["add_markers"] = point_markers[region]
