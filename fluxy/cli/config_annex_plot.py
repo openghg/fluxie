@@ -237,8 +237,9 @@ class AnnexConfig:
 
     ### Start/end date
     start_date_monthly_species = "2008-01-01"
-    start_date_paris_window = "2017-01-01"
-    start_date_spatial_maps = "2019-01-01"
+    start_date_paris_window = "2018-01-01"
+    start_date_spatial_maps = "2020-01-01"
+    start_date_table = start_date_spatial_maps
     end_date = "2025-01-01"
 
     ### Settings for country fluxes
