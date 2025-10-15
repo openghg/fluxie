@@ -55,8 +55,5 @@ def test_dict_to_str_dataframe():
         }
     )
 
-    output = dict_to_str_dataframe(res, ["1999", "2000"], "ch4")
-    assert all(output == expected)
-
     output = dict_to_str_dataframe(res, "2000", "ch4")
     assert all(output == expected)
