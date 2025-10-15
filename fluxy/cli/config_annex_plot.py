@@ -37,7 +37,7 @@ start_date_fgases = {
 map_limits = {
     "UK": [-12,7.5,45,65],
     "SWITZERLAND": [3,13,44,52],
-    "GERMANY": "GERMANY",
+    "GERMANY": [2.5,15.5,46,57], #NOTE: equal to automatic GERMANY country mask, but needed for proper ITMS comparison
     "ITALY": [5,20,35,49],
     "NETHERLANDS": "BENELUX",
     "BELGIUM": "BENELUX",
