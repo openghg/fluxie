@@ -36,7 +36,7 @@ def get_species_specific_settings(
 
 def dict_to_str_dataframe(
     res: dict,
-    inventory_years: list | str | int,
+    inventory_years: str | int,
     species: str,
     region: str | None = None,
     model: str = "combined",
@@ -49,7 +49,7 @@ def dict_to_str_dataframe(
         res :
             dictionnary outputted by plot_flux_timeseries
         inventory_years :
-            Inventory year to use. If a list is given, only the last will be used. The data will be looked at in the `res` dictionnary with the key f"inventory_{inventory_years}"
+            Inventory year to use. The data will be looked at in the `res` dictionnary with the key f"inventory_{inventory_years}"
         species :
             Gas species. Used to determine the number of digits to store.
         model: model name used as key to get data in dict `res`.
@@ -64,10 +64,6 @@ def dict_to_str_dataframe(
     if type(table_start_date) is str:
         table_start_date = np.datetime64(table_start_date)
     
-    # Get last inventory year (most recent)
-    if isinstance(inventory_years, list):
-        inventory_years = inventory_years[-1]
-
     # Get combined values
     if not region:
         if len(res["posterior"].keys()) > 1:
@@ -128,6 +124,7 @@ def dict_to_str_dataframe(
 def make_table(
     df: pd.DataFrame,
     output_path: Path,
+    inventory_years: str | int,
     descriptive_cols: list[str] = ["species", "source"],
     hline_place: dict[str] = {"source": "PARIS mean"},
 ):
@@ -143,7 +140,7 @@ def make_table(
     tmp = (
         "Emissions estimation for "
         + species
-        + " in $\\rm{TgCO}_{2}\\rm{-eq} \\cdot \\rm{yr}^{-1}$ according to the National Inventory Document (NID) 2025 and the inversions done in the PARIS project. For the PARIS estimation, the mean of the 3 inversion models is displayed, along with a range of uncertainty estimated via the half distance between the maximum and minimum uncertainties of the different models."
+        + " in $\\rm{TgCO}_{2}\\rm{-eq} \\cdot \\rm{yr}^{-1}$ according to the National Inventory Document (NID) " + inventory_years + " and the inversions done in the PARIS project. For the PARIS estimation, the mean of the 3 inversion models is displayed, along with a range of uncertainty estimated via the half distance between the maximum and minimum uncertainties of the different models."
     )
     caption = "\n \\caption{" + tmp + "}"
     begin = (
