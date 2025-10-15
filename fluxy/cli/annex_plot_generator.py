@@ -316,7 +316,11 @@ def produce_plots(
         annual_res.species.isin(["ch4", "n2o", "sf6", "all_pfc", "all_hfc"])
     ].copy()
     main_gases_res["species"] = main_gases_res.species.apply(
-        lambda x: x.upper().replace("ALL_", "Total ")
+        lambda x: x.upper()
+        .replace("ALL_", "Total ")
+        .replace("CH4", "CH$_4$")
+        .replace("N2O", "N$_2$O")
+        .replace("SF6", "SF$_6$")
     )
     make_table(main_gases_res, output_path / f"main_gases_res_{region}.tex")
     main_gases_res.to_csv(output_path / f"main_gases_res_{region}.csv", index=False)
