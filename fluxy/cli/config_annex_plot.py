@@ -294,8 +294,11 @@ class AnnexConfig:
 
     ### Settings for country fluxes
     ## Model definitions (list or dict["<period>": list(), "<species>": list()] if different between species)
+    # NOTE: InTEM_longrun is equal to InTEM_NAME.
+    #       The results are read twice because rolling_mean is applied to the single line but not to the combined line.
     models_country_flux = {
         "monthly": [
+            "InTEM_longrun",
             "InTEM_NAME",
             "InTEM_FLEXPART",
             "ELRIS_NAME",
@@ -333,7 +336,6 @@ class AnnexConfig:
         add_prior_unc=False,
         set_global_leg=False,
         country_codes_as_titles=None,
-        plot_combined=True,
         plot_resample_and_original=False,
         return_res=True,
     )
@@ -342,18 +344,21 @@ class AnnexConfig:
     # add entries for specific species if different from monthly/yearly default
     kwargs_country_flux_species_specific = {
         "monthly": dict(
-            plot_separate=[True, False, False, False, False, False],
+            plot_separate=[True, False, False, False, False, False, False],
+            plot_combined=[False, True, True, True, True, True, True],
             resample="year",
             resample_uncert_correlation=False,
-            rolling_mean=False,
+            rolling_mean=[True, False, False, False, False, False, False],
         ),
         "yearly": dict(
             plot_separate=[True, False, False, False, False, False],
+            plot_combined=True,
             resample=None,
             rolling_mean=True,
         ),
         "sf6": dict(
             plot_separate=[True, False, False, False],
+            plot_combined=True,
             resample=None,
             rolling_mean=True,
         ),
@@ -362,7 +367,8 @@ class AnnexConfig:
     # for monthly species on PARIS time window
     kwargs_country_flux_monthly_species_special = {
         "monthly": dict(
-            plot_separate=[True, False, False, False, False, False],
+            plot_separate=[True, False, False, False, False, False, False],
+            plot_combined=[False, True, True, True, True, True, True],
             resample=None,
             rolling_mean=False,
         )
@@ -371,7 +377,30 @@ class AnnexConfig:
     ### Settings for spatial maps
     ## Model definitions (list or dict["<period>": list(), "<species>": list()] if different between species)
     # NOTE: in produce_plots, it is assumed that models_spatial_maps exist in models_country_flux
-    models_spatial_maps = models_country_flux
+    models_spatial_maps = {
+        "monthly": [
+            "InTEM_NAME",
+            "InTEM_FLEXPART",
+            "ELRIS_NAME",
+            "ELRIS_FLEXPART",
+            "RHIME_NAME",
+            "RHIME_FLEXPART",
+        ],
+        "yearly": [
+            "InTEM_NAME",
+            "InTEM_FLEXPART",
+            "ELRIS_NAME",
+            "ELRIS_FLEXPART",
+            "RHIME_NAME",
+            "RHIME_FLEXPART",
+        ],
+        "sf6": [
+            "InTEM_NAME",
+            "InTEM_FLEXPART",
+            "ELRIS_NAME",
+            "ELRIS_FLEXPART",
+        ],
+    }
     flux_units_print = "kg km-2 yr-1"
 
     ## Kwargs for flux_map functions
