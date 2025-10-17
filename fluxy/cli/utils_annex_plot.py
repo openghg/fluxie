@@ -36,15 +36,17 @@ def get_species_specific_settings(
 def create_str_dataframe(
     res: dict,
     inventory_years: str | int,
-    species: str,
+    species: str | list[str],
     region: str | None = None,
     sector: str = "total",
-    model: str = "combined",
+    model: str = "PARIS mean",
     table_start_date: str | None = None,
 ) -> pd.DataFrame:
     
-    if isinstance(table_start_date, str):
-        table_start_date = np.datetime64(table_start_date)        
+    if not table_start_date:
+        table_start_date =  np.datetime64("1900-01-01")   
+    elif isinstance(table_start_date, str):
+        table_start_date = np.datetime64(table_start_date)         
     
     if not region:
         if res.country.unique().size!=1:
@@ -73,7 +75,9 @@ def create_str_dataframe(
     
     data["year"] = pd.to_datetime(data["time"]).dt.year.astype(str)
 
-    if "+" in [(f"{val:.2e}").split("e")[1][0] for val in data.mean_val.values]:
+    if "+" in [(f"{val:.2e}").split("e")[1][0] 
+               for val in data.mean_val.values 
+               if f"{val:.2e}"!='0.00e+00']:
         unit = "$\\rm{TgCO}_{2}\\rm{-eq} \\cdot \\rm{yr}^{-1}$"
         default_digit = 2
     else:
