@@ -208,8 +208,8 @@ difflim_percentiles = {
         "n2o": 0.997,
     },
     "ITALY": {
-        "ch4": 0.95,
-        "n2o": 0.95,
+        "ch4": 0.9975,
+        "n2o": 0.995,
     },
     "NETHERLANDS": {
         "ch4": 0.998,
@@ -228,8 +228,8 @@ difflim_percentiles = {
         "n2o": 1,
     },
     "NORWAY": {
-        "ch4": 0.95,
-        "n2o": 0.95,
+        "ch4": 0.9995,
+        "n2o": 0.9995,
     },
 }
 
