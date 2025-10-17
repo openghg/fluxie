@@ -342,6 +342,12 @@ def read_model_output(
         if add_sites_to_flux and file_type == DataTypes.FLUX:
             ds_all[m] = add_sites_var(ds_all[m], filepath, m, period[i], config_data)
 
+        # Add species in attributes if not present
+        if "species" not in ds_all[m].attrs:
+            ds_all[m].attrs["species"] = species
+        elif "RHIME" in m and ds_all[m].attrs["species"]=="inert":
+            ds_all[m].attrs["species"] = species
+
     return ds_all
 
 
@@ -755,7 +761,7 @@ def edit_vars_and_attributes(
                     [ds_bel, ds_lux], pd.Index(["BEL", "LUX"], name="country")
                 )
 
-                ds = xr.merge([ds, ds_bellux])
+                ds = xr.merge([ds, ds_bellux], join="outer", compat='no_conflicts')
                 ds = ds.drop_vars("country_merge")
 
         elif m0 == "rhime":

@@ -57,7 +57,7 @@ def combine_map_dataset(ds_all: dict[str, xr.Dataset]) -> dict[str, xr.Dataset]:
     models = list(ds_all.keys())
     ds_list = list(ds_all.values())
 
-    ds_combined = xr.concat(ds_list, dim="model", combine_attrs="override")
+    ds_combined = xr.concat(ds_list, dim="model", join="outer", combine_attrs="override")
     kwargs_combine = {"dim": "model", "keep_attrs": True}
 
     for var in ds_combined.data_vars:

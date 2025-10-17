@@ -33,98 +33,90 @@ def get_species_specific_settings(
 
     return settings_species
 
-
-def dict_to_str_dataframe(
+def create_str_dataframe(
     res: dict,
     inventory_years: str | int,
     species: str,
     region: str | None = None,
+    sector: str = "total",
     model: str = "combined",
     table_start_date: str | None = None,
 ) -> pd.DataFrame:
-    """
-    Transform the dictionnary outputed by plot_flux_timeseries into a pandas.DataFrame of string that will be used in the latex tables for the annex reports.
-
-    Args:
-        res :
-            dictionnary outputted by plot_flux_timeseries
-        inventory_years :
-            Inventory year to use. The data will be looked at in the `res` dictionnary with the key f"inventory_{inventory_years}"
-        species :
-            Gas species. Used to determine the number of digits to store.
-        model: model name used as key to get data in dict `res`.
-        region: region name we want to format the results of. Is used as key to res["posterior"] and res["inventory"]
-        table_start_date: starting date to print data to table.
-
-    Returns:
-        pd.DataFrame(output) :
-            Dataframe with columns ["species","source", *<years present in res>] and two rows : one for the PARIS mean estimates and one for the UNFCCC inventory estimates.
-    """
-
-    if type(table_start_date) is str:
-        table_start_date = np.datetime64(table_start_date)
     
-    # Get combined values
+    if isinstance(table_start_date, str):
+        table_start_date = np.datetime64(table_start_date)        
+    
     if not region:
-        if len(res["posterior"].keys()) > 1:
+        if res.country.unique().size!=1:
             raise ValueError(
-                f"`region` parameter should be provided when there is more than one region in `res` (currently present: {list(res['posterior'].keys())})."
+                f"`region` parameter should be provided when there is more than one region in `res` (currently present: {res.country.unique()})."
             )
-        region = list(res["posterior"].keys())[0]
+        region = res.country.unique()[0]
 
-    comb = res["posterior"][region][model]
+    if not sector:
+        if res.sector.unique().size!=1:
+            raise ValueError(
+                f"`sector` parameter should be provided when there is more than one region in `res` (currently present: {res.sector.unique()})."
+            )
+        sector = res.sector.unique()[0]
 
-    # Get inventory values
-    inv_default = {
-        "time": comb["time"],
-        "value": np.array(
-            [
-                np.nan,
-            ]
-            * len(comb["time"])
-        ),
-    }
-    inv = (
-        res["inventory"]
-        .get(region, dict())
-        .get(f"inventory_{inventory_years}", inv_default)
-    )
+    if not isinstance(species,list):
+        species = [species,]
 
-    # Define number of digits to print to table
-    if species in ["n2o", "ch4"]:
-        n_digits = 0
-    elif species in ["all_hfc", "all_pfc", "sf6"]:
-        n_digits = 1
+    res["time"] = pd.to_datetime(res["time"])
+    data = res[(res.country==region)
+                &(res.model.isin([model,f"inventory_{inventory_years}"]))
+                &res.species.isin(species)
+                &(res.type.isin(["posterior","inventory"]))
+                &(res.time>=table_start_date)
+                ].reset_index(drop=True)
+    
+    data["year"] = pd.to_datetime(data["time"]).dt.year.astype(str)
+
+    if "+" in [(f"{val:.2e}").split("e")[1][0] for val in data.mean_val.values]:
+        unit = "$\\rm{TgCO}_{2}\\rm{-eq} \\cdot \\rm{yr}^{-1}$"
+        default_digit = 2
     else:
-        n_digits = 2
+        for var in ["mean_val","min_unc","max_unc"]:
+            data[var] *= 1e3
+        unit = "$\\rm{GgCO}_{2}\\rm{-eq} \\cdot \\rm{yr}^{-1}$"
+        default_digit = 1
 
-    # Define row titles
-    output = {
-        "species": [
-            species,
+    data["n_digits"] = data.apply(lambda x : 1 if x.species in ["ch4", "n2o", "all_hfc", "all_pfc", "sf6"] else default_digit, axis=1)
+
+    data["val"] = data.apply(lambda x : f"{x.mean_val:.{x.n_digits}f}" if x.type=="inventory"
+                             else f"{x.mean_val:.{x.n_digits}f} \\pm {(x.max_unc-x.min_unc)/2:.{x.n_digits}f}",
+                             axis=1)
+
+    output = data.pivot(index=["model","species"],columns="year",values = "val").reset_index()
+    output.fillna(" ",inplace=True)
+    output.rename(columns={"model":"source"},inplace=True)
+    output["source"] = output["source"].apply(lambda x: x.replace("inventory_","NIR "))
+    output.columns.name = None
+    output.sort_values(by=["species","source"], inplace=True)
+    output.fillna(value=" ", inplace=True)
+
+    columns = np.concatenate(
+        [
+            ["species", "source"],
+            np.sort(
+                [
+                    col
+                    for col in output.columns
+                    if col not in ["species", "source"]
+                ]),
         ]
-        * 2,
-        "source": ["NID " + inventory_years, "PARIS mean"],
-    }
-
-    # Print data in LaTeX format   
-    for it, time in enumerate(comb["time"].astype("datetime64[Y]")):
-        if table_start_date != None and time < table_start_date:
-            continue
-        paris_val = f"{comb['mean'][it]:.{n_digits}f} \\pm {(comb['max'][it]-comb['min'][it])/2:.{n_digits}f}"
-        inv_val = inv["value"][inv["time"].astype("datetime64[Y]") == time]
-        if len(inv_val) == 1:
-            output[str(time)] = [f"{inv_val[0]:.{n_digits}f}", paris_val]
-        else:
-            output[str(time)] = [None, paris_val]
-
-    return pd.DataFrame(output)
+    )
+    output = output[columns]
+    
+    return output, unit
 
 
 def make_table(
     df: pd.DataFrame,
-    output_path: Path,
+    output_path,
     inventory_years: str | int,
+    unit: str = "$\\rm{TgCO}_{2}\\rm{-eq} \\cdot \\rm{yr}^{-1}$",
     descriptive_cols: list[str] = ["species", "source"],
     hline_place: dict[str] = {"source": "PARIS mean"},
 ):
@@ -140,7 +132,7 @@ def make_table(
     tmp = (
         "Emissions estimation for "
         + species
-        + " in $\\rm{TgCO}_{2}\\rm{-eq} \\cdot \\rm{yr}^{-1}$ according to the National Inventory Document (NID) " + inventory_years + " and the inversions done in the PARIS project. For the PARIS estimation, the mean of the 3 inversion models is displayed, along with a range of uncertainty estimated via the half distance between the maximum and minimum uncertainties of the different models."
+        + " in " + unit + f" according to the National Inventory Report (NIR) {inventory_years} and the inversions done in the PARIS project. For the PARIS estimation, the mean of the 3 inversion models is displayed, along with a range of uncertainty estimated via the half distance between the maximum and minimum uncertainties of the different models."
     )
     caption = "\n \\caption{" + tmp + "}"
     begin = (
