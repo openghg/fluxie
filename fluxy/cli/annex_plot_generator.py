@@ -269,7 +269,7 @@ def produce_plots(
                     species=species,
                     model_labels=model_labels,
                     config_data=config_data,
-                    set_fluxlim_percentile=annex_config_data.fluxlim_percentile.get(
+                    set_fluxlim_percentile=annex_config_data.difflim_percentile.get(
                         species, None
                     ),
                     **annex_config_data.kwargs_maps_general,
