@@ -38,7 +38,7 @@ def determine_subplots_arrangement(subplot_number: int) -> tuple[int, int]:
         n_cols = 3
         n_rows = 2
     elif subplot_number > 6:
-        n_cols = 4
+        n_cols = 3
         n_rows = math.ceil(subplot_number / 4)
     return n_cols, n_rows
 
@@ -469,12 +469,15 @@ def plot_country_flux(
         ncol = 0
         if plot_separate or resample:
             ncol = len(ds_all.keys())
+            # ncol = 3
         if plot_combined and plot_separate:
             ncol = len(ds_all.keys()) + 1
         elif plot_combined:
             ncol = 3
         if plot_inventory:
             ncol = ncol + 1
+
+        ncol = 4
 
         if n_rows > 1:
             legend_loc = (0.5, 1.1)

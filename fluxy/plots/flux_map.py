@@ -583,6 +583,7 @@ def plot_flux_map_over_time(
 
     if plot_combined:
         ds_dict = align_map_data(ds_dict)
+        # return ds_dict
         ds_dict = combine_map_dataset(ds_dict)
 
     time_labels = {}
@@ -689,7 +690,7 @@ def plot_flux_map_over_time(
             # Add titles
             # if row == 0:
             #     # Column titles
-            # ax_i.set_title(species_info['species_print'])
+            #     ax_i.set_title(time_label)
             if col == 0 and not plot_combined:
                 # Row titles
                 ax_i.set_ylabel(model_labels.get(model, model))
@@ -707,6 +708,209 @@ def plot_flux_map_over_time(
                         "or that a `fallback_sites` list is provided in `plot_flux_map`."
                     ) from e
                 add_site_markers(ax_i, sites_info, marker_color)
+
+            if add_markers:
+                add_custom_markers(
+                    ax_i, add_markers, marker_color, config_data["regions_info"]
+                )
+
+    # Add colorbar
+    cbar_label = print_cbar_label(
+        ds,
+        species_info,
+        var,
+        sector=sector,
+        format=["species", "units"],
+    )
+    add_colorbar(
+        fig,
+        ax,
+        im,
+        extend=extend,
+        label=cbar_label,
+        n_cbar=1,
+        idx_cbar=1,
+        colorbar_type="figure",
+    )
+
+    return fig
+
+def plot_flux_map_network_effect(
+    ds_all: dict[xr.Dataset],
+    models1: list[str],
+    models2: list[str],
+    var: str,
+    species: str,
+    region: Region = None,
+    config_data: dict = {},
+    model_labels: dict[str] = {},
+    chop_by: str | list[str] | list[float] | list[list[float]] = "year",
+    dt: float = 1,
+    plot_combined: bool = False,
+    cmap: str = "viridis",
+    cmap_diff: str = "coolwarm",
+    c_border: str = "floralwhite",
+    c_border_diff: str = "dimgrey",
+    add_sites: bool = False,
+    add_markers: list[str] | list[list[float]] = None,
+    set_fluxlim: str | tuple = "auto",
+    set_fluxlim_percentile: float = None,
+    zoom_degree: float = 1,
+    fallback_sites: list[str] | None = None,
+    resample_uncert_correlation: bool = False,
+    sector: str = "total",
+) -> plt.Figure:
+
+    # Check for inversion_grid and sector option
+    if "inversion_grid" in var and sector != "total":
+        raise ValueError(
+            f"Currently, you cannot plot sectors other than 'total' using the inversion_grid variable. "
+            + "Choose a non inversion_grid variable to plot other sectors."
+        )
+
+    # Determine geographical boundaries
+    map_bounds = get_map_bounds(
+        region,
+        ds_all.values(),
+        config_data,
+        zoom_degree=zoom_degree,
+    )
+
+    # Prepare datasets and resample over given periods
+    ds_dict = {m: define_var_plot(ds, var, sector) for m, ds in ds_all.items()}
+    ds_dict = align_map_data(ds_dict)
+
+    time_labels = {}
+    for key, ds in ds_dict.items():
+        ds_dict[key], time_labels[key] = resample_over_period(
+            ds, dt, chop_by, resample_uncert_correlation
+        )
+
+    # Combine models from models1 and keep only combined
+    ds1 = combine_map_dataset({k: ds_dict[k] for k in models1})
+    ds2 = combine_map_dataset({k: ds_dict[k] for k in models2})
+    ds_diff = {}
+    ds_diff['diff'] = make_model_diff_ds(ds1['combined'], ds2['combined'])
+
+    if all([v == time_labels[key] for v in time_labels.values()]):
+        time_labels = time_labels[key]
+    else:
+        raise ValueError(
+            f"Uncoherent `time_labels` derived : {time_labels}. Most probable reason is difference between start and end dates of the datasets, slicing them to their common period should resolve the issue."
+        )
+
+    # Load country lines, species and sites information
+    country_lines = compute_boundary_geometry(map_bounds)
+    species_info = config_data.get("species_info", {}).get(species, {})
+
+    # Set flux limits
+    lim = set_flux_limits(
+        ds_diff,
+        var,
+        map_bounds,
+        option=set_fluxlim,
+        custom_percentile=set_fluxlim_percentile,
+    )
+    lim = (-lim[1], lim[1])  # Force symmetric limits for difference plots
+
+    # Determine plot settings
+    is_diff = True
+    cmap = cmap_diff if is_diff else cmap
+    border_color = c_border_diff if is_diff else c_border
+    marker_color = "black" if is_diff else "magenta"
+    extend = "both" if is_diff else "max"
+
+    # Initialise figure
+    n_rows = len(ds_diff.keys())
+    n_cols = len(time_labels)
+
+    is_single_season = chop_by == "season" and n_rows == 1
+    if is_single_season:
+        fig_rows = 2
+        fig_cols = 2
+        fixed_value = 7
+    else:
+        fig_rows = n_rows
+        fig_cols = n_cols
+        fixed_value = 5 * n_rows
+
+    figsize = define_map_figsize(
+        map_bounds,
+        fig_rows,
+        fig_cols,
+        fixed_value=fixed_value,
+        fixed_dimension="height",
+    )
+    fig, ax = plt.subplots(fig_rows, fig_cols, figsize=figsize, layout="compressed")
+    ax = ax.flatten() if is_single_season else ax
+
+    for row, (model, ds) in enumerate(ds_diff.items()):
+        lon, lat = ds.longitude, ds.latitude
+
+        for col, time_label in enumerate(time_labels):
+            if n_rows == 1 and n_cols == 1:
+                ax_i = ax
+            elif n_rows == 1:
+                ax_i = ax[col]
+            elif n_cols == 1:
+                ax_i = ax[row]
+            else:
+                ax_i = ax[row, col]
+
+            var_i = ds[var].isel(time=col)
+
+            # Plot the data
+            im = ax_i.pcolormesh(
+                lon,
+                lat,
+                var_i,
+                cmap=cmap,
+                vmin=lim[0],
+                vmax=lim[1],
+                shading="nearest",
+            )
+            plot_country_borders(
+                ax=ax_i, lines=country_lines, border_color=border_color
+            )
+            ax_i.set_xlim(map_bounds[:2])  # Longitude limits
+            ax_i.set_ylim(map_bounds[2:])  # Latitude limits
+            ax_i.set_aspect(1)
+
+            # Adjust ticks layout
+            if is_single_season:
+                if col in [0, 1]:
+                    ax_i.set_xticklabels([])
+                if col in [1, 3]:
+                    ax_i.set_yticklabels([])
+            else:
+                if row < n_rows - 1:
+                    ax_i.set_xticklabels([])
+                if col > 0:
+                    ax_i.set_yticklabels([])
+
+            # Add titles
+            if row == 0:
+                # Column titles
+                ax_i.set_title(time_label)
+            if col == 0 and not plot_combined:
+                # Row titles
+                ax_i.set_ylabel(model_labels.get(model, model))
+
+            # Add sites and markers if specified
+            if add_sites:
+                try:
+                    sites_info = get_active_sites_coordinates(
+                        ds.isel(time=[col]), config_data, fallback_sites
+                    )
+                except Exception as e:
+                    raise RuntimeError(
+                        "Failed to get active sites coordinates. "
+                        "Check that `add_sites_to_flux` is True in `read_model_output` "
+                        "or that a `fallback_sites` list is provided in `plot_flux_map`."
+                    ) from e
+                add_site_markers(ax_i, sites_info, marker_color)
+                new_sites = {k: sites_info[k] for k in ['ZSF', 'CGR', 'BIR', 'HUN']}
+                add_site_markers(ax_i, new_sites, 'green')
 
             if add_markers:
                 add_custom_markers(

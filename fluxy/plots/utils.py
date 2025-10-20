@@ -87,6 +87,7 @@ def add_colorbar(fig, ax, im, extend, label, n_cbar, idx_cbar, colorbar_type="ro
             target_ax = ax
 
         cbar = fig.colorbar(
+            # im, ax=target_ax, orientation="vertical", extend=extend
             im, ax=target_ax, orientation="horizontal", extend=extend
         )
 

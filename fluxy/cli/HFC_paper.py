@@ -35,7 +35,7 @@ def dict_to_str_dataframe(
         "source": ["NIR " + inventory_years, "PARIS mean"],
     }
     for it, time in enumerate(comb["time"].astype("datetime64[Y]")):
-        paris_val = f"{comb['mean'][it]:.{n_digits}f} \\pm {(comb['max'][it]-comb['min'][it])/2:.{n_digits}f}"
+        paris_val = f"{comb['mean'][it]:.{n_digits}f} $\\pm$ {(comb['max'][it]-comb['min'][it])/2:.{n_digits}f}"
         inv_val = inv["value"][inv["time"].astype("datetime64[Y]") == time]
         if len(inv_val) == 1:
             output[str(time)] = [f"{inv_val[0]:.{n_digits}f}", paris_val]
@@ -122,3 +122,58 @@ def summarize_models_region(
         region_dict[r]['combined'] = summarize_models_yearly_dict(res[r], models)
 
     return region_dict
+
+def extract_number(val):
+    if pd.isna(val):
+        return np.nan
+    return float(str(val).split()[0])
+
+def subset_with_mean(df, region=None, species=None, source=None, start_year=2013, end_year=2017):
+    """
+    Filter dataframe by region, species, source, and compute mean emissions 
+    over a given year range (inclusive).
+    
+    Parameters:
+        df : pd.DataFrame
+            Input dataframe
+        region : str or None
+            Region to filter (if None, keep all)
+        species : str or None
+            Species to filter (if None, keep all)
+        source : str or None
+            Source to filter (if None, keep all)
+        start_year : int
+            First year in averaging
+        end_year : int
+            Last year in averaging (inclusive)
+            
+    Returns:
+        pd.DataFrame
+            Filtered dataframe with year columns and a new column "MEAN"
+    """
+    
+    # --- Clean numeric year columns ---
+    year_cols = [col for col in df.columns if col.isdigit()]
+    df_clean = df.copy()
+    df_clean[year_cols] = df_clean[year_cols].map(extract_number)
+    
+    # --- Apply filters ---
+    mask = pd.Series(True, index=df_clean.index)
+    if region is not None:
+        mask &= df_clean["region"] == region
+    if species is not None:
+        mask &= df_clean["species"] == species
+    if source is not None:
+        mask &= df_clean["source"] == source
+        
+    subset = df_clean[mask].copy()
+    
+    # --- Select years of interest ---
+    years_to_average = [str(y) for y in range(start_year, end_year + 1)]
+    id_cols = ["region", "species", "source"]
+    subset = subset[id_cols + years_to_average]
+    
+    # --- Compute mean ---
+    subset["MEAN"] = subset[years_to_average].mean(axis=1).round(1)
+    
+    return subset

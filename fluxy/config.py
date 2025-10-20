@@ -15,9 +15,9 @@ cbf = {
 }
 
 color_palette = {
-    0: [[cbf["blue"], "dodgerblue"], [cbf["lightblue"], "skyblue"], ["deepskyblue", "cyan"]],
-    1: [[cbf["vermillion"], "khaki"], [cbf["orange"], "orange"], ["yellow", "lightyellow"]],
-    2: [[cbf["tealgreen"], "green"], [cbf["lightgreen"], "palegreen"], ["olive", "lightgreen"]],
+    0: [[cbf["blue"], "silver"], [cbf["lightblue"], "silver"], ["cyan", "cyan"]],
+    1: [[cbf["vermillion"], "silver"], [cbf["orange"], "silver"], ["yellow", "lightyellow"]],
+    2: [[cbf["tealgreen"], "silver"], [cbf["lightgreen"], "silver"], ["olive", "lightgreen"], ["lime", "lightgreen"],["yellowgreen", "lightgreen"]],
     3: [["purple", "mediumpurple"], ["deeppink", "pink"], ["darkorange", "red"]],
 }
 
@@ -35,9 +35,9 @@ bel_pop_r = np.round(np.mean(bel_pop / (bel_pop + lux_pop)), 3)
 
 mf_labels = {
     "mf_prior": "prior",
-    "mf_posterior": "posterior",
+    "mf_posterior": "modelled",
     "mf_bc_prior": "prior baseline",
-    "mf_bc_posterior": "posterior baseline",
+    "mf_bc_posterior": "boundary conditions",
     "mf_bias_prior": "prior bias",
     "mf_bias_posterior": "posterior bias",
     "mf_outer_prior": "prior outer region mf",
@@ -53,7 +53,7 @@ mf_color_index = {
     "mf_prior": 1,
     "mf_posterior": 0,
     "mf_bc_prior": 1,
-    "mf_bc_posterior": 0,
+    "mf_bc_posterior": 1,
     "mf_bias_prior": 1,
     "mf_bias_posterior": 0,
     "mf_outer_prior": 1,
@@ -62,7 +62,7 @@ mf_color_index = {
     "stdev_mf_observed_repeatability": 0,
     "stdev_mf_observed_variability": 0,
     "stdev_mf_model": 1,
-    "stdev_mf_total": 1,
+    "stdev_mf_total": 0,
 }
 
 special_flux_labels = {

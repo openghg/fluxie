@@ -208,7 +208,8 @@ def plot_timeseries(
 
             x, y = ds_plot["time"].values, ds_plot[var].values
             kwargs = {
-                "label": f"{model_label} {config.mf_labels.get(var, var)}",
+                # "label": f"{model_label} {config.mf_labels.get(var, var)}",
+                "label": f"{config.mf_labels.get(var, var)}",
                 "color": plot_color,
                 "alpha": 0.8,
             }
@@ -349,7 +350,7 @@ def plot_timeseries(
             )
         )
 
-        leg = ax[iax, 0].legend(ncol=2, borderpad=0.2, columnspacing=1.0)
+        leg = ax[iax, 0].legend(ncol=3) #, borderpad=0.2, columnspacing=1.0)
         try:
             for l in leg.legend_handles:
                 l.set_linewidth(5.0)
@@ -575,10 +576,16 @@ def plot_histogram(
     # Get histogram variables and legend
     if diff_include:
         hist_to_plot = diff_include
-        legend_hist = "Obs - Plotted variable"
+        if 'mf_posterior' in vars_to_plot: 
+            legend_hist = f"Obs - Posterior"
+        else:
+            legend_hist = f"Obs - Plotted variable"
     else:
         hist_to_plot = vars_to_plot
-        legend_hist = "Plotted variable"
+        if 'mf_bc_posterior' in vars_to_plot:
+            legend_hist = "Posterior baseline"
+        else:
+            legend_hist = "Plotted variable"
 
     # Loop over all variables to plot in histogram
     for v, var in enumerate(hist_to_plot):
