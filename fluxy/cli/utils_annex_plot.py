@@ -75,9 +75,10 @@ def create_str_dataframe(
     
     data["year"] = pd.to_datetime(data["time"]).dt.year.astype(str)
 
-    if "+" in [(f"{val:.2e}").split("e")[1][0] 
-               for val in data.mean_val.values 
-               if f"{val:.2e}"!='0.00e+00']:
+    values = data.mean_val.apply(lambda x: [(val[0],val[1][0],val[1][1:]) for val in f"{x:.2e}".split("e")]).values
+    values = [(val, sign, exp) for val, sign, exp in values if ("").join([val,sign,exp])!="00+00"]
+    
+    if any([(sign=="+" or int(exp)==1) for _, sign, exp in values]):
         unit = "$\\rm{TgCO}_{2}\\rm{-eq} \\cdot \\rm{yr}^{-1}$"
         default_digit = 2
     else:
@@ -93,12 +94,19 @@ def create_str_dataframe(
                              axis=1)
 
     output = data.pivot(index=["model","species"],columns="year",values = "val").reset_index()
+    output.columns.name = None
     output.fillna(" ",inplace=True)
+
     output.rename(columns={"model":"source"},inplace=True)
     output["source"] = output["source"].apply(lambda x: x.replace("inventory_","NIR "))
-    output.columns.name = None
+
     output.sort_values(by=["species","source"], inplace=True)
-    output.fillna(value=" ", inplace=True)
+
+    species_name = {"ch4":"CH_4", "n2o":"N_2O", "sf6": "SF6", "cf4": "PFC-14", "all_pfc": "Total PFC", "all_hfc": "Total HFC"}
+    for species in output.species.unique():
+        if species not in species_name.keys():
+            species_name[species] = species_name.replace("hfc","HFC-").replace("pfc","PFC-")
+    output.replace(species_name, inplace=True)
 
     columns = np.concatenate(
         [
