@@ -363,6 +363,7 @@ def add_inventory_barplot(
     inventory_years: list[str] | None,
     inventory_filename: str,
     sector: str | list[str],
+    annex_mode: bool,
 ) -> dict[str, dict]:
     """
     Retrieve and plot the inventories as bar plots. If multiple inventories are plotted, the older the inventory is, the smaller
@@ -381,6 +382,7 @@ def add_inventory_barplot(
         inventory_years: list of years of publication of the inventory versions we want to use.
         inventory_filename: name of inventory file.
         sector: sector we want to plot.
+        annex_mode: If True, replace Inventory label with a more concise version for National Inventory Report Annexes.
     Returns:
         res_dict: dictionnary containing inventory data plotted - 2 keys: "time", "value".
     """
@@ -415,7 +417,9 @@ def add_inventory_barplot(
             edgecolor=inventory.plot_color,
             align="edge",
             fill=False,
-            label=f"Inventory {inventory.year}",
+            label=(
+                f"NID {inventory.year}" if annex_mode else f"Inventory {inventory.year}"
+            ),
             zorder=0,
         )
 
@@ -787,6 +791,7 @@ def plot_country_flux(
                 inventory_years,
                 inventory_filename,
                 sector,
+                annex_mode,
             )
 
         # set y label
