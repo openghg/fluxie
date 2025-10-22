@@ -251,6 +251,7 @@ def produce_plots(
                 model_labels=model_labels,
                 config_data=config_data,
                 dt=dt,
+                set_fluxlim=annex_config_data.fluxlim.get(species, "auto"),
                 set_fluxlim_percentile=annex_config_data.fluxlim_percentile.get(
                     species, None
                 ),

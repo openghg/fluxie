@@ -47,7 +47,31 @@ map_limits = {
     "NORWAY": [3,33,55,79],
 }
 
+# Limits in posterior spatial map color scale (in units flux_units_print)
+# default = "auto"
+fluxlim = {
+    "UK": {
+        "pfc116": [0,0.16],
+        "pfc318": [0,0.1],
+        "nf3": [0,0.04],
+    },
+    "IRELAND": {
+        "cf4": [0,0.5],
+        "pfc218": [0,0.4],
+        "pfc318": [0,0.1],
+        "sf6": [0,0.4],
+        "nf3": [0,0.04],
+    },
+    "NETHERLANDS": {
+        "ch4": [0,40000],
+        "cf4": [0,1],
+        "pfc218": [0,0.2],
+        "sf6": [0,1],
+    },
+}
+
 # Specify the percentile to use for the color scales in the posterior spatial map
+# default = 0.99
 fluxlim_percentiles = {
     "UK": {
         "ch4": 0.985,
@@ -62,7 +86,6 @@ fluxlim_percentiles = {
         "hfc4310mee": 0.997,
         "cf4": 0.995,
         "pfc218": 0.999,
-        "pfc318": 0.995,
         "sf6": 0.998,
     },
     "SWITZERLAND": {
@@ -103,7 +126,6 @@ fluxlim_percentiles = {
         "nf3": 0.999,
     },
     "NETHERLANDS": {
-        "ch4": 0.999,
         "n2o": 0.995,
         "hfc125": 0.997,
         "hfc134a": 0.999,
@@ -116,9 +138,7 @@ fluxlim_percentiles = {
         "hfc245fa": 0.999,
         "hfc365mfc": 0.995,
         "pfc116": 0.995,
-        "pfc218": 0.997,
         "pfc318": 0.998,
-        "sf6": 0.985,
         "nf3": 0.997,
     },
     "BELGIUM": {
@@ -159,12 +179,7 @@ fluxlim_percentiles = {
         "hfc245fa": 0.96,
         "hfc365mfc": 0.96,
         "hfc4310mee": 0.98,   
-        "cf4": 0.993,
         "pfc116": 0.9999,
-        "pfc218": 0.97,
-        "pfc318": 0.98,
-        "sf6": 0.97,
-        "nf3": 0.999,
     },
     "HUNGARY": {
         "ch4": 0.975,
@@ -195,6 +210,7 @@ fluxlim_percentiles = {
 }
 
 # Specify the percentile to use for the color scales in the seasonal spatial map
+# default = 0.99
 difflim_percentiles = {
     "UK": {
         "ch4": 0.992,
@@ -408,7 +424,6 @@ class AnnexConfig:
     ## Kwargs for flux_map functions
     # for all
     kwargs_maps_general = dict(
-        set_fluxlim="auto",
         plot_combined=True,
         add_sites=True,
     )
@@ -427,6 +442,7 @@ class AnnexConfig:
         cmap="coolwarm",
         c_border="dimgrey",
         chop_by="season",
+        set_fluxlim="auto",
     )
 
     def __init__(self, region, inventory_years):
@@ -437,10 +453,6 @@ class AnnexConfig:
         self.kwargs_country_flux_general["plot_regions"] = region
         self.kwargs_country_flux_general["inventory_years"] = inventory_years
 
-        ### Settings for spatial maps
-        self.fluxlim_percentile = fluxlim_percentiles.get(region, dict())
-        self.difflim_percentile = difflim_percentiles.get(region, dict())
-
         ### Start dates
         self.start_date = {
             "monthly": self.start_date_monthly_species,
@@ -450,3 +462,6 @@ class AnnexConfig:
         ### Settings for spatial maps
         self.kwargs_maps_general["region"] = map_limits[region]
         self.kwargs_maps_general["add_markers"] = point_markers[region]
+        self.fluxlim = fluxlim.get(region, dict())
+        self.fluxlim_percentile = fluxlim_percentiles.get(region, dict())
+        self.difflim_percentile = difflim_percentiles.get(region, dict())
