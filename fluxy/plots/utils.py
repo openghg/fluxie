@@ -97,7 +97,7 @@ def add_colorbar(fig, ax, im, extend, label, n_cbar, idx_cbar, colorbar_type="ro
         )
 
     cbar.set_label(label)
-    cbar.ax.xaxis.set_label_position("top")
+    # cbar.ax.xaxis.set_label_position("top")
     # cbar.ax.yaxis.set_label_position("left")
 
 
@@ -343,15 +343,25 @@ def get_marker_coordinates(
 
 def add_site_markers(ax, site_info, color):
     """Add site markers to the plot."""
+    # for site, site_data in site_info.items():
+    #     ax.scatter(
+    #         site_data["longitude"],
+    #         site_data["latitude"],
+    #         color=color,
+    #         # facecolor="none",
+    #         # edgecolor=color,
+    #         marker="x",
+    #         s=40,
+    #         zorder=2,
+    #     )
     for site, site_data in site_info.items():
         ax.scatter(
             site_data["longitude"],
             site_data["latitude"],
-            color=color,
-            # facecolor="none",
-            # edgecolor=color,
-            marker="x",
-            s=40,
+            facecolor="none",
+            edgecolor=color,
+            marker="o",
+            s=30,
             zorder=2,
         )
 

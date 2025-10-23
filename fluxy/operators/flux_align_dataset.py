@@ -20,6 +20,15 @@ def align_time(ds_list: list[xr.Dataset]) -> list[xr.Dataset]:
 
     # Infer period of first dataset
     dtime = ds_list[0].time.values[1:] - ds_list[0].time.values[:-1]
+    if dtime.size == 0:
+        aligned_ds_list = [ds_list[0]]
+        for ds_p in ds_list[1:]:
+            ds_aligned = ds_p
+            ds_aligned["time"] = ds_list[0].time
+            aligned_ds_list.append(ds_aligned)
+            
+        return aligned_ds_list
+
     if any(abs(dtime - np.median(dtime)) > 0.1 * np.median(dtime)):
         raise ValueError("Unable to infer period from dataset")
     period = np.median(dtime)
@@ -45,7 +54,7 @@ def align_time(ds_list: list[xr.Dataset]) -> list[xr.Dataset]:
 
         ds_aligned = ds_p
         ds_aligned["time"] = ds_list[0].time
-        aligned_ds_list.append(ds_p)
+        aligned_ds_list.append(ds_aligned)
 
     return aligned_ds_list
 
