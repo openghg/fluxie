@@ -343,7 +343,10 @@ def read_model_output(
             ds_all[m] = add_sites_var(ds_all[m], filepath, m, period[i], config_data)
 
         # Overwrite species attributes
-        ds_all[m].attrs["species"] = species
+        current_species = ds_all[m].attrs.get("species","not set")
+        if current_species!=species:
+            logger.warning(f"'species' attribute in dataset ({current_species}) differs from species {species}. It is overwritten.")
+            ds_all[m].attrs["species"] = species
 
     return ds_all
 

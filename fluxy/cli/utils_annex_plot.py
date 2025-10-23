@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from pathlib import Path
-
+from math import log10, floor
 
 def get_species_specific_settings(
     species: str, period: str, settings: list | dict
@@ -35,7 +35,7 @@ def get_species_specific_settings(
 
 def create_str_dataframe(
     res: dict,
-    inventory_years: str | int,
+    inventory_year: str | int,
     species: str | list[str],
     region: str | None = None,
     sector: str = "total",
@@ -67,69 +67,89 @@ def create_str_dataframe(
 
     res["time"] = pd.to_datetime(res["time"])
     data = res[(res.country==region)
-                &(res.model.isin([model,f"inventory_{inventory_years}"]))
+                &(res.model.isin([model,f"inventory_{inventory_year}"]))
                 &res.species.isin(species)
                 &(res.type.isin(["posterior","inventory"]))
                 &(res.time>=table_start_date)
                 ].reset_index(drop=True)
     
     data["year"] = pd.to_datetime(data["time"]).dt.year.astype(str)
+    species_order = data[data.model==model].groupby("species").mean_val.mean().sort_values(ascending=False).index
 
-    values = data.mean_val.apply(lambda x: [(val[0],val[1][0],val[1][1:]) for val in f"{x:.2e}".split("e")]).values
-    values = [(val, sign, exp) for val, sign, exp in values if ("").join([val,sign,exp])!="00+00"]
-    
-    if any([(sign=="+" or int(exp)==1) for _, sign, exp in values]):
-        unit = "$\\rm{TgCO}_{2}\\rm{-eq} \\cdot \\rm{yr}^{-1}$"
-        default_digit = 2
-    else:
-        for var in ["mean_val","min_unc","max_unc"]:
-            data[var] *= 1e3
-        unit = "$\\rm{GgCO}_{2}\\rm{-eq} \\cdot \\rm{yr}^{-1}$"
-        default_digit = 1
+    rescaled_data = list()
+    for species in data.species.unique():
+        data_per_species = data[data.species==species].copy()
 
-    data["n_digits"] = data.apply(lambda x : 1 if x.species in ["ch4", "n2o", "all_hfc", "all_pfc", "sf6"] else default_digit, axis=1)
+        _, exp = np.stack(data_per_species.mean_val.apply(lambda x: np.array(f"{x:.2e}".split("e")).astype(float)
+                                                            if f"{x:.2e}"!="0.00e+00" else [np.nan,np.nan]).values).T
+        max_exp = np.nanmax(exp)
+        if max_exp<-1 and max_exp>=-4:
+            for var in ["mean_val","min_unc","max_unc"]:
+                data_per_species[var] *= 1e3
+            data_per_species["units"] = "$\\rm{GgCO}_{2}\\rm{-eq} \\cdot \\rm{yr}^{-1}$"
+            max_exp += 3
+        elif max_exp<-4:
+            for var in ["mean_val","min_unc","max_unc"]:
+                data_per_species[var] *= 1e6
+            data_per_species["units"] = "$\\rm{MgCO}_{2}\\rm{-eq} \\cdot \\rm{yr}^{-1}$"
+            max_exp += 6
+        else:
+            data_per_species["units"] = "$\\rm{TgCO}_{2}\\rm{-eq} \\cdot \\rm{yr}^{-1}$"
+        
+        n_figure = 3 if species in ["ch4", "n2o"] else 2
+        n_digits = int(n_figure - max_exp - 1)
+        data_per_species["mean_val"] = data_per_species.mean_val.apply(lambda x: f"{x:.{n_digits}f}")
+        data_per_species["unc"] = data_per_species.apply(lambda x: f"{(x.max_unc-x.min_unc)/2:.{n_digits}f}" if x.type!="inventory" else "", axis=1)
 
-    data["val"] = data.apply(lambda x : f"{x.mean_val:.{x.n_digits}f}" if x.type=="inventory"
-                             else f"{x.mean_val:.{x.n_digits}f} \\pm {(x.max_unc-x.min_unc)/2:.{x.n_digits}f}",
+        data_per_species = pd.concat([data_per_species])
+
+        rescaled_data.append(data_per_species)
+    data = pd.concat(rescaled_data)
+
+    data["val"] = data.apply(lambda x : x.mean_val if x.type=="inventory"
+                             else f"{x.mean_val} \\pm {x.unc}",
                              axis=1)
 
-    output = data.pivot(index=["model","species"],columns="year",values = "val").reset_index()
+    output = data.pivot(index=["model","species","units"],columns="year",values = "val").reset_index()
     output.columns.name = None
     output.fillna(" ",inplace=True)
 
     output.rename(columns={"model":"source"},inplace=True)
     output["source"] = output["source"].apply(lambda x: x.replace("inventory_","NIR "))
 
-    output.sort_values(by=["species","source"], inplace=True)
+    output["sort_col1"] = output.species.apply(lambda x : species_order.get_loc(x))
+    output["sort_col2"] = output.source.apply(lambda x : 0 if x==model else 1)
+    output.sort_values(by=["sort_col1","sort_col2"], inplace=True)
+    del output["sort_col1"], output["sort_col2"]
 
-    species_name = {"ch4":"CH_4", "n2o":"N_2O", "sf6": "SF6", "cf4": "PFC-14", "all_pfc": "Total PFC", "all_hfc": "Total HFC"}
+    species_name = {"ch4":"CH_4", "n2o":"N_2O", "sf6": "SF_6", "nf3": "NF_3", "cf4": "PFC-14", "all_pfc": "Total PFC", "all_hfc": "Total HFC"}
     for species in output.species.unique():
         if species not in species_name.keys():
-            species_name[species] = species_name.replace("hfc","HFC-").replace("pfc","PFC-")
+            species_name[species] = species.replace("hfc","HFC-").replace("pfc","PFC-")
     output.replace(species_name, inplace=True)
 
+    index_col = ["species", "units", "source"]
     columns = np.concatenate(
         [
-            ["species", "source"],
+            index_col,
             np.sort(
                 [
                     col
                     for col in output.columns
-                    if col not in ["species", "source"]
+                    if col not in index_col
                 ]),
         ]
     )
     output = output[columns]
     
-    return output, unit
+    return output
 
 
 def make_table(
     df: pd.DataFrame,
     output_path,
     inventory_years: str | int,
-    unit: str = "$\\rm{TgCO}_{2}\\rm{-eq} \\cdot \\rm{yr}^{-1}$",
-    descriptive_cols: list[str] = ["species", "source"],
+    descriptive_cols: list[str] = ["species", "units", "source"],
     hline_place: dict[str] = {"source": "PARIS mean"},
 ):
     if "hfc" in str(output_path):
@@ -144,7 +164,7 @@ def make_table(
     tmp = (
         "Emissions estimation for "
         + species
-        + " in " + unit + f" according to the National Inventory Report (NIR) {inventory_years} and the inversions done in the PARIS project. For the PARIS estimation, the mean of the 3 inversion models is displayed, along with a range of uncertainty estimated via the half distance between the maximum and minimum uncertainties of the different models."
+        + f" according to the National Inventory Document (NID) {inventory_years} and the inversions done in the PARIS project. For the PARIS estimation, the mean of the 3 inversion models is displayed, along with a range of uncertainty estimated via the half distance between the maximum and minimum uncertainties of the different models."
     )
     caption = "\n \\caption{" + tmp + "}"
     begin = (
@@ -168,20 +188,20 @@ def make_table(
 
     # Iterate over lines of dataframe
     prev_species = ""
-    for idRow, row in df.iterrows():
+    for _, row in df.iterrows():
         # Indentation
         l = "    "
 
         # Test if value for first column needed
         if row[descriptive_cols[0]] == prev_species:
-            l += " & "
+            l += " & & "
         else:
             l += row[descriptive_cols[0]] + " & "
+            l += row[descriptive_cols[1]] + " & "
         prev_species = row[descriptive_cols[0]]
 
         # Add values for other descriptive columns
-        for col in descriptive_cols[1:]:
-            l += row[col] + " & "
+        l += row[descriptive_cols[2]] + " & "
 
         # Add yearly values
         for y in df.columns[len(descriptive_cols) :]:

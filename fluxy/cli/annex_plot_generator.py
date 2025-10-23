@@ -271,19 +271,20 @@ def produce_plots(
 
     print("\n\n--- GENERATING TABLES ---")
     annual_res = pd.concat(annual_res_list, ignore_index=True)
+    annual_res.to_csv("./test_annual_res.csv")
 
     hfcs_list = [s for s in annual_res.species.unique() if s[:3].lower() == "hfc"]
     pfcs_list = [s for s in annual_res.species.unique() if s[:3].lower() in ["pfc","cf4"]]
-    main_gases_list = ["ch4", "n2o", "sf6", "all_pfc", "all_hfc"]
+    main_gases_list = ["ch4", "n2o", "sf6", "nf3", "all_pfc", "all_hfc"]
 
     for name, species_list in zip(["hfc", "pfc", "main_gases"],
                                   [hfcs_list, pfcs_list, main_gases_list]):
         print(f"\nTABLE {name.upper().replace('_',' ')}")
-        sp_res, unit = create_str_dataframe(annual_res,
+        sp_res = create_str_dataframe(annual_res,
                     inventory_years,
                     species_list,
                     table_start_date=annex_config_data.start_date_table)
-        make_table(sp_res, output_path / f"{name}_res_{region}.tex", inventory_years, unit)
+        make_table(sp_res, output_path / f"{name}_res_{region}.tex", inventory_years)
         sp_res.to_csv(output_path / f"{name}_res_{region}.csv", index=False)
 
     print("\n--- TABLES GENERATED SUCCESSFULLY! ---")

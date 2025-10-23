@@ -53,7 +53,7 @@ def get_unit(ds_all: dict[str, xr.Dataset]) -> str:
     Returns:
         unit: unit of posterior variables in dataset.
     """
-
+    
     if all(["flux_total_posterior_country" in ds for ds in ds_all.values()]):
         units = {ds["flux_total_posterior_country"].units for ds in ds_all.values()}
     elif all(["posterior" in ds for ds in ds_all.values()]):
