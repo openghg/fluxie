@@ -68,6 +68,9 @@ fluxlim = {
         "pfc218": [0,0.2],
         "sf6": [0,1],
     },
+    "ITALY": {
+        "hfc23": [0,1],
+    },
 }
 
 # Specify the percentile to use for the color scales in the posterior spatial map
@@ -118,6 +121,12 @@ fluxlim_percentiles = {
         "hfc125": 0.995,
         "hfc134a": 0.995,
         "hfc143a": 0.995,
+        "hfc152a": 0.999,
+        "hfc227ea": 0.999,
+        "hfc236fa": 0.999,
+        "hfc245fa": 0.999,
+        "hfc365mfc": 0.999,
+        "hfc4310mee": 0.999,
         "cf4": 0.996,
         "pfc116": 0.999,
         "pfc218": 0.999,
