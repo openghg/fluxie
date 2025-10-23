@@ -47,31 +47,31 @@ def test_dict_to_str_dataframe():
 
     expected = pd.DataFrame(
         {
-            "species": ["ch4", "ch4"],
+            "species": ["CH_4",]*2,
+            "units": ["$\\rm{TgCO}_{2}\\rm{-eq} \\cdot \\rm{yr}^{-1}$",]*2,
             "source": ["CAT", "NIR 2000"],
-            "1900": ["1.0 \\pm 1.0", "0.0"],
-            "2000": ["1.0 \\pm 1.0", "0.1"],
+            "1900": ["1.00 \\pm 1.00", "0.00"],
+            "2000": ["1.00 \\pm 1.00", "0.10"],
         }
     )
 
-    output, unit = create_str_dataframe(data,"2000","ch4",model="CAT")
+    output = create_str_dataframe(data,"2000","ch4",model="CAT")
     
     assert (output==expected).values.all()
-    assert unit == '$\\rm{TgCO}_{2}\\rm{-eq} \\cdot \\rm{yr}^{-1}$'
 
     for var in ["mean_val", "min_unc", "max_unc"]:
         data[var] *= 1e-2
     
     expected = pd.DataFrame(
         {
-            "species": ["ch4", "ch4"],
+            "species": ["CH_4",]*2,
+            "units": ["$\\rm{GgCO}_{2}\\rm{-eq} \\cdot \\rm{yr}^{-1}$",]*2,
             "source": ["CAT", "NIR 2000"],
             "1900": ["10.0 \\pm 10.0", "0.0"],
             "2000": ["10.0 \\pm 10.0", "1.0"],
         }
     )
     
-    output, unit = create_str_dataframe(data,"2000","ch4",model="CAT")
+    output = create_str_dataframe(data,"2000","ch4",model="CAT")
     
     assert (output==expected).values.all()
-    assert unit == '$\\rm{GgCO}_{2}\\rm{-eq} \\cdot \\rm{yr}^{-1}$'
