@@ -1,7 +1,5 @@
 import pandas as pd
 import numpy as np
-from pathlib import Path
-from math import log10, floor
 
 def get_species_specific_settings(
     species: str, period: str, settings: list | dict
