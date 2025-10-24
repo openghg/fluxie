@@ -133,7 +133,7 @@ def create_str_dataframe(
     output["source"] = output["source"].apply(lambda x: x.replace("inventory_","NID "))
 
     output["sort_col1"] = output.species.apply(lambda x : species_order.get_loc(x))
-    output["sort_col2"] = output.source.apply(lambda x : 0 if x==model else 1)
+    output["sort_col2"] = output.source.apply(lambda x : 1 if x==model else 0)
     output.sort_values(by=["sort_col1","sort_col2"], inplace=True)
     del output["sort_col1"], output["sort_col2"]
 
