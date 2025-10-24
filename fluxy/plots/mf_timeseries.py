@@ -157,6 +157,7 @@ def plot_timeseries(
         gridspec_kw={"width_ratios": [0.8, 0.2]} if ncols == 2 else {},
         constrained_layout=True,
         sharey="row" if histogram_type == "violin" else False,
+        sharex="col",
         squeeze=False,
     )
 
@@ -243,22 +244,20 @@ def plot_timeseries(
 
                 # Accept both percentile and stdev as uncertainty variables
                 if unc_var not in ds_plot.keys():
+                    unc_var_in = unc_var
                     if "percentile" in unc_var:
-                        unc_var_in = unc_var
                         unc_var = unc_var.replace("percentile", "stdev")
 
                     elif "stdev" in unc_var:
-                        unc_var_in = unc_var
                         unc_var = unc_var.replace("stdev", "percentile")
 
                     if unc_var not in ds_plot.keys():
                         raise KeyError(
                             f"Variables {unc_var_in} and {unc_var} not found in {m}."
                         )
-                    else:
-                        logger.warning(
-                            f"Variable {unc_var_in} not found in {m} so reading uncert from {unc_var}."
-                        )
+                    logger.warning(
+                        f"Variable {unc_var_in} not found in {m} so reading uncert from {unc_var}."
+                    )
 
                 kwargs = {
                     "color": plot_color,
@@ -373,6 +372,8 @@ def plot_timeseries(
             ax[iax, 0].xaxis.set_major_locator(MonthLocator())
             if presentation_mode:
                 ax[iax, 0].tick_params(axis="x", rotation=70)
+        ax[iax, 0].grid(color = 'lightgrey', linestyle = '-', linewidth = 0.7)
+        ax[iax, 0].set_axisbelow(True)
 
     if y_lim is None:
         y_lim = [min_mf - 0.02 * min_mf, max_mf + 0.05 * max_mf]
@@ -599,6 +600,7 @@ def plot_histogram(
                 bins=n_bins,
                 color=model_color[config.mf_color_index.get(var, 0)],
                 density=1,
+                alpha=0.7,
                 **kwargs,
             )
 

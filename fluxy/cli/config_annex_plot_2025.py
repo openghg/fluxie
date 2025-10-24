@@ -33,122 +33,72 @@ start_date_fgases = {
     "NORWAY": "2018-01-01",
 }
 
-# Lat/Lon limits in spatial maps
-map_limits = {
-    "UK": [-12,6,47,65],
-    "SWITZERLAND": [4,12,44.5,50],
-    "GERMANY": [2.5,15.5,46,57], #NOTE: equal to automatic GERMANY country mask, but needed for proper ITMS comparison
-    "ITALY": [5,20,35,49],
-    "NETHERLANDS": "BENELUX",
-    "BELGIUM": "BENELUX",
-    "BENELUX": "BENELUX",
-    "IRELAND": [-12,-2,50,58],
-    "HUNGARY": [14,25,44.5,50.5],
-    "NORWAY": [3,33,55,79],
-}
-
-# Limits in posterior spatial map color scale (in units flux_units_print)
-# default = "auto"
-fluxlim = {
-    "UK": {
-        "pfc116": [0,0.16],
-        "pfc318": [0,0.1],
-        "nf3": [0,0.04],
-    },
-    "IRELAND": {
-        "cf4": [0,0.5],
-        "pfc218": [0,0.4],
-        "pfc318": [0,0.1],
-        "sf6": [0,0.4],
-        "nf3": [0,0.04],
-    },
-    "NETHERLANDS": {
-        "ch4": [0,40000],
-        "cf4": [0,1],
-        "pfc218": [0,0.2],
-        "sf6": [0,1],
-    },
-    "ITALY": {
-        "hfc23": [0,1],
-    },
-}
-
-# Specify the percentile to use for the color scales in the posterior spatial map
-# default = 0.99
+# Specify the percentile to use for the color scales in the flux spatial map
 fluxlim_percentiles = {
     "UK": {
-        "ch4": 0.985,
-        "hfc125": 0.995,
-        "hfc134a": 0.997,
-        "hfc143a": 0.997,
-        "hfc32": 0.997,
-        "hfc152a": 0.997,
-        "hfc227ea": 0.997,
-        "hfc236fa": 0.998,
-        "hfc245fa": 0.997,
-        "hfc4310mee": 0.997,
-        "cf4": 0.995,
-        "pfc218": 0.999,
-        "sf6": 0.998,
+        "ch4": 0.95,
+        "n2o": 0.95,
+        "hfc32": 0.99,
+        "hfc125": 0.99,
+        "hfc134a": 0.99,
+        "hfc143a": 0.99,
+        "cf4": 0.99,
+        "pfc116": 0.95,
+        "pfc218": 0.99,
+        "pfc318": 0.95,
+        "sf6": 0.99,
     },
     "SWITZERLAND": {
-        "n2o": 0.995,
+        "ch4": 0.96,
+        "n2o": 0.96,
+        "hfc32": 0.98,
         "hfc125": 0.98,
-        "hfc134a": 0.985,
-        "hfc32": 0.95,
-        "hfc227ea": 0.95,
-        "hfc23": 0.95,
-        "hfc236fa": 0.98,
-        "hfc245fa": 0.95,
-        "hfc365mfc": 0.985,      
-        "cf4": 0.97,
-        "sf6": 0.96,
+        "hfc134a": 0.97,
+        "hfc143a": 0.97,
+        "cf4": 0.98,
+        "pfc116": 0.98,
+        "pfc218": 0.975,
+        "pfc318": 0.96,
+        "sf6": 0.99,
     },
     "GERMANY": {
         "ch4": 0.97,
-        "n2o": 0.985,
-        "hfc134a": 0.992,
-        "hfc227ea": 0.992,
-        "hfc365mfc": 0.98,
+        "n2o": 0.97,
+        "hfc32": 0.99,
+        "hfc125": 0.99,
+        "hfc134a": 0.99,
+        "hfc143a": 0.99,
         "cf4": 0.995,
         "pfc116": 0.995,
-        "sf6": 0.999,
+        "pfc218": 0.98,
+        "pfc318": 0.99,
+        "sf6": 0.99,
     },
     "ITALY": {
-        "ch4": 0.9975,
-        "n2o": 0.995,
-        "hfc32": 0.995,
-        "hfc125": 0.995,
-        "hfc134a": 0.995,
-        "hfc143a": 0.995,
-        "hfc152a": 0.999,
-        "hfc227ea": 0.999,
-        "hfc236fa": 0.999,
-        "hfc245fa": 0.999,
-        "hfc365mfc": 0.999,
-        "hfc4310mee": 0.999,
-        "cf4": 0.996,
-        "pfc116": 0.999,
-        "pfc218": 0.999,
-        "pfc318": 0.999,
-        "sf6": 0.99,
-        "nf3": 0.999,
+        "ch4": 0.95,
+        "n2o": 0.95,
+        "hfc32": 0.99,
+        "hfc125": 0.99,
+        "hfc134a": 0.99,
+        "hfc143a": 0.99,
+        "cf4": 0.99,
+        "pfc116": 0.99,
+        "pfc218": 0.95,
+        "pfc318": 0.99,
+        "sf6": 0.95,
     },
     "NETHERLANDS": {
-        "n2o": 0.995,
-        "hfc125": 0.997,
-        "hfc134a": 0.999,
-        "hfc143a": 0.995,
-        "hfc32": 0.995,
-        "hfc152a": 0.995,
-        "hfc227ea": 0.995,
-        "hfc23": 0.999,
-        "hfc236fa": 0.997,
-        "hfc245fa": 0.999,
-        "hfc365mfc": 0.995,
-        "pfc116": 0.995,
-        "pfc318": 0.998,
-        "nf3": 0.997,
+        "ch4": 0.96,
+        "n2o": 0.97,
+        "hfc32": 0.97,
+        "hfc125": 0.97,
+        "hfc134a": 0.97,
+        "hfc143a": 0.96,
+        "cf4": 0.99,
+        "pfc116": 0.99,
+        "pfc218": 0.97,
+        "pfc318": 0.99,
+        "sf6": 0.99,
     },
     "BELGIUM": {
         "ch4": 0.95,
@@ -177,91 +127,43 @@ fluxlim_percentiles = {
         "sf6": 0.99,
     },
     "IRELAND": {
-        "n2o": 0.985,
-        "hfc125": 0.96,
-        "hfc134a": 0.96,
-        "hfc143a": 0.95,
+        "ch4": 0.95,
+        "n2o": 0.95,
         "hfc32": 0.95,
-        "hfc152a": 0.97,
-        "hfc227ea": 0.95,
-        "hfc236fa": 0.985,
-        "hfc245fa": 0.96,
-        "hfc365mfc": 0.96,
-        "hfc4310mee": 0.98,   
-        "pfc116": 0.9999,
+        "hfc125": 0.95,
+        "hfc134a": 0.95,
+        "hfc143a": 0.95,
+        "cf4": 0.99,
+        "pfc116": 0.99,
+        "pfc218": 0.95,
+        "pfc318": 0.95,
+        "sf6": 0.95,
     },
     "HUNGARY": {
-        "ch4": 0.975,
+        "ch4": 0.99,
+        "n2o": 0.99,
         "hfc32": 0.97,
-        "hfc125": 0.98,
+        "hfc125": 0.95,
         "hfc134a": 0.95,
-        "hfc143a": 0.999,
-        "hfc227ea": 0.97,
-        "hfc23":0.98,
-        "cf4": 0.98,
+        "hfc143a": 0.95,
+        "cf4": 0.99,
         "pfc116": 0.995,
-        "pfc218": 1,
+        "pfc218": 0.96,
+        "pfc318": 0.965,
+        "sf6": 0.98,
     },
     "NORWAY": {
-        "ch4": 0.9995,
-        "n2o": 0.9995,
-        "hfc32": 0.999,
-        "hfc125": 0.999,
-        "hfc134a": 0.999,
-        "hfc143a": 0.999,
-        "hfc152a": 0.999,
-        "hfc227ea": 0.999,
-        "hfc236fa": 0.999,
-        "hfc245fa": 0.999,
-        "hfc365mfc": 0.999,
-        "hfc4310mee": 0.999,
-        "hfc23": 0.999,
-        "cf4": 0.9995,
-        "pfc116": 0.9995,
-        "pfc218": 0.999,
-        "pfc318": 0.9995,
-        "sf6": 0.999,
-        "nf3": 0.9995,
-    },
-}
-
-# Specify the percentile to use for the color scales in the seasonal spatial map
-# default = 0.99
-difflim_percentiles = {
-    "UK": {
-        "ch4": 0.992,
-        "n2o": 0.997,
-    },
-    "SWITZERLAND": {
-        "ch4": 0.997,
-        "n2o": 0.999,
-    },
-    "GERMANY": {
-        "n2o": 0.997,
-    },
-    "ITALY": {
-        "ch4": 0.9975,
-        "n2o": 0.995,
-    },
-    "NETHERLANDS": {
-        "ch4": 0.998,
-        "n2o": 0.999,
-    },
-    "BELGIUM": {
         "ch4": 0.95,
-        "n2o": 0.97,
-    },
-    "BENELUX": {
-        "ch4": 0.96,
-        "n2o": 0.97,
-    },
-    "IRELAND": {
-        "ch4": 0.997,
-        "n2o": 1,
-    },
-    "NORWAY": {
-        "ch4": 0.9995,
-        "n2o": 0.9995,
+        "n2o": 0.95,
+        "hfc32": 0.95,
+        "hfc125": 0.95,
+        "hfc134a": 0.95,
+        "hfc143a": 0.95,
+        "cf4": 0.95,
+        "pfc116": 0.95,
+        "pfc218": 0.95,
+        "pfc318": 0.95,
+        "sf6": 0.95,
     },
 }
 
@@ -292,7 +194,7 @@ class AnnexConfig:
     """
 
     ### Path to results directory
-    data_dir = "/project/paris/inverse_modelling/"
+    data_dir = "/project/paris/PARISNID2025/"
 
     ### Species
     monthly_species = ["ch4", "n2o"]
@@ -305,7 +207,6 @@ class AnnexConfig:
         "hfc143a",
         "hfc152a",
         "hfc227ea",
-        "hfc236fa",
         "hfc245fa",
         "hfc365mfc",
         "hfc4310mee",
@@ -314,7 +215,6 @@ class AnnexConfig:
         "pfc218",
         "pfc318",
         "sf6",
-        "nf3",
     ]
 
     combined_species = ["all_hfc", "all_pfc"]
@@ -322,37 +222,30 @@ class AnnexConfig:
     ### Start/end date
     start_date_monthly_species = "2008-01-01"
     start_date_paris_window = "2018-01-01"
-    start_date_spatial_maps = "2020-01-01"
-    start_date_table = start_date_spatial_maps
-    end_date = "2025-01-01"
+    start_date_spatial_maps = "2018-01-01"
+    end_date = "2024-01-01"
 
     ### Settings for country fluxes
     ## Model definitions (list or dict["<period>": list(), "<species>": list()] if different between species)
-    # NOTE: InTEM_longrun is equal to InTEM_NAME.
-    #       The results are read twice because rolling_mean is applied to the single line but not to the combined line.
+    # no RHIME N2O results in NID2025
+    logger.warning("Excluding RHIME from N2O country fluxes!")
     models_country_flux = {
         "monthly": [
             "InTEM_longrun",
-            "InTEM_NAME",
-            "InTEM_FLEXPART",
-            "ELRIS_NAME",
-            "ELRIS_FLEXPART",
-            "RHIME_NAME",
-            "RHIME_FLEXPART",
+            "InTEM",
+            "ELRIS",
+            "RHIME",
         ],
         "yearly": [
-            "InTEM_NAME",
-            "InTEM_FLEXPART",
-            "ELRIS_NAME",
-            "ELRIS_FLEXPART",
-            "RHIME_NAME",
-            "RHIME_FLEXPART",
+            "InTEM_longrun",
+            "InTEM",
+            "ELRIS",
+            "RHIME",
         ],
-        "sf6": [
-            "InTEM_NAME",
-            "InTEM_FLEXPART",
-            "ELRIS_NAME",
-            "ELRIS_FLEXPART",
+        "n2o": [
+            "InTEM_longrun",
+            "InTEM",
+            "ELRIS",
         ],
     }
 
@@ -378,61 +271,62 @@ class AnnexConfig:
     # add entries for specific species if different from monthly/yearly default
     kwargs_country_flux_species_specific = {
         "monthly": dict(
-            plot_separate=[True, False, False, False, False, False, False],
-            plot_combined=[False, True, True, True, True, True, True],
+            plot_separate=[True, False, False, False],
+            plot_combined=[False, True, True, True],
             resample="year",
             resample_uncert_correlation=False,
-            rolling_mean=[True, False, False, False, False, False, False],
+            rolling_mean=False,
         ),
         "yearly": dict(
-            plot_separate=[True, False, False, False, False, False],
-            plot_combined=True,
-            resample=None,
-            rolling_mean=True,
-        ),
-        "sf6": dict(
             plot_separate=[True, False, False, False],
-            plot_combined=True,
+            plot_combined=[False, True, True, True],
             resample=None,
-            rolling_mean=True,
+            rolling_mean=[False, True, True, True],
+        ),
+        "n2o": dict(
+            plot_separate=[True, False, False],
+            plot_combined=[False, True, True],
+            resample="year",
+            resample_uncert_correlation=False,
+            rolling_mean=False,
         ),
     }
 
     # for monthly species on PARIS time window
     kwargs_country_flux_monthly_species_special = {
         "monthly": dict(
-            plot_separate=[True, False, False, False, False, False, False],
-            plot_combined=[False, True, True, True, True, True, True],
+            plot_separate=[True, False, False, False],
+            plot_combined=[False, True, True, True],
             resample=None,
             rolling_mean=False,
-        )
+        ),
+        "n2o": dict(
+            plot_separate=[True, False, False],
+            plot_combined=[False, True, True],
+            resample=None,
+            rolling_mean=False,
+        ),
     }
 
     ### Settings for spatial maps
     ## Model definitions (list or dict["<period>": list(), "<species>": list()] if different between species)
-    # NOTE: in produce_plots, it is assumed that models_spatial_maps exist in models_country_flux
+    # NOTE: it is assumed that models_spatial_maps exist in models_monthly/yearly_species
+    # no RHIME N2O results in NID2025
+    logger.warning("Excluding RHIME from N2O spatial maps!")
     models_spatial_maps = {
-        "monthly": [
-            "InTEM_NAME",
-            "InTEM_FLEXPART",
-            "ELRIS_NAME",
-            "ELRIS_FLEXPART",
-            "RHIME_NAME",
-            "RHIME_FLEXPART",
-        ],
         "yearly": [
-            "InTEM_NAME",
-            "InTEM_FLEXPART",
-            "ELRIS_NAME",
-            "ELRIS_FLEXPART",
-            "RHIME_NAME",
-            "RHIME_FLEXPART",
+            "InTEM",
+            "ELRIS",
+            "RHIME",
         ],
-        "sf6": [
-            "InTEM_NAME",
-            "InTEM_FLEXPART",
-            "ELRIS_NAME",
-            "ELRIS_FLEXPART",
+        "monthly": [
+            "InTEM",
+            "ELRIS",
+            "RHIME",
+        ],
+        "n2o": [
+            "InTEM",
+            "ELRIS",
         ],
     }
     flux_units_print = "kg km-2 yr-1"
@@ -440,6 +334,7 @@ class AnnexConfig:
     ## Kwargs for flux_map functions
     # for all
     kwargs_maps_general = dict(
+        set_fluxlim="auto",
         plot_combined=True,
         add_sites=True,
     )
@@ -458,7 +353,6 @@ class AnnexConfig:
         cmap="coolwarm",
         c_border="dimgrey",
         chop_by="season",
-        set_fluxlim="auto",
     )
 
     def __init__(self, region, inventory_years):
@@ -469,6 +363,9 @@ class AnnexConfig:
         self.kwargs_country_flux_general["plot_regions"] = region
         self.kwargs_country_flux_general["inventory_years"] = inventory_years
 
+        ### Settings for spatial maps
+        self.fluxlim_percentile = fluxlim_percentiles.get(region, dict())
+
         ### Start dates
         self.start_date = {
             "monthly": self.start_date_monthly_species,
@@ -476,8 +373,5 @@ class AnnexConfig:
         }
 
         ### Settings for spatial maps
-        self.kwargs_maps_general["region"] = map_limits[region]
+        self.kwargs_maps_general["region"] = region
         self.kwargs_maps_general["add_markers"] = point_markers[region]
-        self.fluxlim = fluxlim.get(region, dict())
-        self.fluxlim_percentile = fluxlim_percentiles.get(region, dict())
-        self.difflim_percentile = difflim_percentiles.get(region, dict())

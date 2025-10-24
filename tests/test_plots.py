@@ -1,4 +1,5 @@
 from pathlib import Path
+import pytest
 import fluxy
 from fluxy.config import set_print_settings
 from fluxy.config import set_model_colors
@@ -123,22 +124,25 @@ stats_ylim = {"pearson": [0, 1], "bias": [-1.5, 0.5], "crmse": [0, 1.5]}
 
 
 def test_flux_timeseries():
-    plot_inventory = False
-    inventory_years = None
-    fix_y_axes = False
-    add_prior = True
-    add_prior_unc = False
-    set_global_leg = True
-    country_codes_as_titles = False
-    plot_separate = True
-    plot_combined = False
-    resample = None
-    resample_uncert_correlation = False
-    plot_resample_and_original = False
-    annex_mode = False
-    rolling_mean = False
+    kwargs = dict(
+        data_dir = data_dir,
+        plot_inventory = False,
+        inventory_years = None,
+        fix_y_axes = False,
+        add_prior = True,
+        add_prior_unc = False,
+        set_global_leg = True,
+        country_codes_as_titles = False,
+        plot_separate = True,
+        plot_combined = False,
+        resample = None,
+        resample_uncert_correlation = False,
+        plot_resample_and_original = False,
+        annex_mode = False,
+        rolling_mean = False,
+    )
 
-    fig = plot_country_flux(
+    plot_country_flux(
         ds_all_flux_scaled,
         species,
         regions,
@@ -147,21 +151,7 @@ def test_flux_timeseries():
         model_labels,
         start_date,
         end_date,
-        annex_mode,
-        plot_inventory,
-        inventory_years,
-        data_dir,
-        fix_y_axes,
-        add_prior,
-        add_prior_unc,
-        set_global_leg,
-        country_codes_as_titles=country_codes_as_titles,
-        plot_separate=plot_separate,
-        plot_combined=plot_combined,
-        resample=resample,
-        resample_uncert_correlation=resample_uncert_correlation,
-        plot_resample_and_original=plot_resample_and_original,
-        rolling_mean=rolling_mean,
+        **kwargs
     )
 
 
@@ -209,6 +199,23 @@ def test_mf_timeseries_no_hist():
         diff_include=["mf_posterior"],
         y_lim=None,
     )
+
+
+def test_mf_timeseries_bad_uncertainty_var():
+    with pytest.raises(KeyError):
+        fig = plot_mf_timeseries(
+            ds_all_mf_sliced,
+            species,
+            site,
+            model_colors,
+            model_labels,
+            config_data,
+            annotate_coords,
+            include={"mf_observed": None, "mf_posterior": "invalid_mf_posterior"},
+            diff_include=["mf_posterior"],
+            y_lim=None,
+        )
+
 
 
 def test_obs_modelled_together():

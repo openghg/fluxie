@@ -1,0 +1,205 @@
+import pandas as pd
+import numpy as np
+from pathlib import Path
+
+
+def get_species_specific_settings(
+    species: str, period: str, settings: list | dict
+) -> list | dict:
+    """
+    Get species-specific setting from dictionary.
+    Returns the input settings if it is already a list.
+
+    Args:
+        species:
+            Gas species, e.g. 'ch4'.
+        period:
+            Inversion period, "yearly" ou "monthly".
+        settings:
+            List or dictionary with <species> or <period> as keys.
+
+
+    Returns:
+        settings_species:
+            List or dictionary with species-specific settings.
+    """
+
+    if isinstance(settings, list):
+        return settings
+
+    settings_species = settings.get(species, None)
+    if settings_species is None:
+        settings_species = settings.get(period, {})
+
+    return settings_species
+
+
+def dict_to_str_dataframe(
+    res: dict,
+    inventory_years: str | int,
+    species: str,
+    region: str | None = None,
+    model: str = "combined",
+    table_start_date: str | None = None,
+) -> pd.DataFrame:
+    """
+    Transform the dictionnary outputed by plot_flux_timeseries into a pandas.DataFrame of string that will be used in the latex tables for the annex reports.
+
+    Args:
+        res :
+            dictionnary outputted by plot_flux_timeseries
+        inventory_years :
+            Inventory year to use. The data will be looked at in the `res` dictionnary with the key f"inventory_{inventory_years}"
+        species :
+            Gas species. Used to determine the number of digits to store.
+        model: model name used as key to get data in dict `res`.
+        region: region name we want to format the results of. Is used as key to res["posterior"] and res["inventory"]
+        table_start_date: starting date to print data to table.
+
+    Returns:
+        pd.DataFrame(output) :
+            Dataframe with columns ["species","source", *<years present in res>] and two rows : one for the PARIS mean estimates and one for the UNFCCC inventory estimates.
+    """
+
+    if type(table_start_date) is str:
+        table_start_date = np.datetime64(table_start_date)
+    
+    # Get combined values
+    if not region:
+        if len(res["posterior"].keys()) > 1:
+            raise ValueError(
+                f"`region` parameter should be provided when there is more than one region in `res` (currently present: {list(res['posterior'].keys())})."
+            )
+        region = list(res["posterior"].keys())[0]
+
+    comb = res["posterior"][region][model]
+
+    # Get inventory values
+    inv_default = {
+        "time": comb["time"],
+        "value": np.array(
+            [
+                np.nan,
+            ]
+            * len(comb["time"])
+        ),
+    }
+    inv = (
+        res["inventory"]
+        .get(region, dict())
+        .get(f"inventory_{inventory_years}", inv_default)
+    )
+
+    # Define number of digits to print to table
+    if species in ["n2o", "ch4"]:
+        n_digits = 0
+    elif species in ["all_hfc", "all_pfc", "sf6"]:
+        n_digits = 1
+    else:
+        n_digits = 2
+
+    # Define row titles
+    output = {
+        "species": [
+            species,
+        ]
+        * 2,
+        "source": ["NID " + inventory_years, "PARIS mean"],
+    }
+
+    # Print data in LaTeX format   
+    for it, time in enumerate(comb["time"].astype("datetime64[Y]")):
+        if table_start_date != None and time < table_start_date:
+            continue
+        paris_val = f"{comb['mean'][it]:.{n_digits}f} \\pm {(comb['max'][it]-comb['min'][it])/2:.{n_digits}f}"
+        inv_val = inv["value"][inv["time"].astype("datetime64[Y]") == time]
+        if len(inv_val) == 1:
+            output[str(time)] = [f"{inv_val[0]:.{n_digits}f}", paris_val]
+        else:
+            output[str(time)] = [None, paris_val]
+
+    return pd.DataFrame(output)
+
+
+def make_table(
+    df: pd.DataFrame,
+    output_path: Path,
+    inventory_years: str | int,
+    descriptive_cols: list[str] = ["species", "source"],
+    hline_place: dict[str] = {"source": "PARIS mean"},
+):
+    if "hfc" in str(output_path):
+        species = "HFCs"
+    elif "pfc" in str(output_path):
+        species = "PFCs"
+    if "main_gases" in str(output_path):
+        species = "the main greenhouse gases of focus"
+    # Set latex Table env and number of cols
+    tmp = str(output_path).split("/")[-1].split(".")[0]
+    label = "\n \\label{" + tmp + "}"
+    tmp = (
+        "Emissions estimation for "
+        + species
+        + " in $\\rm{TgCO}_{2}\\rm{-eq} \\cdot \\rm{yr}^{-1}$ according to the National Inventory Document (NID) " + inventory_years + " and the inversions done in the PARIS project. For the PARIS estimation, the mean of the 3 inversion models is displayed, along with a range of uncertainty estimated via the half distance between the maximum and minimum uncertainties of the different models."
+    )
+    caption = "\n \\caption{" + tmp + "}"
+    begin = (
+        "\\begin{table}[H]\n \\small"
+        + label
+        + caption
+        + "\n \\begin{center}\n  \\begin{tabular}{ "
+        + len(descriptive_cols) * "l "
+        + (len(df.columns) - len(descriptive_cols)) * "l "
+        + "}"
+    )
+
+    # Set first line with columns title
+    header = "     " + len(descriptive_cols) * " & "
+    for y in df.columns[len(descriptive_cols) :]:
+        header += y
+        if y != df.columns[-1]:
+            header += " & "
+
+    table = begin + "\n" + header + " \\\\ \hline" + "\n"
+
+    # Iterate over lines of dataframe
+    prev_species = ""
+    for idRow, row in df.iterrows():
+        # Indentation
+        l = "    "
+
+        # Test if value for first column needed
+        if row[descriptive_cols[0]] == prev_species:
+            l += " & "
+        else:
+            l += row[descriptive_cols[0]] + " & "
+        prev_species = row[descriptive_cols[0]]
+
+        # Add values for other descriptive columns
+        for col in descriptive_cols[1:]:
+            l += row[col] + " & "
+
+        # Add yearly values
+        for y in df.columns[len(descriptive_cols) :]:
+            l += "$ " + row[y] + " $"
+            if y != df.columns[-1]:
+                l += " & "
+
+        # End line
+        l += " \\\\ "
+
+        # Add hline if needed
+        for key in hline_place.keys():
+            if row[key] == hline_place[key]:
+                l += " \hline "
+
+        # Add line to table
+        table += l + "\n "
+
+    # Close latex env
+    end = str("  \\end{tabular}\n \\end{center}\n\\end{table}")
+
+    table += end
+
+    with open(output_path, "w") as text_file:
+        text_file.write(table)
