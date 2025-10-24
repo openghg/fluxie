@@ -101,15 +101,15 @@ def create_str_dataframe(
         if max_exp<-1 and max_exp>=-4:
             for var in ["mean_val","min_unc","max_unc"]:
                 data_per_species[var] *= 1e3
-            data_per_species["units"] = "$\\rm{GgCO}_{2}\\rm{-eq} \\cdot \\rm{yr}^{-1}$"
+            data_per_species["units"] = "$\\rm{GgCO}_{2}\\rm{\\text{-}eq} \\cdot \\rm{yr}^{-1}$"
             max_exp += 3
         elif max_exp<-4:
             for var in ["mean_val","min_unc","max_unc"]:
                 data_per_species[var] *= 1e6
-            data_per_species["units"] = "$\\rm{MgCO}_{2}\\rm{-eq} \\cdot \\rm{yr}^{-1}$"
+            data_per_species["units"] = "$\\rm{MgCO}_{2}\\rm{\\text{-}eq} \\cdot \\rm{yr}^{-1}$"
             max_exp += 6
         else:
-            data_per_species["units"] = "$\\rm{TgCO}_{2}\\rm{-eq} \\cdot \\rm{yr}^{-1}$"
+            data_per_species["units"] = "$\\rm{TgCO}_{2}\\rm{\\text{-}eq} \\cdot \\rm{yr}^{-1}$"
         
         n_figure = 3 if species in ["ch4", "n2o"] else 2
         n_digits = int(n_figure - max_exp - 1)
