@@ -134,7 +134,7 @@ def create_str_dataframe(
 
     output["sort_col1"] = output.species.apply(lambda x : species_order.get_loc(x))
     output["sort_col2"] = output.source.apply(lambda x : 1 if x==model else 0)
-    output.sort_values(by=["sort_col1","sort_col2"], inplace=True)
+    output.sort_values(by=["sort_col1","sort_col2"], inplace=True, ignore_index=True)
     del output["sort_col1"], output["sort_col2"]
 
     species_name = {"ch4":"CH$_4$", "n2o":"N$_2$O", "sf6": "SF$_6$", "nf3": "NF$_3$", "cf4": "PFC-14", "all_pfc": "Total PFC", "all_hfc": "Total HFC"}
