@@ -180,8 +180,9 @@ def plot_country_flux(
     end_date: str | None = None,
     annex_mode: bool = False,
     plot_inventory: bool = True,
-    inventory_years: list[str] | None = None,
+    inventory_years: list[str] | None = None,    
     inventory_filename: str = "UNFCCC_inventory",
+    inventory_label: str = "Inventory", 
     data_dir: str | None = None,
     fix_y_axes: bool | list[float] = False,
     add_prior: bool = True,
@@ -314,7 +315,7 @@ def plot_country_flux(
                     edgecolor=inventory.plot_color,
                     align="edge",
                     fill=False,
-                    label=f"Talbot {inventory.year}",
+                    label=f"{inventory_label} {inventory.year}",
                     zorder=0,
                 )
                 if return_res:
@@ -417,7 +418,8 @@ def plot_country_flux(
 
         # set legend if needed
         if not set_global_leg:
-            ncol = len(ds_to_plot) + 1 if annex_mode else 2
+            ncol = len(ds_to_plot) + 1 if annex_mode else 2            
+            print(ncol)
             leg = ax.legend(ncol=ncol, borderpad=0.4, columnspacing=1.0)
 
             handle_name = (
@@ -478,7 +480,7 @@ def plot_country_flux(
     if set_global_leg:
         ncol = 0
         if plot_separate or resample:
-            ncol = len(ds_all.keys())
+            ncol = len(ds_all.keys())/2
         if plot_combined and plot_separate:
             ncol = math.floor(len(ds_all.keys()) / 2) + 2
         elif plot_combined:
@@ -487,7 +489,8 @@ def plot_country_flux(
             ncol = ncol + 1
 
         if n_rows > 1:
-            legend_loc = (0.5, 1.1)
+            #legend_loc = (0.5, 1.2) larger value for more vertical space
+            legend_loc = (0.5, 1.2)
         else:
             legend_loc = (0.5, 1.15)
         handles, labels = ax.get_legend_handles_labels()
