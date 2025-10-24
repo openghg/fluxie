@@ -26,7 +26,7 @@
             "nf3": "NF3",
             "hfc134a": "HFC_134a",
             "hfc143a": "HFC_143a",
-            "hfc125": "HFC_125",
+            "hfc125": "hfc125",
             "hfc152a": "HFC_152a",
             "hfc32": "HFC_32",
             "hfc227ea": "HFC_227ea",
@@ -83,6 +83,12 @@
             "pfc318": "FLEXPART_EUROPE_FLAT_PARISNID2026",
             "pfc116": "FLEXPART_EUROPE_FLAT_PARISNID2026",
             "cf4": "FLEXPART_EUROPE_FLAT_PARISNID2026"
+        },
+        "ICON-ART":{
+            "n2o": "ICON-ART_EUROPE_TNO-AVENGERS"
+        },
+        "CIF-4DVAR_FLEXPART":{
+            "n2o": "FLEXPART_EUROPE_GAINS"
         },
         "InTEM_NAME": {
             "ch4": "NAME_EUROPE_EDGAR_PARISNID2026"

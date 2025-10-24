@@ -10,6 +10,7 @@ color_palette = {
     1: [["purple", "mediumpurple"], ["deeppink", "pink"], ["darkorange", "red"]],
     2: [["darkgreen", "green"], ["limegreen", "palegreen"], ["olive", "lightgreen"]],
     3: [["darkorange", "orange"], ["gold", "khaki"], ["yellow", "lightyellow"]],
+    4: [["firebrick", "indianred"], ["indianred", "lightred"], ["pink", "pink"]],
 }
 
 sector_color_palette = {
