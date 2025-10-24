@@ -47,15 +47,15 @@ def test_dict_to_str_dataframe():
 
     expected = pd.DataFrame(
         {
-            "species": ["CH_4",]*2,
+            "species": ["CH$_4$",]*2,
             "units": ["$\\rm{TgCO}_{2}\\rm{-eq} \\cdot \\rm{yr}^{-1}$",]*2,
-            "source": ["CAT", "NIR 2000"],
+            "source": ["CAT", "NID 2000"],
             "1900": ["1.00 \\pm 1.00", "0.00"],
             "2000": ["1.00 \\pm 1.00", "0.10"],
         }
     )
 
-    output = create_str_dataframe(data,"2000","ch4",model="CAT")
+    output = create_str_dataframe(data,"2000","ch4",sector="flower",model="CAT")
     
     assert (output==expected).values.all()
 
@@ -64,14 +64,15 @@ def test_dict_to_str_dataframe():
     
     expected = pd.DataFrame(
         {
-            "species": ["CH_4",]*2,
+            "species": ["CH$_4$",]*2,
             "units": ["$\\rm{GgCO}_{2}\\rm{-eq} \\cdot \\rm{yr}^{-1}$",]*2,
-            "source": ["CAT", "NIR 2000"],
+            "source": ["CAT", "NID 2000"],
             "1900": ["10.0 \\pm 10.0", "0.0"],
             "2000": ["10.0 \\pm 10.0", "1.0"],
         }
     )
     
-    output = create_str_dataframe(data,"2000","ch4",model="CAT")
+    output = create_str_dataframe(data,"2000","ch4",sector="flower",model="CAT")
     
     assert (output==expected).values.all()
+test_dict_to_str_dataframe()
