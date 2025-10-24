@@ -341,7 +341,7 @@ def add_prior_plot(
                         "country":[ds_region.attrs["country"],]*ds_region.time.size,
                         "species":[ds_region.attrs["species"],]*ds_region.time.size,
                         "time": ds_region.time.values.astype("datetime64[ns]"),
-                        "mean_val": ds_region.posterior.values,}) 
+                        "mean_val": ds_region.prior.values,}) 
     if add_prior_unc:
         ax.fill_between(
             ds_region.time,
@@ -478,7 +478,7 @@ def add_ylim(
 
     for ax, country in zip(axes, plot_regions):
         df_country = plotted_data_df[plotted_data_df.country==country]
-        max_country = np.nanmax(df_country[["mean_val","min_unc","max_unc"]])
+        max_country = np.nanmax(df_country[["mean_val","max_unc"]])
 
         max_cf.append(max_country)
 
@@ -707,8 +707,8 @@ def plot_country_flux(
         aggreg_month: if True, plot the data aggregated by month. Used to study seasonnal cycle.
     Returns:
         fig: A plot per country/region.
-        res_dict : If return_res, return also a dictionnary containing the plotted results
-
+        res_dict : If return_res, return also a dataframe containing the plotted results. The columns of this dataframe are "type" (possible values "prior"/"posterior"/"inventory"), 
+            "model", "sector", "country", "species", "time", "mean_val", "min_unc", "max_unc".
     """
     if aggreg_month and plot_inventory:
         logger.warning(

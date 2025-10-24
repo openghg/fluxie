@@ -345,7 +345,7 @@ def read_model_output(
         # Overwrite species attributes
         current_species = ds_all[m].attrs.get("species","not set")
         if current_species!=species:
-            logger.warning(f"'species' attribute in dataset ({current_species}) differs from species {species}. It is overwritten.")
+            logger.info(f"'species' attribute in dataset {m} ({current_species}) differs from species {species}. It is overwritten.")
             ds_all[m].attrs["species"] = species
 
     return ds_all

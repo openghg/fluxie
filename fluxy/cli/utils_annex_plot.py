@@ -40,6 +40,22 @@ def create_str_dataframe(
     model: str = "PARIS mean",
     table_start_date: str | None = None,
 ) -> pd.DataFrame:
+    """
+    Create a dataframe with results for a specific country, region and model. The columns are "species", "units", "source" (which values are "<model>" and "NID <inventory_year>") and the years present. 
+    The values are string of the form "<mean> \\pm <uncertainty>", made to be usable directly to make the tex output for the annexes tables. Set the units and right number of digits.
+    NOTE: Assume that the units in res is Tg CO2-eq yr-1
+    Args:
+        res: pandas dataframe containing the results. It should be the output (or concatenation of outputs) of `plot_country_flux` from fluxy/plots/flux_timeseries.py
+            The columns of this dataframe are "type", "model", "sector", "country", "species", "time", "mean_val", "min_unc", "max_unc".
+        inventory_year: inventory year to put in the outputted dataframe (has to b present in <res>).
+        species: species to put include in the table
+        region: region to restict the results to
+        sector: sector to restrict the results to
+        model: model to restrict the results to
+        table_start_date: start_date for the outputted results
+    Return:
+        output: pandas Dataframe contianing the string values that will be put in the .tex files for the annexes tables.
+    """
     
     if not table_start_date:
         table_start_date =  np.datetime64("1900-01-01")   
@@ -65,6 +81,7 @@ def create_str_dataframe(
 
     res["time"] = pd.to_datetime(res["time"])
     data = res[(res.country==region)
+                &(res.sector==sector)
                 &(res.model.isin([model,f"inventory_{inventory_year}"]))
                 &res.species.isin(species)
                 &(res.type.isin(["posterior","inventory"]))
@@ -113,14 +130,14 @@ def create_str_dataframe(
     output.fillna(" ",inplace=True)
 
     output.rename(columns={"model":"source"},inplace=True)
-    output["source"] = output["source"].apply(lambda x: x.replace("inventory_","NIR "))
+    output["source"] = output["source"].apply(lambda x: x.replace("inventory_","NID "))
 
     output["sort_col1"] = output.species.apply(lambda x : species_order.get_loc(x))
     output["sort_col2"] = output.source.apply(lambda x : 0 if x==model else 1)
     output.sort_values(by=["sort_col1","sort_col2"], inplace=True)
     del output["sort_col1"], output["sort_col2"]
 
-    species_name = {"ch4":"CH_4", "n2o":"N_2O", "sf6": "SF_6", "nf3": "NF_3", "cf4": "PFC-14", "all_pfc": "Total PFC", "all_hfc": "Total HFC"}
+    species_name = {"ch4":"CH$_4$", "n2o":"N$_2$O", "sf6": "SF$_6$", "nf3": "NF$_3$", "cf4": "PFC-14", "all_pfc": "Total PFC", "all_hfc": "Total HFC"}
     for species in output.species.unique():
         if species not in species_name.keys():
             species_name[species] = species.replace("hfc","HFC-").replace("pfc","PFC-")
