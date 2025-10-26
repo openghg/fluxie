@@ -199,11 +199,12 @@ def make_table(
         if y != df.columns[-1]:
             header += " & "
 
-    table = begin + "\n" + header + " \\\\ \hline" + "\n"
+    table = begin + "\n" + header + " \\\\ \\toprule" + "\n"
 
     # Iterate over lines of dataframe
     prev_species = ""
-    for _, row in df.iterrows():
+    nrows = df.shape[0]
+    for k, row in df.iterrows():
         # Indentation
         l = "    "
 
@@ -228,8 +229,10 @@ def make_table(
 
         # Add hline if needed
         for key in hline_place.keys():
-            if row[key] == hline_place[key]:
-                l += " \hline "
+            if k == nrows-1:
+                l += " \\bottomrule "
+            elif row[key] == hline_place[key]:
+                l += " \\midrule "
 
         # Add line to table
         table += l + "\n "
