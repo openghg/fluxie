@@ -187,13 +187,13 @@ def make_table(
         + label
         + caption
         + "\n \\begin{center}\n  \\begin{tabular}{ "
-        + len(descriptive_cols) * "l "
+        + (len(descriptive_cols)-1) * "l "
         + (len(df.columns) - len(descriptive_cols)) * "l "
         + "}"
     )
 
     # Set first line with columns title
-    header = "     " + len(descriptive_cols) * " & "
+    header = "     " + (len(descriptive_cols)-1) * " & "
     for y in df.columns[len(descriptive_cols) :]:
         header += y
         if y != df.columns[-1]:
@@ -209,10 +209,9 @@ def make_table(
 
         # Test if value for first column needed
         if row[descriptive_cols[0]] == prev_species:
-            l += " & & "
+            l += row[descriptive_cols[1]] + " & "
         else:
             l += row[descriptive_cols[0]] + " & "
-            l += row[descriptive_cols[1]] + " & "
         prev_species = row[descriptive_cols[0]]
 
         # Add values for other descriptive columns
