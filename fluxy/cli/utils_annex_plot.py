@@ -179,7 +179,7 @@ def make_table(
     tmp = (
         "Emissions estimation for "
         + species
-        + f" according to the National Inventory Document (NID) {inventory_years} and the inversions done in the PARIS project. For the PARIS estimation, the mean of the 3 inversion models is displayed, along with a range of uncertainty estimated via the half distance between the maximum and minimum uncertainties of the different models."
+        + f" according to the National Inventory Document (NID) {inventory_years} and the inversions done in the PARIS project. For the PARIS estimation, the mean of all models is displayed, along with a range of uncertainty estimated via the half distance between the maximum and minimum uncertainties of the different models."
     )
     caption = "\n \\caption{" + tmp + "}"
     begin = (
