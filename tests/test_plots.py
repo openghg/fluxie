@@ -11,6 +11,7 @@ from fluxy.plots.flux_map import (
     plot_flux_map,
     plot_flux_map_model_comparison,
     plot_flux_map_over_time,
+    plot_flux_map_combined_models_comparison,
 )
 from fluxy.plots.flux_timeseries import plot_country_flux,plot_country_sector_flux_bar
 from fluxy.plots.mf_timeseries import (
@@ -432,4 +433,28 @@ def test_plot_country_sector_flux_bar():
         inventory_years=None,
         inventory_filename="UNFCCC_inventory",
         sectors=["agriculture", "waste", "energy", "industry"],
+    )
+
+def test_plot_flux_map_combined_models_comparison():
+
+    var = "flux_total_posterior"
+    group_a = [models[0], models[1]]
+    group_b = [models[2]]
+
+    fig = plot_flux_map_combined_models_comparison(
+        ds_all=ds_all_flux_with_sites_scaled,
+        var=var,
+        group_a_models=group_a,
+        group_b_models=group_b,
+        species=species,
+        region=region,
+        config_data=config_data,
+        cmap=cmap,
+        cmap_diff=cmap_diff,
+        c_border=c_border,
+        add_sites=add_sites,
+        add_markers=add_markers,
+        season=season,
+        set_fluxlim=set_fluxlim,
+        set_fluxlim_percentile=set_fluxlim_percentile,
     )
