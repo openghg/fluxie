@@ -738,12 +738,12 @@ def plot_flux_map_combined_models_comparison(
     ds_all: dict[xr.Dataset],
     group_a_models: list[str],
     group_b_models: list[str],
-    group_a_label: str,
-    group_b_label: str,
     var: str,
     species: str,
     region: Region = None,
     config_data: dict = {},
+    group_a_label: str = None,
+    group_b_label: str = None,
     cmap: str = "viridis",
     cmap_diff: str = "coolwarm",
     c_border: str = "floralwhite",
@@ -768,10 +768,6 @@ def plot_flux_map_combined_models_comparison(
             List of model names to be combined for the first group.
         group_b_models (list[str]):
             List of model names to be combined for the second group.
-        group_a_label: str,
-            Label for the first group of combined models.
-        group_b_label: str,
-            Label for the second group of combined models.
         var (str):
             The name of the flux variable to be plotted and compared across models.
             Example: 'flux_total_posterior'.
@@ -783,6 +779,10 @@ def plot_flux_map_combined_models_comparison(
             A list with [lon_min, lon_max, lat_min, lat_max] can also be provided.
         config_data (dict of dict):
             Dictionary of models and species information (read from json file).
+        group_a_label: str,
+            Label for the first group of combined models.
+        group_b_label: str,
+            Label for the second group of combined models.
         cmap (str, optional):
             Colour map for flux plots.
         cmap_diff (str, optional):
@@ -846,15 +846,27 @@ def plot_flux_map_combined_models_comparison(
     ds_group_b = combine_map_dataset({k: ds_dict[k] for k in group_b_models})
 
     ds_comparison = {}
-    ds_comparison['group_a'] = ds_group_a['combined']
-    ds_comparison['group_b'] = ds_group_b['combined']
-    ds_comparison['diff'] = make_model_diff_ds(ds_comparison['group_a'], ds_comparison['group_b'])
+    ds_comparison["group_a"] = ds_group_a["combined"]
+    ds_comparison["group_b"] = ds_group_b["combined"]
+    ds_comparison["diff"] = make_model_diff_ds(ds_comparison["group_a"], ds_comparison["group_b"])
 
     # Resample over the whole time period (season=None) or a given season
     for m, ds in ds_comparison.items():
         ds_comparison[m] = resample_over_period(
             ds, chop_by=season, resample_uncert_correlation=resample_uncert_correlation
         )[0]
+
+    # Define group labels
+    group_a_label = group_a_label or "\n".join(group_a_models)
+    group_b_label = group_b_label or "\n".join(group_b_models)
+    separator = "\n-\n" if ("\n" in group_a_label or "\n" in group_b_label) else " - "
+    diff_label = f"{group_a_label}{separator}{group_b_label}"
+
+    labels = {
+        "group_a": group_a_label,
+        "group_b": group_b_label,
+        "diff": diff_label,
+    }
 
     # Load country lines, species and sites information
     country_lines = compute_boundary_geometry(map_bounds)
@@ -909,12 +921,7 @@ def plot_flux_map_combined_models_comparison(
             ax_i.set_yticklabels([])
 
         # Add titles
-        if model == "diff":
-            ax_i.set_title(f"{group_a_label} - {group_b_label}")
-        elif model == "group_a":
-            ax_i.set_title(group_a_label)
-        else:
-            ax_i.set_title(group_b_label)
+        ax_i.set_title(labels[model])
 
         # Add sites and markers if specified
         if add_sites:
