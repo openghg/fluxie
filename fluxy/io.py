@@ -225,7 +225,7 @@ def get_filename(
                     "<model>", base_model_name.lower()
                 )
                 name_tags[i] = string_in_file
-
+    
     # Build model name
     model_name = "_".join(name_tags)
 
@@ -305,7 +305,7 @@ def read_model_output(
         )
 
     ds_all = {}
-
+    
     for i, m in enumerate(models):
         period_str = period[i] or ""
         filepath = get_filename(
@@ -355,6 +355,7 @@ def read_flux_total_fgases(
     end_date: str,
     period: str = "yearly",
     unit: str = "Tg CO2-eq yr-1",
+    only_overlapping: bool = True,
 ) -> dict[str, xr.Dataset]:
     """
     Reads in fluxes from a list of gases and sums/averages totals and uncertainties,
@@ -469,7 +470,7 @@ def read_flux_total_fgases(
                 ds_all[region][model].append(ds_all_region[model])
 
     # Sum species datasets by region and model to create output
-    ds_output = create_flux_total_fgases(ds_all, species, regions, models)
+    ds_output = create_flux_total_fgases(ds_all, species, regions, models, only_overlapping)
 
     # print messages about used config
     messages_ordered_by_model = list()

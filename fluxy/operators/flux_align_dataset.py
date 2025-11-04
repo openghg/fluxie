@@ -27,8 +27,8 @@ def align_time(ds_list: list[xr.Dataset],
 
     # Reduce datasets to their overlapping time range
     if only_overlapping == True:
-        min_date = min([x.time.min() for x in ds_list]) - period / 2
-        max_date = max([x.time.max() for x in ds_list]) + period / 2
+        min_date = max([x.time.min() for x in ds_list]) - period / 2
+        max_date = min([x.time.max() for x in ds_list]) + period / 2
         ds_list = [ds.sel(time=slice(min_date, max_date)) for ds in ds_list]
         
     else:
