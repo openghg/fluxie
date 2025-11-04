@@ -129,6 +129,7 @@ def prepare_data_to_plot(
     resample_uncert_correlation: bool = False,
     plot_resample_and_original: bool = False,
     aggreg_month: bool = False,
+    only_overlapping: bool = True
 ) -> dict[str, xr.Dataset]:
     """
     Create a single xarray dataset for each set of data to be plotted.
@@ -219,7 +220,7 @@ def prepare_data_to_plot(
                 m: calc_rolling_mean(ds) if rm else ds
                 for rm, (m, ds) in zip(rolling_mean, ds_resampled.items())
             }
-            ds_combined = combine_dataset(ds_to_combine, plot_combined)
+            ds_combined = combine_dataset(ds_to_combine, plot_combined, only_overlapping)
             ds_combined["combined"].attrs[
                 "model_label"
             ] = "PARIS mean (from resampled data)"
@@ -228,7 +229,7 @@ def prepare_data_to_plot(
                 m: calc_rolling_mean(ds) if rm else ds
                 for rm, (m, ds) in zip(rolling_mean, ds_all_region.items())
             }
-            ds_combined = combine_dataset(ds_to_combine, plot_combined)
+            ds_combined = combine_dataset(ds_to_combine, plot_combined, only_overlapping)
             ds_combined["combined"].attrs["model_label"] = "PARIS mean"
         ds_to_plot.update(ds_combined)
 
@@ -651,6 +652,7 @@ def plot_country_flux(
     rolling_mean: bool | list[bool] = False,
     aggreg_month: bool = False,
     sector: str = "total",
+    only_overlapping: bool = True
 ) -> Figure | tuple[Figure, dict[str, dict]]:
     """
     Timeseries plot of prior and posterior country fluxes, from list of
@@ -725,6 +727,7 @@ def plot_country_flux(
             plot_resample_and_original=plot_resample_and_original,
             resample_uncert_correlation=resample_uncert_correlation,
             aggreg_month=aggreg_month,
+            only_overlapping=only_overlapping
         )
 
         # plot posterior and prior (if requested)
@@ -805,6 +808,7 @@ def plot_country_sector_flux_bar(
     resample_uncert_correlation: bool = False,
     rolling_mean: bool = False,
     sectors: list[str] = ["agriculture", "waste", "energy", "industry"],
+    only_overlapping: bool = True
 ) -> Figure | list:
     """
     Stacked bar plot of posterior fluxes, split by sector, for a single region, for a range of models.
@@ -916,6 +920,7 @@ def plot_country_sector_flux_bar(
                 rolling_mean=rolling_mean,
                 plot_resample_and_original=False,
                 resample_uncert_correlation=resample_uncert_correlation,
+                only_overlapping=only_overlapping
             )
 
             if resample != None:

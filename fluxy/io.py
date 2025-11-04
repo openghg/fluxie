@@ -495,7 +495,7 @@ def read_flux_total_fgases(
     return ds_output
 
 
-def create_flux_total_fgases(ds_all, species, regions, models):
+def create_flux_total_fgases(ds_all, species, regions, models, only_overlapping):
     """
     Sum species datasets by region and model to create output.
 
@@ -520,7 +520,7 @@ def create_flux_total_fgases(ds_all, species, regions, models):
         ds_list = []
         for region in regions:
             ds_tmp = xr.concat(
-                align_time(ds_all[region][model]),
+                align_time(ds_all[region][model],only_overlapping),
                 dim="species",
                 combine_attrs="drop_conflicts",
             )
