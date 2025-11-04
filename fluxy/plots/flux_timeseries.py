@@ -311,7 +311,7 @@ def plot_country_flux(
                     edgecolor=inventory.plot_color,
                     align="edge",
                     fill=False,
-                    label=f"Inventory {inventory.year}",
+                    label=f"NID {inventory.year}",
                     zorder=0,
                     linewidth=3,
                 )
