@@ -127,7 +127,9 @@ def prepare_data_to_plot(
     model_labels: dict[str, str],
     model_colors: dict[str, list],
     plot_separate: bool | list[bool] = True,
+    plot_separate_unc: bool | None = None,
     plot_combined: bool | list[bool] = False,
+    plot_combined_unc: bool | None = None,
     resample: str | list[str] | None = None,
     rolling_mean: bool | list[bool] = False,
     resample_uncert_correlation: bool = False,
@@ -144,9 +146,15 @@ def prepare_data_to_plot(
         model_colors: colors to associate to each dataset. should have the same keys as ds_all_region.
         plot_separate: If True, plots model result as separate line. List must be of same size as models, e.g. [True, False, False].
             If a single boolean is provided, the same flag is assumed for all models.
+        plot_separate_unc: If True, plots separate models uncertainty.
+            If None, will default to True if any value in plot_separate is True.
+            If explicitly True/False, that value is used.
         plot_combined: If True, the model is included in combined average result to be plotted. List must be of same size as models,
             e.g. [False, True, True].
             If a single boolean is provided, the same flag is assumed for all models.
+        plot_combined_unc: If True, plots combined average model uncertainty.
+            If None, will default to True if any value in plot_combined is True.
+            If explicitly True/False, that value is used.
         resample: Option to be passed to resample built-in function of xarray Dataset. For yearly average, 'YS' option should be used;
             'QS-DEC' for seasonaly average.
             See http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
@@ -167,6 +175,12 @@ def prepare_data_to_plot(
         [plot_separate, plot_combined, resample, rolling_mean],
         expected_size=len(ds_all_region.keys()),
     )
+
+    # Compute default for plot_separate_unc and plot_combined_unc if not given
+    if plot_separate_unc is None:
+        plot_separate_unc = any(plot_separate)
+    if plot_combined_unc is None:
+        plot_combined_unc = any(plot_combined)
 
     # Timely aggregate the data when necessary
     if aggreg_month:
@@ -239,12 +253,13 @@ def prepare_data_to_plot(
             ds_combined["combined"].attrs["model_label"] = "PARIS mean"
         ds_to_plot.update(ds_combined)
 
-    # Determine plot color and label of each dataset
+    # Determine plot color, label, and plot uncertainty of each dataset
     color_usage = {k: 0 for k in map_model_colors.keys()}
     for m in ds_to_plot.keys():
         if m == "combined":
             include_label = "PARIS mean"
             model_color = "black"
+            plot_unc = plot_combined_unc
         else:
             include_label = ds_to_plot[m].attrs.get("model_label", None)
             key_mc = [
@@ -255,12 +270,14 @@ def prepare_data_to_plot(
             nb = color_usage[key_mc]
             model_color = map_model_colors[key_mc][nb % len(map_model_colors[key_mc])]
             color_usage[key_mc] = color_usage[key_mc] + 1
+            plot_unc = plot_separate_unc
 
         if ("_resample" in m) and plot_resample_and_original:
             include_label += " (resampled)"
 
         ds_to_plot[m].attrs["model_label"] = include_label
         ds_to_plot[m].attrs["model_color"] = model_color
+        ds_to_plot[m].attrs["model_unc_to_plot"] = plot_unc
 
     return ds_to_plot
 
@@ -281,6 +298,8 @@ def add_posterior_plot(
 
     linew = 3 if highlighted_line else 1.5
 
+    plot_unc = bool(ds_region.attrs.get("model_unc_to_plot", True))
+
     ax.plot(
         ds_region.time,
         ds_region.posterior,
@@ -288,13 +307,15 @@ def add_posterior_plot(
         color=ds_region.attrs["model_color"],
         linewidth=linew,
     )
-    ax.fill_between(
-        ds_region.time,
-        ds_region.posterior_lower,
-        ds_region.posterior_upper,
-        alpha=0.2,
-        color=ds_region.attrs["model_color"],
-    )
+
+    if plot_unc:
+        ax.fill_between(
+            ds_region.time,
+            ds_region.posterior_lower,
+            ds_region.posterior_upper,
+            alpha=0.2,
+            color=ds_region.attrs["model_color"],
+        )
 
     res = pd.DataFrame({"type":["posterior",]*ds_region.time.size,
                         "model":[ds_region.attrs["model_label"],]*ds_region.time.size,
@@ -663,7 +684,9 @@ def plot_country_flux(
     set_global_leg: bool = False,
     country_codes_as_titles: bool = False,
     plot_separate: bool | list[bool] = True,
+    plot_separate_unc: bool | None = None,
     plot_combined: bool | list[bool] = False,
+    plot_combined_unc: bool | None = None,
     resample: str | list[str] | None = None,
     resample_uncert_correlation: bool = False,
     plot_resample_and_original: bool = False,
@@ -698,8 +721,14 @@ def plot_country_flux(
         country_codes_as_titles: If True, write the list of country codes in the titles, under the region names.
         plot_separate: If True, plots model result as separate line. List must be of same size as models, e.g. [True, False, False].
             If a single boolean is provided, the same flag is assumed for all models.
+        plot_separate_unc: If True, plots separate models uncertainty.
+            If None, will default to True if any value in plot_separate is True.
+            If explicitly True/False, that value is used.
         plot_combined: If True, the model is included in combined average result to be plotted. List must be of same size as models, e.g. [False, True, True].
             If a single boolean is provided, the same flag is assumed for all models.
+        plot_combined_unc: If True, plots combined average model uncertainty.
+            If None, will default to True if any value in plot_combined is True.
+            If explicitly True/False, that value is used.
         resample: Option to be passed to resample built-in function of xarray Dataset. For yearly average, 'YS' option should be used; 'QS-DEC' for seasonaly average.
             See http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
         resample_uncert_correlation: If True, calculates the resampled uncertainty as the mean from all averaged periods.
@@ -743,7 +772,9 @@ def plot_country_flux(
             model_labels=model_labels,
             model_colors=model_colors,
             plot_separate=plot_separate,
+            plot_separate_unc=plot_separate_unc,
             plot_combined=plot_combined,
+            plot_combined_unc=plot_combined_unc,
             resample=resample,
             rolling_mean=rolling_mean,
             plot_resample_and_original=plot_resample_and_original,
