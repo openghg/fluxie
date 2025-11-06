@@ -180,6 +180,7 @@ def slice_mf(
 
         # Slice data according to site
         if site is not None:
+            ds_all[m] = ds_all[m].load() # Needed to avoid thread.lock error
             try:
                 ds_all[m] = slice_site(ds_all[m], site)
             except ValueError as e:
