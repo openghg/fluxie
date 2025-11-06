@@ -361,6 +361,9 @@ def read_model_output(
             logger.info(f"'species' attribute in dataset {m} ({current_species}) differs from species {species}. It is overwritten.")
             ds_all[m].attrs["species"] = species
 
+        # Load data to avoid thread.lock error
+        ds_all[m] = ds_all[m].load()
+
     return ds_all
 
 
@@ -828,7 +831,9 @@ def edit_vars_and_attributes(
             )
 
         # Reorder dimensions
-        ds = ds.transpose('index', 'percentile', ...)
+        for var in ds.data_vars:
+            if {'index', 'percentile'}.issubset(ds[var].dims):
+                ds[var] = ds[var].transpose('index', 'percentile', ...)
 
         if "assimilation_flag" not in ds:
             # Add assimilation_flag if not present
