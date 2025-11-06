@@ -807,6 +807,7 @@ def edit_vars_and_attributes(
                 attrs=ds[var_to_change].attrs,
             )
 
+    # Fix concentration/eddy flux datasets
     elif file_type in (DataTypes.CONCENTRATION, DataTypes.EDDY_FLUX):
         # Ensure integer dtype
         ds["number_of_identifier"] = ds["number_of_identifier"].astype(int)
@@ -825,6 +826,9 @@ def edit_vars_and_attributes(
                 .stack({"index": ["number_of_identifier", "time"]})
                 .reset_index("index")
             )
+
+        # Reorder dimensions
+        ds = ds.transpose('index', 'percentile', ...)
 
         if "assimilation_flag" not in ds:
             # Add assimilation_flag if not present
@@ -901,6 +905,7 @@ def edit_vars_and_attributes(
                 ds["assimilation_flag"][mask] = 0
                 logger.info(f"Masking out nan values in {model}, as a quick fix for a bug in InTEM concentration files.")
 
+    # Fix eddy flux dataset
     if file_type == DataTypes.EDDY_FLUX:
         # check some eddy flux variables
         if "ecflux_observed" not in ds:
