@@ -14,11 +14,28 @@ class DataTypes(Enum):
     EDDY_FLUX = "eddy_flux"
 
 
-def file_pattern(file_type: DataTypes) -> str:
-    """Returns the ending pattern for the given file type."""
+def file_pattern(
+    file_type: DataTypes, 
+    alternative: bool = False
+) -> str:
+    """
+    Returns the ending pattern for the given file type.
+    Args:
+        file_type (DataTypes):
+            Type of file (flux or conentration as defined in class DataTypes)
+        alternative (bool): 
+            If true an alternative file ending is used for flux files. 
+
+    Returns:
+        ds_all (str):
+           filename ending depding on data type.  
+    """
     if file_type == DataTypes.FLUX:
+
         # Default file type
         return ".nc"
+        if alternative
+            return "_flux.nc"
     elif file_type == DataTypes.CONCENTRATION:
         return "_concentrations.nc"
     else:

@@ -320,8 +320,20 @@ def read_model_output(
 
         # Check if file exists
         if not filepath.is_file():
-            logger.warning(f"Cannot find {file_type.value} file: {filepath}.")
-            continue
+            #  alternative filename with _flux ending
+            if file_type==DataTypes.FLUX:
+                filepath = get_filename(
+                m,
+                species,
+                period_str,
+                file_pattern(file_type, alternativ=True),
+                config_data,
+                data_dir,
+                read_standard_run,
+            )
+            if not filepath.is_file():
+                logger.warning(f"Cannot find {file_type.value} file: {filepath}.")
+                continue
 
         # Read file
         logger.info(f"Reading {file_type} file: {filepath}")
@@ -664,6 +676,13 @@ def edit_vars_and_attributes(
     # Fix flux dataset
     if file_type == DataTypes.FLUX:
 
+        if "countrynumber" in ds.dims.keys():
+            ds["country"] = ds["country"].astype("str")
+            ds = ds.set_index(countrynumber="country").rename(
+                    {"countrynumber": "country"}
+                )
+
+        
         # Apply model specific corrections
         if m0 in ("elris", "flexinvert"):
             # Fix for legacy files
@@ -854,20 +873,20 @@ def edit_vars_and_attributes(
                 coords=ds["platform"].coords,
             )
         if m0 == "flexinvert":
-            ds["mf_observed"].attrs["units"] = "ppt"
+            #ds["mf_observed"].attrs["units"] = "ppt"
             ds["mf_observed"].attrs["longname"] = "observed_mole_fraction"
-            ds["mf_prior"].attrs["units"] = "ppt"
+            #ds["mf_prior"].attrs["units"] = "ppt"
             ds["mf_prior"].attrs["longname"] = "apriori_simulated_mole_fraction"
-            ds["mf_posterior"].attrs["units"] = "ppt"
+            #ds["mf_posterior"].attrs["units"] = "ppt"
             ds["mf_posterior"].attrs["longname"] = "aposteriori_simulated_mole_fraction"
-            ds["mf_bc_prior"] = ds["Ypri_bkg"]
-            ds["mf_bc_prior"].attrs["units"] = "ppt"
+            #ds["mf_bc_prior"] = ds["Ypri_bkg"]
+            #ds["mf_bc_prior"].attrs["units"] = "ppt"
             ds["mf_bc_prior"].attrs[
                 "longname"
             ] = "apriori_simulated_boundary_condition_mole_fraction"
-            ds["mf_bc_prior"] = ds["Ypri_bkg"]
-            ds["mf_bc_posterior"] = ds["Ypost_bkg"]
-            ds["mf_bc_posterior"].attrs["units"] = "ppt"
+            # ds["mf_bc_prior"] = ds["Ypri_bkg"]
+            # ds["mf_bc_posterior"] = ds["Ypost_bkg"]
+            #ds["mf_bc_posterior"].attrs["units"] = "ppt"
             ds["mf_bc_posterior"].attrs[
                 "longname"
             ] = "aposteriori_simulated_boundary_condition_mole_fraction"
