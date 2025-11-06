@@ -155,6 +155,40 @@ def test_flux_timeseries():
     )
 
 
+def test_flux_timeseries_combined_unc():
+    kwargs = dict(
+        data_dir = data_dir,
+        plot_inventory = False,
+        inventory_years = None,
+        fix_y_axes = False,
+        add_prior = True,
+        add_prior_unc = False,
+        set_global_leg = True,
+        country_codes_as_titles = False,
+        plot_separate = True,
+        plot_separate_unc = False,
+        plot_combined = True,
+        plot_combined_unc = True,
+        resample = None,
+        resample_uncert_correlation = False,
+        plot_resample_and_original = False,
+        annex_mode = False,
+        rolling_mean = False,
+    )
+
+    plot_country_flux(
+        ds_all_flux_scaled,
+        species,
+        regions,
+        config_data,
+        model_colors,
+        model_labels,
+        start_date,
+        end_date,
+        **kwargs
+    )
+
+
 def test_mf_timeseries():
 
     fig = plot_sites_timeseries(
