@@ -22,13 +22,13 @@ def file_pattern(
     Returns the ending pattern for the given file type.
     Args:
         file_type (DataTypes):
-            Type of file (flux or conentration as defined in class DataTypes)
+            Type of file (flux or concentration as defined in class DataTypes)
         alternative (bool): 
             If true an alternative file ending is used for flux files. 
 
     Returns:
         ds_all (str):
-           filename ending depding on data type.  
+           filename ending depending on data type.  
     """
     if file_type == DataTypes.FLUX:
 

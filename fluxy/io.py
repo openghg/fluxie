@@ -320,14 +320,14 @@ def read_model_output(
 
         # Check if file exists
         if not filepath.is_file():
-            logger.warning(f"Cannot find {file_type.value} file: {filepath}. Will try altnative name.")
             #  alternative filename with _flux ending
             if file_type==DataTypes.FLUX:
+                logger.warning(f"Cannot find {file_type.value} file: {filepath}. Will try alternative name.")
                 filepath = get_filename(
                 m,
                 species,
                 period_str,
-                file_pattern(file_type, alternativ=True),
+                file_pattern(file_type, alternative=True),
                 config_data,
                 data_dir,
                 read_standard_run,
