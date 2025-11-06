@@ -6,7 +6,7 @@ import os
 logger = logging.getLogger(__name__)
 
 color_palette = {
-    0: [["blue", "dodgerblue"], ["dodgerblue", "skyblue"], ["deepskyblue", "cyan"]],
+    0: [["blue", "dodgerblue"], ["dodgerblue", "skyblue"], ["purple", "mediumpurple"], ["darkgreen", "green"], ["darkorange", "orange"]],
     1: [["purple", "mediumpurple"], ["deeppink", "pink"], ["darkorange", "red"]],
     2: [["darkgreen", "green"], ["limegreen", "palegreen"], ["olive", "lightgreen"]],
     3: [["darkorange", "orange"], ["gold", "khaki"], ["yellow", "lightyellow"]],
