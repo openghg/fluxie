@@ -32,10 +32,10 @@ def file_pattern(
     """
     if file_type == DataTypes.FLUX:
 
-        # Default file type
-        return ".nc"
         if alternative:
             return "_flux.nc"
+        # Default file type
+        return ".nc"
     elif file_type == DataTypes.CONCENTRATION:
         return "_concentrations.nc"
     else:
