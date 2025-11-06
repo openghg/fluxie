@@ -320,8 +320,20 @@ def read_model_output(
 
         # Check if file exists
         if not filepath.is_file():
-            logger.warning(f"Cannot find {file_type.value} file: {filepath}.")
-            continue
+            #  alternative filename with _flux ending
+            if file_type==DataTypes.FLUX:
+                filepath = get_filename(
+                m,
+                species,
+                period_str,
+                "_flux.nc",
+                config_data,
+                data_dir,
+                read_standard_run,
+            )
+            if not filepath.is_file():
+                logger.warning(f"Cannot find {file_type.value} file: {filepath}.")
+                continue
 
         # Read file
         logger.info(f"Reading {file_type} file: {filepath}")
