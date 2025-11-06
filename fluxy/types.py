@@ -34,7 +34,7 @@ def file_pattern(
 
         # Default file type
         return ".nc"
-        if alternative
+        if alternative:
             return "_flux.nc"
     elif file_type == DataTypes.CONCENTRATION:
         return "_concentrations.nc"
