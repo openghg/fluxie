@@ -239,7 +239,7 @@ def prepare_data_to_plot(
             ds_combined["combined"].attrs["model_label"] = "PARIS mean"
         ds_to_plot.update(ds_combined)
 
-    # Determine plot color, label, and plot uncertainty of each dataset
+    # Determine plot color and label of each dataset
     color_usage = {k: 0 for k in map_model_colors.keys()}
     for m in ds_to_plot.keys():
         if m == "combined":
