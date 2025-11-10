@@ -266,10 +266,12 @@ def prepare_data_to_plot(
 
     # Determine plot color and label of each dataset
     color_usage = {k: 0 for k in map_model_colors.keys()}
+    i_comb = 0
     for m in ds_to_plot.keys():
         if "combined" in m:
             include_label = ds_to_plot[m].attrs.get("model_label", None)
-            model_color = "black"
+            model_color = config.mean_color_palette[i_comb % len(config.mean_color_palette)]
+            i_comb += 1
         else:
             include_label = ds_to_plot[m].attrs.get("model_label", None)
             key_mc = [
@@ -758,6 +760,7 @@ def plot_country_flux(
 
     s_data = config_data.get("species_info", {})
     r_data = config_data.get("regions_info", {})
+
 
     plot_regions = format_plot_regions(plot_regions, ds_all)
     unit = get_unit(ds_all)

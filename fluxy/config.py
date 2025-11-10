@@ -19,6 +19,9 @@ sector_color_palette = {
     "energy": "dodgerblue",
 }
 
+mean_color_palette = ["black", "saddlebrown", "dimgray", "peru", "darkgray",
+]
+
 # population from 2018 to 2023 (at Jan 1 each year)
 bel_pop = np.array([11.399, 11.455, 11.522, 11.555, 11.618, 11.723])
 lux_pop = np.array([0.602, 0.614, 0.626, 0.635, 0.645, 0.661])
