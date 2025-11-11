@@ -517,14 +517,19 @@ def set_xlims_and_ticks(
     for country in res_dict["posterior"].keys():
         for m in res_dict["posterior"][country].keys():
             post_time = res_dict["posterior"][country][m]["time"]
-            prior_time = res_dict["prior"][country][m]["time"]
-            min_x = np.nanmin([*post_time, *prior_time, min_x])
-            max_x = np.nanmax([*post_time, *prior_time, max_x])
+            if m in res_dict["prior"][country]:
+                prior_time = res_dict["prior"][country][m]["time"]
+                min_x = np.nanmin([*post_time, *prior_time, min_x])
+                max_x = np.nanmax([*post_time, *prior_time, max_x])
+            else:
+                prior_time = None
+                min_x = np.nanmin([*post_time, min_x])
+                max_x = np.nanmax([*post_time, max_x])
 
         if country in res_dict["inventory"].keys():
             for inv_year in res_dict["inventory"][country].values():
-                min_x = np.nanmin([*inv_year["time"].min(skipna=True), min_x])
-                max_x = np.nanmax([*inv_year["time"].max(skipna=True), max_x])
+                min_x = np.nanmin([inv_year["time"].min(), min_x])
+                max_x = np.nanmax([inv_year["time"].max(), max_x])
 
     # set xticks
     year_range = max_x.astype("datetime64[Y]") - min_x.astype("datetime64[Y]")
