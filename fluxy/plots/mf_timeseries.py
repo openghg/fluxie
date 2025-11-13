@@ -266,8 +266,8 @@ def plot_timeseries(
                 # Define uncertainty band
                 flag_fill_between = False
                 if unc_var.split("_")[0] == "percentile":
-                    y1 = ds_plot[unc_var][0, :].values
-                    y2 = ds_plot[unc_var][1, :].values
+                    y1 = ds_plot[unc_var].isel(percentile=0).values
+                    y2 = ds_plot[unc_var].isel(percentile=1).values
                     flag_fill_between = True
                 elif unc_var.split("_")[-1] in ["prior", "posterior"]:
                     y1 = ds_plot[var].values - ds_plot[unc_var].values

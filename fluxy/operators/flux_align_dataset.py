@@ -1,6 +1,9 @@
 import numpy as np
 import xarray as xr
+import logging
 from typing import Literal
+
+logger = logging.getLogger(__name__)
 
 
 def align_time(ds_list: list[xr.Dataset]) -> list[xr.Dataset]:
@@ -18,16 +21,23 @@ def align_time(ds_list: list[xr.Dataset]) -> list[xr.Dataset]:
     if all(time_dim_equal):
         return ds_list
 
-    # Infer period of first dataset
-    dtime = ds_list[0].time.values[1:] - ds_list[0].time.values[:-1]
-    if any(abs(dtime - np.median(dtime)) > 0.1 * np.median(dtime)):
-        raise ValueError("Unable to infer period from dataset")
-    period = np.median(dtime)
+    # Infer period of first dataset (only if it has >1 time step)
+    if ds_list[0].time.size > 1:
+        dtime = ds_list[0].time.values[1:] - ds_list[0].time.values[:-1]
+        if any(abs(dtime - np.median(dtime)) > 0.1 * np.median(dtime)):
+            raise ValueError("Unable to infer period from dataset")
+        period = np.median(dtime)
+    else:
+        period = None # no period if only one timestamp
+        logger.warning("Datasets have only one time value — aligning them with the time "
+                       "coordinate of the first dataset in the list "
+                       "without checking time difference.")
 
-    # Reduce datasets to their overlapping time range
-    min_date = max([x.time.min() for x in ds_list]) - period / 2
-    max_date = min([x.time.max() for x in ds_list]) + period / 2
-    ds_list = [ds.sel(time=slice(min_date, max_date)) for ds in ds_list]
+    # Reduce datasets to their overlapping time range (only if period can be inferred)
+    if period is not None:
+        min_date = max([x.time.min() for x in ds_list]) - period / 2
+        max_date = min([x.time.max() for x in ds_list]) + period / 2
+        ds_list = [ds.sel(time=slice(min_date, max_date)) for ds in ds_list]
 
     aligned_ds_list = [ds_list[0]]
 
@@ -35,17 +45,18 @@ def align_time(ds_list: list[xr.Dataset]) -> list[xr.Dataset]:
         if ds_list[0].time.equals(ds_p.time):
             aligned_ds_list.append(ds_p)
             continue
-
-        diff_time = abs(ds_list[0].time.values - ds_p.time.values)
-        if any(diff_time > 0.1 * period):
-            raise ValueError(
-                f"Time dimensions seem to be too different between the datasets for them to be combined "
-                + f'(period of reference dataset: {period.astype("timedelta64[D]")}, max difference: {max(diff_time).astype("timedelta64[D]")})'
-            )
+            
+        if period is not None:
+            diff_time = abs(ds_list[0].time.values - ds_p.time.values)
+            if any(diff_time > 0.1 * period):
+                raise ValueError(
+                    f"Time dimensions seem to be too different between the datasets for them to be combined "
+                    + f'(period of reference dataset: {period.astype("timedelta64[D]")}, max difference: {max(diff_time).astype("timedelta64[D]")})'
+                )
 
         ds_aligned = ds_p
         ds_aligned["time"] = ds_list[0].time
-        aligned_ds_list.append(ds_p)
+        aligned_ds_list.append(ds_aligned)
 
     return aligned_ds_list
 

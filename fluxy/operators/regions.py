@@ -176,6 +176,8 @@ def extract_region_flux(
                     ]
                 }
             )
+        
+        ds_region.attrs.update({"sector": sector, "country": country})
 
         ds_output[m] = ds_region
 

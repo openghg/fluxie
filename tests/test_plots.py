@@ -11,6 +11,7 @@ from fluxy.plots.flux_map import (
     plot_flux_map,
     plot_flux_map_model_comparison,
     plot_flux_map_over_time,
+    plot_flux_map_combined_models_comparison,
 )
 from fluxy.plots.flux_timeseries import plot_country_flux,plot_country_sector_flux_bar
 from fluxy.plots.mf_timeseries import (
@@ -135,6 +136,40 @@ def test_flux_timeseries():
         country_codes_as_titles = False,
         plot_separate = True,
         plot_combined = False,
+        resample = None,
+        resample_uncert_correlation = False,
+        plot_resample_and_original = False,
+        annex_mode = False,
+        rolling_mean = False,
+    )
+
+    plot_country_flux(
+        ds_all_flux_scaled,
+        species,
+        regions,
+        config_data,
+        model_colors,
+        model_labels,
+        start_date,
+        end_date,
+        **kwargs
+    )
+
+
+def test_flux_timeseries_combined_unc():
+    kwargs = dict(
+        data_dir = data_dir,
+        plot_inventory = False,
+        inventory_years = None,
+        fix_y_axes = False,
+        add_prior = True,
+        add_prior_unc = False,
+        set_global_leg = True,
+        country_codes_as_titles = False,
+        plot_separate = True,
+        plot_separate_unc = False,
+        plot_combined = True,
+        plot_combined_unc = True,
         resample = None,
         resample_uncert_correlation = False,
         plot_resample_and_original = False,
@@ -432,4 +467,28 @@ def test_plot_country_sector_flux_bar():
         inventory_years=None,
         inventory_filename="UNFCCC_inventory",
         sectors=["agriculture", "waste", "energy", "industry"],
+    )
+
+def test_plot_flux_map_combined_models_comparison():
+
+    var = "flux_total_posterior"
+    group_a = [models[0], models[1]]
+    group_b = [models[2]]
+
+    fig = plot_flux_map_combined_models_comparison(
+        ds_all=ds_all_flux_with_sites_scaled,
+        var=var,
+        group_a_models=group_a,
+        group_b_models=group_b,
+        species=species,
+        region=region,
+        config_data=config_data,
+        cmap=cmap,
+        cmap_diff=cmap_diff,
+        c_border=c_border,
+        add_sites=add_sites,
+        add_markers=add_markers,
+        season=season,
+        set_fluxlim=set_fluxlim,
+        set_fluxlim_percentile=set_fluxlim_percentile,
     )

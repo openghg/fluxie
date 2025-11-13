@@ -356,6 +356,12 @@ def read_model_output(
         if add_sites_to_flux and file_type == DataTypes.FLUX:
             ds_all[m] = add_sites_var(ds_all[m], filepath, m, period[i], config_data)
 
+        # Overwrite species attributes
+        current_species = ds_all[m].attrs.get("species","not set")
+        if current_species!=species:
+            logger.info(f"'species' attribute in dataset {m} ({current_species}) differs from species {species}. It is overwritten.")
+            ds_all[m].attrs["species"] = species
+
     return ds_all
 
 
@@ -769,7 +775,7 @@ def edit_vars_and_attributes(
                     [ds_bel, ds_lux], pd.Index(["BEL", "LUX"], name="country")
                 )
 
-                ds = xr.merge([ds, ds_bellux])
+                ds = xr.merge([ds, ds_bellux], join="outer", compat='no_conflicts')
                 ds = ds.drop_vars("country_merge")
 
         elif m0 == "rhime":
@@ -802,6 +808,7 @@ def edit_vars_and_attributes(
                 attrs=ds[var_to_change].attrs,
             )
 
+    # Fix concentration/eddy flux datasets
     elif file_type in (DataTypes.CONCENTRATION, DataTypes.EDDY_FLUX):
         # Ensure integer dtype
         ds["number_of_identifier"] = ds["number_of_identifier"].astype(int)
@@ -896,6 +903,7 @@ def edit_vars_and_attributes(
                 ds["assimilation_flag"][mask] = 0
                 logger.info(f"Masking out nan values in {model}, as a quick fix for a bug in InTEM concentration files.")
 
+    # Fix eddy flux dataset
     if file_type == DataTypes.EDDY_FLUX:
         # check some eddy flux variables
         if "ecflux_observed" not in ds:

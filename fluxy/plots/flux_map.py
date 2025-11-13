@@ -733,3 +733,233 @@ def plot_flux_map_over_time(
     )
 
     return fig
+
+def plot_flux_map_combined_models_comparison(
+    ds_all: dict[xr.Dataset],
+    group_a_models: list[str],
+    group_b_models: list[str],
+    var: str,
+    species: str,
+    region: Region = None,
+    config_data: dict = {},
+    group_a_label: str = None,
+    group_b_label: str = None,
+    cmap: str = "viridis",
+    cmap_diff: str = "coolwarm",
+    c_border: str = "floralwhite",
+    c_border_diff: str = "dimgrey",
+    add_sites: bool = False,
+    add_markers: list[str] | list[list[float]] = None,
+    season: str = None,
+    set_fluxlim: str | tuple = "auto",
+    set_fluxlim_percentile: float = None,
+    zoom_degree: float = 1,
+    fallback_sites: list[str] | None = None,
+    resample_uncert_correlation: bool = False,
+    sector: str = "total",
+) -> plt.Figure:
+    """
+    Plot a given flux variable for two groups of combined models and the difference between them.
+
+    Args:
+        ds_all (dictionary of datasets):
+            Dictionary of fluxes xarray datasets.
+        group_a_models (list[str]):
+            List of model names to be combined for the first group.
+        group_b_models (list[str]):
+            List of model names to be combined for the second group.
+        var (str):
+            The name of the flux variable to be plotted and compared across models.
+            Example: 'flux_total_posterior'.
+        species (str):
+            Gas species, e.g. 'ch4'.
+        region (str or list):
+            Lat/lon region to plot, options for 'UK', 'FRANCE', 'GERMANY',
+            'NWEU','CWEU','EUROPE'.
+            A list with [lon_min, lon_max, lat_min, lat_max] can also be provided.
+        config_data (dict of dict):
+            Dictionary of models and species information (read from json file).
+        group_a_label: str,
+            Label for the first group of combined models.
+        group_b_label: str,
+            Label for the second group of combined models.
+        cmap (str, optional):
+            Colour map for flux plots.
+        cmap_diff (str, optional):
+            Colour map for flux difference plots.
+        c_border (str, optional):
+            Colour for flux plot country borders.
+        c_border_diff (str, optional):
+            Colour for flux difference plot country borders.
+        add_sites (bool, optional):
+            If True, scatters triangles with site locations.
+        add_markers (list of str or list of lat/lon, optional):
+            List of names of points to plot over larger point sources or lat/lon locations.
+            See point_markers_dict for a list of options.
+            e.g. ['paris', 'london', [50.,5.]]
+        season (string, optional):
+            If specified, plot the seasonal mean (only valable for monthly data).
+            Options are 'DJF', 'MAM', 'JJA', 'SON'.
+        set_fluxlim (str or list/tuple, optional):
+            If provided, set the colorbar limits based on the selected options.
+            Options are 'auto', a list or tuple with two elements (min, max).
+        set_fluxlim_percentile (float, optional):
+            If provided, set the percentile to use when setting the colorbar limits with 'auto' option.
+        zoom_degree (float, optional):
+            Value added to the latitude and longitude bounds of the plot.
+            Positive values expand the plot area, while negative values zoom in by reducing the bounds.
+            Example: `zoom_degree=1` adds 1 degree to the bounds, while `zoom_degree=-1` subtracts 1 degree.
+        fallback_sites (list[str] | None):
+            A list of site names to use as a fallback if 'sites' is not found in the datasets.
+            If None, the first available 'sites' in the datasets will be used as fallback.
+        resample_uncert_correlation (bool, optional):
+            If True, uncertainties are averaged.
+            If False, uncertainties are calculated as RMSE-like aggregation.
+        sector (str):
+            Emissions sector to plot. Default 'total'.
+    Returns:
+        fig (figure):
+            Three maps of a target flux variable of the first and second groups of combined models and the diffence between both.
+    """
+
+    # Check for inversion_grid and sector option
+    if "inversion_grid" in var and sector != "total":
+        raise ValueError(
+            f"Currently, you cannot plot sectors other than 'total' using the inversion_grid variable. "
+            + "Choose a non inversion_grid variable to plot other sectors."
+        )
+
+    # Determine geographical boundaries
+    map_bounds = get_map_bounds(
+        region,
+        ds_all.values(),
+        config_data,
+        zoom_degree=zoom_degree,
+    )
+
+    # Prepare datasets
+    ds_dict = {m: define_var_plot(ds, var, sector) for m, ds in ds_all.items()}
+    ds_dict = align_map_data(ds_dict)
+
+    # Combine models from group_a and group_b and keep only 'combined' variable
+    ds_group_a = combine_map_dataset({k: ds_dict[k] for k in group_a_models})
+    ds_group_b = combine_map_dataset({k: ds_dict[k] for k in group_b_models})
+
+    ds_comparison = {}
+    ds_comparison["group_a"] = ds_group_a["combined"]
+    ds_comparison["group_b"] = ds_group_b["combined"]
+    ds_comparison["diff"] = make_model_diff_ds(ds_comparison["group_a"], ds_comparison["group_b"])
+
+    # Resample over the whole time period (season=None) or a given season
+    for m, ds in ds_comparison.items():
+        ds_comparison[m] = resample_over_period(
+            ds, chop_by=season, resample_uncert_correlation=resample_uncert_correlation
+        )[0]
+
+    # Define group labels
+    group_a_label = group_a_label or "\n".join(group_a_models)
+    group_b_label = group_b_label or "\n".join(group_b_models)
+    separator = "\n-\n" if ("\n" in group_a_label or "\n" in group_b_label) else " - "
+    diff_label = f"{group_a_label}{separator}{group_b_label}"
+
+    labels = {
+        "group_a": group_a_label,
+        "group_b": group_b_label,
+        "diff": diff_label,
+    }
+
+    # Load country lines, species and sites information
+    country_lines = compute_boundary_geometry(map_bounds)
+    species_info = config_data.get("species_info", {}).get(species, {})
+
+    # Set flux limits
+    lim = set_flux_limits(
+        ds_comparison,
+        var,
+        map_bounds,
+        option=set_fluxlim,
+        custom_percentile=set_fluxlim_percentile,
+    )
+
+    # Initialise figure
+    n_rows = 1
+    n_cols = 3
+    figsize = define_map_figsize(
+        map_bounds, n_rows, n_cols, fixed_value=5 * n_cols, fixed_dimension="width"
+    )
+
+    fig, ax = plt.subplots(n_rows, n_cols, figsize=figsize, layout="compressed")
+    for col, (model, ds) in enumerate(ds_comparison.items()):
+        ax_i = ax[col]
+        lon, lat = ds.longitude, ds.latitude
+        
+        # Determine plot settings
+        is_diff = ("diff" in var) or ("diff" in model)
+        cmap_i = cmap_diff if is_diff else cmap
+        border_color = c_border_diff if is_diff else c_border
+        vlim_i = (-lim[1], lim[1]) if is_diff else lim
+        marker_color = "black" if is_diff else "red"
+        extend_i = "both" if is_diff else "max"
+
+        # Plot the data
+        im = ax_i.pcolormesh(
+            lon,
+            lat,
+            ds[var],
+            cmap=cmap_i,
+            vmin=vlim_i[0],
+            vmax=vlim_i[1],
+            shading="nearest",
+        )
+        plot_country_borders(ax=ax_i, lines=country_lines, border_color=border_color)
+        ax_i.set_xlim(map_bounds[:2])  # Longitude limits
+        ax_i.set_ylim(map_bounds[2:])  # Latitude limits
+        ax_i.set_aspect(1)
+
+        # Adjust ticks layout
+        if col > 0:
+            ax_i.set_yticklabels([])
+
+        # Add titles
+        ax_i.set_title(labels[model])
+
+        # Add sites and markers if specified
+        if add_sites:
+            try:
+                sites_info = get_active_sites_coordinates(
+                    ds, config_data, fallback_sites
+                )
+            except Exception as e:
+                raise RuntimeError(
+                    "Failed to get active sites coordinates. "
+                    "Check that `add_sites_to_flux` is True in `read_model_output` "
+                    "or that a `fallback_sites` list is provided in `plot_flux_map`."
+                ) from e
+            add_site_markers(ax_i, sites_info, marker_color)
+        if add_markers:
+            add_custom_markers(
+                ax_i, add_markers, marker_color, config_data["regions_info"]
+            )
+
+        # Add colorbar
+        cbar_label = print_cbar_label(
+            ds,
+            species_info,
+            var,
+            format=["variable", "species", "units", "time"],
+        )  # TODO Here, based on the last iteration. Check if consistent for all models?
+        if model == "diff":
+            cbar_lines = cbar_label.split("\n")
+            cbar_lines[0] += " difference"
+            cbar_label = "\n".join(cbar_lines)
+        add_colorbar(
+            fig,
+            ax_i,
+            im,
+            extend_i,
+            cbar_label,
+            n_cbar=3,
+            idx_cbar=col,
+            colorbar_type="column",
+        )
+    return fig
