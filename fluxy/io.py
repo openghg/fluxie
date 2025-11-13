@@ -2,6 +2,7 @@ import itertools
 import json
 import logging
 import os
+import re
 from io import BytesIO
 from pathlib import Path
 from urllib.request import urlopen
@@ -950,7 +951,10 @@ def add_sites_var(
     """
 
     # Derive the path for the concentration file
-    filepath_conc = filepath_flux.with_name(filepath_flux.stem + "_concentrations.nc")
+    if re.match(r".*_flux.nc$", str(filepath_flux)):
+        filepath_conc = filepath_flux.with_stem(filepath_flux.stem.replace("flux","concentrations"))
+    else:
+        filepath_conc = filepath_flux.with_name(filepath_flux.stem + "_concentrations.nc")
 
     # Check if file exists
     if not filepath_conc.is_file():
