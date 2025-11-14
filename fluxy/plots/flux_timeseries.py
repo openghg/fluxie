@@ -228,7 +228,6 @@ def prepare_data_to_plot(
 
     # Add combined dataset(s) to plot
     if any(plot_combined):
-        # TODO deal with resample
         if is_plot_combined_single_true:
             if combined_models_dict is None:
                 combined_models_dict = {"Mean": list(ds_all_region.keys())}
@@ -239,11 +238,21 @@ def prepare_data_to_plot(
                 ]
             }
 
-        if all([resamp for comb, resamp in zip(plot_combined, resample) if comb]):
-            ds_to_combine = {
-                m: calc_rolling_mean(ds) if rm else ds
-                for rm, (m, ds) in zip(rolling_mean, ds_resampled.items())
-            }
+        combined_resample = [resamp for comb, resamp in zip(plot_combined, resample) if comb]
+        use_resampled = (
+            any(resample) 
+            and all(r is not None for r in combined_resample)
+            and len(set(combined_resample)) == 1
+        )
+        if use_resampled:
+                combined_models_dict = {
+                    group_label: [f"{model}_resample" for model in model_list]
+                    for group_label, model_list in combined_models_dict.items()
+                }
+                ds_to_combine = {
+                    m: calc_rolling_mean(ds) if rm else ds
+                    for rm, (m, ds) in zip(rolling_mean, ds_resampled.items())
+                }
         else:
             ds_to_combine = {
                 m: calc_rolling_mean(ds) if rm else ds
@@ -260,6 +269,8 @@ def prepare_data_to_plot(
                 combine_mask = [model in model_list for model in ds_to_combine.keys()]
                 ds_combined = combine_dataset(ds_to_combine, combine_mask)
                 ds_combined["combined"].attrs["model_label"] = group_label
+                if any('_resample' in s for s in model_list) and plot_resample_and_original:
+                    ds_combined["combined"].attrs["model_label"] += " (resampled)"
                 new_key = group_label.replace(" ", "_")
                 ds_combined = {f"combined_{new_key}": ds_combined["combined"]} # rename key to include group label
                 ds_to_plot.update(ds_combined)
