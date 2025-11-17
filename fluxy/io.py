@@ -252,7 +252,7 @@ def get_filename(
             If entry "<model_run_keys>" don't exist, constructs filename from items in "<run_keys>".
             If entry "<run_keys>" don't exist, constructs filename from items in "default".
         filepath_kwargs (dict of str):
-            Dictionary with filename parameters (key options: "data_dir", "sub_dir", "base_model_name", "model_name")
+            Dictionary with filename parameters (key options: "data_dir", "model_dir", "species_dir", "sub_dir", "model_name")
             If missing, filename parameters are deduced from model.
 
     Returns:
@@ -265,7 +265,6 @@ def get_filename(
     # Get base model name (first keyword of model)
     sub_dir, model_name = os.path.split(model)
     base_model_name, *run_keys = model_name.split("_")
-    base_model_name = filepath_kwargs.get("base_model_name", base_model_name)
     run_keys = "_".join(run_keys)
 
     # Get model name
@@ -333,8 +332,8 @@ def get_filename(
     # Hard-coded filename template
     filepath_temp = make_template(
         "data_dir",
-        "base_model_name",
-        "species",
+        "model_dir",
+        "species_dir",
         "sub_dir?",
         ("model_name", "species_print", "period"),
         suffix="suffix",
@@ -344,8 +343,8 @@ def get_filename(
     filepath = fill_template(
         filepath_temp,
         data_dir=filepath_kwargs.get("data_dir", data_dir),
-        base_model_name=base_model_name,
-        species=species,
+        model_dir=filepath_kwargs.get("model_dir", base_model_name),
+        species_dir=filepath_kwargs.get("species_dir", species),
         sub_dir=filepath_kwargs.get("sub_dir", sub_dir),
         model_name=filepath_kwargs.get("model_name", model_name),
         species_print=species_print,
