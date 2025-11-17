@@ -339,17 +339,28 @@ def get_filename(
         suffix="suffix",
     )
 
+    # Define dictionary with template arguments
+    fill_kwargs = {
+        "data_dir": data_dir,
+        "model_dir": base_model_name,
+        "species_dir": species,
+        "sub_dir": sub_dir,
+        "model_name": model_name,
+    }
+
+    fill_kwargs.update(
+        {
+            **filepath_kwargs,
+            "species_print": species_print,
+            "period": period,
+            "suffix": file_pattern,
+        },
+    )
+
     # Get full path to file
     filepath = fill_template(
         filepath_temp,
-        data_dir=filepath_kwargs.get("data_dir", data_dir),
-        model_dir=filepath_kwargs.get("model_dir", base_model_name),
-        species_dir=filepath_kwargs.get("species_dir", species),
-        sub_dir=filepath_kwargs.get("sub_dir", sub_dir),
-        model_name=filepath_kwargs.get("model_name", model_name),
-        species_print=species_print,
-        period=period,
-        suffix=file_pattern,
+        **fill_kwargs,
     )
 
     return Path(filepath)
