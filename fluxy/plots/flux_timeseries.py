@@ -517,7 +517,7 @@ def set_xlims_and_ticks(
                 "Feb",
                 "Mar",
                 "Apr",
-                "may",
+                "May",
                 "Jun",
                 "Jul",
                 "Aug",
