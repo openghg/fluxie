@@ -379,7 +379,7 @@ def add_inventory_barplot(
         res_dict: dictionnary containing inventory data plotted - 2 keys: "time", "value".
     """
     
-    if type(plot_inventory_uncertainty) == bool and type(inventory_years) != list:
+    if type(plot_inventory_uncertainty) == bool:
         plot_inventory_uncertainty = [plot_inventory_uncertainty]*len(inventory_years)
         logger.warning('Plotting inventory uncertainty for all inventory_years. '+
                        'Turn this off by setting plot_inventory_uncertainty to a list '+
@@ -725,6 +725,10 @@ def plot_country_flux(
         res_dict : If return_res, return also a dictionnary containing the plotted results
 
     """
+    
+    if plot_inventory == True and aggreg_month == True:
+        raise ValueError('You cannot plot_inventory whilst using aggreg_month, turn one of these options off.')
+    
     s_data = config_data.get("species_info", {})
     r_data = config_data.get("regions_info", {})
 
