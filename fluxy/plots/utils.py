@@ -229,6 +229,7 @@ def get_frequency(
     frequency_map = {
         "yearly": "Y",
         "monthly": "M",
+        "3monthly": "3M"
         # Add more mappings as needed
     }
 
