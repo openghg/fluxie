@@ -356,6 +356,7 @@ def add_inventory_barplot(
     inventory_years: list[str] | None,
     inventory_filename: str,
     sector: str | list[str],
+    plot_inventory_uncertainty: list[bool] | bool,
 ) -> dict[str, dict]:
     """
     Retrieve and plot the inventories as bar plots. If multiple inventories are plotted, the older the inventory is, the smaller the used width of the bar is and the whiter is the grey of the bar.
@@ -373,9 +374,18 @@ def add_inventory_barplot(
         inventory_years: list of years of publication of the inventory versions we want to use.
         inventory_filename: name of inventory file.
         sector: sector we want to plot.
+        plot_inventory_uncertainty: If True, adds inventory uncertainty as error bars.
     Returns:
         res_dict: dictionnary containing inventory data plotted - 2 keys: "time", "value".
     """
+    
+    if type(plot_inventory_uncertainty) == bool and type(inventory_years) != list:
+        plot_inventory_uncertainty = [plot_inventory_uncertainty]*len(inventory_years)
+        logger.warning('Plotting inventory uncertainty for all inventory_years. '+
+                       'Turn this off by setting plot_inventory_uncertainty to a list '+
+                       'of True/False of the same length as inventory_years')
+    
+    
     res_dict = dict()
 
     if isinstance(start_date, list):
@@ -386,7 +396,7 @@ def add_inventory_barplot(
         end_date_inv = str(max([np.datetime64(date) for date in end_date]))
     else:
         end_date_inv = end_date
-    inventories_to_plot = retrieve_inventories(
+    inventories_to_plot,inventories_uncert_to_plot = retrieve_inventories(
         data_dir,
         country,
         species,
@@ -400,6 +410,10 @@ def add_inventory_barplot(
         sector=sector,
     )
     for i_inv, inventory in enumerate(inventories_to_plot):
+        if plot_inventory_uncertainty[i_inv] and inventories_uncert_to_plot[i_inv] is not None:
+            yerr = inventories_uncert_to_plot[i_inv]
+        else:
+            yerr = None
         ax.bar(
             inventory.time,
             inventory,
@@ -409,6 +423,8 @@ def add_inventory_barplot(
             fill=False,
             label=f"Inventory {inventory.year}",
             zorder=0,
+            error_kw={'ecolor':inventory.plot_color,'capsize':2},
+            yerr=yerr
         )
 
         res_dict[f"inventory_{inventory.year}"] = {
@@ -557,7 +573,7 @@ def set_xlims_and_ticks(
 
 
 def set_legend(
-    fig: Figure, set_global_leg: bool, annex_mode: bool, plot_inventory: bool
+    fig: Figure, set_global_leg: bool, annex_mode: bool, plot_inventory: bool, inventory_years: int | list[int] | bool = None,
 ):
     """
     Set legend.
@@ -588,6 +604,13 @@ def set_legend(
         )
 
     else:
+        if type(inventory_years) == list:
+            n_inv = len(inventory_years)
+        elif type(inventory_years) == int:
+            n_inv = 1
+        else:
+            n_inv = 0
+        
         for ax in fig.axes:
             _, labels = ax.get_legend_handles_labels()
             ncol = len(labels) + 1 if annex_mode else 2
@@ -600,7 +623,7 @@ def set_legend(
                 else "legendHandles"
             )
             for l in leg.__getattribute__(handle_name)[
-                : (-1 if plot_inventory else None)
+                : (-n_inv if plot_inventory else None)
             ]:
                 l.set_linewidth(3.0)
 
@@ -640,6 +663,7 @@ def plot_country_flux(
     end_date: str | None = None,
     annex_mode: bool = False,
     plot_inventory: bool = True,
+    plot_inventory_uncertainty: bool = True,
     inventory_years: list[str] | None = None,
     inventory_filename: str = "UNFCCC_inventory",
     data_dir: str | None = None,
@@ -675,6 +699,7 @@ def plot_country_flux(
         annex_mode: If True, replace the labels with more concise versions for National Inventory Report Annexes.
         scale_co2eq: If True, adapt y-axis label to CO2-eq.
         plot_inventory: If True, plots inventory flux estimates as bars in each plot.
+        plot_inventory_uncertainty: If True, adds inventory uncertainty as error bars.
         inventory_years: List of inventory data from different years to include. If None, only plots the most recent inventory data.
         inventory_filename: Name of inventory file: {inventory_filename}_{species}_{inventory_year}
         data_dir: Path to top data directory, used to read inventory data files.
@@ -762,6 +787,7 @@ def plot_country_flux(
                 inventory_years,
                 inventory_filename,
                 sector,
+                plot_inventory_uncertainty,
             )
 
         # set y label
@@ -785,7 +811,7 @@ def plot_country_flux(
     )
     set_xlims_and_ticks(axes[-1], yearly_freq, res_dict, aggreg_month)
 
-    set_legend(fig, set_global_leg, annex_mode, plot_inventory)
+    set_legend(fig, set_global_leg, annex_mode, plot_inventory, inventory_years)
 
     logger.info(
         "NOTE: If all the data is not within axis limits, adjust the set_ylim parameter"
@@ -1010,7 +1036,7 @@ def plot_country_sector_flux_bar(
         ax_comp = axes[-1]
 
         for s, sector in enumerate(sectors):
-            inventories_to_plot = retrieve_inventories(
+            inventories_to_plot,inventories_uncert_to_plot = retrieve_inventories(
                 data_dir,
                 plot_region,
                 species,

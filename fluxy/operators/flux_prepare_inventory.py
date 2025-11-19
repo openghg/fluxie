@@ -39,6 +39,7 @@ def retrieve_inventories(
     """
     
     inventories_list = list()
+    inventories_uncert_list = list()
 
     if not isinstance(inventory_years, list):
         inventory_years = [inventory_years]
@@ -47,7 +48,7 @@ def retrieve_inventories(
     inv_colors = [inv_cmap(i) for i in np.linspace(0.5, 0.9, len(inventory_years))]
 
     for year, inv_color in zip(inventory_years, inv_colors):
-        ds_inv = extract_region_inventory_flux(
+        ds_inv,ds_inv_stdev = extract_region_inventory_flux(
             data_dir,
             country,
             species,
@@ -60,5 +61,10 @@ def retrieve_inventories(
         )
         ds_inv.attrs["plot_color"] = inv_color
         inventories_list.append(ds_inv.sel(time=slice(start_date, end_date)))
+        if ds_inv_stdev is not None:
+            inventories_uncert_list.append(ds_inv_stdev.sel(time=slice(start_date, end_date)))
+        else:
+            inventories_uncert_list.append(None)
+            
 
-    return inventories_list
+    return inventories_list,inventories_uncert_list

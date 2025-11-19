@@ -246,7 +246,12 @@ def extract_region_inventory_flux(
         
     #first option left for compatability with older inventory netcdfs, can be removed later
     inv_ds = inv_ds_all['inventory'] if 'inventory' in inv_ds_all.keys() else inv_ds_all[f"flux_{sector}_inventory_country"]
-
+    
+    if f"stdev_flux_{sector}_inventory_country" in inv_ds_all.keys():
+        inv_stdev_ds = inv_ds_all[f"stdev_flux_{sector}_inventory_country"]
+    else:
+        inv_stdev_ds = None
+        
     gwp = 1
     target_unit = unit
     origin_unit = inv_ds.units.replace("/yr", " yr-1").replace("/y", " yr-1")
@@ -262,6 +267,7 @@ def extract_region_inventory_flux(
     scaling_factor = get_units_conversion_factor(origin_unit, target_unit, molar_mass)
 
     inv_ds = inv_ds * scaling_factor * gwp
+        
     inv_ds.attrs["units"] = unit
     inv_ds.attrs["year"] = inventory_year
 
@@ -269,26 +275,42 @@ def extract_region_inventory_flux(
     country_codes = r_data.get("country_codes", {})
     # Look for the code if country_codes is defined, otherwise assume the code was given as input
     country_search = country_codes.get(country, country)
-        
+    
+    if inv_stdev_ds is not None:
+        inv_stdev_ds = inv_stdev_ds * scaling_factor * gwp
+        if country_search in inv_ds["country"]:
+            inv_stdev_ds = inv_stdev_ds.sel(country=country_search)
+        elif country in inv_ds["country"]:
+            inv_stdev_ds = inv_stdev_ds.sel(country=country)
+            
+    else:
+        inv_stdev_ds = None
+
     if country_search in inv_ds["country"]:
-        return inv_ds.sel(country=country_search) # new format
+        return inv_ds.sel(country=country_search),inv_stdev_ds # new format
     elif country in inv_ds["country"]:
-        return inv_ds.sel(country=country) # old format (would only work if the user specifies the country name)
+        return inv_ds.sel(country=country),inv_stdev_ds # old format (would only work if the user specifies the country name)
 
     # if grouped countries:
     available_countries = inv_ds["country"].values.astype(str)
     dict_regions: dict[str, str] = r_data.get("regions", {})
+    inv_stdev_ds = None # don't calculate inventory uncertainty for grouped countries, yet
     
     if (country_search not in available_countries and country in dict_regions.keys()):
+        
         region_search = dict_regions[country]
         country_list = region_search.split("-")
-        inv_ds = inv_ds.sel({"country": country_list})
-        
-        logger.info(
-        f"No inventory data available for {country}. Considering sum of individual countries: {region_search}"
-        )
+        if all(country_list) in inv_ds.country:
+            inv_ds = inv_ds.sel({"country": country_list})
+            
+            logger.info(
+            f"No inventory data available for {country}. Considering sum of individual countries: {region_search}"
+            )
+        else:
+            raise ValueError(f"No inventory data available for {country} or individual countries: {country_list}. "+
+            "Fix inventory file or select a different year.")
     elif country_search in available_countries:
         inv_ds = inv_ds.sel({"country": country_search})
         
-    return inv_ds.sum(dim="country", keep_attrs=True)
+    return inv_ds.sum(dim="country", keep_attrs=True),inv_stdev_ds
 
