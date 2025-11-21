@@ -16,7 +16,7 @@ def extract_region_flux(
     regions_info: dict[str, str],
     keep_country_dim: bool = False,
     sector: str = 'total'
-    ) -> dict[str, xr.Dataset]:
+) -> dict[str, xr.Dataset]:
     """
     Finds the index of a chosen region name and extracts the country flux
     variables for this region.
