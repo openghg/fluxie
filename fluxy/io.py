@@ -687,7 +687,7 @@ def create_flux_total_fgases(ds_all, species, regions, models):
                 ds_summed.append(ds_unc)
             ds_list.append(xr.merge(ds_summed, combine_attrs="no_conflicts"))
 
-        ds_tmp = xr.concat(ds_list, dim="country", combine_attrs="drop_conflicts")
+        ds_tmp = xr.concat(ds_list, dim="country", combine_attrs="no_conflicts")
         ds_tmp.attrs["species"] = species
 
         ds_output[model] = ds_tmp

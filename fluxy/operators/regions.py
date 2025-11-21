@@ -16,7 +16,7 @@ def extract_region_flux(
     regions_info: dict[str, str],
     keep_country_dim: bool = False,
     sector: str = 'total'
-) -> dict[str, xr.Dataset]:
+    ) -> dict[str, xr.Dataset]:
     """
     Finds the index of a chosen region name and extracts the country flux
     variables for this region.
@@ -29,7 +29,8 @@ def extract_region_flux(
             chosen dates.
         country: name of the country to extract.
         regions_info: dictionary with country and region names (read from json file).
-        keep_country_dim: if True, re-put country dimension on the output datasets.
+        keep_country_dim: if True, re-put country dimension on the output datasets, else 
+            store the country (and sector) as attributes.
 
     Returns:
         ds_output: dictionnary of datasets. The dataset variables are :
@@ -47,9 +48,7 @@ def extract_region_flux(
     max_percentile_index = 1
 
     if all([("all" in ds.attrs.get("species", "")) for ds in ds_all.values()]):
-        for m, ds in ds_all.items():
-            ds_output[m] = ds.sel({"country": country_search})
-            ds_output[m].attrs['country'] = country
+        ds_output = {m: ds.sel({"country": country_search}) for m, ds in ds_all.items()}
         return ds_output
 
     target_vars = [
@@ -178,8 +177,8 @@ def extract_region_flux(
                     ]
                 }
             )
-        
-        ds_region.attrs.update({"sector": sector, "country": country})
+        else:
+            ds_region.attrs.update({"sector": sector, "country": country})
 
         ds_output[m] = ds_region
 
