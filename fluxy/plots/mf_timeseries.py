@@ -86,7 +86,7 @@ def _prepare_aggreg_month_var(da_var: xr.DataArray | xr.Dataset) -> xr.Dataset:
     return xr.merge([mean, unc], compat="no_conflicts", join="outer")
 
 
-def _prepare_var(ds: xr.Dataset, var: str, unc_var: str | None) -> xr.Dataset:
+def _prepare_var(ds: xr.Dataset, var: str, unc_var: str | None, model: str = None) -> xr.Dataset:
     """
     Format the required variable <var> and its uncertainty <unc_var> in one dataset containing one variable (named <var>).
     The variable thus created has two dimensions: "index" (corresponding to time) and "percentile". "percentile" can take 1 to 4
@@ -96,6 +96,7 @@ def _prepare_var(ds: xr.Dataset, var: str, unc_var: str | None) -> xr.Dataset:
         ds: dataset containing <var> and <unc_var>
         var: main variable
         unc_var: uncertainty corresponding to <var> (optionnal)
+        model: model name, just used to help if there is an error.
     Return:
         dataset containing one variable and 2 dimensions: index and percentile.
     """
@@ -121,7 +122,7 @@ def _prepare_var(ds: xr.Dataset, var: str, unc_var: str | None) -> xr.Dataset:
             unc_var = unc_var.replace("stdev", "percentile")
 
         if unc_var not in ds:
-            raise KeyError(f"Variables {unc_var_in} and {unc_var} not found in {m}.")
+            raise KeyError(f"Variables {unc_var_in} and {unc_var} not found for model {model}.")
         logger.warning(
             f"Variable {unc_var_in} not found {ds.attrs.get('model','')} so reading uncert from {unc_var}."
         )
@@ -147,7 +148,7 @@ def _prepare_var(ds: xr.Dataset, var: str, unc_var: str | None) -> xr.Dataset:
         )
         unc = xr.merge([unc_lower, unc_upper], compat="no_conflicts", join="outer")
     else:
-        unc = ds[unc_var].expan_dims(
+        unc = ds[unc_var].expand_dims(
             {
                 "percentile": [
                     "std",
@@ -155,7 +156,7 @@ def _prepare_var(ds: xr.Dataset, var: str, unc_var: str | None) -> xr.Dataset:
             }
         )
 
-    unc = unc.rename({unc_var: var})
+    unc = unc.to_dataset().rename({unc_var: var})
 
     return xr.merge([mean, unc], compat="no_conflicts", join="outer")
 
@@ -245,13 +246,17 @@ def _prepare_data_to_plot(
             "The include dictionary is empty. Please provide variables to include in the plot."
         )
     if isinstance(include, str):
-        include = {include: None}
+        all_var = {include: None}
     elif isinstance(include, (list, tuple)):
-        include = {var: None for var in include}
+        all_var = {var: None for var in include}
+    else:
+        all_var = include.copy()
 
     data_to_plot = {m: xr.Dataset() for m in ds_all.keys()}
     if isinstance(diff_include, list):
-        include.update({var: None for var in diff_include if var not in include.keys()})
+        all_var.update({var: None for var in diff_include if var not in all_var.keys()})
+        if "mf_observed" not in all_var.keys():
+            all_var["mf_observed"] = None
 
     for m, ds in ds_all.items():
 
@@ -262,16 +267,16 @@ def _prepare_data_to_plot(
                 "Use slice_site to select a single site."
             )
 
-        for var, unc_var in include.items():
+        for var, unc_var in all_var.items():
             if var not in ds.keys():
                 ds = _retrieve_variable(ds, var, unc_var)
 
         # Clean the time dimension
         ds_clean = clean_timeseries_missing_data(
-            ds, variables_nans=include.keys(), min_freq=time_freq_min
+            ds, variables_nans=all_var.keys(), min_freq=time_freq_min
         )
 
-        for var, unc_var in include.items():
+        for var, unc_var in all_var.items():
 
             if aggreg_month:
                 if (
@@ -283,13 +288,13 @@ def _prepare_data_to_plot(
                         "`aggreg_month` disabled this for variable that are not mole fractions (i.e. names not starting with `mf`)."
                     )
                 ds_var = _prepare_aggreg_month_var(ds_clean[var])
-                if include[var] is not None:
+                if all_var[var] is not None:
                     logger.warning(
-                        f"`{include[var]}` present as value of include dict for {var} is overwritten as you put `aggreg_month=True`."
+                        f"`{all_var[var]}` present as value of include dict for {var} is overwritten as you put `aggreg_month=True`."
                         + " The uncertainty plotted is the 0.159 and 0.851 percentile of the variable for the corresponding month."
                     )
             else:
-                ds_var = _prepare_var(ds_clean, var, unc_var)
+                ds_var = _prepare_var(ds_clean, var, unc_var, model=m)
 
             if unc_var:
                 if plot_type == "diff":
@@ -326,7 +331,6 @@ def _set_labels_and_colors(
 
     for m in ds_dict.keys():
         vars_to_plot = ds_dict[m].data_vars.keys()
-
         if plot_type == "diff":
             mdiff0, mdiff1 = m.split("--")
             model_label = f"{model_labels[mdiff0]} - {model_labels[mdiff1]}"
@@ -341,7 +345,7 @@ def _set_labels_and_colors(
             if var in ["mf_observed", "observed_above_BC"] and len(vars_to_plot) > 1:
                 plot_color = "black"
 
-            plot_label = (f"{model_label} {config.mf_labels.get(var, var)}",)
+            plot_label = f"{model_label} {config.mf_labels.get(var, var)}"
 
             ds_dict[m][var].attrs.update(
                 {"plot_label": plot_label, "plot_color": plot_color}
@@ -572,7 +576,7 @@ def plot_timeseries(
         iax = i if plot_type == "separate" else 0
 
         # Loop over all variables to plot
-        for var in data_to_plot[m].data_vars:
+        for var in include.keys():
 
             ds_plot = data_to_plot[m][var]
 
