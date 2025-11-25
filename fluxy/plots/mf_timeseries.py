@@ -57,7 +57,7 @@ def plot_mf_timeseries(*args, **kwargs) -> plt.Figure:
 
 def _prepare_aggreg_month_var(da_var: xr.DataArray | xr.Dataset) -> xr.Dataset:
     """
-    Aggregate by month the dataset/array variable(s). The outputed dataset as two dimensions: "time" (array from 1 to 12)
+    Aggregate by month the dataset/array variable(s). The outputed dataset has two dimensions: "time" (array from 1 to 12)
     and "percentile". The percentile coordinate has 3 values: "mean" corresonding to the mean value for the month and
     "lower"/"upper" corresponding to the 0.159/0.841 percentile of the variable for the month.
     Args:
@@ -175,7 +175,7 @@ def _retrieve_variable(ds, var, unc_var):
     """
     if unc_var:
         raise NotImplementedError(
-            "No uncertainty can be plotted when the variable is inferred from others."
+             "No uncertainty can be plotted for `{var}` as this variable is inferred from others. Please set `include` to `{'{var}': None}`."
         )
 
     acceptable_var = ["prior", "posterior", "observed"]
@@ -229,7 +229,8 @@ def _prepare_data_to_plot(
         ds_all: dictionnary of dataset from which the variable are taken
         include: variables to plot in the main panel. If is a dictionnary : the keys are the variables to plot and the
             values the uncertainty that will be shaded around them.
-        diff_include: additionnal (or not) variables to the one in include.
+        diff_include: variables that will be plot in the secondary (histogram) panel. 
+            In this function, they are treated as the ones passed with `include` parameter.
         time_freq_min: Time frequency minimum of the timeserie that should be shown as continous line.
             If the frequency is lower than this, the line will be discontinous. For more information,
             see :py:func:`fluxy.operators.select.clean_timeseries_missing_data`
@@ -285,7 +286,7 @@ def _prepare_data_to_plot(
                 if include[var] is not None:
                     logger.warning(
                         f"`{include[var]}` present as value of include dict for {var} is overwritten as you put `aggreg_month=True`."
-                        + " The uncertainty plotted is the 0.159 and 0.851 percentile of the variable for the corresponfing month."
+                        + " The uncertainty plotted is the 0.159 and 0.851 percentile of the variable for the corresponding month."
                     )
             else:
                 ds_var = _prepare_var(ds_clean, var, unc_var)
@@ -416,22 +417,22 @@ def _get_unit(ds_dict: dict[str, xr.Dataset]) -> str:
     if len(plot_units) != 1:
         raise ValueError(
             f"{ds_dict[m].data_vars.keys()} in {ds_dict.keys()} do not have the same units. So far, the following were found: {plot_units}."
+            +  "Select only one model to plot, or run 'slice_mf' with 'mf_units_print' equal to a valid mole fraction unit before running 'plot_timeseries'."
         )
 
     return plot_units[0]
 
 
 def add_xlims_and_ticks(
-    ax: Axes, yearly_freq: bool, res_dict: dict[str, dict], aggreg_month: bool
+    ax: Axes, yearly_freq: bool, res_dict: dict[str, dict[str,xr.Dataset]|xr.Dataset], aggreg_month: bool, rotate_xticks: bool = False
 ):
     """
     Add x limits, ticks and ticks labels to matplotlib axes. Optimize them by looking at if they are monthly, yearly, or monthly aggregated, and covered time range.
     Args:
         ax: axis to add xlim and xticks to.
         yearly_freq: set to True if the data plotted have a yearly frequency.
-        res_dict: dictionnary containing the data plotted. Should have one key per regions plotted, the values being dictionnaries with 3 keys: "inventory", "posterior" and "prior";
-            whose values are the output of add_inventory_barplot, add_posterior_plot, add_prior_plot). The time data stored in them is used to infer the xlims.
-        aggreg_month: if True, the data plotted are supposed to be a monthly aggregated so 12 stciks are created, whose labels are the 3 first letters of each month.
+        res_dict: dictionnary containing the data plotted.
+        aggreg_month: if True, the data plotted are supposed to be a monthly aggregated so 12 ticks are created, whose labels are the 3 first letters of each month.
     """
     if aggreg_month:
         ax.set_xticks(np.arange(1, 13))
@@ -472,6 +473,9 @@ def add_xlims_and_ticks(
         ax.xaxis.set_minor_locator(MonthLocator())
         ax.xaxis.set_major_locator(YearLocator())
 
+    if rotate_xticks:
+        ax.tick_params(axis="x", rotation=70)
+        
     ax.set_xlim(xlim)
 
 
@@ -681,6 +685,7 @@ def plot_timeseries(
             yearly_freq=False,
             res_dict=data_to_plot,
             aggreg_month=aggreg_month,
+            rotate_xticks=presentation_mode,
         )
 
         ax[iax, 0].grid(color="lightgrey", linestyle="-", linewidth=0.7)
