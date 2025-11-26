@@ -318,7 +318,7 @@ def _set_labels_and_colors(
     Set labels and colors that will be used by plot_timeseries and plot_histogram as attributes of the variables dataset.
     For variables "mf_observed" and "observed_above_BC", the color will be black (and not one of model_colors) if more than one variable is plotted.
     Args:
-        ds_dict: dictionnary containing the dataset with the variable to be plotted (and only them).
+        ds_dict: dictionnary containing the dataset with the variables to be plotted (and only them).
         model_labels: dictionnary with same keys as ds_dict (unless plot_type="diff") that contains corresponding label
         model_colors: dictionnary with same keys as ds_dict (unless plot_type="diff") that contains list of colors to be used with each model
         plot_type: type of plot. If diff, look in model_labels for the labels of the two models used for the diff to construct the new label.
@@ -351,7 +351,7 @@ def _set_labels_and_colors(
                 {"plot_label": plot_label, "plot_color": plot_color}
             )
 
-        ds_dict[m].attrs["color"] = model_color
+        # ds_dict[m].attrs["color"] = model_color
         ds_dict[m].attrs["label"] = model_label
 
     return ds_dict
