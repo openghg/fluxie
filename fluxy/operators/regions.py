@@ -48,7 +48,13 @@ def extract_region_flux(
     max_percentile_index = 1
 
     if all([("all" in ds.attrs.get("species", "")) for ds in ds_all.values()]):
-        ds_output = {m: ds.sel({"country": country_search}) for m, ds in ds_all.items()}
+        ds_output = {
+            m: ds.sel(country=country_search).assign_attrs(
+                sector=sector,
+                country=country
+            )
+            for m, ds in ds_all.items()
+        }
         return ds_output
 
     target_vars = [
