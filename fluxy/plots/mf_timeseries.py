@@ -129,7 +129,7 @@ def _prepare_var(ds: xr.Dataset, var: str, unc_var: str | None, model: str = Non
 
     # Creating variable
     if unc_var.split("_")[0] == "percentile":
-        unc = ds[unc_var].to_dataset()
+        unc = ds[unc_var]
         unc["percentile"] = ["lower", "upper"]
     elif unc_var.split("_")[-1] in ["prior", "posterior"]:
         unc_lower = (ds[var] - ds[unc_var]).expan_dims(
