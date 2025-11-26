@@ -340,14 +340,18 @@ def get_marker_coordinates(
 
 def add_site_markers(ax, site_info, color):
     """Add site markers to the plot."""
+    
     for site, site_data in site_info.items():
         ax.scatter(
             site_data["longitude"],
             site_data["latitude"],
-            facecolor="none",
-            edgecolor=color,
-            marker="o",
-            s=30,
+            # facecolor="none",
+            # edgecolor=color,
+            # marker="o",
+            # s=30,
+            color=color,
+            marker="x",
+            s=40,
             zorder=2,
         )
 
