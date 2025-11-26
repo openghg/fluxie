@@ -5,12 +5,41 @@ import os
 
 logger = logging.getLogger(__name__)
 
-color_palette = {
-    0: [["blue", "dodgerblue"], ["dodgerblue", "skyblue"], ["deepskyblue", "cyan"]],
-    1: [["purple", "mediumpurple"], ["deeppink", "pink"], ["darkorange", "red"]],
-    2: [["darkgreen", "green"], ["limegreen", "palegreen"], ["olive", "lightgreen"]],
-    3: [["darkorange", "orange"], ["gold", "khaki"], ["yellow", "lightyellow"]],
+cbf = {
+    "blue": (0/255, 114/255, 178/255),      
+    "lightblue": (86/255, 180/255, 233/255),
+    "vermillion": (213/255, 94/255, 0/255),
+    "orange": (230/255, 159/255, 0/255),
+    "tealgreen": (0/255, 158/255, 115/255),
+    "lightgreen": (112/255, 196/255, 105/255),
+    "purple": (119/255, 92/255, 237/255),
+    "pink": (213/255, 47/255, 126/255),
+    "tan": (222/255, 191/255, 111/255),
+    "turquoise": (81/255, 176/255, 165/255),
+    "green": (46/255, 94/255, 21/255),
+    "darkpurple": (85/255, 13/255, 79/255),
+    "my_purple" : (204/255, 121/255, 167/255),
+    "my_brown": (213/255, 94/255, 0/255),
+    "magenta": (204/255, 121/255, 167/255),
+    "maroon": (136/255, 34/255, 85/255),
+    "my_brown": (110/255, 71/255, 54/255),
+    "my_yellow": (237/255, 181/255, 36/255),
+    "my_pink": (210/255, 37/255, 75/255),
 }
+
+color_palette = {
+    0: [[cbf["blue"], "silver"], [cbf["lightblue"], "silver"], ["cyan", "cyan"]],
+    1: [[cbf["vermillion"], "silver"], [cbf["orange"], "silver"], ["yellow", "lightyellow"]],
+    2: [[cbf["tealgreen"], "silver"], [cbf["lightgreen"], "silver"], ["olive", "lightgreen"], ["lime", "lightgreen"],["yellowgreen", "lightgreen"]],
+    3: [["purple", "mediumpurple"], ["deeppink", "pink"], ["darkorange", "red"]],
+}
+
+# color_palette = {
+#     0: [["blue", "dodgerblue"], ["dodgerblue", "skyblue"], ["deepskyblue", "cyan"]],
+#     1: [["purple", "mediumpurple"], ["deeppink", "pink"], ["darkorange", "red"]],
+#     2: [["darkgreen", "green"], ["limegreen", "palegreen"], ["olive", "lightgreen"]],
+#     3: [["darkorange", "orange"], ["gold", "khaki"], ["yellow", "lightyellow"]],
+# }
 
 sector_color_palette = {
     "agriculture": "darkgreen",
@@ -19,8 +48,8 @@ sector_color_palette = {
     "energy": "dodgerblue",
 }
 
-mean_color_palette = ["black", "saddlebrown", "dimgray", "peru", "darkgray",
-]
+# mean_color_palette = ["black", "gray", "saddlebrown", "dimgray", "peru", "darkgray"]
+mean_color_palette = [cbf["my_brown"], cbf["purple"]]
 
 # population from 2018 to 2023 (at Jan 1 each year)
 bel_pop = np.array([11.399, 11.455, 11.522, 11.555, 11.618, 11.723])

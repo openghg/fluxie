@@ -66,9 +66,57 @@
                     "hcfo1233zde": "NAME_EUROPE_POPULATION",
                     "clch2ch2cl": "NAME_EUROPE_POPULATION"
     },
-        "flexinvert-dca": {"clch2ch2cl": "FLEXPART_EUROPE_POPULATION"
+        "NAME": {
+            "hfc134a": "NAME_EUROPE_EDGAR_PARISNID2026",
+            "hfc143a": "NAME_EUROPE_EDGAR_PARISNID2026",
+            "hfc125": "NAME_EUROPE_EDGAR_PARISNID2026",
+            "hfc152a": "NAME_EUROPE_FLAT_PARISNID2026",
+            "hfc32": "NAME_EUROPE_EDGAR_PARISNID2026",
+            "hfc227ea": "NAME_EUROPE_FLAT_PARISNID2026",
+            "hfc23": "NAME_EUROPE_FLAT_PARISNID2026",
+            "hfc245fa": "NAME_EUROPE_FLAT_PARISNID2026",
+            "hfc365mfc": "NAME_EUROPE_FLAT_PARISNID2026",
+            "hfc4310mee": "NAME_EUROPE_FLAT_PARISNID2026",
+            "hfc236fa": "NAME_EUROPE_FLAT_PARISNID2026"
     },
-        "elris-n2o": {"n2o": "NAME_EUROPE_EDGAR_28sites"
+        "NAME_7sites": {
+            "hfc134a": "NAME_EUROPE_EDGAR_7sitesHFCpaper",
+            "hfc143a": "NAME_EUROPE_EDGAR_7sitesHFCpaper",
+            "hfc125": "NAME_EUROPE_EDGAR_7sitesHFCpaper",
+            "hfc152a": "NAME_EUROPE_FLAT_7sitesHFCpaper",
+            "hfc32": "NAME_EUROPE_EDGAR_7sitesHFCpaper",
+            "hfc227ea": "NAME_EUROPE_FLAT_7sitesHFCpaper",
+            "hfc23": "NAME_EUROPE_FLAT_7sitesHFCpaper",
+            "hfc245fa": "NAME_EUROPE_FLAT_7sitesHFCpaper",
+            "hfc365mfc": "NAME_EUROPE_FLAT_7sitesHFCpaper",
+            "hfc4310mee": "NAME_EUROPE_FLAT_7sitesHFCpaper",
+            "hfc236fa": "NAME_EUROPE_FLAT_7sitesHFCpaper"
+    },
+        "FLEXPART": {
+            "hfc134a": "FLEXPART_EUROPE_EDGAR_PARISNID2026",
+            "hfc143a": "FLEXPART_EUROPE_EDGAR_PARISNID2026",
+            "hfc125": "FLEXPART_EUROPE_EDGAR_PARISNID2026",
+            "hfc152a": "FLEXPART_EUROPE_FLAT_PARISNID2026",
+            "hfc32": "FLEXPART_EUROPE_EDGAR_PARISNID2026",
+            "hfc227ea": "FLEXPART_EUROPE_FLAT_PARISNID2026",
+            "hfc23": "FLEXPART_EUROPE_FLAT_PARISNID2026",
+            "hfc245fa": "FLEXPART_EUROPE_FLAT_PARISNID2026",
+            "hfc365mfc": "FLEXPART_EUROPE_FLAT_PARISNID2026",
+            "hfc4310mee": "FLEXPART_EUROPE_FLAT_PARISNID2026",
+            "hfc236fa": "FLEXPART_EUROPE_FLAT_PARISNID2026"
+    },
+        "FLEXPART_7sites": {
+            "hfc134a": "FLEXPART_EUROPE_EDGAR_7sitesHFCpaper",
+            "hfc143a": "FLEXPART_EUROPE_EDGAR_7sitesHFCpaper",
+            "hfc125": "FLEXPART_EUROPE_EDGAR_7sitesHFCpaper",
+            "hfc152a": "FLEXPART_EUROPE_FLAT_7sitesHFCpaper",
+            "hfc32": "FLEXPART_EUROPE_EDGAR_7sitesHFCpaper",
+            "hfc227ea": "FLEXPART_EUROPE_FLAT_7sitesHFCpaper",
+            "hfc23": "FLEXPART_EUROPE_FLAT_7sitesHFCpaper",
+            "hfc245fa": "FLEXPART_EUROPE_FLAT_7sitesHFCpaper",
+            "hfc365mfc": "FLEXPART_EUROPE_FLAT_7sitesHFCpaper",
+            "hfc4310mee": "FLEXPART_EUROPE_FLAT_7sitesHFCpaper",
+            "hfc236fa": "FLEXPART_EUROPE_FLAT_7sitesHFCpaper"
     }
     }
 }
