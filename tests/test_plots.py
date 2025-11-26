@@ -219,6 +219,21 @@ def test_obs_modelled_diff_include():
         y_lim=None,
     )
 
+def test_obs_modelled_aggreg_month():
+    fig = plot_mf_timeseries(
+        ds_all_mf_sliced,
+        species,
+        site,
+        model_colors,
+        model_labels,
+        config_data,
+        annotate_coords,
+        plot_type="separate",
+        include={"mf_observed": None, "mf_posterior": None, "posterior_above_BC":None, "observed_posterior_diff":None},
+        y_lim=None,
+        aggreg_month=True
+    )
+
 def test_obs_modelled_separate():
     fig = plot_mf_timeseries(
         ds_all_mf_sliced,
