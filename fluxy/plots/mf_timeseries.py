@@ -86,7 +86,9 @@ def _prepare_aggreg_month_var(da_var: xr.DataArray | xr.Dataset) -> xr.Dataset:
     return xr.merge([mean, unc], compat="no_conflicts", join="outer")
 
 
-def _prepare_var(ds: xr.Dataset, var: str, unc_var: str | None, model: str = None) -> xr.Dataset:
+def _prepare_var(
+    ds: xr.Dataset, var: str, unc_var: str | None, model: str = None
+) -> xr.Dataset:
     """
     Format the required variable <var> and its uncertainty <unc_var> in one dataset containing one variable (named <var>).
     The variable thus created has two dimensions: "index" (corresponding to time) and "percentile". "percentile" can take 1 to 4
@@ -122,7 +124,9 @@ def _prepare_var(ds: xr.Dataset, var: str, unc_var: str | None, model: str = Non
             unc_var = unc_var.replace("stdev", "percentile")
 
         if unc_var not in ds:
-            raise KeyError(f"Variables {unc_var_in} and {unc_var} not found for model {model}.")
+            raise KeyError(
+                f"Variables {unc_var_in} and {unc_var} not found for model {model}."
+            )
         logger.warning(
             f"Variable {unc_var_in} not found {ds.attrs.get('model','')} so reading uncert from {unc_var}."
         )
@@ -176,7 +180,7 @@ def _retrieve_variable(ds, var, unc_var):
     """
     if unc_var:
         raise NotImplementedError(
-             "No uncertainty can be plotted for `{var}` as this variable is inferred from others. Please set `include` to `{'{var}': None}`."
+            "No uncertainty can be plotted for `{var}` as this variable is inferred from others. Please set `include` to `{'{var}': None}`."
         )
 
     acceptable_var = ["prior", "posterior", "observed"]
@@ -230,7 +234,7 @@ def _prepare_data_to_plot(
         ds_all: dictionnary of dataset from which the variable are taken
         include: variables to plot in the main panel. If is a dictionnary : the keys are the variables to plot and the
             values the uncertainty that will be shaded around them.
-        diff_include: variables that will be plot in the secondary (histogram) panel. 
+        diff_include: variables that will be plot in the secondary (histogram) panel.
             In this function, they are treated as the ones passed with `include` parameter.
         time_freq_min: Time frequency minimum of the timeserie that should be shown as continous line.
             If the frequency is lower than this, the line will be discontinous. For more information,
@@ -351,7 +355,6 @@ def _set_labels_and_colors(
                 {"plot_label": plot_label, "plot_color": plot_color}
             )
 
-        # ds_dict[m].attrs["color"] = model_color
         ds_dict[m].attrs["label"] = model_label
 
     return ds_dict
@@ -421,14 +424,18 @@ def _get_unit(ds_dict: dict[str, xr.Dataset]) -> str:
     if len(plot_units) != 1:
         raise ValueError(
             f"{ds_dict[m].data_vars.keys()} in {ds_dict.keys()} do not have the same units. So far, the following were found: {plot_units}."
-            +  "Select only one model to plot, or run 'slice_mf' with 'mf_units_print' equal to a valid mole fraction unit before running 'plot_timeseries'."
+            + "Select only one model to plot, or run 'slice_mf' with 'mf_units_print' equal to a valid mole fraction unit before running 'plot_timeseries'."
         )
 
     return plot_units[0]
 
 
 def add_xlims_and_ticks(
-    ax: Axes, yearly_freq: bool, res_dict: dict[str, dict[str,xr.Dataset]|xr.Dataset], aggreg_month: bool, rotate_xticks: bool = False
+    ax: Axes,
+    yearly_freq: bool,
+    res_dict: dict[str, dict[str, xr.Dataset] | xr.Dataset],
+    aggreg_month: bool,
+    rotate_xticks: bool = False,
 ):
     """
     Add x limits, ticks and ticks labels to matplotlib axes. Optimize them by looking at if they are monthly, yearly, or monthly aggregated, and covered time range.
@@ -479,7 +486,7 @@ def add_xlims_and_ticks(
 
     if rotate_xticks:
         ax.tick_params(axis="x", rotation=70)
-        
+
     ax.set_xlim(xlim)
 
 
