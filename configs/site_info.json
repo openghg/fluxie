@@ -302,6 +302,12 @@
       "longitude": 8.2519
     }
   },
+  "BIS": {
+    "ITMS": {
+      "latitude": 44.3781,
+      "longitude": -1.2311
+    }
+  }, 
   "BKT": {
     "NOAA": {
       "height_station_masl": 845.0,
@@ -935,6 +941,12 @@
       "height_name": ["10magl"]
     }
   },
+  "ERS": {
+    "ITMS": {
+      "latitude": 42.9692,
+      "longitude": 9.3801
+    }
+  },
   "ESP": {
     "EC": {
       "height": ["40m"],
@@ -983,6 +995,12 @@
       "latitude": 54.3541,
       "long_name": "East Trout Lake, Saskatchewan, Canada",
       "longitude": -104.9868
+    }
+  },
+  "FKL": {
+    "ITMS": {
+      "latitude": 35.3378,
+      "longitude": 25.6694
     }
   },
   "FLK": {
@@ -1666,6 +1684,12 @@
       "longitude": -16.499
     }
   },
+  "JAR": {
+    "ITMS": {
+      "latitude": 58.2776,
+      "longitude": 27.3082
+    }
+  },
   "JBO": {
     "DECC": {
       "height": ["45m"],
@@ -1710,6 +1734,12 @@
       "latitude": 50.9102,
       "long_name": "Julich, Germany",
       "longitude": 6.4096
+    }
+  },
+  "KAS": {
+    "ITMS": {
+      "latitude": 49.2333,
+      "longitude": 19.9833
     }
   },
   "KCO": {
@@ -1904,6 +1934,12 @@
       "longitude": 0.174544
     }
   },
+  "LHW": {
+    "ITMS": {
+      "latitude": 47.4822,
+      "longitude": 8.3973
+    }
+  },
   "LMP": {
     "ICOS": {
       "height": ["8m"],
@@ -1920,6 +1956,12 @@
       "latitude": 35.5181,
       "long_name": "Lampedusa, Italy",
       "longitude": 12.6322
+    }
+  },
+  "LMU": {
+    "ITMS": {
+      "latitude": 41.5941,
+      "longitude": -1.1003
     }
   },
   "LSTJ": {
@@ -2405,6 +2447,12 @@
       "height_name": ["301magl"]
     }
   },
+  "OHP": {
+    "ITMS": {
+      "latitude": 43.931,
+      "longitude": 5.712
+    }
+  },
   "OIL": {
     "NOAA": {
       "height_station_masl": 192.6,
@@ -2515,6 +2563,12 @@
       "latitude": 38.47,
       "long_name": "Pico, Azores, Portugal",
       "longitude": -28.4
+    }
+  },
+  "PDM": {
+    "ITMS": {
+      "latitude": 42.9372,
+      "longitude": 0.1411
     }
   },
   "PFA": {
