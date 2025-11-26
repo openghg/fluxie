@@ -91,8 +91,8 @@ def determine_subplots_arrangement(subplot_number: int) -> tuple[int, int]:
         n_cols = 3
         n_rows = 2
     elif subplot_number > 6:
-        n_cols = 4
-        n_rows = math.ceil(subplot_number / 4)
+        n_cols = 3
+        n_rows = math.ceil(subplot_number / 3)
     return n_cols, n_rows
 
 
@@ -362,12 +362,12 @@ def add_prior_plot(
     Returns:
         res_dict: dictionnary containing prior data plotted - 2 keys: "time" and "mean", 4 if add_prior_unc: "min" and "max" added.
     """
-    linewidth, alpha = (1.0, 0.7) if annex_mode else (1.5, 1.0)
+    linewidth, alpha = (3.0, 0.7) if annex_mode else (1.5, 1.0)
 
     ax.plot(
         ds_region.time,
         ds_region.prior,
-        label=ds_region.attrs["model_label"] + " prior",
+        label=ds_region.attrs["model_label"], # + " prior",
         color=ds_region.attrs["model_color"],
         linestyle="dashed",
         linewidth=linewidth,
@@ -466,6 +466,7 @@ def add_inventory_barplot(
                 f"NID {inventory.year}" if annex_mode else f"Inventory {inventory.year}"
             ),
             zorder=0,
+            linewidth=3
         )
 
         tmp = pd.DataFrame({"type":["inventory",]*inventory.time.size,
@@ -809,7 +810,8 @@ def plot_country_flux(
 
         # plot posterior and prior (if requested)
         for m, ds_region in ds_to_plot.items():
-            highlighted_post = ("combined" in m) & annex_mode
+            # highlighted_post = ("combined" in m) & annex_mode
+            highlighted_post = annex_mode
             add_post_unc = (("combined" in m) & plot_combined_unc) |  (("combined" not in m) & plot_separate_unc)
             posterior_df = add_posterior_plot(
                 ax, ds_region, highlighted_post, add_post_unc
@@ -817,10 +819,16 @@ def plot_country_flux(
             plotted_data_df = pd.concat([plotted_data_df, posterior_df], ignore_index=True)
 
             if add_prior:
-                prior_df = add_prior_plot(
-                    ax, ds_region, annex_mode, add_prior_unc
-                )
-                plotted_data_df = pd.concat([plotted_data_df, prior_df], ignore_index=True)
+                if m == "combined_NAME_mean":
+                    ds_prior = ds_region.copy()
+                    ds_prior.attrs['model_color'] = 'black'
+                    ds_prior.attrs['model_label'] = 'Prior'
+
+        if add_prior:
+            prior_df = add_prior_plot(
+                ax, ds_prior, annex_mode, add_prior_unc
+            )
+            plotted_data_df = pd.concat([plotted_data_df, prior_df], ignore_index=True)
 
         # plot inventory
         if plot_inventory:
@@ -850,7 +858,7 @@ def plot_country_flux(
         # set ax title
         add_title(ax, country, r_data, country_codes_as_titles)
 
-    add_ylim(axes, plot_regions, plotted_data_df, fix_y_axes, set_global_leg)
+    # add_ylim(axes, plot_regions, plotted_data_df, fix_y_axes, set_global_leg)
     yearly_freq = (
         "yearly" in [ds.attrs["frequency"] for ds in ds_to_plot.values()]
         or resample == "year"

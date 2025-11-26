@@ -590,6 +590,10 @@ def plot_flux_map_over_time(
         ds_dict[key], time_labels[key] = resample_over_period(
             ds, dt, chop_by, resample_uncert_correlation
         )
+    #     ds_dict[key] = ds_dict[key].isel(time=[0,-1])
+    #     time_labels[key] = [time_labels[key][0], time_labels[key][-1]]
+
+    # print('Paper hack: selecting only first and last timestamps')
 
     if all([v == time_labels[key] for v in time_labels.values()]):
         time_labels = time_labels[key]
@@ -615,7 +619,7 @@ def plot_flux_map_over_time(
     is_diff = "diff" in var
     cmap = cmap_diff if is_diff else cmap
     border_color = c_border_diff if is_diff else c_border
-    marker_color = "black" if is_diff else "red"
+    marker_color = "black" if is_diff else "magenta"
     extend = "both" if is_diff else "max"
 
     # Initialise figure
@@ -719,7 +723,7 @@ def plot_flux_map_over_time(
         species_info,
         var,
         sector=sector if sector != "total" else "",
-        format=["variable", "species", "sector", "units"],
+        format=["species", "sector", "units"],
     )
     add_colorbar(
         fig,
@@ -898,7 +902,7 @@ def plot_flux_map_combined_models_comparison(
         cmap_i = cmap_diff if is_diff else cmap
         border_color = c_border_diff if is_diff else c_border
         vlim_i = (-lim[1], lim[1]) if is_diff else lim
-        marker_color = "black" if is_diff else "red"
+        marker_color = "black" if is_diff else "magenta"
         extend_i = "both" if is_diff else "max"
 
         # Plot the data
@@ -946,12 +950,12 @@ def plot_flux_map_combined_models_comparison(
             ds,
             species_info,
             var,
-            format=["variable", "species", "units", "time"],
+            format=["species", "units", "time"],
         )  # TODO Here, based on the last iteration. Check if consistent for all models?
-        if model == "diff":
-            cbar_lines = cbar_label.split("\n")
-            cbar_lines[0] += " difference"
-            cbar_label = "\n".join(cbar_lines)
+        # if model == "diff":
+        #     cbar_lines = cbar_label.split("\n")
+        #     cbar_lines[0] += " difference"
+        #     cbar_label = "\n".join(cbar_lines)
         add_colorbar(
             fig,
             ax_i,
