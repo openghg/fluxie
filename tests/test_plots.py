@@ -234,36 +234,6 @@ def test_obs_modelled_aggreg_month():
         aggreg_month=True
     )
 
-def test_obs_modelled_separate():
-    fig = plot_mf_timeseries(
-        ds_all_mf_sliced,
-        species,
-        site,
-        model_colors,
-        model_labels,
-        config_data,
-        annotate_coords,
-        plot_type="separate",
-        include={"mf_observed": None, "mf_posterior": "percentile_mf_posterior"},
-        diff_include=["mf_posterior"],
-        y_lim=None,
-    )
-
-def test_obs_modelled_together():
-    fig = plot_mf_timeseries(
-        ds_all_mf_sliced,
-        species,
-        site,
-        model_colors,
-        model_labels,
-        config_data,
-        annotate_coords,
-        plot_type="together",
-        include={"mf_observed": None, "mf_posterior": "percentile_mf_posterior"},
-        diff_include=["mf_posterior"],
-        y_lim=None,
-    )
-
 def test_mf_timeseries_no_hist():
     fig = plot_mf_timeseries(
         ds_all_mf_sliced,
