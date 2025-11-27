@@ -204,7 +204,7 @@ def test_mf_timeseries():
     )
 
 
-def test_obs_modelled_diff_include():
+def test_obs_modelled_separate():
     fig = plot_mf_timeseries(
         ds_all_mf_sliced,
         species,
@@ -215,7 +215,7 @@ def test_obs_modelled_diff_include():
         annotate_coords,
         plot_type="separate",
         include={"mf_observed": None, "mf_posterior": "percentile_mf_posterior"},
-        diff_include=None,
+        diff_include=["mf_posterior"],
         y_lim=None,
     )
 
