@@ -45,7 +45,7 @@ def retrieve_inventories(
         inventory_years = [inventory_years]
 
     if isinstance(sectors, str):
-        return _retrieve_inventories(
+        return _retrieve_inventories_sector(
             data_dir,
             country,
             species,
@@ -61,7 +61,7 @@ def retrieve_inventories(
 
     ds_sectors = {y: list() for y in inventory_years}
     for sector in sectors:
-        tmp = _retrieve_inventories(
+        tmp = _retrieve_inventories_sector(
             data_dir,
             country,
             species,
@@ -88,7 +88,7 @@ def retrieve_inventories(
     return [xr.concat(ds_sectors[y], dim="sector") for y in inventory_years]
 
 
-def _retrieve_inventories(
+def _retrieve_inventories_sector(
     data_dir: str,
     country: str,
     species: str,

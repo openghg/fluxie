@@ -292,7 +292,7 @@ def add_posterior_plot(
         highlighted_line: if True, the linewidth is made bigger (3.0) than when False (1.5). Typicall used for the annexes to highlight the PARIS mean.
         add_post_unc: if True, plots model uncertainty.
     Returns:
-        res_dict: dictionnary containing posterior data plotted - 4 keys: "time", "mean", "min" (lower uncertainty) and "max"  (upper uncertainty).
+        res: 
     """
 
     linew = 3 if highlighted_line else 1.5
@@ -340,7 +340,7 @@ def add_prior_plot(
             If False, linewidth is set to standard value (1.5) and no transparency s applied to the prior uncertainty (alpha=1.0).
         add_prior_unc: if True add prior uncertainty on the plot as a semi-transparent filled space.
     Returns:
-        res_dict: dictionnary containing prior data plotted - 2 keys: "time" and "mean", 4 if add_prior_unc: "min" and "max" added.
+        res: 
     """
     linewidth, alpha = (1.0, 0.7) if annex_mode else (1.5, 1.0)
 
@@ -410,7 +410,7 @@ def add_inventory_barplot(
         sector: sector we want to plot.
         annex_mode: If True, replace Inventory label with a more concise version for National Inventory Report Annexes.
     Returns:
-        res_dict: dictionnary containing inventory data plotted - 2 keys: "time", "value".
+        res: 
     """
 
     if isinstance(start_date, list):
@@ -468,14 +468,14 @@ def add_sector_barplot(
     ax: Axes, ds_sector: xr.Dataset, variable: str, bottom_values: np.ndarray | float
 ) -> dict[str, dict]:
     """
-    Plot the posterior data on the axis. The variable posterior of the dataset ds_region is plotted as a line (color and label found in the dataset
-    attributes) and the uncertainty (variables lower_posterior, upper_posterior in the dataset) is plotted as a semi-transparent filled space.
+    Add a layer to the stacked barplot. The layer correspond to a sector.
     Axes:
         ax: axes on which to plot
-        ds_region: dataset containing posterior data
-        highlighted_line: if True, the linewidth is made bigger (3.0) than when False (1.5). Typicall used for the annexes to highlight the PARIS mean.
+        ds_sector: dataset for the sector of interest
+        variable: variable to plot (either "posterior" or "prior")
+        bottom_values: bottom values passed as argument toax.bar. Correspond to the previous heights of the stacks.
     Returns:
-        res_dict: dictionnary containing posterior data plotted - 4 keys: "time", "mean", "min" (lower uncertainty) and "max"  (upper uncertainty).
+        res: 
     """
 
     sector_colors = config.get_default_sector_colors()
@@ -517,12 +517,15 @@ def add_sector_barplot(
         align="edge",
     )
 
-    res_dict = {
-        "time": np.array(time_as_datetime) + offset,
-        "mean": ds_sector[variable].values + bottom_values,
-    }
+    res = pd.DataFrame({"type":[variable,]*ds_sector.time.size,
+                        "model":[ds_sector.attrs["model_label"],]*ds_sector.time.size,
+                        "sector":[sector,]*ds_sector.time.size,
+                        "country":[ds_sector.attrs["country"],]*ds_sector.time.size,
+                        "species":[ds_sector.attrs["species"],]*ds_sector.time.size,
+                        "time": np.array(time_as_datetime) + offset,
+                        "mean_val": ds_sector[variable].values + bottom_values,}) 
 
-    return res_dict
+    return res
 
 
 def prepare_inventory_sector_barplot(
@@ -580,7 +583,8 @@ def prepare_inventory_sector_barplot(
 
 def add_ylim(
     axes: list[Axes],
-    plot_regions: list[str],
+    dim: str,
+    values: list[str],
     plotted_data_df: pd.DataFrame,
     fix_y_axes: bool | list[float] | None,
     set_global_leg: bool = False,
@@ -590,7 +594,8 @@ def add_ylim(
     
     Args:
         axes: list of axes to add the ylim to.
-        plot_regions: list of regions corresponding to the axes (should be the same length and order).
+        dim: dimension following which the list of axes is made.
+        values: list of values taken by the dimension and corresponding to the axes (should be the same length and order).
         res_dict: dictionnary containing the data plotted. Should have one key per regions plotted, the values being dictionnaries with 3 keys: "inventory", "posterior" and "prior";
             whose values are the output of add_inventory_barplot, add_posterior_plot, add_prior_plot). The data stored in them is used to infer the ylims.
         fix_y_axes: if list, use it as params to ax.set_ylim; if bool and True, all subplots have the same y lim (the max value that can be found in res_dict); else the max of the data
@@ -600,16 +605,16 @@ def add_ylim(
 
     if isinstance(fix_y_axes, list):
         if isinstance(fix_y_axes[0], list):
-            if len(fix_y_axes) != len(plot_regions):
+            if len(fix_y_axes) != len(values):
                 raise ValueError(
-                    "'fix_y_axes' must be a boolean, a list with 2 floats, or a list of lists of the same length as regions."
+                    "'fix_y_axes' must be a boolean, a list with 2 floats, or a list of lists of the same length as `values`."
                 )
             for i, ax in enumerate(axes):
                 ax.set_ylim(*fix_y_axes[i])
         else:
             if len(fix_y_axes) != 2:
                 raise ValueError(
-                    "'fix_y_axes' must be a boolean, a list with 2 floats, or a list of lists of the same length as regions."
+                    "'fix_y_axes' must be a boolean, a list with 2 floats, or a list of lists of the same length as `values`."
                 )
             for ax in axes:
                 ax.set_ylim(*fix_y_axes)
@@ -618,9 +623,9 @@ def add_ylim(
     max_cf = []
     fac = 1.1 if set_global_leg else 1.2
 
-    for ax, country in zip(axes, plot_regions):
-        df_country = plotted_data_df[plotted_data_df.country==country]
-        max_country = np.nanmax(df_country[["mean_val","max_unc"]])
+    for ax, val in zip(axes, values):
+        df_country = plotted_data_df[plotted_data_df[dim]==val]
+        max_country = np.nanmax(df_country[df_country.columns.intersection(["mean_val","max_unc"])])
 
         max_cf.append(max_country)
     
@@ -671,7 +676,7 @@ def add_ylabel(
             )
         elif plot_type.split("-")[1] == "inventory":
             ax.set_ylabel(
-                f"{kwargs['inventory_filename'].replace("_"," ")} {kwargs['year']}\n{print_country} {s_data.get(species, {}).get('species_print', species)}"
+                f"{kwargs['inventory_filename'].replace('_',' ')} {kwargs['year']}\n{print_country} {s_data.get(species, {}).get('species_print', species)}"
                 f" ({unit.replace('2','$_{{2}}$').replace('-1','$^{{-1}}$')})"
             )
 
@@ -707,7 +712,7 @@ def add_xlims_and_ticks(
         min_x = date(min_x.year, 1, 1)
         max_x = date(max_x.year + 1, 1, 1)
         step = (max_x.year - min_x.year) // 8 + 1
-        xticks = [date(year, 1, 1) for year in range(min_x.year, max_x.year, step)]
+        xticks = np.array([date(year, 1, 1) for year in range(min_x.year, max_x.year, step)])
         if (max_x.year - min_x.year) % step == 0:
             xticks = np.append(xticks, max_x)
         ax.set_xticks(xticks)
@@ -952,7 +957,7 @@ def plot_country_flux(
         # set ax title
         add_title(ax, country, r_data, country_codes_as_titles)
 
-    add_ylim(axes, plot_regions, plotted_data_df, fix_y_axes, set_global_leg)
+    add_ylim(axes, "country", plot_regions, plotted_data_df, fix_y_axes, set_global_leg)
     yearly_freq = (
         "yearly" in [ds.attrs["frequency"] for ds in ds_to_plot.values()]
         or resample == "year"
@@ -1031,6 +1036,8 @@ def plot_country_sector_flux_bar(
     r_data = config_data.get("regions_info", {})
     unit = get_posterior_unit(ds_all)
 
+    plotted_data_df = pd.DataFrame()
+
     # prepare data
     ds_all_region = extract_region_flux(ds_all, plot_region, r_data, sectors=sectors)
     ds_to_plot = prepare_data_to_plot(
@@ -1061,15 +1068,6 @@ def plot_country_sector_flux_bar(
             inventory_filename,
         )
 
-    # dict to store data plotted
-    posterior_data = {m: dict() for m in ds_to_plot.keys()}
-    prior_data = {m: dict() for m in ds_to_plot.keys()}
-    if not isinstance(inventory_years, list):
-        inventory_years = [
-            inventory_years,
-        ]
-    inventory_data = {year: dict() for year in inventory_years}
-
     # create figure
     if plot_inventory_or_prior == "inventory":
         n_plots = len(ds_to_plot.keys()) + len(inventory_years)
@@ -1086,20 +1084,16 @@ def plot_country_sector_flux_bar(
         else:
             ax_data = axes[i]
 
+        # plot posterior (and eventually prior)
         former_sector = None
         for sector in sectors:
-            # plot posterior
-            bottom_values = posterior_data[m].get(former_sector, {"mean": 0.0})["mean"]
-            posterior_data[m][sector] = add_sector_barplot(
-                ax_data, ds.sel(sector=sector), "posterior", bottom_values
-            )
-
-            # plot prior
-            if plot_inventory_or_prior == "prior":
-                bottom_values = prior_data[m].get(former_sector, {"mean": 0.0})["mean"]
-                prior_data[m][sector] = add_sector_barplot(
-                    ax_comp, ds.sel(sector=sector), "prior", bottom_values
+            vars_to_plot = ["posterior", "prior"] if plot_inventory_or_prior == "prior" else ["posterior"]
+            for var, ax in zip(vars_to_plot,[ax_data,ax_comp]):
+                bottom_values = plotted_data_df[(plotted_data_df.sector==former_sector)&(plotted_data_df.type==var)&(plotted_data_df.model==ds.attrs["model_label"])].mean_val if former_sector else 0
+                res = add_sector_barplot(
+                    ax, ds.sel(sector=sector), var, bottom_values
                 )
+                plotted_data_df = pd.concat([plotted_data_df, res], ignore_index=True)
 
             former_sector = sector
 
@@ -1130,12 +1124,11 @@ def plot_country_sector_flux_bar(
             ax = axes[-i - 1]
             former_sector = None
             for sector in sectors:
-                bottom_values = inventory_data[year].get(former_sector, {"mean": 0.0})[
-                    "mean"
-                ]
-                inventory_data[year][sector] = add_sector_barplot(
-                    ax, inv.sel(sector=sector), "inv_data", bottom_values
+                bottom_values = plotted_data_df[(plotted_data_df.sector==former_sector)&(plotted_data_df.type=="inventory")&(plotted_data_df.model==f"inventory_{year}")].mean_val if former_sector else 0
+                res = add_sector_barplot(
+                    ax, ds.sel(sector=sector), var, bottom_values
                 )
+                plotted_data_df = pd.concat([plotted_data_df, res], ignore_index=True)
                 former_sector = sector
             ax.legend(ncol=2, borderpad=0.4, columnspacing=1.0)
             add_ylabel(
@@ -1149,24 +1142,20 @@ def plot_country_sector_flux_bar(
                 year=year,
             )
 
-    # plot gird and legend
+    # plot grid and legend
     for ax in axes:
         ax.grid(visible=True, which="major", alpha=0.4)
         ax_data.legend(ncol=2, borderpad=0.4, columnspacing=1.0)
 
-    # make res_dict
-    res_dict: dict[str, dict] = {
-        "inventory": inventory_data,
-        "posterior": posterior_data,
-        "prior": prior_data,
-    }
-
     # set y lim
-    add_ylim(axes, ds_to_plot.keys(), res_dict, fix_y_axes)
+    if not fix_y_axes:
+        fix_y_axes = True
+        logger.info("Switching `fix_y_axes` as the the country are the same for every suplots iin a sector plots, and thus the ODG of the max values should be the same.")
+    add_ylim(axes, "model", [ds.attrs["model_label"] for ds in ds_to_plot.values()], plotted_data_df, fix_y_axes)
 
     # set xlim and xticks
     yearly_freq = ("year" in freqs) or ("yearly" in freqs)
 
-    add_xlims_and_ticks(axes[-1], yearly_freq, res_dict, aggreg_month=False)
+    add_xlims_and_ticks(axes[-1], yearly_freq, plotted_data_df, aggreg_month=False)
 
-    return fig
+    return fig, plotted_data_df
