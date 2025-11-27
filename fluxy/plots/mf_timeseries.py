@@ -244,22 +244,20 @@ def plot_timeseries(
 
                 # Accept both percentile and stdev as uncertainty variables
                 if unc_var not in ds_plot.keys():
+                    unc_var_in = unc_var
                     if "percentile" in unc_var:
-                        unc_var_in = unc_var
                         unc_var = unc_var.replace("percentile", "stdev")
 
                     elif "stdev" in unc_var:
-                        unc_var_in = unc_var
                         unc_var = unc_var.replace("stdev", "percentile")
 
                     if unc_var not in ds_plot.keys():
                         raise KeyError(
                             f"Variables {unc_var_in} and {unc_var} not found in {m}."
                         )
-                    else:
-                        logger.warning(
-                            f"Variable {unc_var_in} not found in {m} so reading uncert from {unc_var}."
-                        )
+                    logger.warning(
+                        f"Variable {unc_var_in} not found in {m} so reading uncert from {unc_var}."
+                    )
 
                 kwargs = {
                     "color": plot_color,
@@ -268,8 +266,8 @@ def plot_timeseries(
                 # Define uncertainty band
                 flag_fill_between = False
                 if unc_var.split("_")[0] == "percentile":
-                    y1 = ds_plot[unc_var][0, :].values
-                    y2 = ds_plot[unc_var][1, :].values
+                    y1 = ds_plot[unc_var].isel(percentile=0).values
+                    y2 = ds_plot[unc_var].isel(percentile=1).values
                     flag_fill_between = True
                 elif unc_var.split("_")[-1] in ["prior", "posterior"]:
                     y1 = ds_plot[var].values - ds_plot[unc_var].values

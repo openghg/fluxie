@@ -8,7 +8,7 @@ from config_annex_plot import AnnexConfig
 
 from fluxy.cli.utils_annex_plot import (
     get_species_specific_settings,
-    dict_to_str_dataframe,
+    create_str_dataframe,
     make_table,
 )
 from fluxy.io import read_config_files, read_model_output, read_flux_total_fgases
@@ -44,7 +44,7 @@ def produce_plots(
         output_path :
             Path where to store the figures/tables/tex files.
         inventory_years :
-            Inventory year to use in the plots. If a list is given, only the first item will be used in the tables.
+            Inventory year to use in the plots. If a list is given, only the last item will be used in the tables.
 
     Returns:
         annual_res :
@@ -70,6 +70,10 @@ def produce_plots(
         + annex_config_data.yearly_species
         + annex_config_data.combined_species
     )
+
+    # Get last inventory year (most recent)
+    if isinstance(inventory_years, list):
+        inventory_years = inventory_years[-1]
 
     print("\n\n--- GENERATING PLOTS ---")
     for species in all_species:
@@ -186,8 +190,7 @@ def produce_plots(
             plt.close()
 
             # Store results for .csv and table
-            annual_res = dict_to_str_dataframe(res_dict, inventory_years, species)
-            annual_res_list.append(annual_res)
+            annual_res_list.append(res_dict)
 
             # 1.2) Plot monthly country fluxes over PARIS time window
             print(f"- Monthly country fluxes {start_date} - {end_date}")
@@ -210,10 +213,7 @@ def produce_plots(
 
         else:
             # Store results for .csv and table
-            annual_res = dict_to_str_dataframe(
-                res_dict[region], inventory_years, species
-            )
-            annual_res_list.append(annual_res)
+            annual_res_list.append(res_dict)
 
         ### Spatial maps
         if "all" not in species:
@@ -239,6 +239,7 @@ def produce_plots(
                 model_labels=model_labels,
                 config_data=config_data,
                 dt=dt,
+                set_fluxlim=annex_config_data.fluxlim.get(species, "auto"),
                 set_fluxlim_percentile=annex_config_data.fluxlim_percentile.get(
                     species, None
                 ),
@@ -257,7 +258,7 @@ def produce_plots(
                     species=species,
                     model_labels=model_labels,
                     config_data=config_data,
-                    set_fluxlim_percentile=annex_config_data.fluxlim_percentile.get(
+                    set_fluxlim_percentile=annex_config_data.difflim_percentile.get(
                         species, None
                     ),
                     **annex_config_data.kwargs_maps_general,
@@ -270,48 +271,21 @@ def produce_plots(
     print("\n--- ALL PLOTS GENERATED SUCCESSFULLY! ---")
 
     print("\n\n--- GENERATING TABLES ---")
-    annual_res = pd.concat(annual_res_list).reset_index(drop=True).fillna(value=" ")
-    columns = np.concatenate(
-        [
-            ["source", "species"],
-            np.sort(
-                [
-                    int(col)
-                    for col in annual_res.columns
-                    if col not in ["species", "source"]
-                ]
-            ).astype(str),
-        ]
-    )
-    annual_res = annual_res[columns]
+    annual_res = pd.concat(annual_res_list, ignore_index=True)
 
-    print("\nTABLE HFC")
-    hfc_res = annual_res[
-        annual_res.species.apply(lambda x: x[:3].lower() == "hfc")
-    ].copy()
-    hfc_res["species"] = hfc_res.species.apply(lambda x: x.replace("hfc", "HFC-"))
-    make_table(hfc_res, output_path / f"hfc_res_{region}.tex")
-    hfc_res.to_csv(output_path / f"hfc_res_{region}.csv", index=False)
+    hfcs_list = [s for s in annual_res.species.unique() if s[:3].lower() == "hfc"]
+    pfcs_list = [s for s in annual_res.species.unique() if s[:3].lower() in ["pfc","cf4"]]
+    main_gases_list = ["ch4", "n2o", "sf6", "nf3", "all_pfc", "all_hfc"]
 
-    print("\nTABLE PFC")
-    pfc_res = annual_res[
-        annual_res.species.apply(lambda x: x[:3].lower() == "pfc" or x.lower() == "cf4")
-    ].copy()
-    pfc_res["species"] = pfc_res.species.apply(lambda x: x.replace("pfc", "PFC-"))
-    pfc_res["species"] = pfc_res.species.apply(lambda x: x.replace("cf4", "PFC-14"))
-    make_table(pfc_res, output_path / f"pfc_res_{region}.tex")
-    pfc_res.to_csv(output_path / f"pfc_res_{region}.csv", index=False)
-
-    print("\nTABLE main gases")
-
-    main_gases_res = annual_res[
-        annual_res.species.isin(["ch4", "n2o", "sf6", "all_pfc", "all_hfc"])
-    ].copy()
-    main_gases_res["species"] = main_gases_res.species.apply(
-        lambda x: x.upper().replace("ALL_", "Total ")
-    )
-    make_table(main_gases_res, output_path / f"main_gases_res_{region}.tex")
-    main_gases_res.to_csv(output_path / f"main_gases_res_{region}.csv", index=False)
+    for name, species_list in zip(["hfc", "pfc", "main_gases"],
+                                  [hfcs_list, pfcs_list, main_gases_list]):
+        print(f"\nTABLE {name.upper().replace('_',' ')}")
+        sp_res = create_str_dataframe(annual_res,
+                    inventory_years,
+                    species_list,
+                    table_start_date=annex_config_data.start_date_table)
+        make_table(sp_res, output_path / f"{name}_res_{region}.tex", inventory_years)
+        sp_res.to_csv(output_path / f"{name}_res_{region}.csv", index=False)
 
     print("\n--- TABLES GENERATED SUCCESSFULLY! ---")
     return annual_res
