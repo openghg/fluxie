@@ -645,11 +645,14 @@ def set_title(ax: Axes, country: str, r_data: dict, country_codes_as_titles: boo
         "NW_EU_CONTINENT": "NW CONTINENTAL EUROPE",
     }
     print_country = country_equivalent.get(country, country)
+    
+    print(country_codes_as_titles)
 
-    if country_codes_as_titles and country in r_data["regions"].keys():
-        ax.set_title(f'{print_country}\n{r_data["regions"][country]}')
-    else:
-        ax.set_title(f"{print_country}")
+    if country_codes_as_titles:
+        if country in r_data["regions"].keys():
+            ax.set_title(f'{print_country}\n{r_data["regions"][country]}')
+        else:
+            ax.set_title(f"{print_country}")
 
 
 def plot_country_flux(
@@ -1116,4 +1119,158 @@ def plot_country_sector_flux_bar(
             ax_data.set_ylim([0, max_cf * 1.2])
             ax_comp.set_ylim([0, max_cf * 1.2])
 
+    return fig
+
+def plot_all_species_stacked_bar(all_species: list[str],
+                                 ds_all_flux_scaled: dict[str, xr.Dataset],
+                                 models: list[str],
+                                 regions: list[str],
+                                 config_data: dict[str, dict] = {},
+                                 model_colors: dict[str, str] = {},
+                                 model_labels: dict[str, str] = {},
+                                 start_date: str | None = None,
+                                 end_date: str | None = None,
+                                 inventory_years: list[str] | None = None,
+                                 inventory_filename: str = "UNFCCC_inventory",
+                                 data_dir: str | None = None,
+                                 sector: str = "total",
+                                 country_flux_units_print: str = "Tg CO2-eq yr-1"
+                                 ) -> Figure:
+    """
+    Stacked bar plot of posterior fluxes, summed over all species, for a single region, for a range of models.
+    Args:
+        all_species: List of gas species, e.g. ['ch4','n2o'].
+        ds_all_flux_scaled: xarray datasets of fluxes, scaled and sliced between
+            chosen dates.
+        regions: Country or regions to plot, e.g. ['GBR']
+        config_data: Dictionary with settings read from json file. Use json filenames as keys.
+        model_colors: Models and corresponding colours used to plot the model.
+        start_date: Start dates of the data to plot (used to slice inventory data).
+        end_date: Start dates of the data to plot (used to slice inventory data).
+        inventory_years: List of inventory data from different years to include. If None, only plots the most recent inventory data.
+        inventory_filename: Name of inventory file: {inventory_filename}_{species}_{inventory_year}
+        data_dir: Path to top data directory, used to read inventory data files.
+        sector: Sector to plot.
+        country_flux_units_print: Units for fluxes to be printed on inventory bars.
+    Returns:
+        fig: A stacked bar plot of all species for the region.
+    """
+    
+    print('NOTE: this works, apart from inventory uncertainty read, which needs fixing')
+    
+    species_colors = {'ch4':'lightblue',
+                  'n2o':'darkorange',
+                  'all_hfcs':'darkpink',
+                  'all_pfcs':'firebrick',
+                  'sf6':'darkturquoise',
+                  'nf3':'darkblue'}
+
+    s_data = config_data.get("species_info", {})
+    r_data = config_data.get("regions_info", {})
+
+    width = np.timedelta64(150,'D')
+
+    ds_to_plot = {}
+    inventories_to_plot = {}
+    inventories_uncert_to_plot = {}
+
+    fig,ax = plt.subplots(1,1,figsize=(10,6))
+
+    for s,species in enumerate(all_species):
+        
+        ds_all_region = extract_region_flux(ds_all_flux_scaled[species], regions, r_data, sector=sector)
+        ds_to_plot[species] = prepare_data_to_plot(
+            ds_all_region=ds_all_region,
+            model_labels=model_labels,
+            model_colors=model_colors,
+            plot_separate=True,
+            plot_combined=False,
+            resample='year',
+            rolling_mean=False,
+            plot_resample_and_original=False,
+            resample_uncert_correlation=False,
+            aggreg_month=False,
+            only_overlapping=False
+        )
+        
+        models[s] = list(ds_to_plot[species].keys())[0]
+
+        inventories_to_plot[species],inventories_uncert_to_plot[species] = retrieve_inventories(
+            data_dir,
+            regions[0],
+            species,
+            start_date,
+            end_date,
+            country_flux_units_print,
+            s_data,
+            r_data,
+            inventory_years,
+            inventory_filename,
+            sector=sector,
+        )
+        
+        print(inventories_uncert_to_plot[species])
+        
+        if inventories_uncert_to_plot[species][0] is None:
+            inventories_uncert_to_plot[species][0] = np.zeros_like(inventories_to_plot[species][0].values)
+                        
+        if s == 0:
+            plot_times = ds_to_plot[species][models[s]].time.values
+            uncert_combined = ds_to_plot[species][models[s]]['posterior_upper'].values-ds_to_plot[species][models[s]]['posterior_lower'].values
+            inventories_uncert_combined = inventories_uncert_to_plot[species][0]
+        else:
+            uncert_combined = np.sqrt(uncert_combined**2 + (ds_to_plot[species][models[s]]['posterior_upper'].values - ds_to_plot[species][models[s]]['posterior_lower'].values)**2)
+            inventories_uncert_combined = np.sqrt(inventories_uncert_combined**2 + inventories_uncert_to_plot[species][0]**2)
+
+    for s,species in enumerate(all_species):
+        
+        if s == 0:
+            bottom = None
+            inv_bottom = None
+            inventory_label = f'{inventory_years[0]} Inventory'
+        else:
+            bottom = flux_sum
+            inv_bottom = inventory_sum
+            inventory_label = None
+            
+        if s == (len(all_species)-1):
+            uncert = uncert_combined
+            inventories_uncert = inventories_uncert_combined
+        else:
+            uncert = None
+            inventories_uncert = None
+
+        ax.bar(plot_times+width,
+            inventories_to_plot[species][0].values,
+            width=width,
+            bottom=inv_bottom,
+            color='lightgrey',
+            edgecolor='grey',
+            label=inventory_label,
+            yerr=inventories_uncert,
+            error_kw={'capsize':2})
+        
+        ax.bar(plot_times,
+            ds_to_plot[species][models[s]]['posterior'].values,
+            width=width,
+            bottom=bottom,
+            color=species_colors[species],
+            label=s_data.get(species, {}).get('species_print', species),
+            yerr=uncert,
+            error_kw={'capsize':2})
+
+        if s == 0:
+            flux_sum = ds_to_plot[species][models[s]]['posterior'].values
+            inventory_sum = inventories_to_plot[species][0].values
+        else:
+            flux_sum += ds_to_plot[species][models[s]]['posterior'].values
+            inventory_sum += inventories_to_plot[species][0].values
+
+        ax.set_xticks(plot_times+(width/2))
+        ax.set_xticklabels((plot_times+(width/2)).astype('datetime64[Y]'))
+    
+    ax.set_ylabel('Tg y$^{-1}$ CO$_2$-eq')
+
+    ax.legend(ncol=3,loc='upper right',borderpad=0.4,columnspacing=1.0)
+    
     return fig

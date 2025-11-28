@@ -501,6 +501,7 @@ def plot_flux_map_over_time(
     fallback_sites: list[str] | None = None,
     resample_uncert_correlation: bool = False,
     sector: str = "total",
+    include_title_and_labels: bool = True,
 ) -> plt.Figure:
     """
     Plot a given flux variable averaged over specific time intervals, for all models or the model mean.
@@ -685,14 +686,18 @@ def plot_flux_map_over_time(
                     ax_i.set_xticklabels([])
                 if col > 0:
                     ax_i.set_yticklabels([])
+            if include_title_and_labels == False:
+                ax_i.set_xticks([])
+                ax_i.set_yticks([])
 
             # Add titles
-            if row == 0:
-                # Column titles
-                ax_i.set_title(time_label)
-            if col == 0 and not plot_combined:
-                # Row titles
-                ax_i.set_ylabel(model_labels.get(model, model))
+            if include_title_and_labels:
+                if row == 0:
+                    # Column titles
+                    ax_i.set_title(time_label)
+                if col == 0 and not plot_combined:
+                    # Row titles
+                    ax_i.set_ylabel(model_labels.get(model, model))
 
             # Add sites and markers if specified
             if add_sites:
@@ -714,12 +719,16 @@ def plot_flux_map_over_time(
                 )
 
     # Add colorbar
+    if include_title_and_labels:
+        format=["variable", "species", "sector", "units"]
+    else:
+        format=["species", "sector", "units"]
     cbar_label = print_cbar_label(
         ds,
         species_info,
         var,
         sector=sector if sector != "total" else "",
-        format=["variable", "species", "sector", "units"],
+        format=format,
     )
     add_colorbar(
         fig,
