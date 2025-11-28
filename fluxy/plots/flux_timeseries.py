@@ -772,9 +772,12 @@ def plot_country_flux(
             )
 
             if add_prior:
-                prior_data[country][m] = add_prior_plot(
-                    ax, ds_region, annex_mode, add_prior_unc
-                )
+                try:
+                    prior_data[country][m] = add_prior_plot(
+                        ax, ds_region, annex_mode, add_prior_unc
+                    )
+                except:
+                    print('no prior data')
 
         # plot inventory
         if plot_inventory:

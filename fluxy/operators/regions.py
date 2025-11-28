@@ -128,45 +128,49 @@ def extract_region_flux(
             ds_region = ds.sel({"country": country_search})
 
             for v in ["posterior", "prior"]:
-                ds_region[v] = ds_region[f"flux_{sector}_{v}_country"]
-                var_percentile = f"percentile_flux_{sector}_{v}_country"
-                var_stdev = f"stdev_flux_{sector}_{v}_country"
+                if f"flux_{sector}_{v}_country" in ds_region.keys():
+                    ds_region[v] = ds_region[f"flux_{sector}_{v}_country"]
+                    var_percentile = f"percentile_flux_{sector}_{v}_country"
+                    var_stdev = f"stdev_flux_{sector}_{v}_country"
 
-                if var_percentile in ds_region.variables:
-                    da = ds_region[var_percentile]
-                    ds_region[f"{v}_lower"] = da.isel(percentile=min_percentile_index)
-                    ds_region[f"{v}_upper"] = da.isel(percentile=max_percentile_index)
+                    if var_percentile in ds_region.variables:
+                        da = ds_region[var_percentile]
+                        ds_region[f"{v}_lower"] = da.isel(percentile=min_percentile_index)
+                        ds_region[f"{v}_upper"] = da.isel(percentile=max_percentile_index)
 
-                    # Print info
-                    flag_percentile = True
-                    confidence_interval = (
-                        ds_region["percentile"][max_percentile_index].values
-                        - ds_region["percentile"][min_percentile_index].values
-                    ) * 100
-                    logger.info(
-                        f"Using {var_percentile} to plot {m} {v} country flux {confidence_interval:.1f}% confidence interval."
-                    )
-                elif var_stdev in ds_region.variables:
-                    ds_region[f"{v}_lower"] = ds_region[v] - ds_region[var_stdev]
-                    ds_region[f"{v}_upper"] = ds_region[v] + ds_region[var_stdev]
+                        # Print info
+                        flag_percentile = True
+                        confidence_interval = (
+                            ds_region["percentile"][max_percentile_index].values
+                            - ds_region["percentile"][min_percentile_index].values
+                        ) * 100
+                        logger.info(
+                            f"Using {var_percentile} to plot {m} {v} country flux {confidence_interval:.1f}% confidence interval."
+                        )
+                    elif var_stdev in ds_region.variables:
+                        ds_region[f"{v}_lower"] = ds_region[v] - ds_region[var_stdev]
+                        ds_region[f"{v}_upper"] = ds_region[v] + ds_region[var_stdev]
 
-                    # Print info
-                    flag_stdev = True
-                    logger.info(
-                        f"Using {var_stdev} to plot {m} {v} country flux 68.2% confidence interval."
-                    )
-                else:
-                    da = ds_region[f"flux_{sector}_{v}_country"]
-                    ds_region[f"{v}_lower"] = da
-                    ds_region[f"{v}_upper"] = da
+                        # Print info
+                        flag_stdev = True
+                        logger.info(
+                            f"Using {var_stdev} to plot {m} {v} country flux 68.2% confidence interval."
+                        )
+                    else:
+                        da = ds_region[f"flux_{sector}_{v}_country"]
+                        ds_region[f"{v}_lower"] = da
+                        ds_region[f"{v}_upper"] = da
 
         else:
             raise ValueError(f"{country_search} ({country}) is not available for {m}")
 
         for v in ["posterior", "prior"]:
-            ds_region[f"{v}_lower"] = ds_region[f"{v}_lower"].clip(min=0)
+            if f"{v}_lower" in ds_region.keys():
+                ds_region[f"{v}_lower"] = ds_region[f"{v}_lower"].clip(min=0)
 
-        ds_region = ds_region[target_vars]
+
+
+        ds_region = ds_region[[i for i in target_vars if i in ds_region.keys()]]
 
         if keep_country_dim and "country" not in ds_region.dims:
             ds_region = ds_region.expand_dims(
