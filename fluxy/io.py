@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import re
+import string
 from io import BytesIO
 from pathlib import Path
 from urllib.request import urlopen
@@ -144,6 +145,81 @@ def read_config_files(
     return data_dict
 
 
+def make_template(*args: str | tuple[str], suffix: str | None = None) -> str:
+    """
+    Build filename template based on input arguments.
+    Single arguments are expected to indicate directories and are joined with "/".
+    Tuple elements are expected to indicate filename parts and are joined with "_".
+
+    Args:
+        args (tuple of str or tuples):
+            Tuple with all input arguments (folder directories and filename parts).
+        suffix (str):
+            If provided, a suffix is added to the filename template.
+
+    Returns:
+        template (str):
+            String composed of template elements (e.g. "{arg1}/{arg2}{suffix}")
+    """
+
+    parts = []
+    for x in args:
+        if isinstance(x, str):
+            parts.append(f"{{{x}}}")
+        else:
+            # tuple (or list etc...)
+            part = "_".join(f"{{{y}}}" for y in x)
+            parts.append(part)
+
+    # Join directories and filenames
+    template = "/".join(parts)
+
+    # Add suffix
+    if suffix is not None:
+        template += f"{{{suffix}}}"
+
+    return template
+
+
+def fill_template(template: str, **kwargs: str) -> str:
+    """
+    Replace filename template with respective input arguments.
+
+    Args:
+        template (str):
+            Filename template. Output from make_template.
+        kwargs (str):
+            Elements to fill the template.
+
+    Returns:
+        filepath (str):
+            Full path to file given by template with elements replaced by kwargs.
+    """
+
+    # add place holders for missing args
+    template_fields = [x[1] for x in string.Formatter().parse(template)]
+    for field in template_fields:
+        # check for option params
+        if field.endswith("?") and field[:-1] in kwargs:
+            kwargs[field] = kwargs.pop(field[:-1])
+
+        # handle missing arguments: remove optional args and
+        # create placeholders for the rest
+        if field not in kwargs:
+            bracket_name = f"{{{field}}}"
+            if field.endswith("?"):
+                # optional, so remove field, with a bunch of cases to handle separators
+                template = template.replace(bracket_name + "_", "")
+                template = template.replace("_" + bracket_name, "")
+                template = template.replace(bracket_name + "/", "")
+                template = template.replace("/" + bracket_name, "")
+                template = template.replace(bracket_name, "")
+            else:
+                kwargs[field] = bracket_name
+
+    return template.format(**kwargs)
+
+
 def get_filename(
     model: str,
     species: str,
@@ -152,6 +228,7 @@ def get_filename(
     config_data: dict[str, dict],
     data_dir: os.PathLike | str,
     read_standard_run: bool,
+    filepath_kwargs: dict[str, str],
 ) -> Path:
     """
     Get complete path to the output file.
@@ -174,6 +251,9 @@ def get_filename(
             If True, constructs filename from models_info['standard_run'][<model_run_keys>].
             If entry "<model_run_keys>" don't exist, constructs filename from items in "<run_keys>".
             If entry "<run_keys>" don't exist, constructs filename from items in "default".
+        filepath_kwargs (dict of str):
+            Dictionary with filename parameters (key options: "data_dir", "model_dir", "species_dir", "sub_dir", "model_name")
+            If missing, filename parameters are deduced from model.
 
     Returns:
         filepath (Path):
@@ -182,53 +262,58 @@ def get_filename(
 
     models_info = config_data.get("models_info", {})
 
-    # Get model name
+    # Get base model name (first keyword of model)
     sub_dir, model_name = os.path.split(model)
     base_model_name, *run_keys = model_name.split("_")
     run_keys = "_".join(run_keys)
 
-    # Get model name from standard_run dictionary
-    if read_standard_run:
-        logger.info(f"Getting {model_name} run key from models_info['standard_run']")
-
-        if (models_info is not None) and (
-            all_standard_run_dict := models_info.get("standard_run")
-        ):
-            standard_run_dict = all_standard_run_dict.get(model_name, {})
-            standard_run_dict_key = all_standard_run_dict.get(run_keys, {})
-            standard_run_dict_default = all_standard_run_dict.get("default", {})
-
-            if species in standard_run_dict:
-                model_name = f"{base_model_name}_{standard_run_dict[species]}"
-            elif species in standard_run_dict_key:
-                model_name = f"{base_model_name}_{standard_run_dict_key[species]}"
-            elif species in standard_run_dict_default:
-                model_name = f"{base_model_name}_{standard_run_dict_default[species]}"
-            else:
-                logger.warning(
-                    f"No standard run provided for {species}, neither in '{model_name}', '{run_keys}' nor in 'default'. Please update variable 'standard_run' in models_info.json. Trying to find {model} instead."
-                )
-        else:
-            logger.warning(
-                f"Config file models_info.json does not exist or variable 'standard_run' is not defined. Please update models_info.json. Trying to find {model} instead."
+    # Get model name
+    if model_name not in filepath_kwargs:
+        # Get model name from standard_run dictionary
+        if read_standard_run:
+            logger.info(
+                f"Getting {model_name} run key from models_info['standard_run']"
             )
 
-    # Replace parameter tags by dict values in config
-    name_tags = model_name.split("_")
+            if (models_info is not None) and (
+                all_standard_run_dict := models_info.get("standard_run")
+            ):
+                standard_run_dict = all_standard_run_dict.get(model_name, {})
+                standard_run_dict_key = all_standard_run_dict.get(run_keys, {})
+                standard_run_dict_default = all_standard_run_dict.get("default", {})
 
-    filename_tags = models_info.get("filename_tags", None)
-    if filename_tags is not None:
-        for i, param in enumerate(name_tags):
-            string_in_file = filename_tags.get(param, None)
-
-            if string_in_file is not None:
-                string_in_file = string_in_file.replace(
-                    "<model>", base_model_name.lower()
+                if species in standard_run_dict:
+                    model_name = f"{base_model_name}_{standard_run_dict[species]}"
+                elif species in standard_run_dict_key:
+                    model_name = f"{base_model_name}_{standard_run_dict_key[species]}"
+                elif species in standard_run_dict_default:
+                    model_name = (
+                        f"{base_model_name}_{standard_run_dict_default[species]}"
+                    )
+                else:
+                    logger.warning(
+                        f"No standard run provided for {species}, neither in '{model_name}', '{run_keys}' nor in 'default'. Please update variable 'standard_run' in models_info.json. Trying to find {model} instead."
+                    )
+            else:
+                logger.warning(
+                    f"Config file models_info.json does not exist or variable 'standard_run' is not defined. Please update models_info.json. Trying to find {model} instead."
                 )
-                name_tags[i] = string_in_file
 
-    # Build model name
-    model_name = "_".join(name_tags)
+        # Replace parameter tags by dict values in config
+        name_tags = model_name.split("_")
+        filename_tags = models_info.get("filename_tags", None)
+        if filename_tags is not None:
+            for i, param in enumerate(name_tags):
+                string_in_file = filename_tags.get(param, None)
+
+                if string_in_file is not None:
+                    string_in_file = string_in_file.replace(
+                        "<model>", base_model_name.lower()
+                    )
+                    name_tags[i] = string_in_file
+
+        # Build model name
+        model_name = "_".join(name_tags)
 
     # Get species name
     species_print = species
@@ -239,20 +324,46 @@ def get_filename(
     ):
         species_print = species_tag
 
-    # Define filepath
-    data_dir = Path(data_dir)
+    # Get file pattern
     if not period and file_pattern.startswith("_"):
         # Remove leading underscore if no period is given
         file_pattern = file_pattern[1:]
-    filepath = (
-        data_dir
-        / base_model_name
-        / species
-        / sub_dir
-        / f"{model_name}_{species_print}_{period}{file_pattern}"
+
+    # Hard-coded filename template
+    filepath_temp = make_template(
+        "data_dir",
+        "model_dir",
+        "species_dir",
+        "sub_dir?",
+        ("model_name", "species_print", "period"),
+        suffix="suffix",
     )
 
-    return filepath
+    # Define dictionary with template arguments
+    fill_kwargs = {
+        "data_dir": data_dir,
+        "model_dir": base_model_name,
+        "species_dir": species,
+        "sub_dir": sub_dir,
+        "model_name": model_name,
+    }
+
+    fill_kwargs.update(
+        {
+            **filepath_kwargs,
+            "species_print": species_print,
+            "period": period,
+            "suffix": file_pattern,
+        },
+    )
+
+    # Get full path to file
+    filepath = fill_template(
+        filepath_temp,
+        **fill_kwargs,
+    )
+
+    return Path(filepath)
 
 
 def read_model_output(
@@ -264,6 +375,7 @@ def read_model_output(
     period: str | list[str | None] | None = None,
     add_sites_to_flux: bool = False,
     read_standard_run: bool = False,
+    model_filepath_dict: dict[str, dict] = {},
 ) -> dict[str, xr.Dataset]:
     """
     Extracts mole fraction or flux timeseries data from each model.
@@ -271,6 +383,8 @@ def read_model_output(
     Args:
         data_dir (str):
             Path to top data directory.
+        file_type (DataType):
+            DataType that indicate file to read (flux, concentration or eddy_flux)
         species (str):
             Gas species, e.g. 'ch4'.
         models (list of str):
@@ -286,6 +400,13 @@ def read_model_output(
             If it is a list, one value per model must be specified, e.g. ['monthly','yearly']
         add_sites_to_flux (bool):
             If true, add sites variable to flux dataset.
+        read_standard_run (bool):
+            If True, constructs filename from models_info['standard_run'][<model_run_keys>].
+            If entry "<model_run_keys>" don't exist, constructs filename from items in "<run_keys>".
+            If entry "<run_keys>" don't exist, constructs filename from items in "default".
+        model_filepath_dict (dict of dict):
+            Dictionary with the elements of models as keys and a dictionary of filename parameters as values.
+            If not provided, the filename parameters are deduced from models.
 
     Returns:
         ds_all (dictionary of datasets):
@@ -309,6 +430,7 @@ def read_model_output(
 
     for i, m in enumerate(models):
         period_str = period[i] or ""
+        filepath_kwargs = model_filepath_dict.get(m, {})
         filepath = get_filename(
             m,
             species,
@@ -317,22 +439,26 @@ def read_model_output(
             config_data,
             data_dir,
             read_standard_run,
+            filepath_kwargs,
         )
 
         # Check if file exists
         if not filepath.is_file():
             #  alternative filename with _flux ending
-            if file_type==DataTypes.FLUX:
-                logger.warning(f"Cannot find {file_type.value} file: {filepath}. Will try alternative name.")
+            if file_type == DataTypes.FLUX:
+                logger.warning(
+                    f"Cannot find {file_type.value} file: {filepath}. Will try alternative name."
+                )
                 filepath = get_filename(
-                m,
-                species,
-                period_str,
-                file_pattern(file_type, alternative=True),
-                config_data,
-                data_dir,
-                read_standard_run,
-            )
+                    m,
+                    species,
+                    period_str,
+                    file_pattern(file_type, alternative=True),
+                    config_data,
+                    data_dir,
+                    read_standard_run,
+                    filepath_kwargs,
+                )
             if not filepath.is_file():
                 logger.warning(f"Cannot find {file_type.value} file: {filepath}.")
                 continue
@@ -357,9 +483,11 @@ def read_model_output(
             ds_all[m] = add_sites_var(ds_all[m], filepath, m, period[i], config_data)
 
         # Overwrite species attributes
-        current_species = ds_all[m].attrs.get("species","not set")
-        if current_species!=species:
-            logger.info(f"'species' attribute in dataset {m} ({current_species}) differs from species {species}. It is overwritten.")
+        current_species = ds_all[m].attrs.get("species", "not set")
+        if current_species != species:
+            logger.info(
+                f"'species' attribute in dataset {m} ({current_species}) differs from species {species}. It is overwritten."
+            )
             ds_all[m].attrs["species"] = species
 
     return ds_all
@@ -775,7 +903,7 @@ def edit_vars_and_attributes(
                     [ds_bel, ds_lux], pd.Index(["BEL", "LUX"], name="country")
                 )
 
-                ds = xr.merge([ds, ds_bellux], join="outer", compat='no_conflicts')
+                ds = xr.merge([ds, ds_bellux], join="outer", compat="no_conflicts")
                 ds = ds.drop_vars("country_merge")
 
         elif m0 == "rhime":
@@ -901,7 +1029,9 @@ def edit_vars_and_attributes(
             mask = np.isnan(ds["mf_observed"])
             if any(mask):
                 ds["assimilation_flag"][mask] = 0
-                logger.info(f"Masking out nan values in {model}, as a quick fix for a bug in InTEM concentration files.")
+                logger.info(
+                    f"Masking out nan values in {model}, as a quick fix for a bug in InTEM concentration files."
+                )
 
     # Fix eddy flux dataset
     if file_type == DataTypes.EDDY_FLUX:
@@ -960,9 +1090,13 @@ def add_sites_var(
 
     # Derive the path for the concentration file
     if re.match(r".*_flux.nc$", str(filepath_flux)):
-        filepath_conc = filepath_flux.with_stem(filepath_flux.stem.replace("flux","concentrations"))
+        filepath_conc = filepath_flux.with_stem(
+            filepath_flux.stem.replace("flux", "concentrations")
+        )
     else:
-        filepath_conc = filepath_flux.with_name(filepath_flux.stem + "_concentrations.nc")
+        filepath_conc = filepath_flux.with_name(
+            filepath_flux.stem + "_concentrations.nc"
+        )
 
     # Check if file exists
     if not filepath_conc.is_file():
