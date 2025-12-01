@@ -292,7 +292,9 @@ def add_posterior_plot(
         highlighted_line: if True, the linewidth is made bigger (3.0) than when False (1.5). Typicall used for the annexes to highlight the PARIS mean.
         add_post_unc: if True, plots model uncertainty.
     Returns:
-        res:
+    Returns:
+        res: dataframe with one line per timestamp and 9 columns ("type", "model", "sector", "country", "species", 
+            "time", "mean_val", "min_unc", "max_unc")
     """
 
     linew = 3 if highlighted_line else 1.5
@@ -344,7 +346,8 @@ def add_prior_plot(
             If False, linewidth is set to standard value (1.5) and no transparency s applied to the prior uncertainty (alpha=1.0).
         add_prior_unc: if True add prior uncertainty on the plot as a semi-transparent filled space.
     Returns:
-        res:
+        res: dataframe with one line per timestamp and 7-9 columns ("type", "model", "sector", "country", "species", 
+            "time", "mean_val" and "min_unc", "max_unc" if add_prior_unc)
     """
     linewidth, alpha = (1.0, 0.7) if annex_mode else (1.5, 1.0)
 
@@ -419,7 +422,8 @@ def add_inventory_barplot(
         sector: sector we want to plot.
         annex_mode: If True, replace Inventory label with a more concise version for National Inventory Report Annexes.
     Returns:
-        res:
+        res: dataframe with one line per timestamp and 7 columns ("type", "model", "sector", "country", "species", 
+            "time", "mean_val")
     """
 
     if isinstance(start_date, list):
@@ -488,7 +492,8 @@ def add_sector_barplot(
         variable: variable to plot (either "posterior" or "prior")
         bottom_values: bottom values passed as argument toax.bar. Correspond to the previous heights of the stacks.
     Returns:
-        res:
+        res: dataframe with one line per timestamp and 7 columns ("type", "model", "sector", "country", "species", 
+            "time", "mean_val")
     """
 
     sector_colors = config.get_default_sector_colors()

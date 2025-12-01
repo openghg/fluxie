@@ -22,7 +22,7 @@ def retrieve_inventories(
     """
     Load (in a list) inventories data to be plotted.
     If multiple sectors are asked for, each dataset of the list will have a sector dimension.
-    NOTE: Call _retrieve_inventories recursively for each sector.
+    NOTE: Call _retrieve_inventories_sector recursively for each sector.
 
     Args:
         data_dir: directory which contains the data (should have inside a directory named 'inventory').
