@@ -152,13 +152,7 @@ def _prepare_var(
         )
         unc = xr.merge([unc_lower, unc_upper], compat="no_conflicts", join="outer")
     else:
-        unc = ds[unc_var].expand_dims(
-            {
-                "percentile": [
-                    "std",
-                ]
-            }
-        )
+        unc = ds[unc_var].expand_dims({"percentile": ["std"]})
 
     unc = unc.to_dataset().rename({unc_var: var})
 
@@ -197,8 +191,8 @@ def _retrieve_variable(ds, var, unc_var):
                 "The variable names currently available when plotting a variable value above BC are of the form '<var>_above_BC', "
                 "with var being one of 'prior' (for 'mf_prior'), 'posterior' (for 'mf_posterior'), 'observed' (for 'mf_observed')."
             )
-        ds[var] = ds["mf_" + var0] - bc
-        ds[var].attrs = ds["mf_" + var0].attrs
+        ds[var] = ds[f"mf_{var0}"] - bc
+        ds[var].attrs = ds[f"mf_{var0}"].attrs
 
     elif var.endswith("_diff"):
         var1, var2 = var.split("_")[:2]
@@ -207,8 +201,8 @@ def _retrieve_variable(ds, var, unc_var):
                 "The variable names currently available when plotting a difference of two variables are of the form '<var1>_<var2>_diff', "
                 "with var1 and var2 being one of 'prior' (for 'mf_prior'), 'posterior' (for 'mf_posterior'), 'observed' (for 'mf_observed')."
             )
-        ds[var] = ds["mf_" + var1] - ds["mf_" + var2]
-        ds[var].attrs = ds["mf_" + var1].attrs
+        ds[var] = ds[f"mf_{var1}"] - ds[f"mf_{var2}"]
+        ds[var].attrs = ds[f"mf_{var1}"].attrs
 
     else:
         raise NotImplementedError(
@@ -479,10 +473,9 @@ def add_xlims_and_ticks(
             xticks = np.append(xticks, max_x)
         ax.set_xticks(xticks)
         ax.set_xticklabels(xticks.astype("datetime64[Y]"))
-        ax.xaxis.set_major_locator(YearLocator())
     else:
         ax.xaxis.set_minor_locator(MonthLocator())
-        ax.xaxis.set_major_locator(YearLocator())
+    ax.xaxis.set_major_locator(YearLocator())
 
     if rotate_xticks:
         ax.tick_params(axis="x", rotation=70)
