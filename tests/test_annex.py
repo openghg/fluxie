@@ -48,7 +48,7 @@ def test_dict_to_str_dataframe():
     expected = pd.DataFrame(
         {
             "species": ["CH$_4$",]*2,
-            "units": ["$\\rm{TgCO}_{2}\\rm{\\text{-}eq} \\cdot \\rm{yr}^{-1}$",]*2,
+            "units": ["\\footnotesize{$\\left (\\rm{TgCO}_{2}\\rm{\\text{-}eq} \\cdot \\rm{yr}^{-1} \\right )$}",]*2,
             "source": ["NID 2000", "CAT"],
             "1900": ["0.00", "1.00 \\pm 1.00"],
             "2000": ["0.10", "1.00 \\pm 1.00"],
@@ -65,7 +65,7 @@ def test_dict_to_str_dataframe():
     expected = pd.DataFrame(
         {
             "species": ["CH$_4$",]*2,
-            "units": ["$\\rm{GgCO}_{2}\\rm{\\text{-}eq} \\cdot \\rm{yr}^{-1}$",]*2,
+            "units": ["\\footnotesize{$\\left (\\rm{GgCO}_{2}\\rm{\\text{-}eq} \\cdot \\rm{yr}^{-1} \\right )$}",]*2,
             "source": ["NID 2000", "CAT"],
             "1900": ["0.0", "10.0 \\pm 10.0"],
             "2000": ["1.0", "10.0 \\pm 10.0"],

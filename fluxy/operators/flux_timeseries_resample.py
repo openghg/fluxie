@@ -137,6 +137,8 @@ def resample_flux(
             ds_all_resampled[m]["time"] = ds_all_resampled[m]["time"].values + offset
             new_keys[im] = m + "_resample"
 
+            ds_all_resampled[m].attrs["frequency"] = resample[im]
+
     return {
         key: ds.dropna(dim="time", how="all")
         for key, ds in zip(new_keys, ds_all_resampled.values())

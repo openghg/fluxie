@@ -9,13 +9,51 @@ from fluxy.operators.convert import get_units_conversion_factor
 
 logger = logging.getLogger(__name__)
 
-
 def extract_region_flux(
     ds_all: dict[str, xr.Dataset],
     country: str,
     regions_info: dict[str, str],
     keep_country_dim: bool = False,
-    sector: str = "total",
+    sectors: str | list = 'total'
+) -> dict[str, xr.Dataset]:
+    """
+    Create flux datasets for region of interest. Do it by calling _extract_region_flux_sector for every sector of interest
+    and concatenating the results.
+    Args:
+        ds_all: xarray datasets of fluxes, scaled and sliced between
+            chosen dates.
+        country: name of the country to extract.
+        regions_info: dictionary with country and region names (read from json file).
+        keep_country_dim: if True, re-put country dimension on the output datasets, else 
+            store the country (and sector) as attributes.
+        sectors: sector(s) to extract
+    Returns:
+        ds_output: dictionnary of datasets. The dataset variables are :
+            - 'posterior',
+            - 'prior',
+            - 'posterior_lower',
+            - 'posterior_upper',
+            - 'prior_lower',
+            - 'prior_upper'
+    """
+    
+    if isinstance(sectors,str):
+        return _extract_region_flux_sector(ds_all,country,regions_info,keep_country_dim,sectors)
+    
+    ds_sectors = {m: list() for m in ds_all.keys()}
+    for sector in sectors:
+        tmp = _extract_region_flux_sector(ds_all,country,regions_info,keep_country_dim,sector)
+        for m in ds_all.keys():
+            ds_sectors[m].append(tmp[m].expand_dims(dim={"sector": [sector,]}))
+            
+    return {m: xr.concat(ds_sectors[m], dim = "sector") for m in ds_all.keys()}
+
+def _extract_region_flux_sector(
+    ds_all: dict[str, xr.Dataset],
+    country: str,
+    regions_info: dict[str, str],
+    keep_country_dim: bool = False,
+    sector: str = 'total'
 ) -> dict[str, xr.Dataset]:
     """
     Finds the index of a chosen region name and extracts the country flux
@@ -23,6 +61,7 @@ def extract_region_flux(
     Either extracts values directly from the dataset (if this region definition
     exists in the file) or calculates values by taking the sum of smaller regions
     (if this region definition does not exist in the file).
+    Output the values for the sector of interest.
 
     Args:
         ds_all: xarray datasets of fluxes, scaled and sliced between
@@ -31,7 +70,9 @@ def extract_region_flux(
         regions_info: dictionary with country and region names (read from json file).
         keep_country_dim: if True, re-put country dimension on the output datasets, else 
             store the country (and sector) as attributes.
-
+        sector: sector to extract. Variables of the form f"flux_{sector}_{v}_country" must 
+            be present (v being prior or posterior).
+            
     Returns:
         ds_output: dictionnary of datasets. The dataset variables are :
             - 'posterior',
