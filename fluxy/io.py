@@ -586,10 +586,10 @@ def read_flux_total_fgases(
     for species_p in all_species:
         # read and slice dataset for each species
         ds_in = read_model_output(
-            data_dir,
             "flux",
             species_p,
             models,
+            data_dir,
             config_data,
             period,
             read_standard_run=True,
