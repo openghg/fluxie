@@ -138,11 +138,16 @@ def _prepare_var(
     elif unc_var.split("_")[-1] in ["prior", "posterior"]:
         unc_lower = (ds[var] - ds[unc_var]).expand_dims({"percentile": ["lower"]})
         unc_upper = (ds[var] + ds[unc_var]).expand_dims({"percentile": ["upper"]})
+        unc_lower = unc_lower.to_dataset()
+        unc_upper = unc_upper.to_dataset()
         unc = xr.merge([unc_lower, unc_upper], compat="no_conflicts", join="outer")
     else:
         unc = ds[unc_var].expand_dims({"percentile": ["std"]})
 
-    unc = unc.to_dataset().rename({unc_var: var})
+    if isinstance(unc,xr.DataArray):
+        unc = unc.to_dataset()
+
+    unc = unc.rename({unc_var: var})
 
     return xr.merge([mean, unc], compat="no_conflicts", join="outer")
 
@@ -426,6 +431,7 @@ def add_xlims_and_ticks(
         yearly_freq: set to True if the data plotted have a yearly frequency.
         res_dict: dictionnary containing the data plotted.
         aggreg_month: if True, the data plotted are supposed to be a monthly aggregated so 12 ticks are created, whose labels are the 3 first letters of each month.
+        rotate_xticks: if True, rotate xticks with an angle of 70 degree.
     """
     if aggreg_month:
         ax.set_xticks(np.arange(1, 13))
