@@ -253,10 +253,9 @@ def prepare_data_to_plot(
             }
 
         combined_resample = [resamp for comb, resamp in zip(plot_combined, resample) if comb]
-        use_resampled = (
-            any(resample) 
-            and len(unique_resample := set(combined_resample)) == 1
-            and None not in unique_resample
+        use_resampled = ( 
+            len(unique_resample := set(combined_resample)) == 1
+            and unique_resample not in ({None}, {False})
         )
         if use_resampled:
                 combined_models_dict = {
@@ -274,12 +273,6 @@ def prepare_data_to_plot(
             }
 
         for group_label, model_list in combined_models_dict.items():
-                check_missing_models = set(model_list) - set(ds_to_combine.keys())
-                if check_missing_models:
-                    raise ValueError(
-                        f"Models in group '{group_label}' are not available: {check_missing_models}. "
-                        f"Available models: {list(ds_to_combine.keys())}"
-                    )
                 combine_mask = [model in model_list for model in ds_to_combine.keys()]
                 ds_combined = combine_dataset(ds_to_combine, combine_mask)
                 ds_combined["combined"].attrs["model_label"] = group_label
