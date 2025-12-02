@@ -273,7 +273,7 @@ def preprocess_conc(
         # (in the far field are more times as in the prior,posterior fwd runs (reason missing footprints, and for 2024 data)
         merged_dffar2 = pd.merge(
             merged_dffar, df, on="datetime_str", how="left"
-        )  # use only keys from rigth dataframe
+        )  # use only keys from right dataframe
         merged_dffar2 = merged_dffar2.drop(
             columns=[
                 "frac_time_y",
