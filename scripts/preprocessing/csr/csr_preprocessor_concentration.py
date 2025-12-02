@@ -5,7 +5,6 @@ It can be run by the csr_preprocess.ipynb notebook.
 
 import numpy as np
 import pandas as pd
-import netCDF4 as nc
 from netCDF4 import Dataset
 import os
 import glob
