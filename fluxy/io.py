@@ -367,10 +367,10 @@ def get_filename(
 
 
 def read_model_output(
-    data_dir: os.PathLike,
-    file_type: DataType,
-    species: str,
-    models: list[str],
+    data_dir: os.PathLike | None = None,
+    file_type: DataType | str = "flux",
+    species: str | None = None,
+    models: list[str] = [],
     config_data: dict[str, dict] = {},
     period: str | list[str | None] | None = None,
     add_sites_to_flux: bool = False,
