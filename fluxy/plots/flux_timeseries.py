@@ -1134,7 +1134,8 @@ def plot_all_species_stacked_bar(all_species: list[str],
                                  inventory_filename: str = "UNFCCC_inventory",
                                  data_dir: str | None = None,
                                  sector: str = "total",
-                                 country_flux_units_print: str = "Tg CO2-eq yr-1"
+                                 country_flux_units_print: str = "Tg CO2-eq yr-1",
+                                 y_lim: list[float] | None = None
                                  ) -> Figure:
     """
     Stacked bar plot of posterior fluxes, summed over all species, for a single region, for a range of models.
@@ -1152,18 +1153,17 @@ def plot_all_species_stacked_bar(all_species: list[str],
         data_dir: Path to top data directory, used to read inventory data files.
         sector: Sector to plot.
         country_flux_units_print: Units for fluxes to be printed on inventory bars.
+        y_lim: Y-axis limits for the plot.
     Returns:
         fig: A stacked bar plot of all species for the region.
     """
-    
-    print('NOTE: this works, apart from inventory uncertainty read, which needs fixing')
-    
-    species_colors = {'ch4':'lightblue',
+        
+    species_colors = {'ch4':'dodgerblue',
                   'n2o':'darkorange',
-                  'all_hfcs':'darkpink',
-                  'all_pfcs':'firebrick',
+                  'all_hfc':'firebrick',
+                  'all_pfc':'darkblue',
                   'sf6':'darkturquoise',
-                  'nf3':'darkblue'}
+                  'nf3':'lightgreen'}
 
     s_data = config_data.get("species_info", {})
     r_data = config_data.get("regions_info", {})
@@ -1197,7 +1197,7 @@ def plot_all_species_stacked_bar(all_species: list[str],
 
         inventories_to_plot[species],inventories_uncert_to_plot[species] = retrieve_inventories(
             data_dir,
-            regions[0],
+            regions,
             species,
             start_date,
             end_date,
@@ -1208,9 +1208,7 @@ def plot_all_species_stacked_bar(all_species: list[str],
             inventory_filename,
             sector=sector,
         )
-        
-        print(inventories_uncert_to_plot[species])
-        
+                
         if inventories_uncert_to_plot[species][0] is None:
             inventories_uncert_to_plot[species][0] = np.zeros_like(inventories_to_plot[species][0].values)
                         
@@ -1270,7 +1268,10 @@ def plot_all_species_stacked_bar(all_species: list[str],
         ax.set_xticklabels((plot_times+(width/2)).astype('datetime64[Y]'))
     
     ax.set_ylabel('Tg y$^{-1}$ CO$_2$-eq')
+    
+    if y_lim:
+        ax.set_ylim(y_lim)
 
-    ax.legend(ncol=3,loc='upper right',borderpad=0.4,columnspacing=1.0)
+    ax.legend(ncol=4,loc='upper right',borderpad=0.4,columnspacing=1.0)
     
     return fig
