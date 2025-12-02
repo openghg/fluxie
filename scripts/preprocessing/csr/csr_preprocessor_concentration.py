@@ -426,8 +426,10 @@ def _save_dataset_conc(
     obss = ncfile.createVariable("mf_observed", np.float32, ("index"))
     if species == "ch4":
         units = "ppb"
-    if species == "co2":
+    elif species == "co2":
         units = "ppm"
+    else:
+        raise ValueError(f"Unsupported species: {species}. Only 'ch4' and 'co2' are supported.")
     obss.units = units
     obss.long_name = "observed_mole_fraction"
     obss[:] = da_all["obs"]
