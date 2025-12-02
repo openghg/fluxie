@@ -252,7 +252,6 @@ def preprocess(
 
     ds = ds.drop_vars(to_drop)
 
-    prior = ds["flux_total_prior"].values
     posterior = ds["flux_total_posterior"].values
 
     # --- add uncertainties for country-aggregated fluxes from RHS-runs ---
