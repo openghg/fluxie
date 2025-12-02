@@ -484,7 +484,8 @@ def read_model_output(
 
         # Overwrite species attributes
         current_species = ds_all[m].attrs.get("species", "not set")
-        if current_species != species:
+        ds_all[m].attrs["species"] = current_species
+        if species is not None and current_species != species:
             logger.info(
                 f"'species' attribute in dataset {m} ({current_species}) differs from species {species}. It is overwritten."
             )
