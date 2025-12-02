@@ -242,8 +242,6 @@ def preprocess_conc(
         merged_df = pd.merge(df, time_vec_df, on="datetime_str", how="outer")
         merged_dfp = pd.merge(dfp, time_vec_df, on="datetime_str", how="outer")
         merged_dffar = pd.merge(dffar, time_vec_df, on="datetime_str", how="outer")
-        m_df_df = np.array(merged_df)
-        m_df_dffar = np.array(merged_dffar)
 
         # if there are duplicated observations, remove them all
         duplicates_df = merged_df[merged_df["datetime_str"].duplicated(keep=False)][
@@ -299,16 +297,16 @@ def preprocess_conc(
         merged_df["identifier"] = ff + 1
         merged_dfp["identifier"] = ff + 1
         merged_dffar2["identifier"] = ff + 1
-        da_all = pd.concat(
-            [da_all, merged_df], axis=0
-        )  # this add the values of the current file to da_all (all combined)
-        da_allp = pd.concat([da_allp, merged_dfp], axis=0)
-        da_allfar = pd.concat([da_allfar, merged_dffar2], axis=0)
+        da_all_prior = pd.concat(
+            [da_all_prior, merged_df], axis=0
+        )  # this add the values of the current file to da_all_prior (all combined)
+        da_all_posterior = pd.concat([da_all_posterior, merged_dfp], axis=0)
+        da_all_farfield = pd.concat([da_all_farfield, merged_dffar2], axis=0)
 
     print("_save_dataset")
 
     _save_dataset_conc(
-        da_all, da_allp, da_allfar, species, path_to_output_conc, files, ids
+        da_all_prior, da_all_posterior, da_all_farfield, species, path_to_output_conc, files, ids
     )
 
 
@@ -355,17 +353,17 @@ def _calc_time_delta(time):
 
 
 def _save_dataset_conc(
-    da_all, da_allp, da_allfar, species: str, path_to_output_conc: str, files, ids
+    da_all_prior, da_all_posterior, da_all_farfield, species: str, path_to_output_conc: str, files, ids
 ):
     """
     Writes the data into a netcdf file and saves it.
 
     Args:
-        da_all (DataFrame):
+        da_all_prior (DataFrame):
             Dataframe with prior concentrations
-        da_allp (DataFrame):
+        da_all_posterior (DataFrame):
             Dataframe with posterior concentrations
-        da_allfar (DataFrame):
+        da_all_farfield (DataFrame):
             Dataframe with farfield contributions
         species (str):
             Species (e.g. "ch4", "co2")
@@ -380,10 +378,10 @@ def _save_dataset_conc(
     # ----------------------create nc files and define required dims---------------------------------
     # define dimensions
     ncfile = Dataset(path_to_output_conc, mode="w", format="NETCDF4")
-    ncfile.createDimension("index", len(da_all["datetime_str"]))
+    ncfile.createDimension("index", len(da_all_prior["datetime_str"]))
     ncfile.createDimension("nbnds", 2)
     ncfile.createDimension("percentile", 2)
-    platformdim = ncfile.createDimension("platform", len(files))
+    ncfile.createDimension("platform", len(files))
     # add variables
     times = ncfile.createVariable("time", np.float64, ("index"))
     times.units = "days since 1970-01-01"
@@ -393,7 +391,7 @@ def _save_dataset_conc(
     times.calendar = "proleptic_gregorian"
 
     time_vec = pd.to_datetime(
-        da_all["datetime_str"], format="%Y-%m-%d %H:%M:%S"
+        da_all_prior["datetime_str"], format="%Y-%m-%d %H:%M:%S"
     )  # this is the full time series 2006-2023 multipl with stat
     delta_dd = _calc_time_delta(time_vec)  # delta_dd stands for delta_days
     delta_dd_df = delta_dd.to_frame()
@@ -409,7 +407,7 @@ def _save_dataset_conc(
     identifiers = ncfile.createVariable("number_of_identifier", "int16", ("index"))
     identifiers.long_name = "Index of identifier of observing platform"
     identifiers.units = "1"
-    identifiers[:] = da_all["identifier"]
+    identifiers[:] = da_all_prior["identifier"]
 
     obss = ncfile.createVariable("mf_observed", np.float32, ("index"))
     if species == "ch4":
@@ -420,49 +418,49 @@ def _save_dataset_conc(
         raise ValueError(f"Unsupported species: {species}. Only 'ch4' and 'co2' are supported.")
     obss.units = units
     obss.long_name = "observed_mole_fraction"
-    obss[:] = da_all["obs"]
+    obss[:] = da_all_prior["obs"]
 
     posteriors = ncfile.createVariable("mf_posterior", np.float32, ("index"))
     posteriors.units = units
     posteriors.long_name = "a posteriori_simulated_mole_fraction"
-    posteriors[:] = da_all["mod"]
+    posteriors[:] = da_all_prior["mod"]
 
     priors = ncfile.createVariable("mf_prior", np.float32, ("index"))
     priors.units = units
     priors.long_name = "a priori_simulated_mole_fraction"
-    priors[:] = da_allp["mod"]
+    priors[:] = da_all_posterior["mod"]
 
     farfield_prior = ncfile.createVariable("mf_bc_prior", np.float32, ("index"))
     farfield_prior.units = units
     farfield_prior.long_name = "farfield_contribution_simulated_mole_fraction"
-    farfield_prior[:] = da_allfar["mod"]
+    farfield_prior[:] = da_all_farfield["mod"]
 
     farfield_posterior = ncfile.createVariable("mf_bc_posterior", np.float32, ("index"))
     farfield_posterior.units = units
     farfield_posterior.long_name = "farfield_contribution_simulated_mole_fraction"
-    farfield_posterior[:] = da_allfar["mod"]
+    farfield_posterior[:] = da_all_farfield["mod"]
 
     lats = ncfile.createVariable("latitude", np.float32, ("index"))
     lats.long_name = "latitude"
     lats.units = "degrees_north"
-    lats[:] = da_all["lat"]
+    lats[:] = da_all_prior["lat"]
 
     lons = ncfile.createVariable("longitude", np.float32, ("index"))
     lons.long_name = "longitude"
     lons.units = "degrees_east"
-    lons[:] = da_all["lon"]
+    lons[:] = da_all_prior["lon"]
 
     alts = ncfile.createVariable("altitude", np.float32, ("index"))
     alts.long_name = "height above ground level"
     alts.units = "m agl"
-    alts[:] = da_all["alt"]
+    alts[:] = da_all_prior["alt"]
 
     flags = ncfile.createVariable(
         "assimilation_flag", "i4", ("index"), fill_value=-9999
     )
     flags.long_name = "indicating whether observation was used in inversion/assimilation. 0: not used; 1: used"
     flags.units = "1"
-    flags[:] = da_all["flag"]
+    flags[:] = da_all_prior["flag"]
 
     # add global attributes
     ncfile.title = (
