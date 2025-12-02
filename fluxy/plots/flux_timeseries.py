@@ -1272,6 +1272,8 @@ def plot_all_species_stacked_bar(all_species: list[str],
     if y_lim:
         ax.set_ylim(y_lim)
 
-    ax.legend(ncol=4,loc='upper right',borderpad=0.4,columnspacing=1.0)
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles[::-1], labels[::-1], 
+              ncol=4,loc='upper right',borderpad=0.4,columnspacing=1.0)
     
     return fig
