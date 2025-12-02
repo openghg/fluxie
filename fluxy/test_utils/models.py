@@ -27,10 +27,10 @@ def get_loaded_models(
     config_data = read_config_files()
 
     ds_all_mf = read_model_output(
-        data_dir,
         file_type,
         species="hfc134a",
         models=test_models,
+        data_dir=data_dir,
         config_data=config_data,
     )
 

@@ -29,7 +29,7 @@ def test_scale_by_sector_proportions():
     ds_all_flux_scaled = {}
     
     ds_all_flux = read_model_output(
-        data_dir, "flux", species, models, config_data, period=period
+        "flux", species, models, data_dir, config_data, period=period
     )
 
     for m in models:

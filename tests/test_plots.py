@@ -55,10 +55,10 @@ if "all" in species:
     )
 else:
     ds_all_flux = read_model_output(
-        data_dir, "flux", species, models, config_data, period=period
+        "flux", species, models, data_dir, config_data, period=period
     )
     ds_all_flux_with_sites = read_model_output(
-        data_dir, "flux", species, models, config_data, period=period, add_sites_to_flux=True,
+        "flux", species, models, data_dir, config_data, period=period, add_sites_to_flux=True,
     )
 
     for m in models:
@@ -85,7 +85,7 @@ site = "MHD"
 baseline_site = None
 mf_units_print = "ppt"
 ds_all_mf = read_model_output(
-    data_dir,
+    data_dir=data_dir,
     file_type="concentration",
     species=species,
     models=models,
@@ -431,7 +431,7 @@ def test_plot_country_sector_flux_bar():
     ds_all_flux_scaled = {}
 
     ds_all_flux = read_model_output(
-        data_dir, "flux", species, models, config_data, period=period
+        "flux", species, models, data_dir, config_data, period=period
     )
 
     for m in models:

@@ -9,10 +9,10 @@ test_models = ["EDDY_HARDAU", "EDDY_HARDAU_STORAGE_2LAYERS"]
 
 
 dss = read_model_output(
-    data_dir / "ecflux",
     "eddy_flux",
     "co2",
     test_models,
+    data_dir / "ecflux",
 )
 
 config = read_config_files()

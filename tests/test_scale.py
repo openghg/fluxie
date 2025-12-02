@@ -25,10 +25,10 @@ flux_units_print = "kg km-2 yr-1"
 config_data = read_config_files()
 
 ds_all_flux = read_model_output(
-    data_dir, "flux", species, models, config_data, period=period
+    "flux", species, models, data_dir, config_data, period=period
 )
 ds_all_mf = read_model_output(
-    data_dir, "concentration", species, models, config_data, period=period
+    "concentration", species, models, data_dir, config_data, period=period
 )
 
 
