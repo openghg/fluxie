@@ -349,7 +349,7 @@ def _rename_country_id(ds_in):
 
     Args:
         ds_in (xarray.Dataset):
-            Country-aggregated CSR output with original contry codes
+            Country-aggregated CSR output with original country codes
     Returns:
         ds (xarray.Dataset):
             Country-aggregated CSR output with renamed country codes
