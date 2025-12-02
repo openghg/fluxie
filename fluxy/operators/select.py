@@ -55,10 +55,7 @@ def slice_flux(
 
     """
     ds_all_sliced = dict()
-    species_info = config_data.get("species_info",{})
-
-    if species is not None:
-        species_info = species_info.get(species, None)
+    species_info = config_data.get("species_info",{}).get(species, None)
 
     if type(start_date) is str:
         start_date = [start_date] * len(ds_all.keys())
