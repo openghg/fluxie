@@ -439,7 +439,7 @@ def _save_dataset_conc(
 
     priors = ncfile.createVariable("mf_prior", np.float32, ("index"))
     priors.units = units
-    priors.long_name = "apriori_simulated_mole_fraction"
+    priors.long_name = "a priori_simulated_mole_fraction"
     priors[:] = da_allp["mod"]
 
     farfield_prior = ncfile.createVariable("mf_bc_prior", np.float32, ("index"))
