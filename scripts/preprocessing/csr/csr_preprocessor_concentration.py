@@ -42,8 +42,6 @@ def preprocess_conc(
             Species (e.g. "ch4", "co2")
     """
 
-    years = np.arange(start_year, end_year)
-    time_vec_df = pd.DataFrame()
     time_vec_df = _create_ts_yi_ye_tk(start_year, end_year)
 
     files = [
@@ -183,9 +181,6 @@ def preprocess_conc(
             ],
         )
 
-        m_f = np.array(df)
-        m_fp = np.array(dfp)
-        m_far = np.array(dffar)
         df = pd.DataFrame(df)
         dfp = pd.DataFrame(dfp)
         dffar = pd.DataFrame(dffar)
@@ -236,14 +231,13 @@ def preprocess_conc(
         dfp["datetime_str"] = dfp["datetime_str"].astype("datetime64[ns]")
         dffar["datetime_str"] = dffar["datetime_str"].astype("datetime64[ns]")
 
-        # ----------------------find doublicates if needed-----------------------
+        # ----------------------find duplicates if needed-----------------------
         # before merging; here to check, if also on 31.12. are prior, post, and LBC are general available
         df1 = dffar
         df2 = df
         # find rows in d1 which have id, which are not available in d2
         # you could use isin, with negation operator, so that we filter out the rows in df1 that have ids that also exist in df2:
         # out = df1[~df1['id'].isin(df2['id'])]
-        out = df1[~df1["datetime_str"].isin(df2["datetime_str"])]
 
         merged_df = pd.merge(df, time_vec_df, on="datetime_str", how="outer")
         merged_dfp = pd.merge(dfp, time_vec_df, on="datetime_str", how="outer")
@@ -388,9 +382,9 @@ def _save_dataset_conc(
     # ----------------------create nc files and define required dims---------------------------------
     # define dimensions
     ncfile = Dataset(path_to_output_conc, mode="w", format="NETCDF4")
-    indexdim = ncfile.createDimension("index", len(da_all["datetime_str"]))
-    nbndsdim = ncfile.createDimension("nbnds", 2)
-    percentiledim = ncfile.createDimension("percentile", 2)
+    ncfile.createDimension("index", len(da_all["datetime_str"]))
+    ncfile.createDimension("nbnds", 2)
+    ncfile.createDimension("percentile", 2)
     platformdim = ncfile.createDimension("platform", len(files))
     # add variables
     times = ncfile.createVariable("time", np.float64, ("index"))
@@ -432,7 +426,7 @@ def _save_dataset_conc(
 
     posteriors = ncfile.createVariable("mf_posterior", np.float32, ("index"))
     posteriors.units = units
-    posteriors.long_name = "aposteriori_simulated_mole_fraction"
+    posteriors.long_name = "a posteriori_simulated_mole_fraction"
     posteriors[:] = da_all["mod"]
 
     priors = ncfile.createVariable("mf_prior", np.float32, ("index"))
