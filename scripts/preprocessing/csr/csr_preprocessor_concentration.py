@@ -9,7 +9,6 @@ from netCDF4 import Dataset
 import os
 import glob
 import warnings
-import sys
 
 warnings.filterwarnings("ignore")
 
