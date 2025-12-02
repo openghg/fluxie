@@ -593,9 +593,8 @@ def get_bounds_from_country_fraction(
         for rg in region.split("-"):
             if rg in ds.country:
                 region_ds_names.append(rg)
-            elif (
-                rg in regions_info["regions"]
-                and all([r in ds.country for r in regions_info["regions"][rg].split("-")])
+            elif rg in regions_info["regions"] and all(
+                [r in ds.country for r in regions_info["regions"][rg].split("-")]
             ):
                 region_ds_names += regions_info["regions"][rg].split("-")
             elif (
@@ -607,7 +606,9 @@ def get_bounds_from_country_fraction(
         if not region_ds_names:
             continue
 
-        da_mask = ds.country_fraction.sel(country=np.unique(region_ds_names)).sum(dim="country")
+        da_mask = ds.country_fraction.sel(country=np.unique(region_ds_names)).sum(
+            dim="country"
+        )
 
         clipped = (
             da_mask.where(da_mask != 0)

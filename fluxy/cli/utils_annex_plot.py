@@ -101,15 +101,15 @@ def create_str_dataframe(
         if max_exp<-1 and max_exp>=-4:
             for var in ["mean_val","min_unc","max_unc"]:
                 data_per_species[var] *= 1e3
-            data_per_species["units"] = "$\\rm{GgCO}_{2}\\rm{\\text{-}eq} \\cdot \\rm{yr}^{-1}$"
+            data_per_species["units"] = "\\footnotesize{$\\left (\\rm{GgCO}_{2}\\rm{\\text{-}eq} \\cdot \\rm{yr}^{-1} \\right )$}"
             max_exp += 3
         elif max_exp<-4:
             for var in ["mean_val","min_unc","max_unc"]:
                 data_per_species[var] *= 1e6
-            data_per_species["units"] = "$\\rm{MgCO}_{2}\\rm{\\text{-}eq} \\cdot \\rm{yr}^{-1}$"
+            data_per_species["units"] = "\\footnotesize{$\\left (\\rm{MgCO}_{2}\\rm{\\text{-}eq} \\cdot \\rm{yr}^{-1} \\right )$}"
             max_exp += 6
         else:
-            data_per_species["units"] = "$\\rm{TgCO}_{2}\\rm{\\text{-}eq} \\cdot \\rm{yr}^{-1}$"
+            data_per_species["units"] = "\\footnotesize{$\\left (\\rm{TgCO}_{2}\\rm{\\text{-}eq} \\cdot \\rm{yr}^{-1} \\right )$}"
         
         n_figure = 3 if species in ["ch4", "n2o"] else 2
         n_digits = int(n_figure - max_exp - 1)
@@ -179,7 +179,7 @@ def make_table(
     tmp = (
         "Emissions estimation for "
         + species
-        + f" according to the National Inventory Document (NID) {inventory_years} and the inversions done in the PARIS project. For the PARIS estimation, the mean of the 3 inversion models is displayed, along with a range of uncertainty estimated via the half distance between the maximum and minimum uncertainties of the different models."
+        + f" according to the National Inventory Document (NID) {inventory_years} and the inversions done in the PARIS project. For the PARIS estimation, the mean of all models is displayed, along with a range of uncertainty estimated via the half distance between the maximum and minimum uncertainties of the different models."
     )
     caption = "\n \\caption{" + tmp + "}"
     begin = (
@@ -187,32 +187,32 @@ def make_table(
         + label
         + caption
         + "\n \\begin{center}\n  \\begin{tabular}{ "
-        + len(descriptive_cols) * "l "
+        + (len(descriptive_cols)-1) * "l "
         + (len(df.columns) - len(descriptive_cols)) * "l "
         + "}"
     )
 
     # Set first line with columns title
-    header = "     " + len(descriptive_cols) * " & "
+    header = "     " + (len(descriptive_cols)-1) * " & "
     for y in df.columns[len(descriptive_cols) :]:
         header += y
         if y != df.columns[-1]:
             header += " & "
 
-    table = begin + "\n" + header + " \\\\ \hline" + "\n"
+    table = begin + "\n" + header + " \\\\ \\toprule" + "\n"
 
     # Iterate over lines of dataframe
     prev_species = ""
-    for _, row in df.iterrows():
+    nrows = df.shape[0]
+    for k, row in df.iterrows():
         # Indentation
         l = "    "
 
         # Test if value for first column needed
         if row[descriptive_cols[0]] == prev_species:
-            l += " & & "
+            l += row[descriptive_cols[1]] + " & "
         else:
             l += row[descriptive_cols[0]] + " & "
-            l += row[descriptive_cols[1]] + " & "
         prev_species = row[descriptive_cols[0]]
 
         # Add values for other descriptive columns
@@ -229,8 +229,10 @@ def make_table(
 
         # Add hline if needed
         for key in hline_place.keys():
-            if row[key] == hline_place[key]:
-                l += " \hline "
+            if k == nrows-1:
+                l += " \\bottomrule "
+            elif row[key] == hline_place[key]:
+                l += " \\midrule "
 
         # Add line to table
         table += l + "\n "
