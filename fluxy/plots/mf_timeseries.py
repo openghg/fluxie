@@ -136,20 +136,8 @@ def _prepare_var(
         unc = ds[unc_var]
         unc["percentile"] = ["lower", "upper"]
     elif unc_var.split("_")[-1] in ["prior", "posterior"]:
-        unc_lower = (ds[var] - ds[unc_var]).expan_dims(
-            {
-                "percentile": [
-                    "lower",
-                ]
-            }
-        )
-        unc_upper = (ds[var] + ds[unc_var]).expan_dims(
-            {
-                "percentile": [
-                    "upper",
-                ]
-            }
-        )
+        unc_lower = (ds[var] - ds[unc_var]).expand_dims({"percentile": ["lower"]})
+        unc_upper = (ds[var] + ds[unc_var]).expand_dims({"percentile": ["upper"]})
         unc = xr.merge([unc_lower, unc_upper], compat="no_conflicts", join="outer")
     else:
         unc = ds[unc_var].expand_dims({"percentile": ["std"]})
