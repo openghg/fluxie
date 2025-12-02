@@ -107,10 +107,10 @@ def produce_plots(
             )
         else:
             ds_all_flux = read_model_output(
-                annex_config_data.data_dir,
                 "flux",
                 species,
                 models_country_flux,
+                annex_config_data.data_dir,
                 config_data,
                 period=period,
                 add_sites_to_flux=True,
