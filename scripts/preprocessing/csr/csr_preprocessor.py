@@ -32,6 +32,13 @@ unit_conversions = {"PgC/yr": 1, "TgC/yr": 1 / 1000, "Tmol/yr": 12.01 / 1000}
 
 flux_unit = "mol m-2 s-1"
 
+molar_masses = {
+    "ch4": 16.04,
+    "co2": 44.01,
+}
+
+carbon_molar_mass = 12.01
+
 country_code_EUROPE30f = [
     "none",
     "AUT",
@@ -653,10 +660,7 @@ def _pgcyr_to_kg_s_tracer(value_pgcyr, years, species: str):
     """
 
     kilograms = value_pgcyr * 1e12
-    if species == "ch4":
-        kilograms_tracer = kilograms / 12.01 * 16.04
-    if species == "co2":
-        kilograms_tracer = kilograms / 12.01 * 44.01
+    kilograms_tracer = kilograms / carbon_molar_mass * molar_masses[species]
 
     days_in_year = np.array([366 if calendar.isleap(y) else 365 for y in years])
     seconds_per_year = days_in_year * 24 * 60 * 60
@@ -719,10 +723,7 @@ def _tmolyr_to_kg_s_unc_rhs(unc_rhs, time_rhs, species: str):
     days_in_year = np.array([366 if calendar.isleap(year) else 365])
     seconds_per_year = days_in_year * 24 * 60 * 60
     # convert Tmol/yr -> kg/s
-    if species == "ch4":
-        unc_rhs = unc_rhs * 16.04 * 1e9 / seconds_per_year
-    if species == "co2":
-        unc_rhs = unc_rhs * 44.01 * 1e9 / seconds_per_year
+    unc_rhs = unc_rhs * molar_masses[species] * 1e9 / seconds_per_year
 
     return unc_rhs
 

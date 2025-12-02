@@ -50,136 +50,26 @@ def preprocess_conc(
     ]
     ids = [s[2:5] for s in files]
     print(files)
-    da_all = pd.DataFrame(
-        np.empty((0, 16)),
-        columns=[
-            "frac_time",
-            "year",
-            "month",
-            "day",
-            "hour",
-            "minute",
-            "second",
-            "lat",
-            "lon",
-            "alt",
-            "obs",
-            "std",
-            "mod",
-            "identifier",
-            "flag",
-            "datetime",
-        ],
-    )
-    da_allp = pd.DataFrame(
-        np.empty((0, 16)),
-        columns=[
-            "frac_time",
-            "year",
-            "month",
-            "day",
-            "hour",
-            "minute",
-            "second",
-            "lat",
-            "lon",
-            "alt",
-            "obs",
-            "std",
-            "mod",
-            "identifier",
-            "flag",
-            "datetime",
-        ],
-    )
-    da_allfar = pd.DataFrame(
-        np.empty((0, 16)),
-        columns=[
-            "frac_time",
-            "year",
-            "month",
-            "day",
-            "hour",
-            "minute",
-            "second",
-            "lat",
-            "lon",
-            "alt",
-            "obs",
-            "std",
-            "mod",
-            "identifier",
-            "flag",
-            "datetime",
-        ],
-    )
+
+    cols = [
+    "frac_time", "year", "month", "day", "hour", "minute", "second",
+    "lat", "lon", "alt", "obs", "std", "mod", "identifier", "flag", "datetime"
+    ]
+
+    da_all_posterior = pd.DataFrame(np.empty((0, len(cols))), columns=cols)
+    da_all_prior = pd.DataFrame(np.empty((0, len(cols))), columns=cols)
+    da_all_farfield = pd.DataFrame(np.empty((0, len(cols))), columns=cols)
+
+    cols_csr = [
+    "frac_time", "year", "month", "day", "hour", "minute", "second",
+    "lat", "lon", "alt", "obs", "std", "mod"
+    ]
 
     for ff in list(range(0, len(files))):
         print("file:", ff)
-        df = pd.read_csv(
-            path_to_posterior_conc + files[ff],
-            comment="#",
-            delim_whitespace=True,
-            header=None,
-            names=[
-                "frac_time",
-                "year",
-                "month",
-                "day",
-                "hour",
-                "minute",
-                "second",
-                "lat",
-                "lon",
-                "alt",
-                "obs",
-                "std",
-                "mod",
-            ],
-        )
-        # parse_dates={"date_time": ["year", "month", "day", "hour", "minute", "second"]}
-        dfp = pd.read_csv(
-            path_to_prior_conc + files[ff],
-            comment="#",
-            delim_whitespace=True,
-            header=None,
-            names=[
-                "frac_time",
-                "year",
-                "month",
-                "day",
-                "hour",
-                "minute",
-                "second",
-                "lat",
-                "lon",
-                "alt",
-                "obs",
-                "std",
-                "mod",
-            ],
-        )
-        dffar = pd.read_csv(
-            path_to_farfield_conc + files[ff],
-            comment="#",
-            delim_whitespace=True,
-            header=None,
-            names=[
-                "frac_time",
-                "year",
-                "month",
-                "day",
-                "hour",
-                "minute",
-                "second",
-                "lat",
-                "lon",
-                "alt",
-                "obs",
-                "std",
-                "mod",
-            ],
-        )
+        df = pd.read_csv(path_to_posterior_conc + files[ff],comment="#",delim_whitespace=True,header=None,names=cols_csr)
+        dfp = pd.read_csv(path_to_prior_conc + files[ff],comment="#",delim_whitespace=True,header=None,names=cols_csr)
+        dffar = pd.read_csv(path_to_farfield_conc + files[ff],comment="#",delim_whitespace=True,header=None,names=cols_csr)
 
         df = pd.DataFrame(df)
         dfp = pd.DataFrame(dfp)
@@ -297,16 +187,16 @@ def preprocess_conc(
         merged_df["identifier"] = ff + 1
         merged_dfp["identifier"] = ff + 1
         merged_dffar2["identifier"] = ff + 1
-        da_all_prior = pd.concat(
-            [da_all_prior, merged_df], axis=0
-        )  # this add the values of the current file to da_all_prior (all combined)
-        da_all_posterior = pd.concat([da_all_posterior, merged_dfp], axis=0)
+        da_all_posterior = pd.concat(
+            [da_all_posterior, merged_df], axis=0
+        )  # this add the values of the current file to da_all_posterior (all combined)
+        da_all_prior = pd.concat([da_all_prior, merged_dfp], axis=0)
         da_all_farfield = pd.concat([da_all_farfield, merged_dffar2], axis=0)
 
     print("_save_dataset")
 
     _save_dataset_conc(
-        da_all_prior, da_all_posterior, da_all_farfield, species, path_to_output_conc, files, ids
+        da_all_posterior, da_all_prior, da_all_farfield, species, path_to_output_conc, files, ids
     )
 
 
@@ -353,16 +243,16 @@ def _calc_time_delta(time):
 
 
 def _save_dataset_conc(
-    da_all_prior, da_all_posterior, da_all_farfield, species: str, path_to_output_conc: str, files, ids
+    da_all_posterior, da_all_prior, da_all_farfield, species: str, path_to_output_conc: str, files, ids
 ):
     """
     Writes the data into a netcdf file and saves it.
 
     Args:
-        da_all_prior (DataFrame):
-            Dataframe with prior concentrations
         da_all_posterior (DataFrame):
             Dataframe with posterior concentrations
+        da_all_prior (DataFrame):
+            Dataframe with prior concentrations
         da_all_farfield (DataFrame):
             Dataframe with farfield contributions
         species (str):
@@ -378,7 +268,7 @@ def _save_dataset_conc(
     # ----------------------create nc files and define required dims---------------------------------
     # define dimensions
     ncfile = Dataset(path_to_output_conc, mode="w", format="NETCDF4")
-    ncfile.createDimension("index", len(da_all_prior["datetime_str"]))
+    ncfile.createDimension("index", len(da_all_posterior["datetime_str"]))
     ncfile.createDimension("nbnds", 2)
     ncfile.createDimension("percentile", 2)
     ncfile.createDimension("platform", len(files))
@@ -391,7 +281,7 @@ def _save_dataset_conc(
     times.calendar = "proleptic_gregorian"
 
     time_vec = pd.to_datetime(
-        da_all_prior["datetime_str"], format="%Y-%m-%d %H:%M:%S"
+        da_all_posterior["datetime_str"], format="%Y-%m-%d %H:%M:%S"
     )  # this is the full time series 2006-2023 multipl with stat
     delta_dd = _calc_time_delta(time_vec)  # delta_dd stands for delta_days
     delta_dd_df = delta_dd.to_frame()
@@ -407,7 +297,7 @@ def _save_dataset_conc(
     identifiers = ncfile.createVariable("number_of_identifier", "int16", ("index"))
     identifiers.long_name = "Index of identifier of observing platform"
     identifiers.units = "1"
-    identifiers[:] = da_all_prior["identifier"]
+    identifiers[:] = da_all_posterior["identifier"]
 
     obss = ncfile.createVariable("mf_observed", np.float32, ("index"))
     if species == "ch4":
@@ -418,17 +308,17 @@ def _save_dataset_conc(
         raise ValueError(f"Unsupported species: {species}. Only 'ch4' and 'co2' are supported.")
     obss.units = units
     obss.long_name = "observed_mole_fraction"
-    obss[:] = da_all_prior["obs"]
+    obss[:] = da_all_posterior["obs"]
 
     posteriors = ncfile.createVariable("mf_posterior", np.float32, ("index"))
     posteriors.units = units
     posteriors.long_name = "a posteriori_simulated_mole_fraction"
-    posteriors[:] = da_all_prior["mod"]
+    posteriors[:] = da_all_posterior["mod"]
 
     priors = ncfile.createVariable("mf_prior", np.float32, ("index"))
     priors.units = units
     priors.long_name = "a priori_simulated_mole_fraction"
-    priors[:] = da_all_posterior["mod"]
+    priors[:] = da_all_prior["mod"]
 
     farfield_prior = ncfile.createVariable("mf_bc_prior", np.float32, ("index"))
     farfield_prior.units = units
@@ -443,24 +333,24 @@ def _save_dataset_conc(
     lats = ncfile.createVariable("latitude", np.float32, ("index"))
     lats.long_name = "latitude"
     lats.units = "degrees_north"
-    lats[:] = da_all_prior["lat"]
+    lats[:] = da_all_posterior["lat"]
 
     lons = ncfile.createVariable("longitude", np.float32, ("index"))
     lons.long_name = "longitude"
     lons.units = "degrees_east"
-    lons[:] = da_all_prior["lon"]
+    lons[:] = da_all_posterior["lon"]
 
     alts = ncfile.createVariable("altitude", np.float32, ("index"))
     alts.long_name = "height above ground level"
     alts.units = "m agl"
-    alts[:] = da_all_prior["alt"]
+    alts[:] = da_all_posterior["alt"]
 
     flags = ncfile.createVariable(
         "assimilation_flag", "i4", ("index"), fill_value=-9999
     )
     flags.long_name = "indicating whether observation was used in inversion/assimilation. 0: not used; 1: used"
     flags.units = "1"
-    flags[:] = da_all_prior["flag"]
+    flags[:] = da_all_posterior["flag"]
 
     # add global attributes
     ncfile.title = (
