@@ -5,7 +5,6 @@ It can be run by the csr_preprocess.ipynb notebook.
 
 import xarray as xr
 import os
-import re
 import calendar
 import numpy as np
 import pandas as pd
