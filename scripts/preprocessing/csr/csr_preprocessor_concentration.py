@@ -243,7 +243,6 @@ def preprocess_conc(
         merged_dfp = pd.merge(dfp, time_vec_df, on="datetime_str", how="outer")
         merged_dffar = pd.merge(dffar, time_vec_df, on="datetime_str", how="outer")
         m_df_df = np.array(merged_df)
-        m_df_dfp = np.array(merged_dfp)
         m_df_dffar = np.array(merged_dffar)
 
         # if there are duplicated observations, remove them all
@@ -330,7 +329,6 @@ def _create_ts_yi_ye_tk(ystart: int, yend: int):
     start_date = "1/1/" + str(ystart)
     end_date = "1/1/" + str(yend + 1)
 
-    df = pd.DataFrame()
     idx = (pd.date_range(start=start_date, end=end_date, freq="1h"),)
     df = idx[0].to_frame(
         index=False, name="datetime_str"
