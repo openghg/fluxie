@@ -344,7 +344,7 @@ def _create_ts_yi_ye_tk(ystart: int, yend: int):
     idx = (pd.date_range(start=start_date, end=end_date, freq="1h"),)
     df = idx[0].to_frame(
         index=False, name="datetime_str"
-    )  # idx is a typle, so get with [0] the index 0, which is the DatetimeIndex field
+    )  # idx is a tuple, so get with [0] the index 0, which is the DatetimeIndex field
 
     return df
 
