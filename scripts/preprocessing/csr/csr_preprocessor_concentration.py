@@ -12,7 +12,6 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-
 def preprocess_conc(
     path_to_prior_conc: str,
     path_to_posterior_conc: str,
@@ -49,6 +48,7 @@ def preprocess_conc(
         for f in glob.glob(path_to_posterior_conc + "*." + species + ".ts")
     ]
     ids = [s[2:5] for s in files]
+    print("Following files have been found:")
     print(files)
 
     cols = [
@@ -206,7 +206,7 @@ def preprocess_conc(
         da_all_prior = pd.concat([da_all_prior, merged_df_prior_conc], axis=0)
         da_all_farfield = pd.concat([da_all_farfield, merged_df_far_field_2], axis=0)
 
-    print("_save_dataset")
+    print("Saving the datasets")
 
     _save_dataset_conc(
         da_all_posterior, da_all_prior, da_all_farfield, species, path_to_output_conc, files, ids
