@@ -52,8 +52,21 @@ def preprocess_conc(
     print(files)
 
     cols = [
-    "frac_time", "year", "month", "day", "hour", "minute", "second",
-    "lat", "lon", "alt", "obs", "std", "mod", "identifier", "flag", "datetime"
+        "frac_time",
+        "year",
+        "month",
+        "day", "hour",
+        "minute",
+        "second",
+        "lat",
+        "lon",
+        "alt",
+        "obs",
+        "std",
+        "mod",
+        "identifier",
+        "flag",
+        "datetime"
     ]
 
     da_all_posterior = pd.DataFrame(np.empty((0, len(cols))), columns=cols)
@@ -61,101 +74,99 @@ def preprocess_conc(
     da_all_farfield = pd.DataFrame(np.empty((0, len(cols))), columns=cols)
 
     cols_csr = [
-    "frac_time", "year", "month", "day", "hour", "minute", "second",
-    "lat", "lon", "alt", "obs", "std", "mod"
+        "frac_time",
+        "year",
+        "month",
+        "day",
+        "hour",
+        "minute",
+        "second",
+        "lat",
+        "lon",
+        "alt",
+        "obs",
+        "std",
+        "mod"
     ]
 
     for ff in list(range(0, len(files))):
         print("file:", ff)
-        df = pd.read_csv(path_to_posterior_conc + files[ff],comment="#",delim_whitespace=True,header=None,names=cols_csr)
-        dfp = pd.read_csv(path_to_prior_conc + files[ff],comment="#",delim_whitespace=True,header=None,names=cols_csr)
-        dffar = pd.read_csv(path_to_farfield_conc + files[ff],comment="#",delim_whitespace=True,header=None,names=cols_csr)
 
-        df = pd.DataFrame(df)
-        dfp = pd.DataFrame(dfp)
-        dffar = pd.DataFrame(dffar)
+        # Common csv params
+        params = {
+            'comment': '#',
+            'delim_whitespace': True,
+            'header': None,
+            'names': cols_csr
+        }
 
-        # ---------This has an effect and far field conc has to cut for 2006-2023! (far field contrib. are maybe not only for 2006-2023)
-        sel = dffar["year"] <= end_year  # use only data until 2023
-        dffar = dffar[sel]
-        sel = dffar["year"] >= start_year  # use only data from and after 2006
-        dffar = dffar[sel]
+        # Read CSV using common params
+        df_posterior_conc = pd.read_csv(path_to_posterior_conc + files[ff], **params)
+        df_prior_conc = pd.read_csv(path_to_prior_conc + files[ff], **params)
+        df_far_field = pd.read_csv(path_to_farfield_conc + files[ff], **params)
 
-        df["flag"] = 1
-        dfp["flag"] = 1
-        dffar["flag"] = 1
+        # Filter far field contribution data to match the requested time range (start_year to end_year)
+        sel = df_far_field["year"] <= end_year  # use only data until 2023
+        df_far_field = df_far_field[sel]
+        sel = df_far_field["year"] >= start_year  # use only data from and after 2006
+        df_far_field = df_far_field[sel]
 
-        df_datetime_obj = pd.to_datetime(
-            df[["year", "month", "day", "hour", "minute", "second"]]
-        )  # is now apply "to_datetime" and get a object from
-        dfp_datetime_obj = pd.to_datetime(
-            dfp[["year", "month", "day", "hour", "minute", "second"]]
-        )
-        dffar_datetime_obj = pd.to_datetime(
-            dffar[["year", "month", "day", "hour", "minute", "second"]]
-        )
+        df_posterior_conc["flag"] = 1
+        df_prior_conc["flag"] = 1
+        df_far_field["flag"] = 1
 
-        df["datetime"] = df_datetime_obj
-        dfp["datetime"] = dfp_datetime_obj
-        dffar["datetime"] = dffar_datetime_obj
+        # Convert date columns to datetime objects
+        datetime_cols = ["year", "month", "day", "hour", "minute", "second"]
 
-        list_df = []
-        list_dfp = []
-        list_dffar = []
-        for i in range(0, df_datetime_obj.size):
-            list_df.append(df_datetime_obj[i].strftime("%Y-%m-%d %H:%M:%S"))
-        for i in range(0, dfp_datetime_obj.size):
-            list_dfp.append(dfp_datetime_obj[i].strftime("%Y-%m-%d %H:%M:%S"))
-        for i in range(0, dffar_datetime_obj.size):
-            list_dffar.append(dffar_datetime_obj[i].strftime("%Y-%m-%d %H:%M:%S"))
+        df_posterior_datetime_obj = pd.to_datetime(df_posterior_conc[datetime_cols])
+        df_prior_datetime_obj     = pd.to_datetime(df_prior_conc[datetime_cols])
+        df_far_field_datetime_obj = pd.to_datetime(df_far_field[datetime_cols])
 
-        # ---now add columns to dataframes
-        df[
-            "datetime_str"
-        ] = list_df  # define a new column in df with name 'datetime_str' and fill this with list_df
-        dfp["datetime_str"] = list_dfp
-        dffar["datetime_str"] = list_dffar
+        df_posterior_conc["datetime"] = df_posterior_datetime_obj
+        df_prior_conc["datetime"]     = df_prior_datetime_obj
+        df_far_field["datetime"]      = df_far_field_datetime_obj
 
-        # ---now according merging problem get info about dtypes
-        df["datetime_str"] = df["datetime_str"].astype("datetime64[ns]")
-        dfp["datetime_str"] = dfp["datetime_str"].astype("datetime64[ns]")
-        dffar["datetime_str"] = dffar["datetime_str"].astype("datetime64[ns]")
+        # Add datetime string column to dataframes
+        # define a new column with name 'datetime_str' and fill this with a list created from df_*_datetime_obj]
+        formats = ["%Y-%m-%d %H:%M:%S"]
+        df_posterior_conc[ "datetime_str" ] = [dt.strftime(formats[0]) for dt in df_posterior_datetime_obj]  
+        df_prior_conc["datetime_str"] = [dt.strftime(formats[0]) for dt in df_prior_datetime_obj]
+        df_far_field["datetime_str"] = [dt.strftime(formats[0]) for dt in df_far_field_datetime_obj]
 
-        # ----------------------find duplicates if needed-----------------------
-        # before merging; here to check, if also on 31.12. are prior, post, and LBC are general available
-        df1 = dffar
-        df2 = df
-        # find rows in d1 which have id, which are not available in d2
-        # you could use isin, with negation operator, so that we filter out the rows in df1 that have ids that also exist in df2:
-        # out = df1[~df1['id'].isin(df2['id'])]
+        # Convert datetime_str column to datetime64 type for proper merging
+        df_posterior_conc["datetime_str"] = df_posterior_conc["datetime_str"].astype("datetime64[ns]")
+        df_prior_conc["datetime_str"] = df_prior_conc["datetime_str"].astype("datetime64[ns]")
+        df_far_field["datetime_str"] = df_far_field["datetime_str"].astype("datetime64[ns]")
 
-        merged_df = pd.merge(df, time_vec_df, on="datetime_str", how="outer")
-        merged_dfp = pd.merge(dfp, time_vec_df, on="datetime_str", how="outer")
-        merged_dffar = pd.merge(dffar, time_vec_df, on="datetime_str", how="outer")
+        # Merge datasets
+        merged_df_posterior_conc = pd.merge(df_posterior_conc, time_vec_df, on="datetime_str", how="outer")
+        merged_df_prior_conc = pd.merge(df_prior_conc, time_vec_df, on="datetime_str", how="outer")
+        merged_df_far_field = pd.merge(df_far_field, time_vec_df, on="datetime_str", how="outer")
 
-        # if there are duplicated observations, remove them all
-        duplicates_df = merged_df[merged_df["datetime_str"].duplicated(keep=False)][
+        # If there are duplicated observations, remove them all
+        duplicates_df = merged_df_posterior_conc[merged_df_posterior_conc["datetime_str"].duplicated(keep=False)][
             "datetime_str"
         ]
-        merged_df = merged_df.loc[~merged_df["datetime_str"].isin(duplicates_df)]
-        duplicates_dfp = merged_dfp[merged_dfp["datetime_str"].duplicated(keep=False)][
+        merged_df_posterior_conc = merged_df_posterior_conc.loc[~merged_df_posterior_conc["datetime_str"].isin(duplicates_df)]
+        duplicates_dfp = merged_df_prior_conc[merged_df_prior_conc["datetime_str"].duplicated(keep=False)][
             "datetime_str"
         ]
-        merged_dfp = merged_dfp.loc[~merged_dfp["datetime_str"].isin(duplicates_dfp)]
-        duplicates_dffar = merged_dffar[
-            merged_dffar["datetime_str"].duplicated(keep=False)
+        merged_df_prior_conc = merged_df_prior_conc.loc[~merged_df_prior_conc["datetime_str"].isin(duplicates_dfp)]
+        duplicates_dffar = merged_df_far_field[
+            merged_df_far_field["datetime_str"].duplicated(keep=False)
         ]["datetime_str"]
-        merged_dffar = merged_dffar.loc[
-            ~merged_dffar["datetime_str"].isin(duplicates_dffar)
+        merged_df_far_field = merged_df_far_field.loc[
+            ~merged_df_far_field["datetime_str"].isin(duplicates_dffar)
         ]
-
-        # Now use only timesteps for merged_dffar  which are also in the merged_df Dataframe
-        # and delete in merged_dffar2 the not needed columns after merging
-        # (in the far field are more times as in the prior,posterior fwd runs (reason missing footprints, and for 2024 data)
-        merged_dffar2 = pd.merge(
-            merged_dffar, df, on="datetime_str", how="left"
+        
+        # Use only timesteps for merged_df_far_field that are also present
+        # in the merged_df_posterior_conc DataFrame, and remove unnecessary
+        # columns from merged_df_far_field_2 after merging.
+        # (Far field data contains more timesteps than prior/posterior forward runs due to missing footprints and 2024 data.)
+        merged_df_far_field_2 = pd.merge(
+            merged_df_far_field, df_posterior_conc, on="datetime_str", how="left"
         )  # use only keys from right dataframe
-        merged_dffar2 = merged_dffar2.drop(
+        merged_df_far_field_2 = merged_df_far_field_2.drop(
             columns=[
                 "frac_time_y",
                 "year_y",
@@ -167,7 +178,7 @@ def preprocess_conc(
             ],
             axis=1,
         )
-        merged_dffar2 = merged_dffar2.drop(
+        merged_df_far_field_2 = merged_df_far_field_2.drop(
             columns=[
                 "lat_y",
                 "lon_y",
@@ -180,18 +191,20 @@ def preprocess_conc(
             ],
             axis=1,
         )
-        merged_dffar2.columns = [
-            col[:-2] if col.endswith("_x") else col for col in merged_dffar2.columns
+        merged_df_far_field_2.columns = [
+            col[:-2] if col.endswith("_x") else col for col in merged_df_far_field_2.columns
         ]
 
-        merged_df["identifier"] = ff + 1
-        merged_dfp["identifier"] = ff + 1
-        merged_dffar2["identifier"] = ff + 1
+        merged_df_posterior_conc["identifier"] = ff + 1
+        merged_df_prior_conc["identifier"] = ff + 1
+        merged_df_far_field_2["identifier"] = ff + 1
+
+        # Concatenate data from current file to accumulated results
         da_all_posterior = pd.concat(
-            [da_all_posterior, merged_df], axis=0
-        )  # this add the values of the current file to da_all_posterior (all combined)
-        da_all_prior = pd.concat([da_all_prior, merged_dfp], axis=0)
-        da_all_farfield = pd.concat([da_all_farfield, merged_dffar2], axis=0)
+            [da_all_posterior, merged_df_posterior_conc], axis=0
+        )
+        da_all_prior = pd.concat([da_all_prior, merged_df_prior_conc], axis=0)
+        da_all_farfield = pd.concat([da_all_farfield, merged_df_far_field_2], axis=0)
 
     print("_save_dataset")
 
@@ -280,9 +293,10 @@ def _save_dataset_conc(
     times.axis = "T"
     times.calendar = "proleptic_gregorian"
 
+    # Time vector for the full time series (years multiplied by number of stations)
     time_vec = pd.to_datetime(
         da_all_posterior["datetime_str"], format="%Y-%m-%d %H:%M:%S"
-    )  # this is the full time series 2006-2023 multipl with stat
+    )
     delta_dd = _calc_time_delta(time_vec)  # delta_dd stands for delta_days
     delta_dd_df = delta_dd.to_frame()
     times[:] = delta_dd_df["datetime_str"]
