@@ -259,14 +259,12 @@ def preprocess(
 
     ds = ds.drop_vars(to_drop)
 
-    posterior = ds["flux_total_posterior"].values
-
     # --- add uncertainties for country-aggregated fluxes from RHS-runs ---
 
     if isinstance(path_to_uncertainty_country, list):
         # check if RHS results are available for each flux time-step (e.g. each year or month)
         if len(ds["time"]) != len(path_to_uncertainty_country):
-            print(
+            logging.warning(
                 "Number of RHS results and number of time steps do not match! Stop RHS processing."
             )
         else:
@@ -321,10 +319,9 @@ def preprocess(
             ds["stdev_flux_total_posterior_country"] = unc_posterior
 
     else:
-        print("Uncertainties for country-aggregated fluxes are not available.")
+        logging.warning("Uncertainties for country-aggregated fluxes are not available.")
 
-    print("_save_dataset")
-
+    logging.info("Running _save_dataset()")
     _save_dataset(ds, path_to_output)
 
 
@@ -395,7 +392,7 @@ def _combine_fluxes(ds_in, species: str):
     ocean = _check_for_units(f"{species}flux_ocean", ds_in)
 
     if land is None and ocean is None:
-        print("DEBUG: Only combined flux available!")
+        logging.info("Only combined flux available. Will use it.")
         # Fallback to combined flux if neither land nor ocean is available
         combined = _check_for_units(f"{species}flux", ds_in)
         if combined is None:
@@ -411,7 +408,7 @@ def _combine_fluxes(ds_in, species: str):
         flux_combined = land
         attrs = _copy_attrs(land)
     else:
-        print("DEBUG: Land & ocean flux separately available.")
+        logging.info("Land & ocean flux available separately. Combining.")
         flux_combined = land + ocean
         attrs = _copy_attrs(land)
         attrs.update(_copy_attrs(ocean))
@@ -513,7 +510,7 @@ def _combine_variable(
             ds[new_vars[1]] = post_data_country
 
         else:
-            print(f"INFO: {varname} not found in dataset.")
+            logging.info(f" Variable {varname} not found in dataset.")
 
     return ds
 
@@ -684,7 +681,7 @@ def _convert_time(ds):
             Dataset with time coordinate in seconds since 2000-01-01
     Returns:
         ds (xarray.Dataset):
-            Dataset with time coordinate in datatime64 format
+            Dataset with time coordinate in datetime64 format
     """
 
     if np.issubdtype(ds["time"].dtype, np.datetime64):
@@ -748,6 +745,6 @@ def _save_dataset(ds, path: str):
         # make sure parent folders exist
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         ds.to_netcdf(path, engine="netcdf4")
-        print(f"✅ File saved successfully: {path}")
+        logging.info(f" ✅ File saved successfully: {path}")
     except Exception as e:
-        print(f"❌ Error when trying to save file {path}: {e}")
+        logging.error(f" ❌ Error when trying to save file {path}: {e}")
