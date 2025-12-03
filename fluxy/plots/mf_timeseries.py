@@ -138,14 +138,12 @@ def _prepare_var(
     elif unc_var.split("_")[-1] in ["prior", "posterior"]:
         unc_lower = (ds[var] - ds[unc_var]).expand_dims({"percentile": ["lower"]})
         unc_upper = (ds[var] + ds[unc_var]).expand_dims({"percentile": ["upper"]})
-        unc_lower = unc_lower.to_dataset()
-        unc_upper = unc_upper.to_dataset()
-        unc = xr.merge([unc_lower, unc_upper], compat="no_conflicts", join="outer")
+        unc = xr.concat([unc_lower, unc_upper],dim="percentile")
+        unc.name = unc_var
     else:
         unc = ds[unc_var].expand_dims({"percentile": ["std"]})
 
-    if isinstance(unc,xr.DataArray):
-        unc = unc.to_dataset()
+    unc = unc.to_dataset()
 
     unc = unc.rename({unc_var: var})
 
