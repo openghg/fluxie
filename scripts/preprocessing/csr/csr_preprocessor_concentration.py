@@ -111,32 +111,11 @@ def preprocess_conc(
         sel = df_far_field["year"] >= start_year  # use only data from and after 2006
         df_far_field = df_far_field[sel]
 
-        df_posterior_conc["flag"] = 1
-        df_prior_conc["flag"] = 1
-        df_far_field["flag"] = 1
-
-        # Convert date columns to datetime objects
+        # Process dataframes
         datetime_cols = ["year", "month", "day", "hour", "minute", "second"]
-
-        df_posterior_datetime_obj = pd.to_datetime(df_posterior_conc[datetime_cols])
-        df_prior_datetime_obj     = pd.to_datetime(df_prior_conc[datetime_cols])
-        df_far_field_datetime_obj = pd.to_datetime(df_far_field[datetime_cols])
-
-        df_posterior_conc["datetime"] = df_posterior_datetime_obj
-        df_prior_conc["datetime"]     = df_prior_datetime_obj
-        df_far_field["datetime"]      = df_far_field_datetime_obj
-
-        # Add datetime string column to dataframes
-        # define a new column with name 'datetime_str' and fill this with a list created from df_*_datetime_obj]
-        formats = ["%Y-%m-%d %H:%M:%S"]
-        df_posterior_conc[ "datetime_str" ] = [dt.strftime(formats[0]) for dt in df_posterior_datetime_obj]  
-        df_prior_conc["datetime_str"] = [dt.strftime(formats[0]) for dt in df_prior_datetime_obj]
-        df_far_field["datetime_str"] = [dt.strftime(formats[0]) for dt in df_far_field_datetime_obj]
-
-        # Convert datetime_str column to datetime64 type for proper merging
-        df_posterior_conc["datetime_str"] = df_posterior_conc["datetime_str"].astype("datetime64[ns]")
-        df_prior_conc["datetime_str"] = df_prior_conc["datetime_str"].astype("datetime64[ns]")
-        df_far_field["datetime_str"] = df_far_field["datetime_str"].astype("datetime64[ns]")
+        df_posterior_conc = _process_dataframe(df_posterior_conc, time_vec_df, datetime_cols)
+        df_prior_conc = _process_dataframe(df_prior_conc, time_vec_df, datetime_cols)
+        df_far_field = _process_dataframe(df_far_field, time_vec_df, datetime_cols)
 
         # Merge datasets
         merged_df_posterior_conc = pd.merge(df_posterior_conc, time_vec_df, on="datetime_str", how="outer")
@@ -253,6 +232,34 @@ def _calc_time_delta(time):
     time_delta = (time - np.datetime64("1970-01-01T00:00:00Z")) / np.timedelta64(1, "D")
 
     return time_delta
+
+
+def _process_dataframe(df, time_vec_df, datetime_cols):
+    """
+    Processes dataframes and adds datetime identifier.
+
+    Args:
+        df (DataFrame):
+            Dataframe with concentrations
+        time_vec_df (DataFrame):
+            Dataframe with datetime (from _create_ts_yi_ye_tk())
+        datetime_cols (list):
+            List with datetime column names
+    Returns:
+        df (Dataframe):
+            Processed dataframe
+    """
+    
+    # Convert to datetime
+    dt_obj = pd.to_datetime(df[datetime_cols])
+    # Add datetime and formatted string columns
+    df = df.copy()
+    df["flag"] = 1
+    df["datetime"] = dt_obj
+    df["datetime_str"] = [dt.strftime("%Y-%m-%d %H:%M:%S") for dt in dt_obj]
+    df["datetime_str"] = df["datetime_str"].astype("datetime64[ns]")
+
+    return df
 
 
 def _save_dataset_conc(
