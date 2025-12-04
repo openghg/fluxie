@@ -460,7 +460,7 @@ def add_xlims_and_ticks(
         min_x = date(min_x.year, 1, 1)
         max_x = date(max_x.year + 1, 1, 1)
         step = (max_x.year - min_x.year) // 8 + 1
-        xticks = [date(year, 1, 1) for year in range(min_x.year, max_x.year, step)]
+        xticks = np.array([date(year, 1, 1) for year in range(min_x.year, max_x.year, step)])
         if (max_x.year - min_x.year) % step == 0:
             xticks = np.append(xticks, max_x)
         ax.set_xticks(xticks)
