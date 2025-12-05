@@ -20,6 +20,8 @@ from fluxy.operators.select import (
     clean_timeseries_missing_data,
     get_site_index,
     get_unique_site_height_pairs,
+    get_unique_sites,
+    slice_site_dict_of_datasets
 )
 from fluxy.plots.utils import set_min_decimal_points
 
@@ -960,3 +962,163 @@ def plot_histogram(
     ax.set_xlabel(legend_hist)
 
     return None
+
+
+def plot_multiple_sites_mf_timeseries(
+    ds_all: dict[str, xr.Dataset],
+    include: VariableType,
+    diff_include: VariableType,
+    species: str | None = None,
+    model_colors: dict[str, str] | None = None,
+    model_labels: dict[str, dict] = {},
+    config_data: dict[str, dict] = {},
+    site_list: list[str] | None = None,
+    time_freq_min: FrequencyType = None,
+    aggreg_month: bool = False,
+):
+
+    """
+    Plot timeseries for multiple sites in a single figure.
+
+    Args:
+        ds_all (dictionary of datasets):
+            xarray datasets, scaled and sliced between chosen dates and for
+            chosen site.
+        include (dict of str):
+            Dictionary keys are variables to include in the plot.
+            The respective values are the uncertainty variables to plot as error bar/uncertainty band.
+        species (str):
+            Gas species, e.g. 'ch4'.
+        model_colors (dict of str):
+            Models and corresponding colours used to plot the model.
+        config_data (dict of dict):
+            Dictionary with settings read from json file.
+            Use json filenames as keys.
+        site_list (list of str):
+            List of sites to plot. If None, all sites available in ds_all will be plotted.
+        time_freq_min (FrequencyType, optional):
+            Time frequency minimum of the timeserie that should be shown as continous
+            line. If the frequency is lower than this, the line will be discontinous.
+            see :py:func:`fluxy.operators.select.clean_timeseries_missing_data`
+            for more information.
+    Returns:
+        fig (figure):
+            A timeseries plot for each site included.
+    """
+
+    models = list(ds_all.keys())
+
+    species_info = config_data.get("species_info", {}).get(species, {})
+
+    plot_type = "together"
+
+    # Look for sites
+    if site_list is None:
+        site_list = get_unique_sites(ds_all)
+    else:
+        available_sites = get_unique_sites(ds_all)
+        for site in site_list:
+            if site not in available_sites:
+                raise ValueError(
+                    f"Site {site} not found in the datasets provided. Available sites are {available_sites}."
+                )
+
+    # Create figure
+    fig, axes = plt.subplots(
+        nrows=len(site_list),
+        ncols=1,
+        sharex=True,
+        sharey=True,
+        figsize=(7, 9),
+        constrained_layout=True
+    )
+
+    # Loop over all sites
+    for ax, site in zip(axes, site_list):
+        # Select site
+        ds_all_site = slice_site_dict_of_datasets(ds_all, site)
+
+        # Prepare data to plot
+        data_to_plot = _prepare_data_to_plot(
+            ds_all_site, include, diff_include, aggreg_month, time_freq_min, plot_type
+            )
+        data_to_plot = _set_labels_and_colors(
+                data_to_plot, model_labels, model_colors, plot_type
+            )
+        unit = _get_unit(data_to_plot)
+
+        # Loop over all models
+        for m in models:
+
+            # Loop over all variables to plot
+            for var in include.keys():
+
+                ds_plot = data_to_plot[m][var]
+
+                # Define plotting color
+                x, y = ds_plot.time.values, ds_plot.sel(percentile="mean").values
+                kwargs = {
+                    "alpha": 0.8,
+                    # "color": ds_plot.attrs["plot_color"],
+                    # "label": ds_plot.attrs["plot_label"],
+                }
+
+                if var in ["mf_observed", "observed_above_BC"] or plot_type == "diff":
+                    # Make scatter plot
+                    ax.scatter(
+                        x,
+                        y,
+                        s=8,
+                        marker="s",
+                        **kwargs,
+                    )
+
+                else:
+                    # Make line plot
+                    ax.plot(
+                        x,
+                        y,
+                        linewidth=2.0,
+                        marker="o",
+                        markersize=1.5,
+                        **kwargs,
+                    )
+
+                if ds_plot.percentile.size == 3:
+                    ax.fill_between(
+                        x,
+                        y1=ds_plot.sel(percentile="lower"),
+                        y2=ds_plot.sel(percentile="upper"),
+                        alpha=0.2,
+                        color=ds_plot.attrs["plot_color"],
+                    )
+
+                elif ds_plot.percentile.size == 2:
+                    ax.errorbar(
+                        x,
+                        y=ds_plot.sel(percentile="mean"),
+                        yerr=ds_plot.sel(percentile="std"),
+                        alpha=0.4,
+                        fmt="none",
+                        color=ds_plot.attrs["plot_color"],
+                    )
+
+        ax.text(0.01, 0.75, site, transform=ax.transAxes,
+            fontsize=8, fontweight="bold")
+        ax.grid(alpha=0.3)
+
+    # Global X label
+    fig.supxlabel("Time")
+
+    # Global Y label
+    fig.supylabel(
+        " ".join(
+                [
+                    species_info.get("species_print", ""),
+                    f"({unit})",
+                ]
+            )
+    )
+
+    # # Legend
+    # fig.legend(models, loc="upper center", ncol=3, frameon=False)
