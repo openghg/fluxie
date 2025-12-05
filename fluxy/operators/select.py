@@ -496,3 +496,36 @@ def clean_timeseries_missing_data(
     ds = ds.sortby("time")
 
     return ds
+
+
+def slice_site_dict_of_datasets(
+    ds_all: dict[str, xr.Dataset],
+    site: str,
+) -> dict[str, xr.Dataset]:
+    """
+    Slices all datasets in a dictionary to only include data for a given site.
+
+    Args:
+        ds_all (dictionary of datasets):
+            xarray datasets read directly from each model's flux netCDF.
+        site (str):
+            Site of interest.
+    Returns:
+        ds_all_site (dictionary of datasets):
+            xarray datasets, sliced to only include data for the given site.
+    """
+
+    ds_all_site = dict()
+
+    for m, ds in ds_all.items():
+        logger.info(f"Slicing site {site} from {m}.")
+
+        if site in ds["platform"].values:
+            ds_all_site[m] = slice_site(ds, site)
+        else:
+            logger.warning(
+                f"Site {site} not found in dataset for {m}. "
+                f"Continuing without {m} - {site}."
+            )
+
+    return ds_all_site
