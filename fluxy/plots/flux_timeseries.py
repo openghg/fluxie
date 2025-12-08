@@ -51,7 +51,7 @@ def get_unit(ds_all: dict[str, xr.Dataset]) -> str:
         if all([var in ds for ds in ds_all.values()]):
             units = {ds[var].units for ds in ds_all.values()}
             if len(units) != 1:
-                logger.error(
+                raise ValueError(
                     f"Inconsistency in the units from the different datasets for variable '{var}': {units} are present. "
                     "Only one is expected."
                 ) 
