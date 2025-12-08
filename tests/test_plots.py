@@ -132,6 +132,14 @@ def test_country_flux_default():
         species
     )
 
+def test_country_flux_with_inventory_raises_no_datadir():
+
+    with pytest.raises(ValueError, match="data_dir must be provided to plot inventory data."):
+        plot_country_flux(
+            ds_all_flux_scaled,
+            species,
+            plot_inventory=True,
+        )
 
 def test_flux_timeseries():
     kwargs = dict(

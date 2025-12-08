@@ -1,3 +1,4 @@
+import os
 import math
 import logging
 import numpy as np
@@ -5,6 +6,7 @@ import pandas as pd
 import xarray as xr
 import matplotlib.pyplot as plt
 from typing import Tuple
+from pathlib import Path
 from datetime import date, datetime, timedelta
 from calendar import isleap, month_abbr, monthrange
 
@@ -414,7 +416,7 @@ def add_prior_plot(
 
 def add_inventory_barplot(
     ax: Axes,
-    data_dir: str,
+    data_dir: os.PathLike,
     country: str,
     species: str,
     start_date: str,
@@ -449,6 +451,8 @@ def add_inventory_barplot(
         res: dataframe with one line per timestamp and 7 columns ("type", "model", "sector", "country", "species", 
             "time", "mean_val")
     """
+
+    data_dir = Path(data_dir)
 
     if isinstance(start_date, list):
         start_date_inv = str(min([np.datetime64(date) for date in start_date]))
@@ -854,10 +858,10 @@ def plot_country_flux(
     start_date: str | None = None,
     end_date: str | None = None,
     annex_mode: bool = False,
-    plot_inventory: bool = True,
+    plot_inventory: bool = False,
     inventory_years: list[str] | None = None,
     inventory_filename: str = "UNFCCC_inventory",
-    data_dir: str | None = None,
+    data_dir: os.PathLike | None = None,
     fix_y_axes: bool | list[float] = False,
     add_prior: bool = True,
     add_prior_unc: bool = False,
@@ -929,6 +933,9 @@ def plot_country_flux(
             "`plot_inventory` is not yet supported for monthly aggregate plots (`aggreg_month=True`). `plot_inventory` is set to False."
         )
         plot_inventory = False
+        
+    if data_dir is None and plot_inventory:
+        raise ValueError("data_dir must be provided to plot inventory data.")
 
     s_data = config_data.get("species_info", {})
     r_data = config_data.get("regions_info", {})
