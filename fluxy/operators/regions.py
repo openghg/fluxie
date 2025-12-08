@@ -1,9 +1,10 @@
 import glob
 import logging
+import os
+from pathlib import Path
+
 import numpy as np
 import xarray as xr
-
-from pathlib import Path
 
 from fluxy.operators.convert import get_units_conversion_factor
 
@@ -252,7 +253,7 @@ def _extract_region_flux_sector(
 
 
 def extract_region_inventory_flux(
-    data_dir: str,
+    data_dir: os.PathLike,
     country: str,
     species: str,
     unit: str,
@@ -279,24 +280,25 @@ def extract_region_inventory_flux(
 
     """
 
+    data_dir = Path(data_dir)
+    inventory_dir = data_dir / "inventory"
+
     # Find filename
     if inventory_year is not None:
         filepath = (
-            Path(data_dir)
-            / "inventory"
+            inventory_dir
             / f"{inventory_filename}_{species}_{inventory_year}.nc"
         )
     else:
         filelist = sorted(
-            (Path(data_dir) / "inventory").glob(f"{inventory_filename}_{species}_*.nc")
+            inventory_dir.glob(f"{inventory_filename}_{species}_*.nc")
         )
         if filelist:
             filepath = filelist[-1]
             inventory_year = int(str(filepath).split("_")[-1].split(".")[0])
         else:
             filepath = (
-                Path(data_dir)
-                / "inventory"
+                inventory_dir
                 / f'{inventory_filename}_{s_data[species]["model_species"]["intem"]}.nc'
             )
             inventory_year = None
