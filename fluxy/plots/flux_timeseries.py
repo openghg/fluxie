@@ -54,7 +54,7 @@ def get_unit(ds_all: dict[str, xr.Dataset]) -> str:
                 logger.error(
                     f"Inconsistency in the units from the different datasets for variable '{var}': {units} are present. "
                     "Only one is expected."
-                ) 
+                )
             unit = list(units)[0]
             return unit
 
