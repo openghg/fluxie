@@ -16,7 +16,7 @@ def test_format_default():
 
 
 def test_no_region():
-
+    """Test that format_plot_regions raises ValueError when called without plot_regions or ds_all."""
     with pytest.raises(ValueError, match="ds_all must be provided if plot_regions is None."):
         regions = format_plot_regions()
 
