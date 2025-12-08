@@ -124,6 +124,15 @@ taylor_stats2include = ["prior", "posterior"]
 stats_ylim = {"pearson": [0, 1], "bias": [-1.5, 0.5], "crmse": [0, 1.5]}
 
 
+def test_country_flux_default():
+    """Test country flux with default settings."""
+
+    plot_country_flux(
+        ds_all_flux_scaled,
+        species
+    )
+
+
 def test_flux_timeseries():
     kwargs = dict(
         data_dir = data_dir,
