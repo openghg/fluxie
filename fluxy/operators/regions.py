@@ -50,15 +50,7 @@ def extract_region_flux(
             ds_all, country, regions_info, keep_country_dim, sector
         )
         for m in ds_all.keys():
-            ds_sectors[m].append(
-                tmp[m].expand_dims(
-                    dim={
-                        "sector": [
-                            sector,
-                        ]
-                    }
-                )
-            )
+            ds_sectors[m].append(tmp[m].expand_dims(dim={"sector": [sector]}))
 
     return {m: xr.concat(ds_sectors[m], dim="sector") for m in ds_all.keys()}
 
@@ -129,7 +121,6 @@ def _extract_region_flux_sector(
     steps = ["prior", "posterior"]
     var_of_step = {step: f"flux_{sector}_{step}_country" for step in steps}
 
-
     for m, ds in ds_all.items():
         # search for existing region names
         available_countries = ds["country"].values.astype(str)
@@ -150,9 +141,7 @@ def _extract_region_flux_sector(
                 variable = var_of_step[v]
                 if variable not in ds_region.variables:
                     continue
-                ds_region[v] = ds_region[variable].sum(
-                    dim="country", keep_attrs=True
-                )
+                ds_region[v] = ds_region[variable].sum(dim="country", keep_attrs=True)
 
             if f"percentile_flux_{sector}_prior_country" in ds_region.variables:
                 ds_region["sigma_prior"] = np.sqrt(
@@ -200,7 +189,7 @@ def _extract_region_flux_sector(
             ds_region = ds.sel({"country": country_search})
 
             for v in steps:
-                variable  = var_of_step[v]
+                variable = var_of_step[v]
                 if variable not in ds_region.variables:
                     continue
                 ds_region[v] = ds_region[variable]
@@ -300,14 +289,9 @@ def extract_region_inventory_flux(
 
     # Find filename
     if inventory_year is not None:
-        filepath = (
-            inventory_dir
-            / f"{inventory_filename}_{species}_{inventory_year}.nc"
-        )
+        filepath = inventory_dir / f"{inventory_filename}_{species}_{inventory_year}.nc"
     else:
-        filelist = sorted(
-            inventory_dir.glob(f"{inventory_filename}_{species}_*.nc")
-        )
+        filelist = sorted(inventory_dir.glob(f"{inventory_filename}_{species}_*.nc"))
         if filelist:
             filepath = filelist[-1]
             inventory_year = int(str(filepath).split("_")[-1].split(".")[0])
@@ -386,7 +370,8 @@ def extract_region_inventory_flux(
 
 
 def format_plot_regions(
-    plot_regions: str | list[str] | None = None, ds_all: dict[str, xr.Dataset] | None = None
+    plot_regions: str | list[str] | None = None,
+    ds_all: dict[str, xr.Dataset] | None = None,
 ) -> list[str]:
     """
     Format plot_regions into a list of regions. If plot_regions originally None, read the country names from ds_all.
