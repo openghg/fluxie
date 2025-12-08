@@ -499,7 +499,8 @@ def set_ylabel(ax: Axes, s_data: dict[str, dict], species: str, sector: str, uni
 
 
 def set_xlims_and_ticks(
-    ax: Axes, yearly_freq: bool, res_dict: dict[str, dict], aggreg_month: bool
+    ax: Axes, yearly_freq: bool, res_dict: dict[str, dict], aggreg_month: bool,
+    xticks_at_centre: bool = False
 ):
     """
     Set x limits, ticks and ticks labels of matplotlib axes. Optimize them by looking at if theye monthly, yearly, or monthly aggregated, and covered time range.
@@ -508,6 +509,7 @@ def set_xlims_and_ticks(
         yearly_freq: set to True if the data plotted have a yearly frequency.
         res_dict: dictionnary containing the data plotted. Should have one key per regions plotted, the values being dictionnaries with 3 keys: "inventory", "posterior" and "prior"; whose values are the output of add_inventory_barplot, add_posterior_plot, add_prior_plot). The time data stored in them is used to infer the xlims.
         aggreg_month: if True, the data plotted are supposed to be a monthly aggregated so 12 stciks are created, whose labels are the 3 first letters of each month.
+        xticks_at_centre: if True, set the x ticks at the centre of each time period (year or month) rather than at the beginning.
     """
     if aggreg_month:
         ax.set_xticks(np.arange(1, 13))
@@ -559,11 +561,17 @@ def set_xlims_and_ticks(
         min_x = min_x.astype("datetime64[Y]")
         step = int(year_range) // 8 + 1
         xticks: np.ndarray = np.arange(min_x, max_x, step=np.timedelta64(step, "Y"))
-        if (max_x - min_x) % np.timedelta64(step, "Y") == 0:
-            xticks = np.append(xticks, max_x)
-        ax.set_xticks(xticks)
-        ax.set_xticklabels(xticks.astype("datetime64[Y]"))
-        ax.xaxis.set_major_locator(YearLocator())
+        if xticks_at_centre == True:
+            xticks = xticks.astype('datetime64[D]') + (np.timedelta64(195, "D"))
+            print(xticks)
+            ax.set_xticks(xticks)
+            ax.set_xticklabels(xticks.astype("datetime64[Y]"))
+        else:
+            if (max_x - min_x) % np.timedelta64(step, "Y") == 0:
+                xticks = np.append(xticks, max_x)
+            ax.set_xticks(xticks)
+            ax.set_xticklabels(xticks.astype("datetime64[Y]"))
+            ax.xaxis.set_major_locator(YearLocator())
 
     else:
         ax.xaxis.set_minor_locator(MonthLocator())
@@ -684,7 +692,9 @@ def plot_country_flux(
     rolling_mean: bool | list[bool] = False,
     aggreg_month: bool = False,
     sector: str = "total",
-    only_overlapping: bool = True
+    only_overlapping: bool = True,
+    xticks_at_centre: bool = False,
+    plot_grid: bool = True,
 ) -> Figure | tuple[Figure, dict[str, dict]]:
     """
     Timeseries plot of prior and posterior country fluxes, from list of
@@ -804,7 +814,8 @@ def plot_country_flux(
         set_ylabel(ax, s_data, species, sector, unit)
 
         # set grid
-        ax.grid(visible=True, which="major", alpha=0.4)
+        if plot_grid:
+            ax.grid(visible=True, which="major", alpha=0.4)
 
         # set ax title
         set_title(ax, country, r_data, country_codes_as_titles)
@@ -819,7 +830,7 @@ def plot_country_flux(
         "yearly" in [ds.attrs["frequency"] for ds in ds_to_plot.values()]
         or resample == "year"
     )
-    set_xlims_and_ticks(axes[-1], yearly_freq, res_dict, aggreg_month)
+    set_xlims_and_ticks(axes[-1], yearly_freq, res_dict, aggreg_month, xticks_at_centre)
 
     set_legend(fig, set_global_leg, annex_mode, plot_inventory, inventory_years)
 
