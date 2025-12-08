@@ -1,5 +1,4 @@
 from fluxy.operators.regions import format_plot_regions
-import numpy as np
 import xarray as xr
 
 import pytest
