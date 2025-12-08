@@ -796,7 +796,7 @@ def add_legend(
             legend_loc = (0.5, 1.1)
         else:
             legend_loc = (0.5, 1.15)
-        handles, labels = fig.axes[-1].get_legend_handles_labels()
+        handles, labels = fig.axes[0].get_legend_handles_labels()
         fig.legend(
             handles,
             labels,
