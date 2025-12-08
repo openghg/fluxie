@@ -46,8 +46,9 @@ def plot_flux_map(
     zoom_degree: float = 1,
     only: Literal["posterior", "prior", "diff"] | None = None,
     fallback_sites: list[str] | None = None,
-    resample_uncert_correlation=False,
+    resample_uncert_correlation: bool = False,
     sector: str = "total",
+    include_title_and_labels: bool = True
 ) -> plt.Figure:
     """
     Plot posterior and prior fluxes and the difference between them for all models, time averaged.
@@ -217,17 +218,17 @@ def plot_flux_map(
             ax_i.set_aspect(1)
 
             # Adjust ticks layout
-            if row < n_rows - 1:
-                ax_i.set_xticklabels([])
-            if col > 0:
-                ax_i.set_yticklabels([])
+            if row < n_rows - 1 or include_title_and_labels == False:
+                ax_i.set_xticks([])
+            if col > 0 or include_title_and_labels == False:
+                ax_i.set_yticks([])
 
             # Add titles
             # Column titles
-            if row == 0:
+            if row == 0 and include_title_and_labels:
                 ax_i.set_title(model_labels.get(model, model))
             # Row titles
-            if col == 0:
+            if col == 0 and include_title_and_labels:
                 ax_i.set_ylabel(define_flux_label(var))
 
             # Add sites and markers if specified
@@ -237,6 +238,11 @@ def plot_flux_map(
                 add_custom_markers(
                     ax_i, add_markers, marker_color, config_data["regions_info"]
                 )
+                
+            if include_title_and_labels:
+                cbar_label_format = ["variable", "species", "units", "time"]
+            else:
+                cbar_label_format = ["species", "units", "time"]
 
             # Add colorbar (only for the last column)
             if col == n_cols - 1:
@@ -244,7 +250,7 @@ def plot_flux_map(
                     ds,
                     species_info,
                     var,
-                    format=["variable", "species", "units", "time"],
+                    format=cbar_label_format,
                 )  # TODO Here, based on the last iteration. Check if consistent for all models?
                 add_colorbar(
                     fig,
