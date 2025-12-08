@@ -133,7 +133,7 @@ def test_country_flux_default():
     )
 
 def test_country_flux_with_inventory_raises_no_datadir():
-
+    """Test that ValueError is raised if plot_inventory=True and data_dir is not provided."""
     with pytest.raises(ValueError, match="data_dir must be provided to plot inventory data."):
         plot_country_flux(
             ds_all_flux_scaled,
