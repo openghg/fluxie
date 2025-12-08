@@ -23,6 +23,7 @@ from fluxy.operators.select import (
     get_unique_sites,
     slice_site_dict_of_datasets
 )
+from fluxy.operators.mf import merge_mf_observed
 from fluxy.plots.utils import set_min_decimal_points
 
 logger = logging.getLogger(__name__)
@@ -1028,8 +1029,8 @@ def plot_multiple_sites_mf_timeseries(
         nrows=len(site_list),
         ncols=1,
         sharex=True,
-        sharey=True,
-        figsize=(7, 9),
+        # sharey=True,
+        figsize=(8, len(site_list)),
         constrained_layout=True
     )
 
@@ -1047,42 +1048,41 @@ def plot_multiple_sites_mf_timeseries(
             )
         unit = _get_unit(data_to_plot)
 
+        if "mf_observed" in include.keys():
+            observed_var = merge_mf_observed(data_to_plot)
+            data_to_plot = {k: ds.drop("mf_observed") for k, ds in data_to_plot.items()}
+
         # Loop over all models
-        for m in models:
+        for i, m in enumerate(models):
 
             # Loop over all variables to plot
             for var in include.keys():
 
-                ds_plot = data_to_plot[m][var]
+                if var == "mf_observed":
+                    if i == 0:
+                        ds_plot = observed_var
+                    else:
+                        continue
+                else:
+                    ds_plot = data_to_plot[m][var]
 
                 # Define plotting color
                 x, y = ds_plot.time.values, ds_plot.sel(percentile="mean").values
                 kwargs = {
                     "alpha": 0.8,
-                    # "color": ds_plot.attrs["plot_color"],
-                    # "label": ds_plot.attrs["plot_label"],
+                    "color": ds_plot.attrs["plot_color"],
+                    "label": ds_plot.attrs["plot_label"],
                 }
 
-                if var in ["mf_observed", "observed_above_BC"] or plot_type == "diff":
-                    # Make scatter plot
-                    ax.scatter(
-                        x,
-                        y,
-                        s=8,
-                        marker="s",
-                        **kwargs,
-                    )
-
-                else:
-                    # Make line plot
-                    ax.plot(
-                        x,
-                        y,
-                        linewidth=2.0,
-                        marker="o",
-                        markersize=1.5,
-                        **kwargs,
-                    )
+                # Make line plot
+                ax.plot(
+                    x,
+                    y,
+                    linewidth=1.0,
+                    # marker="o",
+                    # markersize=1.5,
+                    **kwargs,
+                )
 
                 if ds_plot.percentile.size == 3:
                     ax.fill_between(
@@ -1106,9 +1106,6 @@ def plot_multiple_sites_mf_timeseries(
         ax.text(0.01, 0.75, site, transform=ax.transAxes,
             fontsize=8, fontweight="bold")
         ax.grid(alpha=0.3)
-
-    # Global X label
-    fig.supxlabel("Time")
 
     # Global Y label
     fig.supylabel(
