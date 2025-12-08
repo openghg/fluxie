@@ -175,3 +175,83 @@ def stats_mf(
         obs_var=obs,
         sim_var=sim,
     )
+
+
+def merge_mf_observed(ds_dict, threshold=0.05):
+    """
+    Merge mf_observed from multiple datasets along time,
+    handling slight differences within the given relative threshold.
+    
+    Parameters
+    ----------
+    ds_dict : dict
+        Dictionary of xarray Datasets, each containing 'mf_observed' with 'index' and 'time'.
+    threshold : float
+        Relative difference threshold to consider values identical (default 5%).
+        
+    Returns
+    -------
+    xr.DataArray
+        Merged mf_observed along 'time'.
+    """
+    # Concatenate along time
+    da_concat = (
+        xr.concat(
+            [ds["mf_observed"].swap_dims({"index": "time"}) for ds in ds_dict.values()],
+            dim="time",
+            combine_attrs="drop_conflicts"
+        )
+        .sortby("time")
+    )
+    ispercentile = False
+    if "percentile" in da_concat.coords:
+        ispercentile = True
+        da_concat = da_concat.sel(percentile="mean")
+    
+    da_concat = da_concat.reset_coords(drop=True) # drops all coordinates except the dimension coordinates
+    out_attrs = da_concat.attrs
+    out_attrs['plot_label'] = 'observation'
+
+    # Function to merge duplicates within threshold
+    def merge_close(x):
+        """
+        Merge close values within a time group.
+        """
+        time_val = x.time.values[0]
+        x = x.dropna("time")
+
+        if x.size == 0:
+            return xr.DataArray([np.nan], coords={"time": [time_val]}, dims=["time"])
+
+        if x.size == 1:
+            return xr.DataArray(x.values, coords={"time": [time_val]}, dims=["time"])
+        
+        # Sort for easy clustering
+        x = x.sortby(x)
+
+        # Compute relative difference between consecutive values
+        diffs = (abs(x - x.shift(time=1)) / x.shift(time=1)).fillna(0)
+
+        # Identify cluster boundaries where difference >= threshold
+        cluster_flags = diffs >= threshold
+
+        # Assign cluster indices
+        cluster_idx = cluster_flags.cumsum("time")
+
+        # Group by cluster index and take mean
+        merged = x.groupby(cluster_idx).mean(dim="time").values
+        return xr.DataArray(merged, coords={"time": [time_val]*len(merged)}, dims=["time"])
+
+    # Group by time and merge duplicates 
+    da_out = da_concat.groupby("time").map(lambda x: merge_close(x))
+    da_out = da_out.assign_attrs(out_attrs)
+    if ispercentile:
+        da_out = da_out.expand_dims(
+            {
+                "percentile": [
+                    "mean",
+                ]
+            }
+        )
+
+    return da_out
