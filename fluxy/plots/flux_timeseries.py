@@ -112,7 +112,7 @@ def create_fig_and_axes(
         figsize=(n_cols * 6, n_rows * 4),
     )
     if isinstance(axes, np.ndarray):
-        axes = axes.flatten()
+        axes = axes.flatten()[:nb_subplots]
     else:
         axes = [axes]
 
@@ -933,7 +933,7 @@ def plot_country_flux(
             "`plot_inventory` is not yet supported for monthly aggregate plots (`aggreg_month=True`). `plot_inventory` is set to False."
         )
         plot_inventory = False
-        
+
     if data_dir is None and plot_inventory:
         raise ValueError("data_dir must be provided to plot inventory data.")
 
