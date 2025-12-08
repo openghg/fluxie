@@ -15,7 +15,7 @@ from matplotlib.ticker import NullFormatter
 from matplotlib import __version__ as mplt_version
 
 from fluxy import config
-from fluxy.operators.regions import extract_region_flux
+from fluxy.operators.regions import extract_region_flux, format_plot_regions
 from fluxy.operators.rolling_mean import calc_rolling_mean
 from fluxy.operators.flux_timeseries_resample import resample_flux
 from fluxy.operators.flux_combine import combine_dataset
@@ -31,27 +31,7 @@ country_equivalent = {
 }
 
 
-def format_plot_regions(
-    plot_regions: str | list[str] | None, ds_all: dict[str, xr.Dataset] | None
-) -> list[str]:
-    """
-    Format plot_regions into a list of regions. If plot_regions originally None, read the country names from ds_all.
-    Args:
-        plot_regions: (list of) regions
-        ds_all: dictionnary containing dataset form which the regions will be determine if plot_regions=None.
-    Returns
-        plot_regions: list of regions
-    """
 
-    if not plot_regions:
-        # Read all countries given in the dss and take the intersection of models
-        plot_regions = set.intersection(
-            *(set(ds["country"].values) for ds in ds_all.values())
-        )
-    if not isinstance(plot_regions, list):
-        plot_regions = [plot_regions]
-
-    return plot_regions
 
 
 def get_posterior_unit(ds_all: dict[str, xr.Dataset]) -> str:

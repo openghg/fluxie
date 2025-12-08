@@ -9,12 +9,13 @@ from fluxy.operators.convert import get_units_conversion_factor
 
 logger = logging.getLogger(__name__)
 
+
 def extract_region_flux(
     ds_all: dict[str, xr.Dataset],
     country: str,
     regions_info: dict[str, str],
     keep_country_dim: bool = False,
-    sectors: str | list = 'total'
+    sectors: str | list = "total",
 ) -> dict[str, xr.Dataset]:
     """
     Create flux datasets for region of interest. Do it by calling _extract_region_flux_sector for every sector of interest
@@ -24,7 +25,7 @@ def extract_region_flux(
             chosen dates.
         country: name of the country to extract.
         regions_info: dictionary with country and region names (read from json file).
-        keep_country_dim: if True, re-put country dimension on the output datasets, else 
+        keep_country_dim: if True, re-put country dimension on the output datasets, else
             store the country (and sector) as attributes.
         sectors: sector(s) to extract
     Returns:
@@ -36,24 +37,37 @@ def extract_region_flux(
             - 'prior_lower',
             - 'prior_upper'
     """
-    
-    if isinstance(sectors,str):
-        return _extract_region_flux_sector(ds_all,country,regions_info,keep_country_dim,sectors)
-    
+
+    if isinstance(sectors, str):
+        return _extract_region_flux_sector(
+            ds_all, country, regions_info, keep_country_dim, sectors
+        )
+
     ds_sectors = {m: list() for m in ds_all.keys()}
     for sector in sectors:
-        tmp = _extract_region_flux_sector(ds_all,country,regions_info,keep_country_dim,sector)
+        tmp = _extract_region_flux_sector(
+            ds_all, country, regions_info, keep_country_dim, sector
+        )
         for m in ds_all.keys():
-            ds_sectors[m].append(tmp[m].expand_dims(dim={"sector": [sector,]}))
-            
-    return {m: xr.concat(ds_sectors[m], dim = "sector") for m in ds_all.keys()}
+            ds_sectors[m].append(
+                tmp[m].expand_dims(
+                    dim={
+                        "sector": [
+                            sector,
+                        ]
+                    }
+                )
+            )
+
+    return {m: xr.concat(ds_sectors[m], dim="sector") for m in ds_all.keys()}
+
 
 def _extract_region_flux_sector(
     ds_all: dict[str, xr.Dataset],
     country: str,
     regions_info: dict[str, str],
     keep_country_dim: bool = False,
-    sector: str = 'total'
+    sector: str = "total",
 ) -> dict[str, xr.Dataset]:
     """
     Finds the index of a chosen region name and extracts the country flux
@@ -68,11 +82,11 @@ def _extract_region_flux_sector(
             chosen dates.
         country: name of the country to extract.
         regions_info: dictionary with country and region names (read from json file).
-        keep_country_dim: if True, re-put country dimension on the output datasets, else 
+        keep_country_dim: if True, re-put country dimension on the output datasets, else
             store the country (and sector) as attributes.
-        sector: sector to extract. Variables of the form f"flux_{sector}_{v}_country" must 
+        sector: sector to extract. Variables of the form f"flux_{sector}_{v}_country" must
             be present (v being prior or posterior).
-            
+
     Returns:
         ds_output: dictionnary of datasets. The dataset variables are :
             - 'posterior',
@@ -91,8 +105,7 @@ def _extract_region_flux_sector(
     if all([("all" in ds.attrs.get("species", "")) for ds in ds_all.values()]):
         ds_output = {
             m: ds.sel(country=country_search).assign_attrs(
-                sector=sector,
-                country=country
+                sector=sector, country=country
             )
             for m, ds in ds_all.items()
         }
@@ -353,3 +366,28 @@ def extract_region_inventory_flux(
         inv_ds = inv_ds.sel({"country": country_search})
 
     return inv_ds.sum(dim="country", keep_attrs=True)
+
+
+def format_plot_regions(
+    plot_regions: str | list[str] | None = None, ds_all: dict[str, xr.Dataset] | None = None
+) -> list[str]:
+    """
+    Format plot_regions into a list of regions. If plot_regions originally None, read the country names from ds_all.
+    Args:
+        plot_regions: (list of) regions
+        ds_all: dictionnary containing dataset form which the regions will be determine if plot_regions=None.
+    Returns
+        plot_regions: list of regions
+    """
+
+    if not plot_regions:
+        if ds_all is None:
+            raise ValueError("ds_all must be provided if plot_regions is None.")
+        # Read all countries given in the dss and take the intersection of models
+        plot_regions = list(
+            set.intersection(*(set(ds["country"].values) for ds in ds_all.values()))
+        )
+    if not isinstance(plot_regions, list):
+        plot_regions = [plot_regions]
+
+    return plot_regions
