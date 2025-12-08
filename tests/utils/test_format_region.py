@@ -36,7 +36,7 @@ def test_format_from_ds_all():
 
     formatted_regions = format_plot_regions(ds_all=ds_mock)
 
-    assert isinstance(formatted_regions, list) 
+    assert isinstance(formatted_regions, list)
     for c in ['FRA', 'DEU']:
         assert c in formatted_regions
     for c in ['ITA', 'ESP']:
