@@ -36,7 +36,7 @@ country_equivalent = {
 
 
 
-def get_posterior_unit(ds_all: dict[str, xr.Dataset]) -> str:
+def get_unit(ds_all: dict[str, xr.Dataset]) -> str:
     """
     Determine unit of posterior estimations from datasets. If incoherencies between datasets, an error is raised.
     Args:
@@ -45,24 +45,22 @@ def get_posterior_unit(ds_all: dict[str, xr.Dataset]) -> str:
         unit: unit of posterior variables in dataset.
     """
 
-    if all(["flux_total_posterior_country" in ds for ds in ds_all.values()]):
-        units = {ds["flux_total_posterior_country"].units for ds in ds_all.values()}
-    elif all(["posterior" in ds for ds in ds_all.values()]):
-        units = {ds.posterior.units for ds in ds_all.values()}
-    else:
-        raise ValueError(
-            "Did not find variable 'posterior' or 'flux_total_posterior_country' in every dataset. Thus couldn't determine unit."
-        )
+    variables_to_check = ["flux_total_posterior_country", "posterior", "flux_total_prior_country", "prior"]
 
-    if len(units) == 1:
-        unit = list(units)[0]
-    else:
-        raise ValueError(
-            f"Inconsistency in the units from the different datasets : {units} are present. Only one is expected."
-        )
+    for var in variables_to_check:
+        if all([var in ds for ds in ds_all.values()]):
+            units = {ds[var].units for ds in ds_all.values()}
+            if len(units) != 1:
+                logger.error(
+                    f"Inconsistency in the units from the different datasets for variable '{var}': {units} are present. "
+                    "Only one is expected."
+                ) 
+            unit = list(units)[0]
+            return unit
 
-    return unit
-
+    raise ValueError(
+        f"Did not find any of the expected variables {variables_to_check} in every dataset. Thus couldn't determine unit."
+    )
 
 def determine_subplots_arrangement(subplot_number: int) -> tuple[int, int]:
     """
@@ -942,7 +940,7 @@ def plot_country_flux(
 
 
     plot_regions = format_plot_regions(plot_regions, ds_all)
-    unit = get_posterior_unit(ds_all)
+    unit = get_unit(ds_all)
 
     plotted_data_df = pd.DataFrame()
 
@@ -983,12 +981,13 @@ def plot_country_flux(
         for m, ds_region in ds_to_plot.items():
             highlighted_post = ("combined" in m) & annex_mode
             add_post_unc = (("combined" in m) & plot_combined_unc) |  (("combined" not in m) & plot_separate_unc)
-            posterior_df = add_posterior_plot(
-                ax, ds_region, highlighted_post, add_post_unc
-            )
-            plotted_data_df = pd.concat(
-                [plotted_data_df, posterior_df], ignore_index=True
-            )
+            if "posterior" in ds_region.data_vars:
+                posterior_df = add_posterior_plot(
+                    ax, ds_region, highlighted_post, add_post_unc
+                )
+                plotted_data_df = pd.concat(
+                    [plotted_data_df, posterior_df], ignore_index=True
+                )
 
             if add_prior:
                 prior_df = add_prior_plot(ax, ds_region, annex_mode, add_prior_unc)
@@ -1103,7 +1102,7 @@ def plot_country_sector_flux_bar(
     plot_type = "sector_barplot"
     s_data = config_data.get("species_info", {})
     r_data = config_data.get("regions_info", {})
-    unit = get_posterior_unit(ds_all)
+    unit = get_unit(ds_all)
 
     plotted_data_df = pd.DataFrame()
 

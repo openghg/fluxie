@@ -126,6 +126,10 @@ def _extract_region_flux_sector(
     flag_percentile = False
     flag_stdev = False
 
+    steps = ["prior", "posterior"]
+    var_of_step = {step: f"flux_{sector}_{step}_country" for step in steps}
+
+
     for m, ds in ds_all.items():
         # search for existing region names
         available_countries = ds["country"].values.astype(str)
@@ -142,8 +146,11 @@ def _extract_region_flux_sector(
             if "country_2" in ds_region.dims:
                 ds_region = ds_region.sel({"country_2": country_list})
 
-            for v in ["posterior", "prior"]:
-                ds_region[v] = ds_region[f"flux_{sector}_{v}_country"].sum(
+            for v in steps:
+                variable = var_of_step[v]
+                if variable not in ds_region.variables:
+                    continue
+                ds_region[v] = ds_region[variable].sum(
                     dim="country", keep_attrs=True
                 )
 
@@ -183,15 +190,20 @@ def _extract_region_flux_sector(
                 )
                 ds_region["sigma_posterior"] = np.nan * ds_region["posterior"]
 
-            for v in ["posterior", "prior"]:
+            for v in steps:
+                if v not in ds_region:
+                    continue
                 ds_region[f"{v}_lower"] = ds_region[v] - ds_region[f"sigma_{v}"]
                 ds_region[f"{v}_upper"] = ds_region[v] + ds_region[f"sigma_{v}"]
 
         elif country_search in available_countries:
             ds_region = ds.sel({"country": country_search})
 
-            for v in ["posterior", "prior"]:
-                ds_region[v] = ds_region[f"flux_{sector}_{v}_country"]
+            for v in steps:
+                variable  = var_of_step[v]
+                if variable not in ds_region.variables:
+                    continue
+                ds_region[v] = ds_region[variable]
                 var_percentile = f"percentile_flux_{sector}_{v}_country"
                 var_stdev = f"stdev_flux_{sector}_{v}_country"
 
@@ -219,17 +231,20 @@ def _extract_region_flux_sector(
                         f"Using {var_stdev} to plot {m} {v} country flux 68.2% confidence interval."
                     )
                 else:
-                    da = ds_region[f"flux_{sector}_{v}_country"]
+                    da = ds_region[variable]
                     ds_region[f"{v}_lower"] = da
                     ds_region[f"{v}_upper"] = da
 
         else:
             raise ValueError(f"{country_search} ({country}) is not available for {m}")
 
-        for v in ["posterior", "prior"]:
-            ds_region[f"{v}_lower"] = ds_region[f"{v}_lower"].clip(min=0)
+        for v in steps:
+            lower_var = f"{v}_lower"
+            if lower_var not in ds_region:
+                continue
+            ds_region[lower_var] = ds_region[lower_var].clip(min=0)
 
-        ds_region = ds_region[target_vars]
+        ds_region = ds_region[[tv for tv in target_vars if tv in ds_region]]
 
         if keep_country_dim and "country" not in ds_region.dims:
             ds_region = ds_region.expand_dims(
