@@ -144,8 +144,5 @@ def _retrieve_inventories_sector(
             inventories_uncert_list.append(ds_inv_stdev.sel(time=slice(start_date, end_date)))
         else:
             inventories_uncert_list.append(None)
-            
-    print(inventories_list)
-    print(inventories_uncert_list)
 
     return inventories_list, inventories_uncert_list

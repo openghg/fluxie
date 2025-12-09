@@ -499,9 +499,6 @@ def add_inventory_barplot(
         inventory_filename,
         sectors=sector,
     )
-    
-    print(inventories_to_plot)
-    print(inventories_uncert_to_plot)
 
     res = pd.DataFrame()
     for i_inv, inventory in enumerate(inventories_to_plot):
@@ -794,7 +791,7 @@ def add_xlims_and_ticks(
         max_x = date(max_x.year + 1, 1, 1)
     xlim = [min_x - (max_x - min_x) / 50, max_x + (max_x - min_x) / 50]
 
-    if year_range > timedelta(days=8 * 365.25) or yearly_freq:
+    if year_range > timedelta(days=8 * 365.25) or yearly_freq or xticks_at_centre:
         min_x = date(min_x.year, 1, 1)
         max_x = date(max_x.year + 1, 1, 1)
         step = (max_x.year - min_x.year) // 8 + 1
@@ -804,7 +801,7 @@ def add_xlims_and_ticks(
         if xticks_at_centre:
             xticks = xticks.astype('datetime64[D]') + np.timedelta64(182, 'D')
             ax.set_xticks(xticks)
-            ax.set_xticks_labels(xticks.astype("datetime64[Y]"))
+            ax.set_xticklabels(xticks.astype("datetime64[Y]"))
         else:
             if (max_x.year - min_x.year) % step == 0:
                 xticks = np.append(xticks, max_x)
@@ -812,6 +809,7 @@ def add_xlims_and_ticks(
             ax.set_xticklabels(xticks.astype("datetime64[Y]"))
             ax.xaxis.set_major_locator(YearLocator())
     else:
+        
         ax.xaxis.set_minor_locator(MonthLocator())
         ax.xaxis.set_major_locator(YearLocator())
 
@@ -1372,7 +1370,7 @@ def plot_all_species_stacked_bar(all_species: list[str],
 
     for s,species in enumerate(all_species):
 
-        ds_all_region = extract_region_flux(ds_all_flux_scaled[species], regions, r_data, sector=sector)
+        ds_all_region = extract_region_flux(ds_all_flux_scaled[species], regions, r_data, sectors=sector)
         ds_to_plot[species] = prepare_data_to_plot(
             ds_all_region=ds_all_region,
             model_labels=model_labels,
@@ -1400,7 +1398,7 @@ def plot_all_species_stacked_bar(all_species: list[str],
             r_data,
             inventory_years,
             inventory_filename,
-            sector=sector,
+            sectors=sector,
         )
 
         if inventories_uncert_to_plot[species][0] is None:

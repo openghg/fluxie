@@ -219,10 +219,14 @@ def plot_flux_map(
             ax_i.set_aspect(1)
 
             # Adjust ticks layout
-            if row < n_rows - 1 or include_title_and_labels == False:
+            if row < n_rows - 1:
                 ax_i.set_xticklabels([])
-            if col > 0 or include_title_and_labels == False:
+            if col > 0:
                 ax_i.set_yticklabels([])
+                
+            if include_title_and_labels == False:
+                ax_i.set_xticks([])
+                ax_i.set_yticks([])
 
             # Add titles
             # Column titles
@@ -251,14 +255,14 @@ def plot_flux_map(
                     ds,
                     species_info,
                     var,
-                    format=["variable", "species", "units", "time"],
+                    format=cbar_label_format,
                 )  # TODO Here, based on the last iteration. Check if consistent for all models?
                 add_colorbar(
                     fig,
                     ax_i,
                     im,
                     extend_i,
-                    cbar_label=cbar_label_format,
+                    label=cbar_label,
                     n_cbar=n_rows,
                     idx_cbar=row,
                     colorbar_type="row",
@@ -732,14 +736,14 @@ def plot_flux_map_over_time(
         species_info,
         var,
         sector=sector if sector != "total" else "",
-        format=["variable", "species", "sector", "units"],
+        format=cbar_label_format,
     )
     add_colorbar(
         fig,
         ax,
         im,
         extend=extend,
-        label=cbar_label_format,
+        label=cbar_label,
         n_cbar=1,
         idx_cbar=1,
         colorbar_type="figure",
