@@ -117,10 +117,10 @@ def prepare_data_to_plot(
             ds_combined = combine_dataset(ds_resampled, plot_combined)
             ds_combined["combined"].attrs[
                 "model_label"
-            ] = "PARIS mean (from resampled data)"
+            ] = "Multi-model mean (from resampled data)"
         else:
             ds_combined = combine_dataset(ds_all_region, plot_combined)
-            ds_combined["combined"].attrs["model_label"] = "PARIS mean"
+            ds_combined["combined"].attrs["model_label"] = "Multi-model mean"
         ds_to_plot.update(ds_combined)
 
     if rolling_mean:
@@ -130,7 +130,7 @@ def prepare_data_to_plot(
     color_usage = {k: 0 for k in map_model_colors.keys()}
     for m in ds_to_plot.keys():
         if m == "combined":
-            include_label = "PARIS mean"
+            include_label = "Multi-model mean"
             model_color = "black"
         else:
             include_label = ds_to_plot[m].attrs.get("model_label", None)
@@ -353,13 +353,14 @@ def plot_country_flux(
                 ax.plot(
                     ds_region.time,
                     ds_region.prior,
-                    label=ds_region.attrs["model_label"] + " prior",
+                    label="Prior",
                     color=ds_region.attrs["model_color"],
                     linestyle="dashed",
                     linewidth=linewidth,
                     alpha=alpha,
                 )
                 max_cf[i] = np.nanmax((max_cf[i], ds_region.prior.max(skipna=True)))
+                print(ds_region.prior)
 
             if add_prior_unc:
                 ax.fill_between(

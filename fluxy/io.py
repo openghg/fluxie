@@ -496,9 +496,11 @@ def load_countries_shape(region_bounds: tuple = ()) -> gpd.geodataframe:
     this_file = Path(__file__).parent.parent
     path_to_save = this_file / "data" / "ne_data"
     url = f"https://naturalearth.s3.amazonaws.com/{res}_cultural/ne_{res}_admin_0_countries.zip"
+    #url = "https://naturalearth.s3.amazonaws.com/50m_cultural/ne_50m_admin_1_states_provinces.zip"
     path_to_save.mkdir(parents=True, exist_ok=True)
 
     shpfile = path_to_save / f"ne_{res}_admin_0_countries.shp"
+    #shpfile = path_to_save / "ne_50m_admin_1_states_provinces.shp"
 
     if not shpfile.is_file():
         resp = urlopen(url)
@@ -578,7 +580,38 @@ def edit_vars_and_attributes(
     if file_type == "flux":
 
         # Apply model specific corrections
-        if m0 in ("elris", "flexinvert"):
+        if m0 == "flexinvert":
+            ds["percentile_flux_total_posterior_country"] = xr.concat(
+                [
+                    ds["flux_total_posterior_country"]
+                    - ds["country_flux_error_posterior"],
+                    ds["flux_total_posterior_country"]
+                    + ds["country_flux_error_posterior"],
+                ],
+                pd.Index([0.159, 0.841], name="percentile"),
+            )
+
+            ds["percentile_flux_total_prior_country"] = xr.concat(
+                [
+                    ds["flux_total_prior_country"] - ds["country_flux_error_prior"],
+                    ds["flux_total_prior_country"] + ds["country_flux_error_prior"],
+                ],
+                pd.Index([0.159, 0.841], name="percentile"),
+            )
+            ds["percentile_flux_total_posterior_country"].attrs["units"] = "kg yr-1"
+            ds["percentile_flux_total_prior_country"].attrs["units"] = "kg yr-1"
+
+            if "countrynumber" in ds.dims.keys():
+                ds["country"] = ds["country"].astype("str")
+                ds = ds.set_index(countrynumber="country").rename(
+                    {"countrynumber": "country"}
+                )
+
+            ds["country"] = [
+                regions_info["country_codes"].get(x, x) for x in ds["country"].values
+            ]
+
+        if m0 == "elris":
             # Fix for legacy files
             if "countrynumber" in ds.dims.keys():
                 ds["country"] = ds["country"].astype("str")
@@ -612,7 +645,9 @@ def edit_vars_and_attributes(
                     ds[var].attrs["units"] = ds[var].attrs["unit"]
                     ds[var].attrs.pop("unit")
 
-            ds = ds.rename({"countrynumber": "country"})
+            if "countrynumber" in ds.dims.keys():
+                ds = ds.rename({"countrynumber": "country"})
+            ds["countryname"] = ds["country"]
 
             if "BEL-LUX" in ds.country and (
                 "BEL" not in ds.country and "LUX" not in ds.country

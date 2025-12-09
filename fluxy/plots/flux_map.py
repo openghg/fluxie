@@ -40,7 +40,7 @@ def plot_flux_map(
     set_fluxlim_percentile: float = None,
     plot_inversion_grid_flux: bool = False,
     zoom_degree: float = 1,
-    only: Literal["posterior", "prior", "diff"] | None = None,
+    only: Literal["posterior", "prior", "diff"] | None = "prior",
     fallback_sites: list[str] | None = None,
 ) -> plt.Figure:
     """
@@ -142,20 +142,20 @@ def plot_flux_map(
     )
 
     # Initialize figure
-    n_rows = len(vars_list)
-    n_cols = len(ds_all)
+    n_rows = 4
+    n_cols = 1
     figsize = define_map_figsize(
         map_bounds, n_rows, n_cols, fixed_value=3 * n_rows, fixed_dimension="height"
     )
     fig, ax = plt.subplots(n_rows, n_cols, figsize=figsize, constrained_layout=True)
 
-    for col, (model, ds) in enumerate(ds_all.items()):
+    for row, (model, ds) in enumerate(ds_all.items()):
         lon, lat = ds.longitude, ds.latitude
 
-        model_axes = ax if n_cols == 1 else (ax[:, col] if n_rows > 1 else ax[col])
+        model_axes = ax[row]
 
-        for row, var in enumerate(vars_list):
-            ax_i = model_axes if n_rows == 1 else model_axes[row]
+        for col, var in enumerate(vars_list):
+            ax_i = model_axes
 
             ds_plot = define_var_plot(ds, var)
             ds_plot = get_flux_mean(ds_plot, season)

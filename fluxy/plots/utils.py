@@ -265,7 +265,7 @@ def add_custom_markers(ax, markers, color, regions_info):
     for marker in markers:
         lon, lat = get_marker_coordinates(marker, regions_info)
         ax.scatter(
-            lon, lat, facecolor="none", edgecolor=color, marker="^", s=30, zorder=2
+            lon, lat, facecolor="none", edgecolor=color, marker="D", s=70, zorder=2
         )
 
 
