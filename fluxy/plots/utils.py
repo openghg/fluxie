@@ -158,7 +158,7 @@ def print_cbar_label(
     middle_label = " ".join(filter(None, [species_label, sector_label, units_label]))
 
     time_label = ""
-    if "time" in format:
+    if "time" in format and "time_label" in ds.attrs:
         time_label = ds.attrs["time_label"]
 
     # Construct the final label with proper line breaks
