@@ -129,7 +129,7 @@ def _extract_region_flux_sector(
                 ds_region = ds_region.sel({"country_2": country_list})
 
             for v in ["posterior", "prior"]:
-                if f"flux_{sector}_{v}_country" in ds_regions.keys():
+                if f"flux_{sector}_{v}_country" in ds_region.keys():
                     ds_region[v] = ds_region[f"flux_{sector}_{v}_country"].sum(
                         dim="country", keep_attrs=True
                     )
