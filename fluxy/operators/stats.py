@@ -9,6 +9,7 @@ def stats_observed_vs_simulated(
     ds_all: dict[str, dict],
     obs_var: str,
     sim_var: str,
+    sites: list = None
 ) -> pd.DataFrame:
     """
     Calculates multiple statistical measures of the fit between the observed
@@ -29,6 +30,8 @@ def stats_observed_vs_simulated(
             Name of the observed variable.
         sim_var (str):
             Name of the simulated variable.
+        sites (list): 
+            Sites for which to make the stats.
 
     Returns:
         stats (pandas.DataFrame):
@@ -61,7 +64,10 @@ def stats_observed_vs_simulated(
     logger = logging.getLogger(__name__)
 
     # names of sites
-    sites_all = get_unique_sites(ds_all)
+    if sites:
+        sites_all = sites
+    else:
+        sites_all = get_unique_sites(ds_all)
 
     # init empty list to hold results for individual sites
     stats = []

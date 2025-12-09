@@ -114,6 +114,7 @@ def stats_mf(
     stats_type: Literal[
         "prior", "posterior", "prior_above_BC", "posterior_above_BC"
     ] = "prior",
+    sites: str = None
 ) -> pd.DataFrame:
     """
     Calculates multiple statistical measures of the fit between the posterior
@@ -130,6 +131,7 @@ def stats_mf(
             statistics on the absolute mole fractions and 'prior_above_BC',
             'posterior_above_BC' for regional part of mole fraction, i.e. with
             BC contribution subtracted from both observation and simulation.
+        sites: sites for which to make the stats.
     Returns:
         stats (pandas.DataFrame):
             Dataframe containing the statistical measures.
@@ -174,4 +176,5 @@ def stats_mf(
         ds_all,
         obs_var=obs,
         sim_var=sim,
+        sites=sites,
     )

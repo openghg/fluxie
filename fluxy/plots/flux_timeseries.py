@@ -889,7 +889,7 @@ def plot_country_flux(
     plot_combined_unc: bool | None = None,
     combined_models_dict: dict[str, list[str]] | None = None,
     resample: str | list[str] | None = None,
-    resample_uncert_correlation: bool = False,
+    resample_uncert_correlation: bool = True,
     plot_resample_and_original: bool = False,
     return_res: bool = False,
     rolling_mean: bool | list[bool] = False,
