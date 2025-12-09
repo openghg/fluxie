@@ -22,6 +22,8 @@ authors = [
   {name = "Stephan Henne", email = "stephan.henne@empa.ch"},
   {name = "Joël Thanwerdas", email = "joel.thanwerdas@empa.ch"},
   {name = "Valentin Bruch"},
+  {name = "Fabian Maier", email = "fmaier@bgc-jena.mpg.de"},
+  {name = "Leah Herrfurth", email = "lherr@bgc-jena.mpg.de"},
 ]
 maintainers = [
   {name = "Alexandre Danjou", email = "alexandre.danjou@bristol.ac.uk"},
