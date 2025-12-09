@@ -6,12 +6,14 @@ from typing import Literal
 logger = logging.getLogger(__name__)
 
 
-def align_time(ds_list: list[xr.Dataset]) -> list[xr.Dataset]:
+def align_time(ds_list: list[xr.Dataset],
+               only_overlapping: bool = True) -> list[xr.Dataset]:
     """
     Check the time coordinates of a list of xarray datasets and, if they differ, align them with the time coordinate of the first dataset in the list.
 
     Args:
         ds_list: list of xarray datasets to be time-aligned
+        only_overlapping: if True, reduce datasets to their overlapping time range before aligning
     Returns:
         aligned_ds_list: list of xarray datasets time-aligned
     """
@@ -34,10 +36,15 @@ def align_time(ds_list: list[xr.Dataset]) -> list[xr.Dataset]:
                        "without checking time difference.")
 
     # Reduce datasets to their overlapping time range (only if period can be inferred)
-    if period is not None:
+    if period is not None and only_overlapping:
         min_date = max([x.time.min() for x in ds_list]) - period / 2
         max_date = min([x.time.max() for x in ds_list]) + period / 2
         ds_list = [ds.sel(time=slice(min_date, max_date)) for ds in ds_list]
+        
+    else:
+        all_min = [x.time.min() for x in ds_list]
+        min_date_loc = [i for i,date in enumerate(all_min) if date == min(all_min)][0]
+        ds_list = [ds.reindex(indexers={'time':ds_list[min_date_loc]['time']},fill_value=np.nan,method=None) for ds in ds_list]
 
     aligned_ds_list = [ds_list[0]]
 

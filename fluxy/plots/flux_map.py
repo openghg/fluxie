@@ -46,8 +46,9 @@ def plot_flux_map(
     zoom_degree: float = 1,
     only: Literal["posterior", "prior", "diff"] | None = None,
     fallback_sites: list[str] | None = None,
-    resample_uncert_correlation=False,
+    resample_uncert_correlation: bool = False,
     sector: str = "total",
+    include_title_and_labels: bool = True,
 ) -> plt.Figure:
     """
     Plot posterior and prior fluxes and the difference between them for all models, time averaged.
@@ -103,7 +104,8 @@ def plot_flux_map(
             If False, uncertainties are calculated as RMSE-like aggregation.
         sector (str):
             Emissions sector to plot. Default 'total'.
-
+        include_title_and_labels (bool):
+            If False, removes titles, axis labels and extra info from the colour bar.
     Returns:
         fig (figure):
             Three maps, for each model, of the flux prior, the flux posterior and the difference between both.
@@ -217,17 +219,17 @@ def plot_flux_map(
             ax_i.set_aspect(1)
 
             # Adjust ticks layout
-            if row < n_rows - 1:
+            if row < n_rows - 1 or include_title_and_labels == False:
                 ax_i.set_xticklabels([])
-            if col > 0:
+            if col > 0 or include_title_and_labels == False:
                 ax_i.set_yticklabels([])
 
             # Add titles
             # Column titles
-            if row == 0:
+            if row == 0 and include_title_and_labels:
                 ax_i.set_title(model_labels.get(model, model))
             # Row titles
-            if col == 0:
+            if col == 0 and include_title_and_labels:
                 ax_i.set_ylabel(define_flux_label(var))
 
             # Add sites and markers if specified
@@ -237,6 +239,11 @@ def plot_flux_map(
                 add_custom_markers(
                     ax_i, add_markers, marker_color, config_data["regions_info"]
                 )
+                
+            if include_title_and_labels:
+                cbar_label_format = ["variable", "species", "units", "time"]
+            else:
+                cbar_label_format = ["species", "units", "time"]
 
             # Add colorbar (only for the last column)
             if col == n_cols - 1:
@@ -251,7 +258,7 @@ def plot_flux_map(
                     ax_i,
                     im,
                     extend_i,
-                    cbar_label,
+                    cbar_label=cbar_label_format,
                     n_cbar=n_rows,
                     idx_cbar=row,
                     colorbar_type="row",
@@ -501,6 +508,7 @@ def plot_flux_map_over_time(
     fallback_sites: list[str] | None = None,
     resample_uncert_correlation: bool = False,
     sector: str = "total",
+    include_title_and_labels: bool = True,
 ) -> plt.Figure:
     """
     Plot a given flux variable averaged over specific time intervals, for all models or the model mean.
@@ -676,21 +684,21 @@ def plot_flux_map_over_time(
 
             # Adjust ticks layout
             if is_single_season:
-                if col in [0, 1]:
+                if col in [0, 1] or include_title_and_labels == False:
                     ax_i.set_xticklabels([])
-                if col in [1, 3]:
+                if col in [1, 3] or include_title_and_labels == False:
                     ax_i.set_yticklabels([])
             else:
-                if row < n_rows - 1:
+                if row < n_rows - 1 or include_title_and_labels == False:
                     ax_i.set_xticklabels([])
-                if col > 0:
+                if col > 0 or include_title_and_labels == False:
                     ax_i.set_yticklabels([])
 
             # Add titles
-            if row == 0:
+            if row == 0 and include_title_and_labels:
                 # Column titles
                 ax_i.set_title(time_label)
-            if col == 0 and not plot_combined:
+            if col == 0 and not plot_combined and include_title_and_labels:
                 # Row titles
                 ax_i.set_ylabel(model_labels.get(model, model))
 
@@ -712,7 +720,12 @@ def plot_flux_map_over_time(
                 add_custom_markers(
                     ax_i, add_markers, marker_color, config_data["regions_info"]
                 )
-
+                
+    if include_title_and_labels:
+        cbar_label_format = ["variable", "species", "units", "time"]
+    else:
+        cbar_label_format = ["species", "units", "time"]
+        
     # Add colorbar
     cbar_label = print_cbar_label(
         ds,
@@ -726,7 +739,7 @@ def plot_flux_map_over_time(
         ax,
         im,
         extend=extend,
-        label=cbar_label,
+        label=cbar_label_format,
         n_cbar=1,
         idx_cbar=1,
         colorbar_type="figure",

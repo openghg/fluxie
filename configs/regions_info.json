@@ -22,7 +22,8 @@
         "GREECE": "GRC",
         "SPAIN": "ESP",
         "PORTUGAL": "PRT",
-        "NORWAY": "NOR"
+        "NORWAY": "NOR",
+        "GermanFactory":"GermanFactory"
     },
     
     "regions": {
