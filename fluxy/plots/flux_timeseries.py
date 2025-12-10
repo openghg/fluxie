@@ -715,6 +715,7 @@ def plot_country_flux(
     rolling_mean: bool | list[bool] = False,
     aggreg_month: bool = False,
     sector: str = "total",
+    add_vline: list[str] | None = None,
 ) -> Figure | tuple[Figure, dict[str, dict]]:
     """
     Timeseries plot of prior and posterior country fluxes, from list of
@@ -819,7 +820,7 @@ def plot_country_flux(
             plotted_data_df = pd.concat([plotted_data_df, posterior_df], ignore_index=True)
 
             if add_prior:
-                if m == "combined_NAME_mean":
+                if m == "combined_NAME-based_mean":
                     ds_prior = ds_region.copy()
                     ds_prior.attrs['model_color'] = 'black'
                     ds_prior.attrs['model_label'] = 'Prior'
@@ -848,6 +849,16 @@ def plot_country_flux(
                 annex_mode,
             )
             plotted_data_df = pd.concat([plotted_data_df, inventory_df], ignore_index=True)
+
+        # add vertical lines if any
+        if add_vline is not None:
+            for vline_date in add_vline:
+                ax.axvline(
+                    np.datetime64(vline_date),
+                    color="grey",
+                    linestyle="dotted",
+                    linewidth=1.5,
+                )
 
         # set y label
         add_ylabel(ax, s_data, species, sector, unit)
