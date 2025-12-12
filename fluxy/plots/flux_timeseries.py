@@ -475,7 +475,7 @@ def add_inventory_barplot(
     
     if type(plot_inventory_uncertainty) == bool:
         plot_inventory_uncertainty = [plot_inventory_uncertainty] * len(inventory_years)
-        logger.warning("Plotting inventory uncertainty for all inventory_years. "+
+        logger.info("Plotting inventory uncertainty for all inventory_years. "+
                        "Turn this off setting `plot_inventory_uncertainty` as a list of True/False")
 
     if isinstance(start_date, list):
@@ -486,7 +486,7 @@ def add_inventory_barplot(
         end_date_inv = str(max([np.datetime64(date) for date in end_date]))
     else:
         end_date_inv = end_date
-    inventories_to_plot,inventories_uncert_to_plot = retrieve_inventories(
+    inventories_to_plot, inventories_uncert_to_plot = retrieve_inventories(
         data_dir,
         country,
         species,
@@ -499,12 +499,12 @@ def add_inventory_barplot(
         inventory_filename,
         sectors=sector,
     )
-
+    
     res = pd.DataFrame()
     for i_inv, inventory in enumerate(inventories_to_plot):
         time_as_datetime = inventory.time.values.astype("datetime64[D]").tolist()
         
-        if plot_inventory_uncertainty[i_inv] and inventories_uncert_to_plot[i_inv] is not None:
+        if plot_inventory_uncertainty[i_inv] is True and inventories_uncert_to_plot[i_inv] is not None:
             yerr = inventories_uncert_to_plot[i_inv].values
         else:
             yerr = None
@@ -641,7 +641,7 @@ def prepare_inventory_sector_barplot(
 
     """
 
-    inventories,inventories_stdev = retrieve_inventories(
+    inventories, inventories_stdev = retrieve_inventories(
         data_dir,
         plot_region,
         species,
@@ -656,9 +656,9 @@ def prepare_inventory_sector_barplot(
     )
 
     inventories = [inv.to_dataset(name="inv_data") for inv in inventories]
-    inventories_stdev = [inv_std.to_dataset(name="inv_data_stdev") if inv_std is not None else None for inv_std in inventories_stdev]
+    inventories_stdev = [inv_std.to_dataset(name="inv_data_stdev") if inv_std else None for inv_std in inventories_stdev]
 
-    return inventories,inventories_stdev
+    return inventories, inventories_stdev
 
 
 def add_ylim(
@@ -774,7 +774,7 @@ def add_xlims_and_ticks(
         res_dict: dictionnary containing the data plotted. Should have one key per regions plotted, the values being dictionnaries with 3 keys: "inventory", "posterior" and "prior";
             whose values are the output of add_inventory_barplot, add_posterior_plot, add_prior_plot). The time data stored in them is used to infer the xlims.
         aggreg_month: if True, the data plotted are supposed to be a monthly aggregated so 12 stciks are created, whose labels are the 3 first letters of each month.
-        xticks_at_centre: if True, set the x ticks at the centre of each time period (year or month) rather than at the beginning.
+        xticks_at_centre: if True, set the x ticks at the centre of each time period rather than at the beginning.
     """
     if aggreg_month:
         ax.set_xticks(np.arange(1, 13))
@@ -1041,14 +1041,11 @@ def plot_country_flux(
                 [plotted_data_df, posterior_df], ignore_index=True
             )
 
-            if add_prior:
-                try:
-                    prior_df = add_prior_plot(ax, ds_region, annex_mode, add_prior_unc)
-                    plotted_data_df = pd.concat(
-                        [plotted_data_df, prior_df], ignore_index=True
-                    )
-                except:
-                    logger.warning(f"No prior data for {country} - {m}, skipping prior plot.")
+            if add_prior and 'prior' in ds_region:
+                prior_df = add_prior_plot(ax, ds_region, annex_mode, add_prior_unc)
+                plotted_data_df = pd.concat(
+                    [plotted_data_df, prior_df], ignore_index=True
+                )
 
         # plot inventory
         if plot_inventory:
@@ -1324,6 +1321,7 @@ def plot_all_species_stacked_bar(all_species: list[str],
                                  end_date: str | None = None,
                                  inventory_years: list[str] | None = None,
                                  inventory_filename: str = "UNFCCC_inventory",
+                                 plot_inventory_uncertainty: bool = True,
                                  data_dir: str | None = None,
                                  sector: str = "total",
                                  country_flux_units_print: str = "Tg CO2-eq yr-1",
@@ -1350,13 +1348,6 @@ def plot_all_species_stacked_bar(all_species: list[str],
         fig: A stacked bar plot of all species for the region.
     """
 
-    species_colors = {'ch4':'dodgerblue',
-                  'n2o':'darkorange',
-                  'all_hfc':'firebrick',
-                  'all_pfc':'darkblue',
-                  'sf6':'darkturquoise',
-                  'nf3':'lightgreen'}
-
     s_data = config_data.get("species_info", {})
     r_data = config_data.get("regions_info", {})
 
@@ -1368,7 +1359,7 @@ def plot_all_species_stacked_bar(all_species: list[str],
 
     fig,ax = plt.subplots(1,1,figsize=(10,6))
 
-    for s,species in enumerate(all_species):
+    for s, species in enumerate(all_species):
 
         ds_all_region = extract_region_flux(ds_all_flux_scaled[species], regions, r_data, sectors=sector)
         ds_to_plot[species] = prepare_data_to_plot(
@@ -1412,7 +1403,7 @@ def plot_all_species_stacked_bar(all_species: list[str],
             uncert_combined = np.sqrt(uncert_combined**2 + (ds_to_plot[species][models[s]]['posterior_upper'].values - ds_to_plot[species][models[s]]['posterior_lower'].values)**2)
             inventories_uncert_combined = np.sqrt(inventories_uncert_combined**2 + inventories_uncert_to_plot[species][0]**2)
 
-    for s,species in enumerate(all_species):
+    for s, species in enumerate(all_species):
 
         if s == 0:
             bottom = None
@@ -1444,7 +1435,7 @@ def plot_all_species_stacked_bar(all_species: list[str],
             ds_to_plot[species][models[s]]['posterior'].values,
             width=width,
             bottom=bottom,
-            color=species_colors[species],
+            color=s_data.get(species, {}).get('color', species),
             label=s_data.get(species, {}).get('species_print', species),
             yerr=uncert,
             error_kw={'capsize':2})

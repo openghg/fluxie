@@ -224,7 +224,7 @@ def plot_flux_map(
             if col > 0:
                 ax_i.set_yticklabels([])
                 
-            if include_title_and_labels == False:
+            if not include_title_and_labels:
                 ax_i.set_xticks([])
                 ax_i.set_yticks([])
 
@@ -688,14 +688,14 @@ def plot_flux_map_over_time(
 
             # Adjust ticks layout
             if is_single_season:
-                if col in [0, 1] or include_title_and_labels == False:
+                if col in [0, 1] or not include_title_and_labels:
                     ax_i.set_xticklabels([])
-                if col in [1, 3] or include_title_and_labels == False:
+                if col in [1, 3] or not include_title_and_labels:
                     ax_i.set_yticklabels([])
             else:
-                if row < n_rows - 1 or include_title_and_labels == False:
+                if row < n_rows - 1 or not include_title_and_labels:
                     ax_i.set_xticklabels([])
-                if col > 0 or include_title_and_labels == False:
+                if col > 0 or not include_title_and_labels:
                     ax_i.set_yticklabels([])
 
             # Add titles

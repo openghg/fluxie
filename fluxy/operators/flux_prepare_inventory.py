@@ -63,7 +63,7 @@ def retrieve_inventories(
     ds_uncert_sectors = {y: list() for y in inventory_years}
     
     for sector in sectors:
-        tmp,tmp_stdev = _retrieve_inventories_sector(
+        tmp, tmp_stdev = _retrieve_inventories_sector(
             data_dir,
             country,
             species,
@@ -78,7 +78,7 @@ def retrieve_inventories(
         )
         for i, y in enumerate(inventory_years):
             ds_sectors[y].append(tmp[i].expand_dims(dim={"sector": [sector]}))
-            if tmp_stdev is not None:
+            if tmp_stdev[i] is not None:
                 ds_uncert_sectors[y].append(tmp_stdev[i].expand_dims(dim={"sector": [sector]}))
             else:
                 ds_uncert_sectors[y].append(None)
@@ -127,7 +127,7 @@ def _retrieve_inventories_sector(
     inv_colors = [inv_cmap(i) for i in np.linspace(0.5, 0.9, len(inventory_years))]
 
     for year, inv_color in zip(inventory_years, inv_colors):
-        ds_inv,ds_inv_stdev = extract_region_inventory_flux(
+        ds_inv, ds_inv_stdev = extract_region_inventory_flux(
             data_dir,
             country,
             species,

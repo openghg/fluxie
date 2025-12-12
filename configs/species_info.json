@@ -2,7 +2,8 @@
     "ch4": {
         "species_print": "CH$_4$",
         "gwp": 28,
-        "molar_mass": 16.04
+        "molar_mass": 16.04,
+        "color": "dodgerblue"
     },
     "co2": {
         "species_print": "CO$_2$",
@@ -116,17 +117,20 @@
     "sf6": {
         "species_print": "SF$_6$",
         "gwp": 23500,
-        "molar_mass": 146.06
+        "molar_mass": 146.06,
+        "color": "darkturquoise"
     },
     "nf3": {
         "species_print": "NF$_3$",
         "gwp": 16100,
-        "molar_mass": 71
+        "molar_mass": 71,
+        "color": "lightgreen"
     },
     "n2o": {
         "species_print": "N$_2$O",
         "gwp": 265,
-        "molar_mass": 44.013
+        "molar_mass": 44.013,
+        "color": "darkorange"
     },
     "ch3br": {
         "species_print": "CH$_3$Br",
@@ -138,10 +142,12 @@
     },
     "all_hfc": {
         "list_species": ["hfc125","hfc134a","hfc143a","hfc152a","hfc23","hfc227ea","hfc245fa","hfc32","hfc365mfc","hfc236fa","hfc4310mee"],
-        "species_print": "Total HFC"
+        "species_print": "Total HFC",
+        "color": "firebrick"
     },
     "all_pfc": {
         "list_species": ["cf4","pfc116","pfc218","pfc318"],
-        "species_print": "Total PFC"
+        "species_print": "Total PFC",
+        "color": "darkblue"
     }
 }

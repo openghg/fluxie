@@ -106,6 +106,8 @@ def _extract_region_flux_sector(
         "prior_lower",
         "prior_upper",
     ]
+        
+    v_present = dict(zip(ds_all.keys(),[['posterior','prior'] if f"flux_{sector}_prior_country" in ds else ['posterior'] for m,ds in ds_all.items()]))
 
     dict_regions: dict[str, str] = regions_info.get("regions", {})
 
@@ -128,11 +130,10 @@ def _extract_region_flux_sector(
             if "country_2" in ds_region.dims:
                 ds_region = ds_region.sel({"country_2": country_list})
 
-            for v in ["posterior", "prior"]:
-                if f"flux_{sector}_{v}_country" in ds_region.keys():
-                    ds_region[v] = ds_region[f"flux_{sector}_{v}_country"].sum(
-                        dim="country", keep_attrs=True
-                    )
+            for v in v_present[m]:
+                ds_region[v] = ds_region[f"flux_{sector}_{v}_country"].sum(
+                    dim="country", keep_attrs=True
+                )
 
             if f"percentile_flux_{sector}_prior_country" in ds_region.variables:
                 ds_region["sigma_prior"] = np.sqrt(
@@ -170,14 +171,14 @@ def _extract_region_flux_sector(
                 )
                 ds_region["sigma_posterior"] = np.nan * ds_region["posterior"]
 
-            for v in ["posterior", "prior"]:
+            for v in v_present[m]:
                 ds_region[f"{v}_lower"] = ds_region[v] - ds_region[f"sigma_{v}"]
                 ds_region[f"{v}_upper"] = ds_region[v] + ds_region[f"sigma_{v}"]
 
         elif country_search in available_countries:
             ds_region = ds.sel({"country": country_search})
 
-            for v in ["posterior", "prior"]:
+            for v in v_present[m]:
                 ds_region[v] = ds_region[f"flux_{sector}_{v}_country"]
                 var_percentile = f"percentile_flux_{sector}_{v}_country"
                 var_stdev = f"stdev_flux_{sector}_{v}_country"
@@ -213,7 +214,7 @@ def _extract_region_flux_sector(
         else:
             raise ValueError(f"{country_search} ({country}) is not available for {m}")
 
-        for v in ["posterior", "prior"]:
+        for v in v_present[m]:
             if f"{v}_lower" in ds_region.keys():
                 ds_region[f"{v}_lower"] = ds_region[f"{v}_lower"].clip(min=0)
 
@@ -343,18 +344,15 @@ def extract_region_inventory_flux(
             inv_stdev_ds = inv_stdev_ds.sel(country=country_search)
         elif country in inv_ds["country"]:
             inv_stdev_ds = inv_stdev_ds.sel(country=country)
-    else:
-        inv_stdev_ds = None
 
     if country_search in inv_ds["country"]:
-        return inv_ds.sel(country=country_search),inv_stdev_ds  # new format
+        return inv_ds.sel(country=country_search), inv_stdev_ds  # new format
     elif country in inv_ds["country"]:
-        return inv_ds.sel(country=country),inv_stdev_ds  # old format (would only work if the user specifies the country name)
+        return inv_ds.sel(country=country), inv_stdev_ds  # old format (would only work if the user specifies the country name)
 
     # if grouped countries:
     available_countries = inv_ds["country"].values.astype(str)
     dict_regions: dict[str, str] = r_data.get("regions", {})
-    inv_stdev_ds = None
         
     if country_search not in available_countries and country in dict_regions.keys():
         region_search = dict_regions[country]
@@ -367,4 +365,4 @@ def extract_region_inventory_flux(
     elif country_search in available_countries:
         inv_ds = inv_ds.sel({"country": country_search})
 
-    return inv_ds.sum(dim="country", keep_attrs=True),inv_stdev_ds
+    return inv_ds.sum(dim="country", keep_attrs=True),None

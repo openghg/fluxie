@@ -19,7 +19,7 @@ def combine_dataset(
         A dictionnary with 'combined' as key and the combined dataset as value.
     """
     ds_to_combined = [ds for i, ds in enumerate(ds_all.values()) if plot_combined[i]]
-    ds_to_combined_aligned = align_time(ds_to_combined,only_overlapping=only_overlapping)
+    ds_to_combined_aligned = align_time(ds_to_combined, only_overlapping=only_overlapping)
 
     ds_combined = xr.concat(
         ds_to_combined_aligned, "model", combine_attrs="drop_conflicts"
