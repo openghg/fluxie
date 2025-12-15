@@ -129,11 +129,15 @@ def plot_stacked(
             )
 
         wind_bins, wind_labels = _get_wind_bins_and_labels(wind_bins)
+        half = (wind_bins[1] - wind_bins[0]) / 2
+        bin_centers = wind_bins[:-1]
 
+        # shift angles by half-bin so that pd.cut with the original edges produces
+        # bins whose centers correspond to the desired sectors (e.g. -45..45 -> center 0)
         fmt_index = lambda x: pd.cut(
-            np.deg2rad(x),
+            np.mod(np.deg2rad(x) + half, 2 * np.pi),
             bins=wind_bins,
-            labels=wind_bins[:-1] + (wind_bins[1] - wind_bins[0]) / 2,
+            labels=bin_centers,
             include_lowest=True,
         )
         wind_plot = True
