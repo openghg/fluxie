@@ -2,7 +2,7 @@ import logging
 import numpy as np
 import pandas as pd
 import xarray as xr
-from fluxy.operators.select import get_unique_sites, get_site_index
+from fluxy.operators.select import get_unique_sites, slice_site
 
 
 def stats_observed_vs_simulated(
@@ -69,17 +69,9 @@ def stats_observed_vs_simulated(
     # Compute stats for all sites and all models
     for site in sites_all:
         for model, ds in ds_all.items():
-            site_index = get_site_index(ds, site)
-            if site_index is None:
-                logger.warning(f"Site {site} not found in model {model}.")
+            ds_site = slice_site(ds, site, raise_error=False) 
+            if not ds_site:
                 continue
-            mask_site = ds["number_of_identifier"] == site_index
-            if not mask_site.any():
-                logger.warning(
-                    f"No data for site {site} with index {site_index} in model {model}."
-                )
-                continue
-            ds_site = ds.where(mask_site, drop=True)
 
             # select what to compare
             obs = ds_site[obs_var]

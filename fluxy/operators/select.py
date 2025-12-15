@@ -225,7 +225,7 @@ def slice_mf(
     return ds_all
 
 
-def slice_site(ds: xr.Dataset, site: str) -> xr.Dataset:
+def slice_site(ds: xr.Dataset, site: str, raise_error: bool = True) -> xr.Dataset:
     """
     Slices the dataset to only include data for a given site.
 
@@ -234,6 +234,8 @@ def slice_site(ds: xr.Dataset, site: str) -> xr.Dataset:
             Dataset with mf data of a given model.
         site (str):
             Site of interest.
+        raise_error:
+            if True, raise an error if the site is not found in the dataset.
     Returns:
         ds (xarray dataset):
             Dataset with mf data of a given model, sliced to only include data for the given site.
@@ -241,13 +243,20 @@ def slice_site(ds: xr.Dataset, site: str) -> xr.Dataset:
 
     site_index = get_site_index(ds, site)
 
-    if site_index is None:
-        raise ValueError(f"Site {site} not found in dataset.")
-
-    mask = ds["number_of_identifier"] == site_index
-    ds = ds.where(mask, drop=True)
-
-    return ds
+    if site_index is not None:
+        mask = ds["number_of_identifier"] == site_index
+        if mask.any():
+            ds = ds.where(mask, drop=True)
+            return ds
+        else:
+            msg = f"No data for site {site} with index {site_index} in model {ds.attrs['exp_name']}."
+    else:
+        msg = f"Site {site} not found for model {ds.attrs['exp_name']}."
+    
+    if raise_error:
+        raise ValueError(msg)
+    else:        
+        logger.warning(msg)
 
 
 def slice_height(ds: xr.Dataset, intake_height: float) -> xr.Dataset:
@@ -496,3 +505,34 @@ def clean_timeseries_missing_data(
     ds = ds.sortby("time")
 
     return ds
+
+def slice_site_dict_of_datasets(
+    ds_all: dict[str, xr.Dataset],
+    site: str,
+) -> dict[str, xr.Dataset]:
+    """
+    Slices all datasets in a dictionary to only include data for a given site.
+    Args:
+        ds_all (dictionary of datasets):
+            xarray datasets read directly from each model's flux netCDF.
+        site (str):
+            Site of interest.
+    Returns:
+        ds_all_site (dictionary of datasets):
+            xarray datasets, sliced to only include data for the given site.
+    """
+
+    ds_all_site = dict()
+
+    for m, ds in ds_all.items():
+        logger.info(f"Slicing site {site} from {m}.")
+
+        if site in ds["platform"].values:
+            ds_all_site[m] = slice_site(ds, site)
+        else:
+            logger.warning(
+                f"Site {site} not found in dataset for {m}. "
+                f"Continuing without {m} - {site}."
+            )
+
+    return ds_all_site

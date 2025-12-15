@@ -19,7 +19,9 @@ from fluxy.operators.select import (
     FrequencyType,
     clean_timeseries_missing_data,
     get_site_index,
+    get_unique_sites,
     get_unique_site_height_pairs,
+    slice_site_dict_of_datasets
 )
 from fluxy.plots.utils import set_min_decimal_points
 
@@ -250,7 +252,7 @@ def _prepare_data_to_plot(
     for m, ds in ds_all.items():
 
         # Check there is only one site in the dataset
-        if len(np.unique(ds.get("number_of_identifier", 0))) > 1:
+        if len(np.unique(ds.get("number_of_identifier", 0))) > 1 and plot_type!="multiple_sites":
             raise ValueError(
                 f"Dataset {m} contains more than one site. "
                 "Use slice_site to select a single site."
@@ -362,7 +364,7 @@ def _create_figure(
     Return:
         fig, ax: matplotlib figure and axes object with appropriate sizes.
     """
-    if plot_type == "separate":
+    if plot_type in ["separate","multiple_sites"]:
         nrows = len(models)
     elif plot_type in ["together", "diff"]:
         nrows = 1
@@ -370,7 +372,7 @@ def _create_figure(
         raise ValueError(
             f"Option {plot_type} not implemented. Set plot_type to 'separate', 'together' or 'diff'."
         )
-
+    
     ncols = (
         2 if (histogram_type and histogram_type != "none") and not aggreg_month else 1
     )
@@ -960,3 +962,63 @@ def plot_histogram(
     ax.set_xlabel(legend_hist)
 
     return None
+
+def check_site_list(site_list,ds_all):
+    if site_list is None:
+        site_list = get_unique_sites(ds_all)
+    else:
+        available_sites = get_unique_sites(ds_all)
+        for site in site_list:
+            if site not in available_sites:
+                raise ValueError(
+                    f"Site {site} not found in the datasets provided. Available sites are {available_sites}."
+                )
+    return site_list
+
+def plot_sites_list_mf(
+        ds_all,
+        sites,
+        species,
+        variable,
+        aggreg_month = False,
+        config_data: dict[str, dict] = {},
+        ):
+    plot_type="multiple_sites"
+    models = ds_all.keys()
+    species_info = config_data.get("species_info", {}).get(species, {})
+    
+    # Look for sites
+    sites = check_site_list(sites, ds_all)
+    
+
+    fig, ax = _create_figure(ds_all.keys(), plot_type=plot_type, histogram_type = False, aggreg_month=aggreg_month)
+
+    for isite, site in enumerate(sites):
+        # Select site
+        ds_all_site = slice_site_dict_of_datasets(ds_all, site)
+
+        # Prepare data to plot
+        data_to_plot = _prepare_data_to_plot(
+            ds_all_site, variable, diff_include=None,
+            time_freq_min = None, aggreg_month=aggreg_month, plot_type="multiple_sites"
+        )
+
+        unit = _get_unit(data_to_plot)
+
+        for im, m in enumerate(models):
+            ds_plot = data_to_plot[m][variable]
+            
+            x, y = ds_plot.time.values, ds_plot.sel(percentile="mean").values
+            kwargs = {
+                "alpha": 0.8,
+                "color": f"C{isite:02d}",
+                "label": site,
+            }
+            ax[im,0].plot(x, y,
+                    linewidth=2.0,
+                    marker="o",
+                    markersize=1.5,
+                    **kwargs)
+        plt.legend()
+    
+    return fig
