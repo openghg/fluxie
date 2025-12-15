@@ -62,8 +62,8 @@ def plot_stacked(
     area: bool = False,
     y_lims: tuple[float, float] = (None, None),
     plot_observation_counts: bool = False,
-    sectors_config: dict[str, str] = None,
-    errorbar_kwargs: dict = None,
+    sectors_config: dict[str, str] | None = None,
+    errorbar_kwargs: dict[str, any] | None = None,
     wind_bins: int = 8,
 ):
     if sectors_config is None:
