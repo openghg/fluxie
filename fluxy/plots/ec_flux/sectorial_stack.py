@@ -20,6 +20,7 @@ def _get_wind_bins_and_labels(n_bins: int) -> tuple[np.ndarray, list[str]]:
     Returns:
         A tuple containing:
             - bins: Array of wind bin edges in radians.
+                Bins start and end at 0 and 2pi (duplicated bin for the start and end)
             - labels: List of wind bin labels.
     """
     if n_bins in WIND_LABELS:
@@ -29,7 +30,7 @@ def _get_wind_bins_and_labels(n_bins: int) -> tuple[np.ndarray, list[str]]:
             f"Number of wind bins {n_bins} not supported. "
             f"Supported values are {list(WIND_LABELS.keys())}."
         )
-    bins = np.deg2rad(np.arange(0, 361, 360 // n_bins))
+    bins = np.deg2rad(np.arange(0, 361, 360 / n_bins))
 
     return bins, labels
 
