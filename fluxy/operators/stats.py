@@ -64,10 +64,12 @@ def stats_observed_vs_simulated(
     logger = logging.getLogger(__name__)
 
     # names of sites
+    sites_all = get_unique_sites(ds_all)
     if sites:
-        sites_all = sites
-    else:
-        sites_all = get_unique_sites(ds_all)
+         sites_all = [site for site in sites if site in sites_all]
+         sites_missing = [site for site in sites if site not in sites_all]
+         if sites_missing:
+             logger.warning(f"Sites {sites_missing} are not present in datasets.")
 
     # init empty list to hold results for individual sites
     stats = []
