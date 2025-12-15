@@ -30,7 +30,7 @@ def _get_wind_bins_and_labels(n_bins: int) -> tuple[np.ndarray, list[str]]:
             f"Number of wind bins {n_bins} not supported. "
             f"Supported values are {list(WIND_LABELS.keys())}."
         )
-    bins = np.deg2rad(np.arange(0, 361, 360 / n_bins))
+    bins = np.deg2rad(np.linspace(0, 360, n_bins + 1))
 
     return bins, labels
 
