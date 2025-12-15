@@ -14,7 +14,7 @@ WIND_LABELS = {
 
 def _get_wind_bins_and_labels(n_bins: int) -> tuple[np.ndarray, list[str]]:
     """Get wind bins and labels for a given number of bins.
-    
+
     Args:
         n_bins: Number of wind bins.
     Returns:
@@ -254,8 +254,6 @@ def plot_stacked(
     x_offset = 1.0 if not wind_plot else 1.06
     ax.legend(handles, labels, loc="center left", bbox_to_anchor=(x_offset, 0.5))
 
-    # if wind_plot:
-    #     y_lims = (0, y_lims[1])  # No negative values in wind rose
     ax.set_ylim(y_lims)
 
     season_str = season if season else ""
