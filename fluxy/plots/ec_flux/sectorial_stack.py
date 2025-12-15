@@ -149,12 +149,12 @@ def plot_stacked(
         wind_plot = False
 
     df_sim.index = fmt_index(df_sim.index)
-    df_sim = df_sim.groupby(df_sim.index).mean()
+    df_sim = df_sim.groupby(df_sim.index, observed=False).mean()
 
     serie_obs.index = fmt_index(serie_obs.index)
-    serie_obs_groupped = serie_obs.groupby(serie_obs.index)
-    serie_obs = serie_obs.groupby(serie_obs.index).mean()
-    counts = serie_obs.groupby(serie_obs.index).count()
+    serie_obs_groupped = serie_obs.groupby(serie_obs.index, observed=False)
+    serie_obs = serie_obs.groupby(serie_obs.index, observed=False).mean()
+    counts = serie_obs.groupby(serie_obs.index, observed=False).count()
 
     # Rename the months
     # df_to_plot.index = pd.to_datetime(df_to_plot.index, format="%m").strftime("%b")
