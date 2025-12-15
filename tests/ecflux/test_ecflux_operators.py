@@ -43,3 +43,21 @@ def test_plot_wind_rose():
         dss["EDDY_HARDAU_STORAGE_2LAYERS"],
         group_format="wind",
     )
+
+
+def test_plot_wind_rose_area():
+
+    plot_stacked(
+        dss["EDDY_HARDAU_STORAGE_2LAYERS"],
+        group_format="wind",
+        area=True,
+    )
+
+
+def test_plot_wind_rose_more_bins():
+
+    plot_stacked(
+        dss["EDDY_HARDAU_STORAGE_2LAYERS"],
+        group_format="wind",
+        wind_bins=12,
+    )
