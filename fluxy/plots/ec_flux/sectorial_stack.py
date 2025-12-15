@@ -13,6 +13,15 @@ WIND_LABELS = {
 
 
 def _get_wind_bins_and_labels(n_bins: int) -> tuple[np.ndarray, list[str]]:
+    """Get wind bins and labels for a given number of bins.
+    
+    Args:
+        n_bins: Number of wind bins.
+    Returns:
+        A tuple containing:
+            - bins: Array of wind bin edges in radians.
+            - labels: List of wind bin labels.
+    """
     if n_bins in WIND_LABELS:
         labels = WIND_LABELS[n_bins]
     else:
