@@ -77,7 +77,7 @@ def test_stats_mf(stat):
 @pytest.mark.parametrize("model", test_models_with_inlet)
 def test_slice_height(model):
 
-    ds_all_mf__with_inlet_sliced = slice_site(ds_all_mf_with_inlet[model], site="TAC")
+    ds_all_mf__with_inlet_sliced = slice_site(ds_all_mf_with_inlet[model], sites="TAC")
 
     ds_sliced = slice_height(ds_all_mf__with_inlet_sliced, intake_height=185)
     

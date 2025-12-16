@@ -94,7 +94,7 @@ def slice_mf(
     ds_all: dict[str, xr.Dataset],
     start_date: str = None,
     end_date: str = None,
-    site: str = None,
+    site: str | list [str] = None,
     baseline_site: str = None,
     baseline_filename: str = "InTEM_baseline_timestamps",
     data_dir: os.PathLike | None = None,
@@ -225,7 +225,7 @@ def slice_mf(
     return ds_all
 
 
-def slice_site(ds: xr.Dataset, site: str, raise_error: bool = True) -> xr.Dataset:
+def slice_site(ds: xr.Dataset, sites: str | list[str], raise_error: bool = True) -> xr.Dataset:
     """
     Slices the dataset to only include data for a given site.
 
@@ -240,23 +240,31 @@ def slice_site(ds: xr.Dataset, site: str, raise_error: bool = True) -> xr.Datase
         ds (xarray dataset):
             Dataset with mf data of a given model, sliced to only include data for the given site.
     """
+    if not isinstance(sites, list):
+        sites = [sites,]
 
-    site_index = get_site_index(ds, site)
+    mask = ds["number_of_identifier"]*False
+    for site in sites:
+        site_index = get_site_index(ds, site)
 
-    if site_index is not None:
-        mask = ds["number_of_identifier"] == site_index
-        if mask.any():
-            ds = ds.where(mask, drop=True)
-            return ds
+        if site_index is not None:
+            mask += ds["number_of_identifier"] == site_index
         else:
-            msg = f"No data for site {site} with index {site_index} in model {ds.attrs['exp_name']}."
+            msg = f"Site {site} not found for model {ds.attrs['exp_name']}."
+            if raise_error:
+                raise ValueError(msg)
+            else:        
+                logger.warning(msg)
+        
+    if mask.any():
+        ds = ds.where(mask, drop=True)
+        return ds
     else:
-        msg = f"Site {site} not found for model {ds.attrs['exp_name']}."
-    
+        msg = f"No data for site {site} with index {site_index} in model {ds.attrs['exp_name']}."
     if raise_error:
         raise ValueError(msg)
     else:        
-        logger.warning(msg)
+        logger.warning(msg)        
 
 
 def slice_height(ds: xr.Dataset, intake_height: float) -> xr.Dataset:

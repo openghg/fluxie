@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import matplotlib.pyplot as plt
-from typing import Tuple
+from typing import Literal, Tuple
 from datetime import date, datetime, timedelta
 from calendar import isleap, month_abbr, monthrange
 
@@ -324,110 +324,65 @@ def prepare_data_to_plot(
     return ds_to_plot
 
 
-def add_posterior_plot(
-    ax: Axes, ds_region: xr.Dataset, highlighted_line: bool, add_post_unc: bool
+def add_line_plot(
+    ax: Axes, ds: xr.Dataset, variable: Literal["posterior","prior"], highlighted_line: bool = False, add_unc: bool = False
 ) -> dict[str, dict]:
     """
-    Plot the posterior data on the axis. The variable posterior of the dataset ds_region is plotted as a line (color and label found in the dataset
-    attributes) and the uncertainty (variables lower_posterior, upper_posterior in the dataset) is plotted as a semi-transparent filled space.
+    Plot the posterior/prior data on the axis. The variable posterior/prior of the dataset ds_region is plotted as a line (color and label found in the dataset
+    attributes) and the uncertainty (variables lower_posterior/prior, upper_posterior/prior in the dataset) is plotted as a semi-transparent filled space.
     Axes:
         ax: axes on which to plot
-        ds_region: dataset containing posterior data
-        highlighted_line: if True, the linewidth is made bigger (3.0) than when False (1.5). Typicall used for the annexes to highlight the PARIS mean.
-        add_post_unc: if True, plots model uncertainty.
-    Returns:
+        ds: dataset containing posterior data
+        variable: whether the posterior or prior should be plotted
+        highlighted_line: for posterior, if True, the linewidth is made bigger (3.0) than when False (1.5). Typicall used for the annexes to highlight the PARIS mean.
+        add_unc: if True, plots model uncertainty.
     Returns:
         res: dataframe with one line per timestamp and 9 columns ("type", "model", "sector", "country", "species", 
             "time", "mean_val", "min_unc", "max_unc")
     """
+    if variable == "posterior":
+        linew = 3 if highlighted_line else 1.5
+        alpha = 1.0
+        alpha_unc = 0.2
+    elif variable == "prior":
+        linew, alpha = (1.0, 0.7) if highlighted_line else (1.5, 1.0)
+        alpha_unc = 0.1
+    else:
+        raise ValueError("Available options for 'variable' parameter are 'prior' and 'posterior'.")
 
-    linew = 3 if highlighted_line else 1.5
-
-    time_as_datetime = ds_region.time.values.astype("datetime64[D]").tolist()
+    time_as_datetime = ds.time.values.astype("datetime64[D]").tolist()
 
     ax.plot(
         time_as_datetime,
-        ds_region.posterior,
-        label=ds_region.attrs["model_label"],
-        color=ds_region.attrs["model_color"],
+        ds[variable],
+        label=ds.attrs["model_label"],
+        color=ds.attrs["model_color"],
         linewidth=linew,
-    )
-
-    if add_post_unc:
-        ax.fill_between(
-            time_as_datetime,
-            ds_region.posterior_lower,
-            ds_region.posterior_upper,
-            alpha=0.2,
-            color=ds_region.attrs["model_color"],
-        )
-
-    res = pd.DataFrame(
-        {
-            "type": ["posterior",] * ds_region.time.size,
-            "model": [ds_region.attrs["model_label"],] * ds_region.time.size,
-            "sector": [ds_region.attrs["sector"],] * ds_region.time.size,
-            "country": [ds_region.attrs["country"],] * ds_region.time.size,
-            "species": [ds_region.attrs["species"],] * ds_region.time.size,
-            "time": time_as_datetime,
-            "mean_val": ds_region.posterior.values,
-            "min_unc": ds_region.posterior_lower.values,
-            "max_unc": ds_region.posterior_upper.values,
-        }
-    )
-    return res
-
-
-def add_prior_plot(
-    ax: Axes, ds_region: xr.Dataset, annex_mode: bool, add_prior_unc: bool
-) -> dict[str, dict]:
-    """
-    Plot the variable prior of the dataset ds_region on the axis.
-    Axes:
-        ax: axes on which to plot
-        ds_region: dataset containing prior data
-        annex_bool: if True, the linewidth is made slighty smaller (1.0) and a transparency of 0.7 is applied to the prior uncertainty.
-            If False, linewidth is set to standard value (1.5) and no transparency s applied to the prior uncertainty (alpha=1.0).
-        add_prior_unc: if True add prior uncertainty on the plot as a semi-transparent filled space.
-    Returns:
-        res: dataframe with one line per timestamp and 7-9 columns ("type", "model", "sector", "country", "species", 
-            "time", "mean_val" and "min_unc", "max_unc" if add_prior_unc)
-    """
-    linewidth, alpha = (1.0, 0.7) if annex_mode else (1.5, 1.0)
-
-    time_as_datetime = ds_region.time.values.astype("datetime64[D]").tolist()
-
-    ax.plot(
-        time_as_datetime,
-        ds_region.prior,
-        label=ds_region.attrs["model_label"] + " prior",
-        color=ds_region.attrs["model_color"],
-        linestyle="dashed",
-        linewidth=linewidth,
-        alpha=alpha,
+        alpha=alpha
     )
 
     res = pd.DataFrame(
         {
-            "type": ["prior",] * ds_region.time.size,
-            "model": [ds_region.attrs["model_label"],] * ds_region.time.size,
-            "sector": [ds_region.attrs["sector"],] * ds_region.time.size,
-            "country": [ds_region.attrs["country"],] * ds_region.time.size,
-            "species": [ds_region.attrs["species"],] * ds_region.time.size,
+            "type": [variable,] * ds.time.size,
+            "model": [ds.attrs["model_label"],] * ds.time.size,
+            "sector": [ds.attrs["sector"],] * ds.time.size,
+            "country": [ds.attrs["country"],] * ds.time.size,
+            "species": [ds.attrs["species"],] * ds.time.size,
             "time": time_as_datetime,
-            "mean_val": ds_region.prior.values,
+            "mean_val": ds[variable].values,
         }
     )
-    if add_prior_unc:
+
+    if add_unc:
         ax.fill_between(
             time_as_datetime,
-            ds_region.prior_lower,
-            ds_region.prior_upper,
-            alpha=0.1,
-            color=ds_region.attrs["model_color"],
+            ds[f"{variable}_lower"],
+            ds[f"{variable}_upper"],
+            alpha=alpha_unc,
+            color=ds.attrs["model_color"],
         )
-        res["min_unc"] = ds_region.prior_lower.values
-        res["max_unc"] = ds_region.prior_upper.values
+        res["min_unc"] = ds[f"{variable}_lower"].values
+        res["max_unc"] = ds[f"{variable}_upper"].values
 
     return res
 
@@ -663,7 +618,7 @@ def add_ylim(
         dim: dimension following which the list of axes is made.
         values: list of values taken by the dimension and corresponding to the axes (should be the same length and order).
         res_dict: dictionnary containing the data plotted. Should have one key per regions plotted, the values being dictionnaries with 3 keys: "inventory", "posterior" and "prior";
-            whose values are the output of add_inventory_barplot, add_posterior_plot, add_prior_plot). The data stored in them is used to infer the ylims.
+            whose values are the output of add_inventory_barplot, add_line_plot). The data stored in them is used to infer the ylims.
         fix_y_axes: if list, use it as params to ax.set_ylim; if bool and True, all subplots have the same y lim (the max value that can be found in res_dict); else the max of the data
             plotted in each subplots is used.
         set_global_leg: if True (and thus one common legend is plotted for all subplots in add_legend), a zoom of only 1.1 is made on the ymax, else it is 1.2 to make space for the legend.
@@ -758,7 +713,7 @@ def add_xlims_and_ticks(
         ax: axis to add xlim and xticks to.
         yearly_freq: set to True if the data plotted have a yearly frequency.
         res_dict: dictionnary containing the data plotted. Should have one key per regions plotted, the values being dictionnaries with 3 keys: "inventory", "posterior" and "prior";
-            whose values are the output of add_inventory_barplot, add_posterior_plot, add_prior_plot). The time data stored in them is used to infer the xlims.
+            whose values are the output of add_inventory_barplot, add_line_plot). The time data stored in them is used to infer the xlims.
         aggreg_month: if True, the data plotted are supposed to be a monthly aggregated so 12 stciks are created, whose labels are the 3 first letters of each month.
     """
     if aggreg_month:
@@ -996,15 +951,15 @@ def plot_country_flux(
         for m, ds_region in ds_to_plot.items():
             highlighted_post = ("combined" in m) & annex_mode
             add_post_unc = (("combined" in m) & plot_combined_unc) |  (("combined" not in m) & plot_separate_unc)
-            posterior_df = add_posterior_plot(
-                ax, ds_region, highlighted_post, add_post_unc
+            posterior_df = add_line_plot(
+                ax, ds_region, variable="posterior", highlighted_line=highlighted_post, add_unc=add_post_unc
             )
             plotted_data_df = pd.concat(
                 [plotted_data_df, posterior_df], ignore_index=True
             )
 
             if add_prior:
-                prior_df = add_prior_plot(ax, ds_region, annex_mode, add_prior_unc)
+                prior_df = add_line_plot(ax, ds_region, variable="prior", highlighted_line=annex_mode, add_unc=add_prior_unc)
                 plotted_data_df = pd.concat(
                     [plotted_data_df, prior_df], ignore_index=True
                 )

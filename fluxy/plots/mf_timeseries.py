@@ -2,6 +2,8 @@ import logging
 from typing import Literal
 
 import numpy as np
+
+import pandas as pd
 import xarray as xr
 from datetime import date, timedelta
 from calendar import month_abbr
@@ -281,7 +283,7 @@ def _prepare_data_to_plot(
                 ds_var = _prepare_aggreg_month_var(ds_clean[var])
                 if all_var[var] is not None:
                     logger.warning(
-                        f"`{all_var[var]}` present as value of include dict for {var} is overwritten as you put `aggreg_month=True`."
+                        f"`{all_var[var]}` present as uncertainty for {var} is overwritten as you put `aggreg_month=True`."
                         + " The uncertainty plotted is the 0.159 and 0.851 percentile of the variable for the corresponding month."
                     )
             else:
@@ -306,7 +308,7 @@ def _set_labels_and_colors(
     plot_type: Literal["separate", "together", "diff"],
 ) -> dict[str, xr.Dataset]:
     """
-    Set labels and colors that will be used by plot_timeseries and plot_histogram as attributes of the variables dataset.
+    Set labels and colors, that will be used by add_line_plot and add_histogram_plot, as attributes of the variables dataset.
     For variables "mf_observed" and "observed_above_BC", the color will be black (and not one of model_colors) if more than one variable is plotted.
     Args:
         ds_dict: dictionnary containing the dataset with the variables to be plotted (and only them).
@@ -409,8 +411,9 @@ def _get_unit(ds_dict: dict[str, xr.Dataset]) -> str:
 
     plot_units = list(set(plot_units))
     if len(plot_units) != 1:
+        variables_set = {ds_dict[m].data_vars.keys() for m in ds_dict.keys()}
         raise ValueError(
-            f"{ds_dict[m].data_vars.keys()} in {ds_dict.keys()} do not have the same units. So far, the following were found: {plot_units}."
+            f"{variables_set} do not have the same units. So far, the following were found: {plot_units}."
             + "Select only one model to plot, or run 'slice_mf' with 'mf_units_print' equal to a valid mole fraction unit before running 'plot_timeseries'."
         )
 
@@ -420,7 +423,7 @@ def _get_unit(ds_dict: dict[str, xr.Dataset]) -> str:
 def add_xlims_and_ticks(
     ax: Axes,
     yearly_freq: bool,
-    res_dict: dict[str, dict[str, xr.Dataset] | xr.Dataset],
+    plotted_data_df: dict[str, dict], 
     aggreg_month: bool,
     rotate_xticks: bool = False,
 ):
@@ -437,19 +440,9 @@ def add_xlims_and_ticks(
         ax.set_xticks(np.arange(1, 13))
         ax.set_xticklabels(list(month_abbr)[1:])
         return
-
-    min_x, max_x = date(2100, 1, 1), date(1900, 1, 1)
-    for key_1 in res_dict.keys():
-        if isinstance(res_dict[key_1], dict):
-            for key_2 in res_dict[key_1].keys():
-                for key_3 in res_dict[key_1][key_2].keys():
-                    time = res_dict[key_1][key_2][key_3]["time"]
-                    min_x = np.nanmin([*time, min_x])
-                    max_x = np.nanmax([*time, max_x])
-        else:
-            time = res_dict[key_1].time.values.astype("datetime64[D]").tolist()
-            min_x = np.nanmin([*time, min_x])
-            max_x = np.nanmax([*time, max_x])
+    
+    min_x = np.nanmin(plotted_data_df["time"])
+    max_x = np.nanmax(plotted_data_df["time"])
 
     # set xticks
     year_range = date(max_x.year, 1, 1) - date(min_x.year, 1, 1)
@@ -462,7 +455,9 @@ def add_xlims_and_ticks(
         min_x = date(min_x.year, 1, 1)
         max_x = date(max_x.year + 1, 1, 1)
         step = (max_x.year - min_x.year) // 8 + 1
-        xticks = np.array([date(year, 1, 1) for year in range(min_x.year, max_x.year, step)])
+        xticks = np.array(
+            [date(year, 1, 1) for year in range(min_x.year, max_x.year, step)]
+        )
         if (max_x.year - min_x.year) % step == 0:
             xticks = np.append(xticks, max_x)
         ax.set_xticks(xticks)
@@ -476,6 +471,71 @@ def add_xlims_and_ticks(
 
     ax.set_xlim(xlim)
 
+
+def add_line_plot(ax, ds, plot_type, add_unc = True):
+    time_as_datetime = ds.time.values.astype("datetime64[D]").tolist()
+
+    kwargs = {
+        "alpha": 0.8,
+        "color": ds.attrs["plot_color"],
+        "label": ds.attrs["plot_label"],
+        }
+
+    if plot_type=="multiple_site":
+        type_plot = ds.attrs["plot_label"]
+    else:
+        type_plot = ds.name
+
+    if ds.name in ["mf_observed", "observed_above_BC"] or plot_type == "diff":
+        plot_func = ax.scatter
+        add_kwargs = {"s": 8, "marker": "s"}
+    else:
+        plot_func = ax.plot
+        add_kwargs = {"linewidth": 2.0, "marker": "o", "markersize": 1.5}
+
+    plot_func(
+        time_as_datetime,
+        ds.sel(percentile="mean"),
+        **kwargs,
+        **add_kwargs
+    )
+
+    res = pd.DataFrame(
+        {
+            "type": [type_plot,] * ds.time.size,
+            "model": [ds.attrs["exp_name"],] * ds.time.size,
+            "species": [ds.attrs["species"],] * ds.time.size,
+            "time": time_as_datetime,
+            "mean_val": ds.sel(percentile="mean").values,
+        }
+    )
+
+    if not add_unc:
+        return res
+    
+    if ds.percentile.size == 3:
+        ax.fill_between(
+            time_as_datetime,
+            y1=ds.sel(percentile="lower"),
+            y2=ds.sel(percentile="upper"),
+            alpha=0.2,
+            color=ds.attrs["plot_color"],
+        )
+        res["min_unc"] = ds.sel(percentile="lower").values
+        res["max_unc"] = ds.sel(percentile="upper").values
+    elif ds.percentile.size == 2:
+        ax.errorbar(
+            time_as_datetime,
+            y=ds.sel(percentile="mean"),
+            yerr=ds.sel(percentile="std"),
+            alpha=0.4,
+            fmt="none",
+            color=ds.attrs["plot_color"],
+        )
+        res["min_unc"] = ds.sel(percentile="mean").values - ds.sel(percentile="std")
+        res["max_unc"] = ds.sel(percentile="mean").values + ds.sel(percentile="std")
+
+    return res
 
 def plot_timeseries(
     ds_all: dict[str, xr.Dataset],
@@ -543,7 +603,9 @@ def plot_timeseries(
     models = ds_all.keys()
 
     species_info = config_data.get("species_info", {}).get(species, {})
-
+    
+    plotted_data_df = pd.DataFrame()
+    
     # Check the include dictionary
     data_to_plot = _prepare_data_to_plot(
         ds_all, include, diff_include, aggreg_month, time_freq_min, plot_type
@@ -571,59 +633,14 @@ def plot_timeseries(
 
         # Loop over all variables to plot
         for var in include.keys():
-
-            ds_plot = data_to_plot[m][var]
-
-            # Define plotting color
-            x, y = ds_plot.time.values, ds_plot.sel(percentile="mean").values
-            kwargs = {
-                "alpha": 0.8,
-                "color": ds_plot.attrs["plot_color"],
-                "label": ds_plot.attrs["plot_label"],
-            }
-
-            if var in ["mf_observed", "observed_above_BC"] or plot_type == "diff":
-                # Make scatter plot
-                ax[iax, 0].scatter(
-                    x,
-                    y,
-                    s=8,
-                    marker="s",
-                    **kwargs,
-                )
-
-            else:
-                # Make line plot
-                ax[iax, 0].plot(
-                    x,
-                    y,
-                    linewidth=2.0,
-                    marker="o",
-                    markersize=1.5,
-                    **kwargs,
-                )
-
-            if ds_plot.percentile.size == 3:
-                ax[iax, 0].fill_between(
-                    x,
-                    y1=ds_plot.sel(percentile="lower"),
-                    y2=ds_plot.sel(percentile="upper"),
-                    alpha=0.2,
-                    color=ds_plot.attrs["plot_color"],
-                )
-            elif ds_plot.percentile.size == 2:
-                ax[iax, 0].errorbar(
-                    x,
-                    y=ds_plot.sel(percentile="mean"),
-                    yerr=ds_plot.sel(percentile="std"),
-                    alpha=0.4,
-                    fmt="none",
-                    color=ds_plot.attrs["plot_color"],
-                )
+            res = add_line_plot(ax[iax,0], data_to_plot[m][var], plot_type)
+            plotted_data_df = pd.concat(
+                [plotted_data_df, res], ignore_index=True
+            )
 
         # Plot histogram
         if ax.shape[1] == 2:
-            plot_histogram(
+            add_histogram_plot(
                 ax[iax, 1],
                 data_to_plot[m].sel(percentile="mean"),
                 m,
@@ -681,7 +698,7 @@ def plot_timeseries(
         add_xlims_and_ticks(
             ax[iax, 0],
             yearly_freq=False,
-            res_dict=data_to_plot,
+            plotted_data_df=plotted_data_df,
             aggreg_month=aggreg_month,
             rotate_xticks=presentation_mode,
         )
@@ -838,7 +855,7 @@ def plot_sites_timeseries(
     return fig
 
 
-def plot_histogram(
+def add_histogram_plot(
     ax: Axes,
     ds: xr.Dataset,
     model: str,
@@ -975,50 +992,106 @@ def check_site_list(site_list,ds_all):
                 )
     return site_list
 
+
 def plot_sites_list_mf(
-        ds_all,
-        sites,
-        species,
-        variable,
-        aggreg_month = False,
-        config_data: dict[str, dict] = {},
-        ):
+    ds_all,
+    sites,
+    species,
+    variable,
+    unc_variable,
+    model_labels: dict[str, dict],
+    aggreg_month = False,
+    config_data: dict[str, dict] = {},
+    ):
+    """
+    Lore ipsum.
+    """
+    ds_all_p = ds_all.copy()
+
     plot_type="multiple_sites"
-    models = ds_all.keys()
+    models = ds_all_p.keys()
     species_info = config_data.get("species_info", {}).get(species, {})
-    
+    plotted_data_df = pd.DataFrame()
     # Look for sites
-    sites = check_site_list(sites, ds_all)
+    sites = check_site_list(sites, ds_all_p)
     
 
-    fig, ax = _create_figure(ds_all.keys(), plot_type=plot_type, histogram_type = False, aggreg_month=aggreg_month)
+    fig, ax = _create_figure(ds_all_p.keys(), plot_type=plot_type, histogram_type = False, aggreg_month=aggreg_month)
 
     for isite, site in enumerate(sites):
         # Select site
-        ds_all_site = slice_site_dict_of_datasets(ds_all, site)
+        ds_all_site = slice_site_dict_of_datasets(ds_all_p, site)
 
         # Prepare data to plot
         data_to_plot = _prepare_data_to_plot(
-            ds_all_site, variable, diff_include=None,
+            ds_all_site, {variable: unc_variable}, diff_include=None,
             time_freq_min = None, aggreg_month=aggreg_month, plot_type="multiple_sites"
         )
 
         unit = _get_unit(data_to_plot)
 
         for im, m in enumerate(models):
-            ds_plot = data_to_plot[m][variable]
+            data_to_plot[m][variable].attrs.update({"plot_label": site, "plot_color": f"C{isite:02d}"})
+            res = add_line_plot(
+                ax[im,0],
+                data_to_plot[m][variable],
+                plot_type = "multiple_site",
+                add_unc = unc_variable,
+            )
+            plotted_data_df = pd.concat(
+                [plotted_data_df, res], ignore_index=True
+            )
             
-            x, y = ds_plot.time.values, ds_plot.sel(percentile="mean").values
-            kwargs = {
-                "alpha": 0.8,
-                "color": f"C{isite:02d}",
-                "label": site,
-            }
-            ax[im,0].plot(x, y,
-                    linewidth=2.0,
-                    marker="o",
-                    markersize=1.5,
-                    **kwargs)
-        plt.legend()
+    for im, m in enumerate(models):
+        ax[im, 0].set_title(model_labels[m])
+        ax[im, 0].set_ylabel(
+            " ".join(
+                [   
+                    config.mf_labels.get(variable, variable),
+                    species_info.get("species_print", ""),
+                    f"({unit})",
+                ]
+            )
+        )
+
+        handles, labels = fig.axes[-1].get_legend_handles_labels()
+        fig.legend(
+            handles,
+            labels,
+            loc="upper center",
+            ncol=(
+                len(labels) if len(labels) <= 6 else len(labels) // 2 + len(labels) % 2
+            ),
+            borderpad=0.4,
+            columnspacing=1.0,
+            # bbox_to_anchor=legend_loc,
+        )
+
+        if len(data_to_plot[m].time) <= 1:
+            continue
+
+        add_xlims_and_ticks(
+            ax[im, 0],
+            yearly_freq=False,
+            plotted_data_df=plotted_data_df,
+            aggreg_month=aggreg_month,
+        )
+
+        ax[im, 0].grid(color="lightgrey", linestyle="-", linewidth=0.7)
+        ax[im, 0].set_axisbelow(True)
+
+    # min_mf = min(min_mf, ax[iax, 0].get_ylim()[0])
+    # max_mf = max(max_mf, ax[iax, 0].get_ylim()[1])
+
+    # if y_lim is None:
+    #     y_lim = [min_mf - 0.05 * (max_mf - min_mf), max_mf + 0.1 * (max_mf - min_mf)]
+
+    # # Set all the axes to the same y-axis limits
+    # for iax, ax0 in enumerate(ax[:, 0]):
+    #     ax0.set_ylim(y_lim)
+
+    logger.info(
+        "If annotations in the histograms are not displaying correctly, adjust annotate_coords."
+    )
     
     return fig
