@@ -237,7 +237,7 @@ def plot_stats_mf(
     stats_str = stats_type
     mf_str = ""
     if stats_type not in ["prior", "posterior"]:
-        mf_str = " above BC"
+        mf_str = " above baseline" #" above BC"
         stats_str = stats_type.split("_")[0]
 
     long_stats = pd.melt(stats, id_vars=["model", "site"], value_vars=stats_to_plot)
@@ -278,7 +278,7 @@ def plot_stats_mf(
     fig.suptitle(
         (
             f'{species_info["species_print"]} {stats_str} model performance versus mole fraction observations{mf_str}'
-            f"\n{start_date} to {end_date}"
+            #f"\n{start_date} to {end_date}"
         )
     )
 
