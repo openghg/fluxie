@@ -299,7 +299,8 @@ def _prepare_data_to_plot(
             )
 
         # Add global attributes to each var
-        attrs_global = {attr: ds_all[m].attrs[attr] for attr in ["exp_name", "species"]}
+        attrs_global = {"exp_name": ds_all[m].attrs.get("exp_name",m),
+                        "species": ds_all[m].attrs.get("species","unknown")}
         for var in data_to_plot[m].data_vars:
             data_to_plot[m][var].attrs.update(attrs_global)
 
