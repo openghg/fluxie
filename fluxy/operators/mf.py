@@ -74,6 +74,16 @@ def compute_mf_difference(
     unique_platforms, platform_indices = np.unique(
         common_platforms, return_inverse=True
     )
+
+    # check species
+    species_set = {ds_left.attrs['species'],ds_left.attrs['species']}
+    if len(species_set)!=1:
+        logger.warning(f"Different species found {species_set} between the 2 compared datasets.")
+        species_set = "mix"
+    else:
+        species = list(species_set)[0]
+
+    # create dataset with coord and dim
     ds_diff[key_name] = xr.Dataset(
         coords={
             "time": ("index", common_index.get_level_values("time").values),
@@ -82,6 +92,8 @@ def compute_mf_difference(
         },
         attrs={
             "description": f"Difference between {model_left} and {model_right}",
+            "exp_name": f"{ds_left.attrs['exp_name']} - {ds_left.attrs['exp_name']}",
+            "species": species,
         },
     )
 
