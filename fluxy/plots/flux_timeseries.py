@@ -330,9 +330,9 @@ def add_line_plot(
     """
     Plot the posterior/prior data on the axis. The variable posterior/prior of the dataset ds_region is plotted as a line (color and label found in the dataset
     attributes) and the uncertainty (variables lower_posterior/prior, upper_posterior/prior in the dataset) is plotted as a semi-transparent filled space.
-    Axes:
+    Args:
         ax: axes on which to plot
-        ds: dataset containing posterior data
+        ds: dataset containing posterior/prior data
         variable: whether the posterior or prior should be plotted
         highlighted_line: for posterior/prior, if True, the linewidth is made bigger (3.0/1.5) than when False (1.5/1.0). Typicaly used for the annexes to highlight the PARIS mean.
         add_unc: if True, plots model uncertainty.

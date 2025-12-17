@@ -478,7 +478,19 @@ def add_xlims_and_ticks(
     ax.set_xlim(xlim)
 
 
-def add_line_plot(ax, ds, plot_type, add_unc = True):
+def add_line_plot(
+    ax: Axes, ds: xr.Dataset, plot_type: str, add_unc: bool = True
+    ) -> pd.DataFrame:
+    """
+    Add line plot with uncertainty if requested.
+    Args:
+        ax: axes on which to plot
+        ds: dataset containing posterior/prior data
+        plot_type: used to determine labels to display
+        add_unc: if True, plot uncertainty
+    Return:
+        res: dataframe with data plotted
+    """
     time_as_datetime = ds.time.values.astype("datetime64[D]").tolist()
 
     kwargs = {
@@ -529,6 +541,7 @@ def add_line_plot(ax, ds, plot_type, add_unc = True):
         )
         res["min_unc"] = ds.sel(percentile="lower").values
         res["max_unc"] = ds.sel(percentile="upper").values
+
     elif ds.percentile.size == 2:
         ax.errorbar(
             time_as_datetime,
@@ -582,6 +595,8 @@ def plot_timeseries(
             Obs site, e.g. 'MHD'.
         model_colors (dict of str):
             Models and corresponding colours used to plot the model.
+        model_labels (dict of str):
+            Labels to use for each model
         config_data (dict of dict):
             Dictionary with settings read from json file.
             Use json filenames as keys.
@@ -986,16 +1001,23 @@ def add_histogram_plot(
 
     return None
 
-def check_site_list(site_list,ds_all):
+def check_site_list(site_list: list | None, ds_all: dict[str, xr.Dataset])->list:
+    """
+    Check that every site in the list exists. If None, set it to all the sites available.
+    Args:
+        site_list: list of sites to check
+        ds_all: datasets into which check for the sites
+    Returns:
+        site_list: list of sites
+    """
     if site_list is None:
-        site_list = get_unique_sites(ds_all)
-    else:
-        available_sites = get_unique_sites(ds_all)
-        for site in site_list:
-            if site not in available_sites:
-                raise ValueError(
-                    f"Site {site} not found in the datasets provided. Available sites are {available_sites}."
-                )
+        return get_unique_sites(ds_all)
+    available_sites = get_unique_sites(ds_all)
+    for site in site_list:
+        if site not in available_sites:
+            raise ValueError(
+                f"Site {site} not found in the datasets provided. Available sites are {available_sites}."
+            )
     return site_list
 
 
@@ -1010,7 +1032,25 @@ def plot_sites_list_mf(
     config_data: dict[str, dict] = {},
     ):
     """
-    Lore ipsum.
+    Plot timeseries of multiple sites on the same subplots. One subplots correspond to one model.
+    Args:
+        ds_all: xarray datasets, scaled and sliced between chosen dates and for
+            chosen site.
+        sites: Obs sites list, e.g. ['MHD', 'CBW'].
+        species: Gas species, e.g. 'ch4'.
+        variable: variable to plot, either a variable of dataset 
+            or one that can be calculated by prepare_data_to_plot
+        unc_variable: variable to use as uncertainty
+        model_labels: labels to use for each model
+        aggreg_month: if True, plot the data aggregated by month. 
+            Used to study seasonnal cycle.
+        config_data: Dictionary with settings read from json file.
+            Use json filenames as keys.
+    Returns:
+        fig: figure created
+        plotted_data_df: data plotted on the figure
+
+
     """
     ds_all_p = ds_all.copy()
 
@@ -1113,4 +1153,4 @@ def plot_sites_list_mf(
         "If annotations in the histograms are not displaying correctly, adjust annotate_coords."
     )
     
-    return fig
+    return fig, plotted_data_df
