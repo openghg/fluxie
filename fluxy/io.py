@@ -794,7 +794,7 @@ def edit_vars_and_attributes(
     # check (and overwrite) species attribute
     if species is not None:
         current_species = ds.attrs.get("species", "not set")
-        if "species" not in ds.attrs:
+        if current_species != species:
             logger.info(
                 f"'species' attribute in dataset {model} ({current_species}) differs from species {species}. It is overwritten."
             )

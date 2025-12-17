@@ -298,6 +298,11 @@ def _prepare_data_to_plot(
                 [data_to_plot[m], ds_var], compat="no_conflicts", join="outer"
             )
 
+        # Add global attributes to each var
+        attrs_global = {attr: ds_all[m].attrs[attr] for attr in ["exp_name", "species"]}
+        for var in data_to_plot[m].data_vars:
+            data_to_plot[m][var].attrs.update(attrs_global)
+
     return data_to_plot
 
 
@@ -1025,7 +1030,7 @@ def plot_sites_list_mf(
         # Prepare data to plot
         data_to_plot = _prepare_data_to_plot(
             ds_all_site, {variable: unc_variable}, diff_include=None,
-            time_freq_min = None, aggreg_month=aggreg_month, plot_type="multiple_sites"
+            time_freq_min = None, aggreg_month=aggreg_month, plot_type=plot_type
         )
 
         unit = _get_unit(data_to_plot)
@@ -1035,7 +1040,7 @@ def plot_sites_list_mf(
             res = add_line_plot(
                 ax[im,0],
                 data_to_plot[m][variable],
-                plot_type = "multiple_site",
+                plot_type = plot_type,
                 add_unc = unc_variable,
             )
             plotted_data_df = pd.concat(
