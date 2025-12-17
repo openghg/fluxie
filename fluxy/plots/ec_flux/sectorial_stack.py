@@ -66,16 +66,6 @@ def plot_stacked(
     errorbar_kwargs: dict[str, any] | None = None,
     wind_bins: int = 8,
 ):
-    if sectors_config is None:
-        sectors_config = {}
-    if errorbar_kwargs is None:
-        errorbar_kwargs = {
-            "color": "black",
-            "marker": "x",
-            "label": "Measurements",
-            "linestyle": "None",
-            "alpha": 0.7,
-        }
     """Plot stacked bar chart for sectorial fluxes.
 
     Args:
@@ -87,9 +77,9 @@ def plot_stacked(
         season: Season to filter the data.
         group_format: Format for grouping the data.
             Typical values are:
-                * "%X" where x is a time identifer
+                * "%X" where x is a time identifier
                     ex: "%H" for hour of the day
-                * "wind_direction" to group by wind direction sectors
+                * "wind_direction" or "wind" to group by wind direction sectors
                     This will require a "wind_direction" variable in the dataset.
                     The output will be a wind rose like plot.
 
@@ -98,9 +88,22 @@ def plot_stacked(
         y_lims: Limits for the y-axis.
         plot_observation_counts: Whether to plot observation counts.
         sectors_config: Configuration for the sectors.
+        errorbar_kwargs: Keyword arguments for the error bars.
+            See matplotlib errorbar documentation for more details.
         wind_bins: Number of wind bins to use if group_format is "wind_direction".
 
     """
+
+    if sectors_config is None:
+        sectors_config = {}
+    if errorbar_kwargs is None:
+        errorbar_kwargs = {
+            "color": "black",
+            "marker": "x",
+            "label": "Measurements",
+            "linestyle": "None",
+            "alpha": 0.7,
+        }
 
     # Check that the variable is on the sector and index dimensions
 
@@ -153,8 +156,6 @@ def plot_stacked(
 
     serie_obs.index = fmt_index(serie_obs.index)
     serie_obs_groupped = serie_obs.groupby(serie_obs.index, observed=False)
-    serie_obs = serie_obs.groupby(serie_obs.index, observed=False).mean()
-    counts = serie_obs.groupby(serie_obs.index, observed=False).count()
 
     # Rename the months
     # df_to_plot.index = pd.to_datetime(df_to_plot.index, format="%m").strftime("%b")
@@ -244,8 +245,8 @@ def plot_stacked(
         if plot_observation_counts:
             ax.text(
                 row.name,
-                row["mean"].value - offset,
-                f"{int(counts[_])}",
+                row["mean"] - offset,
+                f"{int(row['count'])}",
                 **kwargs,
             )
 
@@ -269,7 +270,7 @@ def plot_stacked(
         "%m_%H": "Month and hour of the day",
         "%H_%M": "Hour and minute of the day",
     }
-    x_label = "Wind direction" if wind_plot else x_labels[group_format]
+    x_label = "Wind direction" if wind_plot else x_labels.get(group_format, group_format)
     y_label = f"{species} Flux " " [ µmol m$^{-2}$ s$^{-1}$ ]"
     if not wind_plot:
         ax.set_ylabel(y_label)
