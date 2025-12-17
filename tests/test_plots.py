@@ -546,4 +546,3 @@ def test_plot_flux_map_combined_models_comparison():
         set_fluxlim=set_fluxlim,
         set_fluxlim_percentile=set_fluxlim_percentile,
     )
-test_mole_fraction_diff()
