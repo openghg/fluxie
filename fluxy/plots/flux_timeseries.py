@@ -334,18 +334,27 @@ def add_line_plot(
         ax: axes on which to plot
         ds: dataset containing posterior data
         variable: whether the posterior or prior should be plotted
-        highlighted_line: for posterior, if True, the linewidth is made bigger (3.0) than when False (1.5). Typicall used for the annexes to highlight the PARIS mean.
+        highlighted_line: for posterior/prior, if True, the linewidth is made bigger (3.0/1.5) than when False (1.5/1.0). Typicaly used for the annexes to highlight the PARIS mean.
         add_unc: if True, plots model uncertainty.
     Returns:
         res: dataframe with one line per timestamp and 9 columns ("type", "model", "sector", "country", "species", 
             "time", "mean_val", "min_unc", "max_unc")
     """
     if variable == "posterior":
-        linew = 3 if highlighted_line else 1.5
-        alpha = 1.0
-        alpha_unc = 0.2
+        kwargs_plot = dict(
+            ls = "-",
+            lw = 3 if highlighted_line else 1.5,
+            alpha = 1.0,
+            label = ds.attrs["model_label"],
+        )
+        alpha_unc = 0.2        
     elif variable == "prior":
-        linew, alpha = (1.0, 0.7) if highlighted_line else (1.5, 1.0)
+        kwargs_plot = dict(
+            ls = "--",
+            lw = 1.5 if highlighted_line else 1.0,
+            alpha = 1.0 if highlighted_line else 0.7,
+            label = ds.attrs["model_label"] + " prior",
+        )
         alpha_unc = 0.1
     else:
         raise ValueError("Available options for 'variable' parameter are 'prior' and 'posterior'.")
@@ -355,10 +364,8 @@ def add_line_plot(
     ax.plot(
         time_as_datetime,
         ds[variable],
-        label=ds.attrs["model_label"],
         color=ds.attrs["model_color"],
-        linewidth=linew,
-        alpha=alpha
+        **kwargs_plot,
     )
 
     res = pd.DataFrame(
@@ -959,7 +966,7 @@ def plot_country_flux(
             )
 
             if add_prior:
-                prior_df = add_line_plot(ax, ds_region, variable="prior", highlighted_line=annex_mode, add_unc=add_prior_unc)
+                prior_df = add_line_plot(ax, ds_region, variable="prior", highlighted_line=not annex_mode, add_unc=add_prior_unc)
                 plotted_data_df = pd.concat(
                     [plotted_data_df, prior_df], ignore_index=True
                 )
