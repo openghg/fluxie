@@ -1,5 +1,6 @@
 import logging
 from typing import Literal
+from math import ceil
 
 import numpy as np
 
@@ -371,7 +372,7 @@ def _create_figure(
     Return:
         fig, ax: matplotlib figure and axes object with appropriate sizes.
     """
-    if plot_type in ["separate","multiple_sites"]:
+    if plot_type in ["separate"]:
         nrows = len(models)
     elif plot_type in ["together", "diff"]:
         nrows = 1
@@ -1017,11 +1018,24 @@ def plot_sites_list_mf(
     models = ds_all_p.keys()
     species_info = config_data.get("species_info", {}).get(species, {})
     plotted_data_df = pd.DataFrame()
+
     # Look for sites
     sites = check_site_list(sites, ds_all_p)
     
+    # Create figure
+    ncols = int(np.sqrt(len(models)))
+    nrows = ceil(len(models)/ncols)
 
-    fig, ax = _create_figure(ds_all_p.keys(), plot_type=plot_type, histogram_type = False, aggreg_month=aggreg_month)
+    fig, ax = plt.subplots(
+        nrows,
+        ncols,
+        figsize=(ncols*5 if aggreg_month else ncols*6, nrows * 3),
+        constrained_layout=True,
+        sharey="row",
+        sharex="col",
+        squeeze=False,
+    )
+    ax = ax.flatten()
 
     for isite, site in enumerate(sites):
         # Select site
@@ -1038,7 +1052,7 @@ def plot_sites_list_mf(
         for im, m in enumerate(models):
             data_to_plot[m][variable].attrs.update({"plot_label": site, "plot_color": f"C{isite:02d}"})
             res = add_line_plot(
-                ax[im,0],
+                ax[im],
                 data_to_plot[m][variable],
                 plot_type = plot_type,
                 add_unc = unc_variable,
@@ -1048,8 +1062,8 @@ def plot_sites_list_mf(
             )
             
     for im, m in enumerate(models):
-        ax[im, 0].set_title(model_labels[m])
-        ax[im, 0].set_ylabel(
+        ax[im].set_title(model_labels[m])
+        ax[im].set_ylabel(
             " ".join(
                 [   
                     config.mf_labels.get(variable, variable),
@@ -1076,14 +1090,14 @@ def plot_sites_list_mf(
             continue
 
         add_xlims_and_ticks(
-            ax[im, 0],
+            ax[im],
             yearly_freq=False,
             plotted_data_df=plotted_data_df,
             aggreg_month=aggreg_month,
         )
 
-        ax[im, 0].grid(color="lightgrey", linestyle="-", linewidth=0.7)
-        ax[im, 0].set_axisbelow(True)
+        ax[im].grid(color="lightgrey", linestyle="-", linewidth=0.7)
+        ax[im].set_axisbelow(True)
 
     # min_mf = min(min_mf, ax[iax, 0].get_ylim()[0])
     # max_mf = max(max_mf, ax[iax, 0].get_ylim()[1])
