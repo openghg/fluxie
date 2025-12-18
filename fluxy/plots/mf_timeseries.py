@@ -1053,6 +1053,7 @@ def plot_multiple_sites_mf_timeseries(
             data_to_plot = {k: ds.drop("mf_observed") for k, ds in data_to_plot.items()}
 
         # Loop over all models
+        max_y = -np.inf
         for i, m in enumerate(models):
 
             # Loop over all variables to plot
@@ -1073,14 +1074,15 @@ def plot_multiple_sites_mf_timeseries(
                     "color": ds_plot.attrs["plot_color"],
                     "label": ds_plot.attrs["plot_label"],
                 }
+                max_y = max(max_y, max(y))
 
                 # Make line plot
                 ax.plot(
                     x,
                     y,
-                    linewidth=1.0,
-                    # marker="o",
-                    # markersize=1.5,
+                    linewidth=0,
+                    marker="o",
+                    markersize=2,
                     **kwargs,
                 )
 
@@ -1102,10 +1104,17 @@ def plot_multiple_sites_mf_timeseries(
                         fmt="none",
                         color=ds_plot.attrs["plot_color"],
                     )
+        
+        ax.set_ylim(bottom=30)
+        if max_y <= 45:
+            ax.set_ylim(top=45)    
 
         ax.text(0.01, 0.75, site, transform=ax.transAxes,
             fontsize=8, fontweight="bold")
         ax.grid(alpha=0.3)
+
+        if ax == axes[0] and i == 0:
+            ax.legend(loc="lower left", ncol=2)
 
     # Global Y label
     fig.supylabel(
@@ -1119,3 +1128,5 @@ def plot_multiple_sites_mf_timeseries(
 
     # # Legend
     # fig.legend(models, loc="upper center", ncol=3, frameon=False)
+
+    return fig
