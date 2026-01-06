@@ -628,7 +628,7 @@ def add_legend(
         if isinstance(fig.axes[0], list):
             legend_loc = (0.5, 1.1)
         else:
-            legend_loc = (0.5, 1.15)
+            legend_loc = (0.5, 1.1)
         handles, labels = fig.axes[-1].get_legend_handles_labels()
         fig.legend(
             handles,
@@ -716,6 +716,7 @@ def plot_country_flux(
     aggreg_month: bool = False,
     sector: str = "total",
     add_vline: list[str] | None = None,
+    add_Gg_per_year_axis: bool = False,
 ) -> Figure | tuple[Figure, dict[str, dict]]:
     """
     Timeseries plot of prior and posterior country fluxes, from list of
@@ -857,7 +858,7 @@ def plot_country_flux(
                     np.datetime64(vline_date),
                     color="grey",
                     linestyle="dotted",
-                    linewidth=1.5,
+                    linewidth=2.5,
                 )
 
         # set y label
@@ -865,6 +866,32 @@ def plot_country_flux(
 
         # set grid
         ax.grid(visible=True, which="major", alpha=0.4)
+
+        # add second axis
+        if add_Gg_per_year_axis:
+            GWP = s_data.get(species, {}).get("gwp", None)
+            # Conversion functions
+            def Tg_to_Gg(y):
+                return y * 1000 / GWP
+
+            def Gg_to_Tg(y):
+                return y * GWP / 1000
+
+            # Secondary y-axis
+            sec_color = 'darkred' #(196/255, 112/255, 138/255)
+            secax = ax.secondary_yaxis(
+                'right',
+                functions=(Tg_to_Gg, Gg_to_Tg)
+            )
+
+            secax.set_ylabel(
+                f"{s_data.get(species, {}).get('species_print', species)} (Gg yr$^{{-1}}$)",
+                rotation=270, labelpad=20, color=sec_color
+            )
+
+            secax.tick_params(axis='y', colors=sec_color)
+            secax.spines['right'].set_color(sec_color)
+            secax.spines['right'].set_linewidth(1.5)
 
         # set ax title
         add_title(ax, country, r_data, country_codes_as_titles)
