@@ -523,6 +523,7 @@ def test_plot_country_sector_flux_bar():
         sectors=["agriculture", "waste", "energy", "industry"],
     )
 
+
 def test_plot_flux_map_combined_models_comparison():
 
     var = "flux_total_posterior"
@@ -546,3 +547,35 @@ def test_plot_flux_map_combined_models_comparison():
         set_fluxlim=set_fluxlim,
         set_fluxlim_percentile=set_fluxlim_percentile,
     )
+
+
+def test_plot_multiple_sites_mf_timeseries():
+
+    ds_all_allsites = slice_mf(
+        ds_all_mf.copy(),
+        start_date,
+        end_date,
+        site=None,
+        baseline_site=baseline_site,
+        data_dir=data_dir,
+        mf_units_print=mf_units_print,
+    )
+
+    include = {'mf_observed'   : None,
+               'mf_posterior' : None
+            }
+
+    diff_include = ['mf_posterior']
+
+    site_list = None # all sites
+    fig = plot_multiple_sites_mf_timeseries(ds_all_allsites, 
+                                            include=include,
+                                            diff_include=diff_include,
+                                            species=species,
+                                            model_colors=model_colors,
+                                            model_labels=model_labels,
+                                            config_data=config_data,
+                                            site_list=site_list,
+                                            time_freq_min=None,
+                                            aggreg_month=False
+                                            )
