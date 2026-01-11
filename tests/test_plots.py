@@ -12,6 +12,7 @@ from fluxy.plots.flux_map import (
     plot_flux_map_model_comparison,
     plot_flux_map_over_time,
     plot_flux_map_combined_models_comparison,
+    plot_flux_map_period_comparison,
 )
 from fluxy.plots.flux_timeseries import plot_country_flux,plot_country_sector_flux_bar
 from fluxy.plots.mf_timeseries import (
@@ -572,3 +573,4 @@ def test_plot_flux_map_period_comparison():
         set_fluxlim_percentile=set_fluxlim_percentile,
 
     )
+
