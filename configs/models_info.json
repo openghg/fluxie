@@ -45,7 +45,7 @@
     "standard_run":{
         "default": {"ch4": "NAME_EUROPE_EDGARWETCHARTS_31sites",
                     "n2o": "NAME_EUROPE_EDGAR_26sites",
-                    "sf6": "NAME_EUROPE_FLAT_std",
+                    "sf6": "NAME_EUROPE_FLAT",
                     "hfc134a": "NAME_EUROPE_EDGAR",
                     "hfc143a": "NAME_EUROPE_EDGAR",
                     "hfc125": "NAME_EUROPE_EDGAR",
@@ -57,10 +57,10 @@
                     "hfc365mfc": "NAME_EUROPE_FLAT",
                     "hfc4310mee": "NAME_EUROPE_FLAT",
                     "hfc236fa": "NAME_EUROPE_FLAT",
-                    "pfc218": "NAME_EUROPE_FLAT_std",
-                    "pfc318": "NAME_EUROPE_FLAT_std",
-                    "pfc116": "NAME_EUROPE_EDGARMINVAL_std",
-                    "cf4": "NAME_EUROPE_EDGARMINVAL_std",
+                    "pfc218": "NAME_EUROPE_FLAT",
+                    "pfc318": "NAME_EUROPE_FLAT",
+                    "pfc116": "NAME_EUROPE_EDGARMINVAL",
+                    "cf4": "NAME_EUROPE_EDGARMINVAL",
                     "hfo1234yf": "NAME_EUROPE_POPULATION",
                     "hfo1234zee": "NAME_EUROPE_POPULATION",
                     "hcfo1233zde": "NAME_EUROPE_POPULATION",
@@ -77,7 +77,9 @@
             "hfc245fa": "NAME_EUROPE_FLAT_PARISNID2026",
             "hfc365mfc": "NAME_EUROPE_FLAT_PARISNID2026",
             "hfc4310mee": "NAME_EUROPE_FLAT_PARISNID2026",
-            "hfc236fa": "NAME_EUROPE_FLAT_PARISNID2026"
+            "hfc236fa": "NAME_EUROPE_FLAT_PARISNID2026",
+            "sf6": "NAME_EUROPE_FLAT_PARISNID2026",
+            "pfc218": "NAME_EUROPE_FLAT_PARISNID2026"
     },
         "NAME_7sites": {
             "hfc134a": "NAME_EUROPE_EDGAR_7sitesHFCpaper",
@@ -103,7 +105,9 @@
             "hfc245fa": "FLEXPART_EUROPE_FLAT_PARISNID2026",
             "hfc365mfc": "FLEXPART_EUROPE_FLAT_PARISNID2026",
             "hfc4310mee": "FLEXPART_EUROPE_FLAT_PARISNID2026",
-            "hfc236fa": "FLEXPART_EUROPE_FLAT_PARISNID2026"
+            "hfc236fa": "FLEXPART_EUROPE_FLAT_PARISNID2026",
+            "sf6": "FLEXPART_EUROPE_FLAT_PARISNID2026",
+            "pfc218": "FLEXPART_EUROPE_FLAT_PARISNID2026"
     },
         "FLEXPART_7sites": {
             "hfc134a": "FLEXPART_EUROPE_EDGAR_7sitesHFCpaper",
