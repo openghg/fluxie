@@ -863,6 +863,22 @@ def add_title(ax: Axes, country: str, r_data: dict, country_codes_as_titles: boo
     else:
         ax.set_title(f"{print_country}")
 
+def add_vlines(ax: Axes, vline_dates: list[str]):
+    """
+    Add vertical lines to matplotlib axes at specified dates.
+    Args:
+        ax: axis to add vertical lines to.
+        vline_dates: list of dates (str) at which to add vertical lines.
+    """
+
+    for vline_date in vline_dates:
+        ax.axvline(
+            x=np.datetime64(vline_date),
+            color="grey",
+            linestyle="dotted",
+            linewidth=2.5,
+        )
+
 
 def plot_country_flux(
     ds_all: dict[str, xr.Dataset],
@@ -895,6 +911,7 @@ def plot_country_flux(
     rolling_mean: bool | list[bool] = False,
     aggreg_month: bool = False,
     sector: str = "total",
+    add_vline: list[str] | None = None,
 ) -> Figure | tuple[Figure, dict[str, dict]]:
     """
     Timeseries plot of prior and posterior country fluxes, from list of
@@ -939,6 +956,7 @@ def plot_country_flux(
         return_res: Wheter or not including a dictionnary with the results as output
         rolling_mean : If True, calculates a rolling mean (xx years) for each of the data to plot.
         aggreg_month: if True, plot the data aggregated by month. Used to study seasonnal cycle.
+        add_vline: list of dates (str) where to add vertical lines on each plot. format 'YYYY-MM-DD'.
     Returns:
         fig: A plot per country/region.
         res_dict : If return_res, return also a dataframe containing the plotted results. The columns of this dataframe are "type" (possible values "prior"/"posterior"/"inventory"),
@@ -1029,6 +1047,10 @@ def plot_country_flux(
             plotted_data_df = pd.concat(
                 [plotted_data_df, inventory_df], ignore_index=True
             )
+
+        # add vertical lines
+        if add_vline is not None:
+            add_vlines(ax, vline_dates=add_vline)
 
         # set y label
         add_ylabel(ax, s_data, species, unit, plot_type="country_plot", sector=sector)
