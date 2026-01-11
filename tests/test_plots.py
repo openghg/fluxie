@@ -546,3 +546,28 @@ def test_plot_flux_map_combined_models_comparison():
         set_fluxlim=set_fluxlim,
         set_fluxlim_percentile=set_fluxlim_percentile,
     )
+
+def test_plot_flux_map_period_comparison():
+
+    var = "flux_total_posterior"
+
+    start_dates = ['2018-01-01', '2020-01-01'] 
+    end_dates = ['2021-01-01', '2024-01-01']
+
+    fig = plot_flux_map_model_comparison(
+        ds_all=ds_all_flux_with_sites_scaled,
+        var=var,
+        species=species,
+        start_dates=start_dates,
+        end_dates=end_dates,
+        region=region,
+        config_data=config_data,
+        model_labels=model_labels,
+        cmap=cmap,
+        cmap_diff=cmap_diff,
+        c_border=c_border,
+        add_sites=add_sites,
+        add_markers=add_markers,
+        set_fluxlim=set_fluxlim,
+        set_fluxlim_percentile=set_fluxlim_percentile,
+    )

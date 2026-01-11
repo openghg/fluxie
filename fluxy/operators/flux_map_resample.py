@@ -805,7 +805,8 @@ def resample_over_period(
             Interval length for custom periods (e.g., for months or years).
         chop_by (str, list):
             Defines how the dataset should be chopped.
-            Options are: 'year', 'month', 'season', None, a list of dates or months, or a season.
+            Options are: 'year', 'month', 'season', None, a list of dates or months, 
+                         a season, or a tuple of lists of dates.
         resample_uncert_correlation (bool):
             If True, uncertainties are averaged directly over groups.
             If False, uncertainties are calculated as RMSE-like aggregation.
@@ -818,7 +819,7 @@ def resample_over_period(
     """
 
     # ------------------------------------------------------------------
-    # Handling of chop_by as (start_dates_list, end_dates_list)
+    # Specific periods (start_dates_list, end_dates_list)
     # ------------------------------------------------------------------
     if isinstance(chop_by, tuple) and len(chop_by) == 2:
 
@@ -846,9 +847,7 @@ def resample_over_period(
                 "with equal-length lists of valid dates."
             )
 
-    # ------------------------------------------------------------------
-    # Handling of chop_by as a list
-    # ------------------------------------------------------------------   
+    # ------------------------------------------------------------------ 
 
     if isinstance(chop_by, list):
         # Case where chop_by is a list of dates
@@ -873,7 +872,6 @@ def resample_over_period(
     # ------------------------------------------------------------------
     # Seasons (single season)
     # ------------------------------------------------------------------
-
     elif chop_by in ["DJF", "MAM", "JJA", "SON"]:
         return resample_over_seasons(
             ds.copy(),
@@ -884,7 +882,6 @@ def resample_over_period(
     # ------------------------------------------------------------------
     # All seasons
     # ------------------------------------------------------------------
-
     elif chop_by == "season":
         return resample_over_seasons(
             ds.copy(), resample_uncert_correlation=resample_uncert_correlation
@@ -893,20 +890,19 @@ def resample_over_period(
     # ------------------------------------------------------------------
     # Whole-period averaging
     # ------------------------------------------------------------------
-
     elif chop_by is None:
         return resample_over_whole_period(ds.copy(), resample_uncert_correlation)
 
     # ------------------------------------------------------------------
     # Standard year / month resampling
     # ------------------------------------------------------------------
-
     elif chop_by == "year":
         return resample_over_years(ds.copy(), N, resample_uncert_correlation)
     elif chop_by == "month":
         return resample_over_months(ds.copy(), N, resample_uncert_correlation)
 
     # ------------------------------------------------------------------
+
     else:
         raise ValueError(
             f"Option {chop_by} for chop_by not implemented. Options are year, month, season, a list of starting dates or a list of month numbers."
