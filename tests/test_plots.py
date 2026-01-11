@@ -554,7 +554,7 @@ def test_plot_flux_map_period_comparison():
     start_dates = ['2018-01-01', '2020-01-01'] 
     end_dates = ['2021-01-01', '2024-01-01']
 
-    fig = plot_flux_map_model_comparison(
+    fig = plot_flux_map_period_comparison(
         ds_all=ds_all_flux_with_sites_scaled,
         var=var,
         species=species,
@@ -570,4 +570,5 @@ def test_plot_flux_map_period_comparison():
         add_markers=add_markers,
         set_fluxlim=set_fluxlim,
         set_fluxlim_percentile=set_fluxlim_percentile,
+
     )
