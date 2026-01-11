@@ -998,6 +998,10 @@ def plot_flux_map_period_comparison(
             Example: 'flux_total_posterior'.
         species (str):
             Gas species, e.g. 'ch4'.
+        start_dates (list[str]):
+            List of starting dates for the two periods to compare (format: 'YYYY-MM-DD').
+        end_dates (list[str]):
+            List of ending dates for the two periods to compare (format: 'YYYY-MM-DD').
         region (str or list):
             Region to plot, e.g. 'FRANCE', 'EUROPE', [lon_min, lon_max, lat_min, lat_max].
         config_data (dict of dict):
