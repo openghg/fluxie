@@ -968,12 +968,12 @@ def plot_histogram(
 def plot_multiple_sites_mf_timeseries(
     ds_all: dict[str, xr.Dataset],
     include: VariableType,
-    diff_include: VariableType,
     species: str | None = None,
     model_colors: dict[str, str] | None = None,
     model_labels: dict[str, dict] = {},
     config_data: dict[str, dict] = {},
     site_list: list[str] | None = None,
+    y_lim: tuple[float, float] | None = None,
     time_freq_min: FrequencyType = None,
     aggreg_month: bool = False,
 ):
@@ -1029,7 +1029,6 @@ def plot_multiple_sites_mf_timeseries(
         nrows=len(site_list),
         ncols=1,
         sharex=True,
-        # sharey=True,
         figsize=(8, len(site_list)),
         constrained_layout=True
     )
@@ -1040,6 +1039,7 @@ def plot_multiple_sites_mf_timeseries(
         ds_all_site = slice_site_dict_of_datasets(ds_all, site)
 
         # Prepare data to plot
+        diff_include = None
         data_to_plot = _prepare_data_to_plot(
             ds_all_site, include, diff_include, aggreg_month, time_freq_min, plot_type
             )
@@ -1053,7 +1053,6 @@ def plot_multiple_sites_mf_timeseries(
             data_to_plot = {k: ds.drop("mf_observed") for k, ds in data_to_plot.items()}
 
         # Loop over all models
-        max_y = -np.inf
         for i, m in enumerate(models):
 
             # Loop over all variables to plot
@@ -1074,7 +1073,6 @@ def plot_multiple_sites_mf_timeseries(
                     "color": ds_plot.attrs["plot_color"],
                     "label": ds_plot.attrs["plot_label"],
                 }
-                max_y = max(max_y, max(y))
 
                 # Make line plot
                 ax.plot(
@@ -1103,18 +1101,17 @@ def plot_multiple_sites_mf_timeseries(
                         alpha=0.4,
                         fmt="none",
                         color=ds_plot.attrs["plot_color"],
-                    )
-        
-        ax.set_ylim(bottom=30)
-        if max_y <= 45:
-            ax.set_ylim(top=45)    
+                    ) 
+
+        if y_lim is not None:
+            ax.set_ylim(y_lim)
 
         ax.text(0.01, 0.75, site, transform=ax.transAxes,
             fontsize=8, fontweight="bold")
         ax.grid(alpha=0.3)
 
         if ax == axes[0] and i == 0:
-            ax.legend(loc="lower left", ncol=2)
+            ax.legend(loc="best", ncol=2)
 
     # Global Y label
     fig.supylabel(
@@ -1125,8 +1122,5 @@ def plot_multiple_sites_mf_timeseries(
                 ]
             )
     )
-
-    # # Legend
-    # fig.legend(models, loc="upper center", ncol=3, frameon=False)
 
     return fig

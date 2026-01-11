@@ -16,7 +16,8 @@ from fluxy.plots.flux_map import (
 from fluxy.plots.flux_timeseries import plot_country_flux,plot_country_sector_flux_bar
 from fluxy.plots.mf_timeseries import (
     plot_mf_timeseries,
-    plot_sites_timeseries
+    plot_sites_timeseries,
+    plot_multiple_sites_mf_timeseries
 )
 from fluxy.operators.mf import compute_mf_difference
 from fluxy.plots.mf_stats import plot_stats_mf, plot_taylor_diagram
@@ -565,12 +566,9 @@ def test_plot_multiple_sites_mf_timeseries():
                'mf_posterior' : None
             }
 
-    diff_include = ['mf_posterior']
-
     site_list = None # all sites
     fig = plot_multiple_sites_mf_timeseries(ds_all_allsites, 
                                             include=include,
-                                            diff_include=diff_include,
                                             species=species,
                                             model_colors=model_colors,
                                             model_labels=model_labels,
