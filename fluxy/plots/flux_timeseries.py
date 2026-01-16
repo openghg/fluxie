@@ -228,21 +228,21 @@ def prepare_data_to_plot(
             ds_combined = combine_dataset(ds_to_combine, plot_combined)
             ds_combined["combined"].attrs[
                 "model_label"
-            ] = "PARIS mean (from resampled data)"
+            ] = "Inversion mean (from resampled data)"
         else:
             ds_to_combine = {
                 m: calc_rolling_mean(ds) if rm else ds
                 for rm, (m, ds) in zip(rolling_mean, ds_all_region.items())
             }
             ds_combined = combine_dataset(ds_to_combine, plot_combined)
-            ds_combined["combined"].attrs["model_label"] = "PARIS mean"
+            ds_combined["combined"].attrs["model_label"] = "Inversion mean"
         ds_to_plot.update(ds_combined)
 
     # Determine plot color and label of each dataset
     color_usage = {k: 0 for k in map_model_colors.keys()}
     for m in ds_to_plot.keys():
         if m == "combined":
-            include_label = "PARIS mean"
+            include_label = "Inversion mean"
             model_color = "black"
         else:
             include_label = ds_to_plot[m].attrs.get("model_label", None)
@@ -364,6 +364,7 @@ def add_inventory_barplot(
     inventory_filename: str,
     sector: str | list[str],
     annex_mode: bool,
+    inventory_label: str = "NID",
 ) -> dict[str, dict]:
     """
     Retrieve and plot the inventories as bar plots. If multiple inventories are plotted, the older the inventory is, the smaller
@@ -418,7 +419,7 @@ def add_inventory_barplot(
             align="edge",
             fill=False,
             label=(
-                f"NID {inventory.year}" if annex_mode else f"Inventory {inventory.year}"
+                f"{inventory_label} {inventory.year}" if annex_mode else f"{inventory_label} {inventory.year}"
             ),
             zorder=0,
         )
@@ -666,11 +667,12 @@ def plot_country_flux(
     annex_mode: bool = False,
     plot_inventory: bool = True,
     inventory_years: list[str] | None = None,
-    inventory_filename: str = "UNFCCC_inventory",
+    inventory_filename: str = "UNFCCC_inventory",    
     data_dir: str | None = None,
     fix_y_axes: bool | list[float] = False,
     add_prior: bool = True,
     add_prior_unc: bool = False,
+    add_post_unc: bool = False,
     set_global_leg: bool = False,
     country_codes_as_titles: bool = False,
     plot_separate: bool | list[bool] = True,
@@ -682,6 +684,7 @@ def plot_country_flux(
     rolling_mean: bool | list[bool] = False,
     aggreg_month: bool = False,
     sector: str = "total",
+    inventory_label: str = "UNFCCC_inventory",
 ) -> Figure | tuple[Figure, dict[str, dict]]:
     """
     Timeseries plot of prior and posterior country fluxes, from list of
@@ -792,6 +795,7 @@ def plot_country_flux(
                 inventory_filename,
                 sector,
                 annex_mode,
+                inventory_label=inventory_label
             )
 
         # set y label

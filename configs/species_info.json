@@ -1,19 +1,4 @@
 {
-    "isoflurane": {
-        "species_print": "Isoflurane",
-        "gwp": 1,
-        "molar_mass": 184.49
-    },
-    "sevoflurane": {
-        "species_print": "Sevoflurane",
-        "gwp": 1,
-        "molar_mass": 200.056
-    },
-    "desflurane": {
-        "species_print": "Desflurane",
-        "gwp": 1,
-        "molar_mass": 168.038
-    },
     "ch4": {
         "species_print": "CH$_4$",
         "gwp": 28,
@@ -151,6 +136,19 @@
         "species_print": "SO$_2$F$_2$",
         "molar_mass": 102.06
     },
+    "isoflurane":{
+        "molar_mass": 184.49,
+        "species_print": "Isoflurane"
+    },
+    "desflurane":{
+        "molar_mass": 168.038,
+        "species_print": "Desflurane"
+    },
+    "sevoflurane":{
+        "molar_mass": 200.056,
+        "species_print": "Sevoflurane"
+    },
+
     "all_hfc": {
         "list_species": ["hfc125","hfc134a","hfc143a","hfc152a","hfc23","hfc227ea","hfc245fa","hfc32","hfc365mfc","hfc236fa","hfc4310mee"],
         "species_print": "Total HFC"
