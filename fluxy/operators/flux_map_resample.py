@@ -263,17 +263,23 @@ def resample_over_dates_list(
         ds, groups_da, resample_uncert_correlation
     )
     ds_resampled = ds_resampled.rename({"group": "time"})
-
+        
     # Create labels based on the first and last date in each group
     time_labels = []
     for group in np.unique(groups_da):
         group_times = ds.time.values[groups_da == group]  # Get times in this group
-        first_time = pd.to_datetime(group_times.min())
-        last_time = pd.to_datetime(group_times.max())
-        time_labels.append(
-            f"{first_time.strftime('%Y/%m')}—{last_time.strftime('%Y/%m')}"
-        )
-
+        if len(group_times) == 1:
+            first_time = pd.to_datetime(group_times.min())
+            time_labels.append(
+            f"{first_time.strftime([[1:3], [7:9]])}"
+            )
+        else:
+            first_time = pd.to_datetime(group_times.min())
+            last_time = pd.to_datetime(group_times.max())
+            time_labels.append(
+                f"{first_time.strftime([[1:3], [7:9]])}—{last_time.strftime([[1:3], [7:9]])}"
+            )
+            
     return ds_resampled, time_labels
 
 def resample_over_periods_list(
@@ -435,7 +441,7 @@ def resample_over_months_list(
     time_labels = []
     for i, group in enumerate(unique_groups):
         if isinstance(months_list[i], list):
-            time_labels.append("—".join(calendar.month_abbr[m] for m in months_list[i]))
+            time_labels.append(",".join(calendar.month_abbr[m] for m in months_list[i]))
         else:
             time_labels.append(calendar.month_abbr[months_list[i]])
 
