@@ -20,6 +20,7 @@ from fluxy.operators.rolling_mean import calc_rolling_mean
 from fluxy.operators.flux_timeseries_resample import resample_flux
 from fluxy.operators.flux_combine import combine_dataset
 from fluxy.operators.flux_prepare_inventory import retrieve_inventories
+from fluxy.operators.convert import convert_units_co2eq
 from fluxy.plots.utils import update_list_params
 
 logger = logging.getLogger(__name__)
@@ -878,6 +879,67 @@ def add_vlines(ax: Axes, vline_dates: list[str]):
             linestyle="dotted",
             linewidth=2.5,
         )
+        
+        
+def add_secondary_yaxis(
+    ax: Axes,
+    s_data: dict[str, dict],
+    species: str,
+    sector: str,
+    unit: str,
+    secondary_unit: str,
+):
+    """
+    Add a secondary y-axis to the plot, converting from `unit` 
+    to `secondary_unit`, including CO2-eq aware conversions.
+
+    Args:
+        ax: axis to add secondary y-axis to.
+        s_data: dictionnary containing species data. See configs/species_infos.json.
+        species: name of the species.
+        sector: name of sector plotted.
+        unit: original unit of data plotted.
+        secondary_unit: unit of the secondary y-axis.
+    """
+
+    # Get conversion factor between the two units
+    conversion_factor = convert_units_co2eq(
+        from_unit = unit, 
+        to_unit = secondary_unit, 
+        species_info = s_data.get(species, {})
+        )
+
+    # Define foward and backward conversion functions
+    def unit_to_secondary_unit(y):
+        return y * conversion_factor
+
+    def secondary_unit_to_unit(y):
+        return y / conversion_factor
+
+    # Create secondary y-axis
+    secax = ax.secondary_yaxis(
+        'right',
+        functions=(unit_to_secondary_unit, secondary_unit_to_unit)
+    )
+
+    # Styling
+    sec_color = 'darkred'
+    secax.tick_params(axis='y', colors=sec_color)
+    secax.spines['right'].set_color(sec_color)
+    secax.spines['right'].set_linewidth(1.5)
+
+    # Labeling
+    add_ylabel(
+        secax, 
+        s_data, 
+        species, 
+        secondary_unit, 
+        plot_type="country_plot", 
+        sector=sector
+        )
+    secax.yaxis.label.set_color("darkred")
+    secax.yaxis.label.set_rotation(270)
+    secax.yaxis.labelpad = 20
 
 
 def plot_country_flux(
@@ -912,6 +974,7 @@ def plot_country_flux(
     aggreg_month: bool = False,
     sector: str = "total",
     add_vline: list[str] | None = None,
+    secondary_units: str | None = None,
 ) -> Figure | tuple[Figure, dict[str, dict]]:
     """
     Timeseries plot of prior and posterior country fluxes, from list of
@@ -957,6 +1020,7 @@ def plot_country_flux(
         rolling_mean : If True, calculates a rolling mean (xx years) for each of the data to plot.
         aggreg_month: if True, plot the data aggregated by month. Used to study seasonnal cycle.
         add_vline: list of dates (str) where to add vertical lines on each plot. format 'YYYY-MM-DD'.
+        secondary_units: If provided, add a secondary y-axis with these units.
     Returns:
         fig: A plot per country/region.
         res_dict : If return_res, return also a dataframe containing the plotted results. The columns of this dataframe are "type" (possible values "prior"/"posterior"/"inventory"),
@@ -1060,6 +1124,17 @@ def plot_country_flux(
 
         # set ax title
         add_title(ax, country, r_data, country_codes_as_titles)
+
+        # add secondary axis
+        if secondary_units is not None:
+            add_secondary_yaxis(
+                ax=ax,
+                s_data=s_data,
+                species=species,
+                sector=sector,
+                unit=unit,
+                secondary_unit=secondary_units,
+            )
 
     add_ylim(axes, "country", plot_regions, plotted_data_df, fix_y_axes, set_global_leg)
     yearly_freq = (
