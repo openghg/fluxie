@@ -1030,6 +1030,7 @@ def plot_sites_list_mf(
     model_labels: dict[str, dict],
     aggreg_month = False,
     config_data: dict[str, dict] = {},
+    data_on_single_graph: str = "model"
     ):
     """
     Plot timeseries of multiple sites on the same subplots. One subplots correspond to one model.
@@ -1046,6 +1047,7 @@ def plot_sites_list_mf(
             Used to study seasonnal cycle.
         config_data: Dictionary with settings read from json file.
             Use json filenames as keys.
+        data_on_single_graph: str, "site" or "model", determines whether each axis has multiple sites or models.
     Returns:
         fig: figure created
         plotted_data_df: data plotted on the figure
@@ -1062,48 +1064,93 @@ def plot_sites_list_mf(
     # Look for sites
     sites = check_site_list(sites, ds_all_p)
     
-    # Create figure
-    ncols = int(np.sqrt(len(models)))
-    nrows = ceil(len(models)/ncols)
+    if data_on_single_graph=="models":
+        axes_looper=models
+        # Create figure
+        ncols = int(np.sqrt(len(models)))
+        nrows = ceil(len(models)/ncols)
 
-    fig, ax = plt.subplots(
-        nrows,
-        ncols,
-        figsize=(ncols*5 if aggreg_month else ncols*6, nrows * 3),
-        constrained_layout=True,
-        sharey="row",
-        sharex="col",
-        squeeze=False,
-    )
-    ax = ax.flatten()
-
-    for isite, site in enumerate(sites):
-        # Select site
-        ds_all_site = slice_site_dict_of_datasets(ds_all_p, site)
-
-        # Prepare data to plot
-        data_to_plot = _prepare_data_to_plot(
-            ds_all_site, {variable: unc_variable}, diff_include=None,
-            time_freq_min = None, aggreg_month=aggreg_month, plot_type=plot_type
+        fig, ax = plt.subplots(
+            nrows,
+            ncols,
+            figsize=(ncols*5 if aggreg_month else ncols*6, nrows * 3),
+            constrained_layout=True,
+            sharey="row",
+            sharex="col",
+            squeeze=False,
         )
+        ax = ax.flatten()
 
-        unit = _get_unit(data_to_plot)
+        for isite, site in enumerate(sites):
+            # Select site
+            ds_all_site = slice_site_dict_of_datasets(ds_all_p, site)
 
+            # Prepare data to plot
+            data_to_plot = _prepare_data_to_plot(
+                ds_all_site, {variable: unc_variable}, diff_include=None,
+                time_freq_min = None, aggreg_month=aggreg_month, plot_type=plot_type
+            )
+
+            unit = _get_unit(data_to_plot)
+
+            for im, m in enumerate(models):
+                data_to_plot[m][variable].attrs.update({"plot_label": site, "plot_color": f"C{isite:02d}"})
+                res = add_line_plot(
+                    ax[im],
+                    data_to_plot[m][variable],
+                    plot_type = plot_type,
+                    add_unc = unc_variable,
+                )
+                plotted_data_df = pd.concat(
+                    [plotted_data_df, res], ignore_index=True
+                )
+
+    elif data_on_single_graph=="sites":
+        axes_looper=sites
+        print("Site separated")
+        # Create figure
+        ncols = int(np.sqrt(len(sites)))
+        nrows = ceil(len(sites)/ncols)
+
+        fig, ax = plt.subplots(
+            nrows,
+            ncols,
+            figsize=(ncols*5 if aggreg_month else ncols*6, nrows * 3),
+            constrained_layout=True,
+            sharey="row",
+            sharex="col",
+            squeeze=False,
+        )
+        ax = ax.flatten()
         for im, m in enumerate(models):
-            data_to_plot[m][variable].attrs.update({"plot_label": site, "plot_color": f"C{isite:02d}"})
-            res = add_line_plot(
-                ax[im],
-                data_to_plot[m][variable],
-                plot_type = plot_type,
-                add_unc = unc_variable,
-            )
-            plotted_data_df = pd.concat(
-                [plotted_data_df, res], ignore_index=True
-            )
             
-    for im, m in enumerate(models):
-        ax[im].set_title(model_labels[m])
-        ax[im].set_ylabel(
+            for isite, site in enumerate(sites):
+                # Select site
+                ds_all_site = slice_site_dict_of_datasets(ds_all_p, site)
+
+                # Prepare data to plot
+                data_to_plot = _prepare_data_to_plot(
+                    ds_all_site, {variable: unc_variable}, diff_include=None,
+                    time_freq_min = None, aggreg_month=aggreg_month, plot_type=plot_type
+                )
+
+                unit = _get_unit(data_to_plot)
+
+
+                data_to_plot[m][variable].attrs.update({"plot_label": model_labels[m], "plot_color": f"C{im:02d}"})
+                res = add_line_plot(
+                    ax[isite],
+                    data_to_plot[m][variable],
+                    plot_type = plot_type,
+                    add_unc = unc_variable,
+                )
+                plotted_data_df = pd.concat(
+                    [plotted_data_df, res], ignore_index=True
+                )
+    
+    for iaxes, axes in enumerate(axes_looper):
+        ax[iaxes].set_title(site)
+        ax[iaxes].set_ylabel(
             " ".join(
                 [   
                     config.mf_labels.get(variable, variable),
@@ -1130,15 +1177,14 @@ def plot_sites_list_mf(
             continue
 
         add_xlims_and_ticks(
-            ax[im],
+            ax[iaxes],
             yearly_freq=False,
             plotted_data_df=plotted_data_df,
             aggreg_month=aggreg_month,
         )
 
-        ax[im].grid(color="lightgrey", linestyle="-", linewidth=0.7)
-        ax[im].set_axisbelow(True)
-
+        ax[iaxes].grid(color="lightgrey", linestyle="-", linewidth=0.7)
+        ax[iaxes].set_axisbelow(True)
     # min_mf = min(min_mf, ax[iax, 0].get_ylim()[0])
     # max_mf = max(max_mf, ax[iax, 0].get_ylim()[1])
 
