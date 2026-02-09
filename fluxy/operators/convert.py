@@ -296,3 +296,49 @@ def get_units_conversion_factor(
         )
 
     return unit_to_base / target_to_base * M_scaling
+
+
+def convert_units_co2eq(
+    from_unit: str, to_unit: str, species_info: dict
+) -> float:
+ 
+    """
+    Convert between units that may include 'CO2-eq'.
+    Wraps get_units_conversion_factor and applies species GWP when needed.
+
+    Units are expected to have the following format:
+        "<letters><(-)integer>" separated by spaces (e.g. "Tg CO2-eq yr-1")
+    """
+
+    def strip_co2eq(unit):
+        return unit.replace(" CO2-eq", "") if "CO2-eq" in unit else unit
+
+    from_base = strip_co2eq(from_unit)
+    to_base = strip_co2eq(to_unit)
+
+    # Base physical conversion
+    conversion_factor = get_units_conversion_factor(
+        from_unit=from_base,
+        to_unit=to_base
+    )
+
+    # Get GWP if needed
+    GWP = species_info.get("gwp", None)
+
+    from_is_co2eq = "CO2-eq" in from_unit
+    to_is_co2eq = "CO2-eq" in to_unit
+
+    # Adjust for CO2-eq conversions
+    if from_is_co2eq and not to_is_co2eq:
+        if not GWP:
+            raise ValueError(f"GWP missing for species '{species}'")
+        conversion_factor /= GWP
+        logger.info(f"Converting to mass of non CO2-eq using GWP = {GWP}.")
+
+    elif to_is_co2eq and not from_is_co2eq:
+        if not GWP:
+            raise ValueError(f"GWP missing for species '{species}'")
+        conversion_factor *= GWP
+        logger.info(f"Converting to mass of CO2-eq using GWP = {GWP}.")
+
+    return conversion_factor

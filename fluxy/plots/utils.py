@@ -942,6 +942,7 @@ def stack_plot(
     ax: plt.Axes | None = None,
     area: bool = False,
     colors_of_category: dict[str, str] = {},
+    width: float = 0.8,
 ):
     """Function to plot stacked bar plots for the emissions data.
 
@@ -960,12 +961,13 @@ def stack_plot(
     colors = {
         cat: colors_of_category.get(cat, next(default_colors)) for cat in df.columns
     }
-    if area:
-        # Use the same labels and colors for the positive and negative values
-        total_pos = np.zeros(df.shape[0])
-        total_neg = np.zeros(df.shape[0])
-        for i, column in enumerate(df.columns):
-            values = df[column].values
+    # Use the same labels and colors for the positive and negative values
+    total_pos = np.zeros(df.shape[0])
+    total_neg = np.zeros(df.shape[0])
+    for i, column in enumerate(df.columns):
+        values = df[column].values
+        values[np.isnan(values)] = 0.0
+        if area:
             ax.fill_between(
                 df.index,
                 y1=np.where(values >= 0, total_pos, total_neg),
@@ -973,12 +975,20 @@ def stack_plot(
                 color=colors.get(column, None),
                 label=column,
             )
-            total_pos += np.clip(values, 0, None)
-            total_neg += np.clip(values, None, 0)
+        else:
+            ax.bar(
+                df.index,
+                values,
+                bottom=np.where(values >= 0, total_pos, total_neg),
+                color=colors.get(column, None),
+                label=column,
+                width=width,
+            )
+        total_pos += np.clip(values, 0, None)
+        total_neg += np.clip(values, None, 0)
 
         # ax.set_ylim(df_neg.sum(axis=1).min() * 1.1, df_pos.sum(axis=1).max() * 1.1)
-    else:
-        ax = df.plot.bar(stacked=True, ax=ax, color=colors)
+
     handles, labels = ax.get_legend_handles_labels()
     ax.legend(
         list(reversed(handles)),
