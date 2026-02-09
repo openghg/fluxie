@@ -454,8 +454,8 @@ def plot_taylor_diagram(
 
             # Normalize the data if needed
             if normalize:
-                stds_sim /= stds_obs
-                stds_obs /= stds_obs
+                stds_sim = stds_sim / stds_obs
+                stds_obs = stds_obs / stds_obs
 
             # Remove observation reference if multiple std_obs and normalize = False
             std_obs = (
