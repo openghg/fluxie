@@ -118,7 +118,7 @@ def plot_stacked(
     df_sim = (
         ds[variable_simulated]
         .swap_dims({"index": "time"})
-        .drop(["index", "number_of_identifier"])
+        .drop_vars(["index", "number_of_identifier"])
         .transpose("time", "sector")
         .to_pandas()
     )
@@ -209,7 +209,8 @@ def plot_stacked(
     if "yerr" not in errorbar_kwargs:
         errorbar_kwargs = errorbar_kwargs.copy()
         yerr = df_obs["std"].values.reshape(-1)
-        yerr[np.isnan(yerr)] = 0.0
+        # Replace NaN with 0.0
+        yerr = np.where(np.isnan(yerr), 0.0, yerr)  
         errorbar_kwargs["yerr"] = np.array(yerr)
     ax.errorbar(
         df_obs.index,
