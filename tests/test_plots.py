@@ -125,6 +125,23 @@ taylor_stats2include = ["prior", "posterior"]
 stats_ylim = {"pearson": [0, 1], "bias": [-1.5, 0.5], "crmse": [0, 1.5]}
 
 
+def test_country_flux_default():
+    """Test country flux with default settings."""
+
+    plot_country_flux(
+        ds_all_flux_scaled,
+        species
+    )
+
+def test_country_flux_with_inventory_raises_no_datadir():
+    """Test that ValueError is raised if plot_inventory=True and data_dir is not provided."""
+    with pytest.raises(ValueError, match="data_dir must be provided to plot inventory data."):
+        plot_country_flux(
+            ds_all_flux_scaled,
+            species,
+            plot_inventory=True,
+        )
+
 def test_flux_timeseries():
     kwargs = dict(
         data_dir = data_dir,

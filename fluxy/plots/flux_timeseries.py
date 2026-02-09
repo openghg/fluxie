@@ -1,3 +1,4 @@
+import os
 import math
 import logging
 import numpy as np
@@ -5,6 +6,7 @@ import pandas as pd
 import xarray as xr
 import matplotlib.pyplot as plt
 from typing import Tuple
+from pathlib import Path
 from datetime import date, datetime, timedelta
 from calendar import isleap, month_abbr, monthrange
 
@@ -15,7 +17,7 @@ from matplotlib.ticker import NullFormatter
 from matplotlib import __version__ as mplt_version
 
 from fluxy import config
-from fluxy.operators.regions import extract_region_flux
+from fluxy.operators.regions import extract_region_flux, format_plot_regions
 from fluxy.operators.rolling_mean import calc_rolling_mean
 from fluxy.operators.flux_timeseries_resample import resample_flux
 from fluxy.operators.flux_combine import combine_dataset
@@ -32,30 +34,10 @@ country_equivalent = {
 }
 
 
-def format_plot_regions(
-    plot_regions: str | list[str] | None, ds_all: dict[str, xr.Dataset] | None
-) -> list[str]:
-    """
-    Format plot_regions into a list of regions. If plot_regions originally None, read the country names from ds_all.
-    Args:
-        plot_regions: (list of) regions
-        ds_all: dictionnary containing dataset form which the regions will be determine if plot_regions=None.
-    Returns
-        plot_regions: list of regions
-    """
-
-    if not plot_regions:
-        # Read all countries given in the dss and take the intersection of models
-        plot_regions = set.intersection(
-            *(set(ds["country"].values) for ds in ds_all.values())
-        )
-    if not isinstance(plot_regions, list):
-        plot_regions = [plot_regions]
-
-    return plot_regions
 
 
-def get_posterior_unit(ds_all: dict[str, xr.Dataset]) -> str:
+
+def get_unit(ds_all: dict[str, xr.Dataset]) -> str:
     """
     Determine unit of posterior estimations from datasets. If incoherencies between datasets, an error is raised.
     Args:
@@ -64,24 +46,22 @@ def get_posterior_unit(ds_all: dict[str, xr.Dataset]) -> str:
         unit: unit of posterior variables in dataset.
     """
 
-    if all(["flux_total_posterior_country" in ds for ds in ds_all.values()]):
-        units = {ds["flux_total_posterior_country"].units for ds in ds_all.values()}
-    elif all(["posterior" in ds for ds in ds_all.values()]):
-        units = {ds.posterior.units for ds in ds_all.values()}
-    else:
-        raise ValueError(
-            "Did not find variable 'posterior' or 'flux_total_posterior_country' in every dataset. Thus couldn't determine unit."
-        )
+    variables_to_check = ["flux_total_posterior_country", "posterior", "flux_total_prior_country", "prior"]
 
-    if len(units) == 1:
-        unit = list(units)[0]
-    else:
-        raise ValueError(
-            f"Inconsistency in the units from the different datasets : {units} are present. Only one is expected."
-        )
+    for var in variables_to_check:
+        if all([var in ds for ds in ds_all.values()]):
+            units = {ds[var].units for ds in ds_all.values()}
+            if len(units) != 1:
+                raise ValueError(
+                    f"Inconsistency in the units from the different datasets for variable '{var}': {units} are present. "
+                    "Only one is expected."
+                )
+            unit = list(units)[0]
+            return unit
 
-    return unit
-
+    raise ValueError(
+        f"Did not find any of the expected variables {variables_to_check} in every dataset. Thus couldn't determine unit."
+    )
 
 def determine_subplots_arrangement(subplot_number: int) -> tuple[int, int]:
     """
@@ -131,7 +111,7 @@ def create_fig_and_axes(
         figsize=(n_cols * 6, n_rows * 4),
     )
     if isinstance(axes, np.ndarray):
-        axes = axes.flatten()
+        axes = axes.flatten()[:nb_subplots]
     else:
         axes = [axes]
 
@@ -435,7 +415,7 @@ def add_prior_plot(
 
 def add_inventory_barplot(
     ax: Axes,
-    data_dir: str,
+    data_dir: os.PathLike,
     country: str,
     species: str,
     start_date: str,
@@ -470,6 +450,8 @@ def add_inventory_barplot(
         res: dataframe with one line per timestamp and 7 columns ("type", "model", "sector", "country", "species", 
             "time", "mean_val")
     """
+
+    data_dir = Path(data_dir)
 
     if isinstance(start_date, list):
         start_date_inv = str(min([np.datetime64(date) for date in start_date]))
@@ -815,7 +797,7 @@ def add_legend(
             legend_loc = (0.5, 1.1)
         else:
             legend_loc = (0.5, 1.15)
-        handles, labels = fig.axes[-1].get_legend_handles_labels()
+        handles, labels = fig.axes[0].get_legend_handles_labels()
         fig.legend(
             handles,
             labels,
@@ -952,10 +934,10 @@ def plot_country_flux(
     start_date: str | None = None,
     end_date: str | None = None,
     annex_mode: bool = False,
-    plot_inventory: bool = True,
+    plot_inventory: bool = False,
     inventory_years: list[str] | None = None,
     inventory_filename: str = "UNFCCC_inventory",
-    data_dir: str | None = None,
+    data_dir: os.PathLike | None = None,
     fix_y_axes: bool | list[float] = False,
     add_prior: bool = True,
     add_prior_unc: bool = False,
@@ -1032,12 +1014,15 @@ def plot_country_flux(
         )
         plot_inventory = False
 
+    if data_dir is None and plot_inventory:
+        raise ValueError("data_dir must be provided to plot inventory data.")
+
     s_data = config_data.get("species_info", {})
     r_data = config_data.get("regions_info", {})
 
 
     plot_regions = format_plot_regions(plot_regions, ds_all)
-    unit = get_posterior_unit(ds_all)
+    unit = get_unit(ds_all)
 
     plotted_data_df = pd.DataFrame()
 
@@ -1078,12 +1063,13 @@ def plot_country_flux(
         for m, ds_region in ds_to_plot.items():
             highlighted_post = ("combined" in m) & annex_mode
             add_post_unc = (("combined" in m) & plot_combined_unc) |  (("combined" not in m) & plot_separate_unc)
-            posterior_df = add_posterior_plot(
-                ax, ds_region, highlighted_post, add_post_unc
-            )
-            plotted_data_df = pd.concat(
-                [plotted_data_df, posterior_df], ignore_index=True
-            )
+            if "posterior" in ds_region.data_vars:
+                posterior_df = add_posterior_plot(
+                    ax, ds_region, highlighted_post, add_post_unc
+                )
+                plotted_data_df = pd.concat(
+                    [plotted_data_df, posterior_df], ignore_index=True
+                )
 
             if add_prior:
                 prior_df = add_prior_plot(ax, ds_region, annex_mode, add_prior_unc)
@@ -1213,7 +1199,7 @@ def plot_country_sector_flux_bar(
     plot_type = "sector_barplot"
     s_data = config_data.get("species_info", {})
     r_data = config_data.get("regions_info", {})
-    unit = get_posterior_unit(ds_all)
+    unit = get_unit(ds_all)
 
     plotted_data_df = pd.DataFrame()
 
