@@ -118,7 +118,7 @@ def plot_stacked(
     df_sim = (
         ds[variable_simulated]
         .swap_dims({"index": "time"})
-        .drop(["index", "number_of_identifier"])
+        .drop_vars(["index", "number_of_identifier"])
         .transpose("time", "sector")
         .to_pandas()
     )
