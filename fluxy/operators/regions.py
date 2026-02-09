@@ -118,8 +118,10 @@ def _extract_region_flux_sector(
     flag_percentile = False
     flag_stdev = False
 
-    steps = ["prior", "posterior"]
-    var_of_step = {step: f"flux_{sector}_{step}_country" for step in steps}
+    target_flux_vars = ["prior", "posterior"]
+    flux_var_names = {
+        step: f"flux_{sector}_{step}_country" for step in target_flux_vars
+    }
 
     for m, ds in ds_all.items():
         # search for existing region names
@@ -129,7 +131,8 @@ def _extract_region_flux_sector(
             region_search = dict_regions[country]
 
             logger.info(
-                f"{country} emissions are not present in {m}. Considering covariance matrix and sum of individual countries: {region_search}."
+                f"{country} emissions are not present in {m}. "
+                f"Considering covariance matrix and sum of individual countries: {region_search}."
             )
 
             country_list = region_search.split("-")
@@ -137,8 +140,8 @@ def _extract_region_flux_sector(
             if "country_2" in ds_region.dims:
                 ds_region = ds_region.sel({"country_2": country_list})
 
-            for v in steps:
-                variable = var_of_step[v]
+            for v in target_flux_vars:
+                variable = flux_var_names[v]
                 if variable not in ds_region.variables:
                     continue
                 ds_region[v] = ds_region[variable].sum(dim="country", keep_attrs=True)
@@ -179,7 +182,7 @@ def _extract_region_flux_sector(
                 )
                 ds_region["sigma_posterior"] = np.nan * ds_region["posterior"]
 
-            for v in steps:
+            for v in target_flux_vars:
                 if v not in ds_region:
                     continue
                 ds_region[f"{v}_lower"] = ds_region[v] - ds_region[f"sigma_{v}"]
@@ -188,8 +191,8 @@ def _extract_region_flux_sector(
         elif country_search in available_countries:
             ds_region = ds.sel({"country": country_search})
 
-            for v in steps:
-                variable = var_of_step[v]
+            for v in target_flux_vars:
+                variable = flux_var_names[v]
                 if variable not in ds_region.variables:
                     continue
                 ds_region[v] = ds_region[variable]
@@ -227,7 +230,7 @@ def _extract_region_flux_sector(
         else:
             raise ValueError(f"{country_search} ({country}) is not available for {m}")
 
-        for v in steps:
+        for v in target_flux_vars:
             lower_var = f"{v}_lower"
             if lower_var not in ds_region:
                 continue
