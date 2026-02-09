@@ -268,18 +268,12 @@ def resample_over_dates_list(
     time_labels = []
     for group in np.unique(groups_da):
         group_times = ds.time.values[groups_da == group]  # Get times in this group
-        if len(group_times) == 1:
-            first_time = pd.to_datetime(group_times.min())
-            time_labels.append(
-            f"{first_time.strftime([[1:3], [7:9]])}"
-            )
-        else:
-            first_time = pd.to_datetime(group_times.min())
-            last_time = pd.to_datetime(group_times.max())
-            time_labels.append(
-                f"{first_time.strftime([[1:3], [7:9]])}—{last_time.strftime([[1:3], [7:9]])}"
-            )
-            
+        first_time = pd.to_datetime(group_times.min())
+        last_time = pd.to_datetime(group_times.max())
+        time_labels.append(
+            f"{first_time.strftime('%Y/%m')}—{last_time.strftime('%Y/%m')}"
+        )
+
     return ds_resampled, time_labels
 
 def resample_over_periods_list(
