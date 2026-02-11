@@ -101,6 +101,7 @@ def slice_mf(
     mf_units_print: str = None,
     keep_unassimilated: bool = False,
     intake_height: float | None = None,
+    highlight_baseline: bool = False,
 ) -> dict[str, xr.Dataset]:
     """
     Slices down the mole fraction timeseries data, to within the
@@ -161,6 +162,12 @@ def slice_mf(
         with xr.open_dataset(baseline_file) as f:
             baseline = f.sel(time=slice(start_date, end_date))
 
+    models_temp=models.copy()
+    if highlight_baseline:
+        for m in models_temp:
+            ds_all[m+"nonbaseline"] = ds_all[m].copy()
+            models.append(m+"nonbaseline")
+        
     for m in models:
         logger.info(f"Masking data from {m}.")
 
@@ -208,7 +215,7 @@ def slice_mf(
         ds_all[m] = scale_variables(m, ds_all[m], mf_unit=mf_units_print)
 
         # Mask mole fractions according to baseline timestamps
-        if baseline_site is not None:
+        if baseline_site is not None and "nonbaseline" not in m:
             logger.info("Masking timeseries to only include baseline times.")
 
             # average baseline mask over obs averaging period
@@ -220,6 +227,20 @@ def slice_mf(
             b_masked = b.sel(time=b["time"][np.where(b["baseline"] == 1.0)])
 
             # mask dataset using only baseline times
+            ds_all[m] = ds_all[m].where(ds_all[m].time.isin(b_masked.time), drop=True)
+
+        if highlight_baseline and "nonbaseline" in m:
+            logger.info("Masking timeseries to only include nonbaseline times.")
+
+            # average baseline mask over obs averaging period
+            b = baseline.resample(time=f"{offset}h").mean()
+            # adjust baseline mask time back to centre of av period (resample removes this)
+            b["time"] = b["time"] + np.timedelta64(offset, "h") / 2
+
+            # mask baseline mask again, to only include timestamps where every period in the averaging period is classified as nonbaseline
+            b_masked = b.sel(time=b["time"][np.where(b["baseline"] != 1.0)])
+
+            # mask dataset using only nonbaseline times
             ds_all[m] = ds_all[m].where(ds_all[m].time.isin(b_masked.time), drop=True)
 
     return ds_all

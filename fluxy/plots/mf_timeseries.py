@@ -494,6 +494,7 @@ def plot_timeseries(
     histogram_type: Literal["hist", "violin", "none"] | None = "hist",
     hist_kwargs: dict[str, any] = {},
     aggreg_month: bool = False,
+    highlight_baseline: bool = False,
 ):
     """
     Timeseries plots of observations, modelled mole fractions, baseline mf and/or
@@ -538,8 +539,8 @@ def plot_timeseries(
             A timeseries and histogram plot for each model included.
     """
 
-    models = ds_all.keys()
-
+    models = list(ds_all.keys())
+    models=models[int(len(models)/2):]+models[:int(len(models)/2)]
     species_info = config_data.get("species_info", {}).get(species, {})
 
     # Check the include dictionary
@@ -555,7 +556,10 @@ def plot_timeseries(
     max_mf = -np.inf
 
     # Create figure
-    fig, ax = _create_figure(ds_all.keys(), plot_type, histogram_type, aggreg_month)
+    if not highlight_baseline:
+        fig, ax = _create_figure(ds_all.keys(), plot_type, histogram_type, aggreg_month)
+    else:
+        fig, ax = _create_figure(list(ds_all.keys())[:int(len(models)/2)], plot_type, histogram_type, aggreg_month)
 
     logger.info(
         f"Plotting {len(models)} models with {len(include.keys())} variables in {plot_type} mode."
@@ -563,10 +567,17 @@ def plot_timeseries(
 
     # Loop over all models
     for i, m in enumerate(models):
-
+        if highlight_baseline:
+            if "nonbaseline" in m:
+                label_str=" nonbaseline"
+            else:
+                label_str=" baseline"
+        else:
+            label_str=""
         # Define plot_type specific settings
         iax = i if plot_type == "separate" else 0
-
+        if highlight_baseline and i >= len(models)/2:
+            iax -= int(len(models)/2)
         # Loop over all variables to plot
         for var in include.keys():
 
@@ -577,7 +588,7 @@ def plot_timeseries(
             kwargs = {
                 "alpha": 0.8,
                 "color": ds_plot.attrs["plot_color"],
-                "label": ds_plot.attrs["plot_label"],
+                "label": ds_plot.attrs["plot_label"]+label_str,
             }
 
             if var in ["mf_observed", "observed_above_BC"] or plot_type == "diff":
@@ -633,6 +644,7 @@ def plot_timeseries(
                 plot_type=plot_type,
                 n_bins=n_bins,
                 violin=histogram_type == "violin",
+                highlight_baseline=highlight_baseline,
                 **hist_kwargs,
             )
 
@@ -848,6 +860,7 @@ def plot_histogram(
     plot_type: Literal["separate", "together", "diff"],
     n_bins: int = 30,
     violin: bool = False,
+    highlight_baseline: bool = False,
     **kwargs,
 ) -> None:
     """
@@ -922,7 +935,7 @@ def plot_histogram(
             index = v
         elif plot_type == "together":
             index = annotate_index
-
+        if "nonbaseline" in model:index+=1
         # Compute and format mean and std of the histogram
         var_mean = np.nanmean(var_to_plot)
         var_std = np.nanstd(var_to_plot)
@@ -951,10 +964,17 @@ def plot_histogram(
             pos_xy = [0.57, 1.05]
         else:
             pos_xy = [0.65, 1.05]
-
-        ax.annotate(
-            "$N$: " + str(n_obs), xy=pos_xy, xycoords="axes fraction", color="k"
+        if "nonbaseline" in model:
+            pos_xy = [pos_xy[0], pos_xy[1]+0.08]
+           
+            ax.annotate(
+            "$N$: " + str(n_obs), xy=pos_xy, xycoords="axes fraction", color=ds[hist_to_plot[0]].attrs["plot_color"]
         )
+            
+        else:
+            ax.annotate(
+                "$N$: " + str(n_obs), xy=pos_xy, xycoords="axes fraction", color="k"
+            )
 
     # Set histogram x-axis label
     ax.set_xlabel(legend_hist)
