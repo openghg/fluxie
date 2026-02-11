@@ -49,6 +49,7 @@ def plot_flux_map(
     resample_uncert_correlation: bool = False,
     sector: str = "total",
     include_title_and_labels: bool = True,
+    swap_symbol: bool = False
 ) -> plt.Figure:
     """
     Plot posterior and prior fluxes and the difference between them for all models, time averaged.
@@ -106,6 +107,8 @@ def plot_flux_map(
             Emissions sector to plot. Default 'total'.
         include_title_and_labels (bool):
             If False, removes titles, axis labels and extra info from the colour bar.
+        swap_symbol (bool):
+            If True, uses a triangles for site symbols and circles for cities.
     Returns:
         fig (figure):
             Three maps, for each model, of the flux prior, the flux posterior and the difference between both.
@@ -238,10 +241,11 @@ def plot_flux_map(
 
             # Add sites and markers if specified
             if add_sites and sites_info:
-                add_site_markers(ax_i, sites_info, marker_color)
+                add_site_markers(ax_i, sites_info, marker_color,swap_symbol)
             if add_markers:
                 add_custom_markers(
-                    ax_i, add_markers, marker_color, config_data["regions_info"]
+                    ax_i, add_markers, marker_color, config_data["regions_info"],
+                    swap_symbol
                 )
                 
             if include_title_and_labels:
@@ -291,6 +295,7 @@ def plot_flux_map_model_comparison(
     fallback_sites: list[str] | None = None,
     resample_uncert_correlation: bool = False,
     sector: str = "total",
+    swap_symbol: bool = False
 ) -> plt.Figure:
     """
     Plot a given flux variable for two models and the difference between them.
@@ -348,6 +353,8 @@ def plot_flux_map_model_comparison(
             If False, uncertainties are calculated as RMSE-like aggregation.
         sector (str):
             Emissions sector to plot. Default 'total'.
+        swap_symbol (bool):
+            If True, uses a triangles for site symbols and circles for cities.
     Returns:
         fig (figure):
             Three maps of a target flux variable of the first and second models and the diffence between both.
@@ -460,10 +467,11 @@ def plot_flux_map_model_comparison(
                     "Check that `add_sites_to_flux` is True in `read_model_output` "
                     "or that a `fallback_sites` list is provided in `plot_flux_map`."
                 ) from e
-            add_site_markers(ax_i, sites_info, marker_color)
+            add_site_markers(ax_i, sites_info, marker_color,swap_symbol)
         if add_markers:
             add_custom_markers(
-                ax_i, add_markers, marker_color, config_data["regions_info"]
+                ax_i, add_markers, marker_color, config_data["regions_info"],
+                swap_symbol
             )
 
         # Add colorbar
@@ -513,6 +521,8 @@ def plot_flux_map_over_time(
     resample_uncert_correlation: bool = False,
     sector: str = "total",
     include_title_and_labels: bool = True,
+    add_gridlines: bool = False,
+    swap_symbol: bool = False
 ) -> plt.Figure:
     """
     Plot a given flux variable averaged over specific time intervals, for all models or the model mean.
@@ -569,6 +579,8 @@ def plot_flux_map_over_time(
             If False, uncertainties are calculated as RMSE-like aggregation.
         sector (str):
             Emissions sector to plot. Default 'total'.
+        swap_symbol (bool):
+            If True, uses a triangles for site symbols and circles for cities.
     Returns:
         fig (figure):
             A plot of spatial flux of the variable specified in var
@@ -627,7 +639,7 @@ def plot_flux_map_over_time(
     is_diff = "diff" in var
     cmap = cmap_diff if is_diff else cmap
     border_color = c_border_diff if is_diff else c_border
-    marker_color = "black" if is_diff else "red"
+    marker_color = "black" if is_diff else "darkblue"
     extend = "both" if is_diff else "max"
 
     # Initialise figure
@@ -718,12 +730,16 @@ def plot_flux_map_over_time(
                         "Check that `add_sites_to_flux` is True in `read_model_output` "
                         "or that a `fallback_sites` list is provided in `plot_flux_map`."
                     ) from e
-                add_site_markers(ax_i, sites_info, marker_color)
+                add_site_markers(ax_i, sites_info, marker_color,swap_symbol)
 
             if add_markers:
                 add_custom_markers(
-                    ax_i, add_markers, marker_color, config_data["regions_info"]
+                    ax_i, add_markers, marker_color, config_data["regions_info"],
+                    swap_symbol
                 )
+                
+            if add_gridlines:
+                ax_i.grid(visible=True, which="major", alpha=0.4)
                 
     if include_title_and_labels:
         cbar_label_format = ["variable", "species", "units", "time"]
@@ -774,6 +790,7 @@ def plot_flux_map_combined_models_comparison(
     fallback_sites: list[str] | None = None,
     resample_uncert_correlation: bool = False,
     sector: str = "total",
+    swap_symbol: bool = False
 ) -> plt.Figure:
     """
     Plot a given flux variable for two groups of combined models and the difference between them.
@@ -834,6 +851,8 @@ def plot_flux_map_combined_models_comparison(
             If False, uncertainties are calculated as RMSE-like aggregation.
         sector (str):
             Emissions sector to plot. Default 'total'.
+        swap_symbol (bool):
+            If True, uses a triangles for site symbols and circles for cities.
     Returns:
         fig (figure):
             Three maps of a target flux variable of the first and second groups of combined models and the diffence between both.
@@ -952,10 +971,10 @@ def plot_flux_map_combined_models_comparison(
                     "Check that `add_sites_to_flux` is True in `read_model_output` "
                     "or that a `fallback_sites` list is provided in `plot_flux_map`."
                 ) from e
-            add_site_markers(ax_i, sites_info, marker_color)
+            add_site_markers(ax_i, sites_info, marker_color,swap_symbol)
         if add_markers:
             add_custom_markers(
-                ax_i, add_markers, marker_color, config_data["regions_info"]
+                ax_i, add_markers, marker_color, config_data["regions_info"], swap_symbol
             )
 
         # Add colorbar

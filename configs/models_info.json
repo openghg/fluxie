@@ -6,6 +6,8 @@
     },
 
     "model_labels":{
+        "InTEM_NAME_EUROPE_NID2026" : "InTEM NID2026",
+        "InTEM_NAME_EUROPE_NID2025" : "InTEM NID2025",
         "ELRIS_NAME_EDGAR_std" : "ELRIS",
         "InTEM_NAME_EDGAR_std" : "InTEM",
         "RHIME_NAME_EDGAR_std" : "RHIME",

@@ -291,12 +291,16 @@ def print_period(
     return period
 
 
-def add_custom_markers(ax, markers, color, regions_info):
+def add_custom_markers(ax, markers, color, regions_info, swap_symbol=False):
     """Add custom markers to the plot."""
+    if swap_symbol == True:
+        m = 'o'
+    else:
+        m = '^'
     for marker in markers:
         lon, lat = get_marker_coordinates(marker, regions_info)
         ax.scatter(
-            lon, lat, facecolor="none", edgecolor=color, marker="^", s=30, zorder=2
+            lon, lat, facecolor="none", edgecolor=color, marker=m, s=30, zorder=2
         )
 
 
@@ -339,15 +343,19 @@ def get_marker_coordinates(
     return lon_marker, lat_marker
 
 
-def add_site_markers(ax, site_info, color):
+def add_site_markers(ax, site_info, color,swap_symbol=False):
     """Add site markers to the plot."""
     for site, site_data in site_info.items():
+        if swap_symbol == True:
+            m = '^'
+        else:
+            m = 'o'
         ax.scatter(
             site_data["longitude"],
             site_data["latitude"],
             facecolor="none",
             edgecolor=color,
-            marker="o",
+            marker=m,
             s=30,
             zorder=2,
         )
