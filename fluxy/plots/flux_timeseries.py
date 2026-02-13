@@ -680,11 +680,11 @@ def add_ylim(
 
         max_cf.append(max_country)
 
-    for i, ax in enumerate(axes):
+    for max_i, ax in zip(max_cf, axes):
         if fix_y_axes:
             ax.set_ylim(0, np.nanmax(max_cf) * fac)
         else:
-            ax.set_ylim(0, max_cf[i] * fac)
+            ax.set_ylim(0, max_i * fac)
 
 
 def add_ylabel(
