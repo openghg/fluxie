@@ -869,31 +869,22 @@ def edit_vars_and_attributes(
                 del ds_lux["country"]
 
                 ds_bel["country_merge"] = xr.DataArray(
-                    data=[
-                        "BELGIUM",
-                    ]
-                    * ds_bel.time.size,
-                    dims=[
-                        "time",
-                    ],
+                    data=np.array(["BELGIUM"] * ds_bel.time.size, dtype=str),
+                    dims=["time"],
                     coords={"time": ds_bel.time},
                     attrs=ds["country"].attrs,
                 )
 
                 ds_lux["country_merge"] = xr.DataArray(
-                    data=[
-                        "LUXEMBOURG",
-                    ]
-                    * ds_lux.time.size,
-                    dims=[
-                        "time",
-                    ],
+                    data=np.array(["LUXEMBOURG"] * ds_lux.time.size, dtype=str),
+                    dims=["time"],
                     coords={"time": ds_lux.time},
                     attrs=ds["country"].attrs,
                 )
 
                 ds_bellux = xr.concat(
-                    [ds_bel, ds_lux], pd.Index(["BEL", "LUX"], name="country")
+                    [ds_bel, ds_lux],
+                    pd.Index(["BEL", "LUX"], name="country", dtype="<U4"),
                 )
 
                 ds = xr.merge([ds, ds_bellux], join="outer", compat="no_conflicts")

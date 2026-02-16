@@ -35,10 +35,12 @@ sectors_groups:
 
 # Some species have have sectors that should be grouped to other sector families
 sector_groups_per_species:
-  CH4:
+  ch4:
     Others:
       - Shipping
       - Fugitives
+      - Agriculture
+      - Industry
   CO:
     Others:
       - Shipping
@@ -79,10 +81,10 @@ colors_of_sector:
   Industry: "#988ED5"
   Heating: "#777777"
   Road Transport: "#FBC15E"
-  Waste: "#377eb8"
+  Waste: "#8EBA42"
   Respiration: "#FFB5B8"
   Others: "#E24A33"
-  Livestock: "#FBC15E"
+  Livestock: "#ff7f00"
   Agriculture: "#ff7f00"
   Fugitives: "#a65628"
   Shipping: "#FFB5B8"

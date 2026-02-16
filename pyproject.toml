@@ -6,8 +6,11 @@ build-backend = "hatchling.build"
 name = "fluxy"
 version = "v2.0"
 dependencies = [
+  "numpy",
+  "pandas",
   "matplotlib",
   "xarray>=2023.08",
+  "h5py",
   "h5netcdf",
   "geopandas",
   "PyYAML",
@@ -47,3 +50,5 @@ Homepage = "https://horizoneurope-paris.eu/"
 Documentation = "https://github.com/openghg/fluxy/blob/devel/README.md"
 Repository = "https://github.com/openghg/fluxy"
 "Bug Tracker" = "https://github.com/openghg/fluxy/issues"
+
+
