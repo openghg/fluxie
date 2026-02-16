@@ -1,7 +1,7 @@
 import logging
 from typing import Literal
 from math import ceil
-
+from enum import Enum
 import numpy as np
 
 import pandas as pd
@@ -24,11 +24,19 @@ from fluxy.operators.select import (
     get_site_index,
     get_unique_sites,
     get_unique_site_height_pairs,
-    slice_site_dict_of_datasets
+    slice_site_dict_of_datasets,
+    check_site_list,
 )
 from fluxy.plots.utils import set_min_decimal_points
 
 logger = logging.getLogger(__name__)
+
+
+class plot_types(Enum):
+    SEPARATE = "separate"
+    TOGETHER = "together"
+    DIFF = "diff"
+    MULTIPLE_SITES = "multiple_sites"
 
 
 def plot_mf_timeseries(*args, **kwargs) -> plt.Figure:
@@ -143,7 +151,7 @@ def _prepare_var(
     elif unc_var.split("_")[-1] in ["prior", "posterior"]:
         unc_lower = (ds[var] - ds[unc_var]).expand_dims({"percentile": ["lower"]})
         unc_upper = (ds[var] + ds[unc_var]).expand_dims({"percentile": ["upper"]})
-        unc = xr.concat([unc_lower, unc_upper],dim="percentile")
+        unc = xr.concat([unc_lower, unc_upper], dim="percentile")
         unc.name = unc_var
     else:
         unc = ds[unc_var].expand_dims({"percentile": ["std"]})
@@ -216,7 +224,7 @@ def _prepare_data_to_plot(
     diff_include: None | list,
     aggreg_month: bool,
     time_freq_min: FrequencyType,
-    plot_type: Literal["separate", "together", "diff"],
+    plot_type: plot_types,
 ) -> dict[str, xr.Dataset]:
     """
     Create dictionnary of datasets containing all the data that will be plotted.
@@ -235,6 +243,7 @@ def _prepare_data_to_plot(
             and "percentile". "percentile" can take 4 values: "mean" (always present) being the main value, "lower" and "upper" (optionnals) which are the
             "upper" and "lower" boundaries of the associated uncertainty, and "std" (optionnal) which is the std / one side associated uncertainty.
     """
+
     if not include:
         raise ValueError(
             "The include dictionary is empty. Please provide variables to include in the plot."
@@ -255,7 +264,10 @@ def _prepare_data_to_plot(
     for m, ds in ds_all.items():
 
         # Check there is only one site in the dataset
-        if len(np.unique(ds.get("number_of_identifier", 0))) > 1 and plot_type!="multiple_sites":
+        if (
+            len(np.unique(ds.get("number_of_identifier", 0))) > 1
+            and plot_type != "multiple_sites"
+        ):
             raise ValueError(
                 f"Dataset {m} contains more than one site. "
                 "Use slice_site to select a single site."
@@ -300,7 +312,7 @@ def _prepare_data_to_plot(
             )
 
         # Add some global attributes to each var
-        attrs_global = {attr: ds_all[m].attrs[attr] for attr in ["exp_name","species"]}
+        attrs_global = {attr: ds_all[m].attrs[attr] for attr in ["exp_name", "species"]}
         for var in data_to_plot[m].data_vars:
             data_to_plot[m][var].attrs.update(attrs_global)
 
@@ -311,10 +323,10 @@ def _set_labels_and_colors(
     ds_dict: dict[str, xr.Dataset],
     model_labels: dict[str, str],
     model_colors: dict[str, list],
-    plot_type: Literal["separate", "together", "diff"],
+    plot_type: plot_types,
 ) -> dict[str, xr.Dataset]:
     """
-    Set labels and colors, that will be used by add_line_plot and add_histogram_plot, as attributes of the variables dataset.
+    Set labels and colors, that will be used by add_line_plot and multi_histogram_plot, as attributes of the variables dataset.
     For variables "mf_observed" and "observed_above_BC", the color will be black (and not one of model_colors) if more than one variable is plotted.
     Args:
         ds_dict: dictionnary containing the dataset with the variables to be plotted (and only them).
@@ -357,7 +369,7 @@ def _set_labels_and_colors(
 
 def _create_figure(
     models: list[str],
-    plot_type: Literal["separate", "together", "diff"],
+    plot_type: plot_types,
     histogram_type: str | None,
     aggreg_month: bool,
 ) -> tuple[Figure, Axes]:
@@ -380,7 +392,7 @@ def _create_figure(
         raise ValueError(
             f"Option {plot_type} not implemented. Set plot_type to 'separate', 'together' or 'diff'."
         )
-    
+
     ncols = (
         2 if (histogram_type and histogram_type != "none") and not aggreg_month else 1
     )
@@ -429,7 +441,7 @@ def _get_unit(ds_dict: dict[str, xr.Dataset]) -> str:
 def add_xlims_and_ticks(
     ax: Axes,
     yearly_freq: bool,
-    plotted_data_df: dict[str, dict], 
+    plotted_data_df: dict[str, dict],
     aggreg_month: bool,
     rotate_xticks: bool = False,
 ):
@@ -446,7 +458,7 @@ def add_xlims_and_ticks(
         ax.set_xticks(np.arange(1, 13))
         ax.set_xticklabels(list(month_abbr)[1:])
         return
-    
+
     min_x = np.nanmin(plotted_data_df["time"])
     max_x = np.nanmax(plotted_data_df["time"])
 
@@ -478,9 +490,47 @@ def add_xlims_and_ticks(
     ax.set_xlim(xlim)
 
 
+def get_minmax_unc(ds: xr.Dataset, time_as_datetime: list, ax) -> tuple[list, list]:
+    """
+    Get uncertainty min and max values to plot the uncertainty band in add_line_plot.
+    Args:
+        ax: axes on which to plot
+        ds: dataset containing posterior/prior data
+        time_as_datetime: time coordinate of the dataset as list of datetime, used to plot the uncertainty band.
+    Return:
+        min_unc: list of the same size as time_as_datetime containing the minimum values of the uncertainty band to plot.
+        max_unc: list of the same size as time_as_datetime containing the maximum values of the uncertainty band to plot.
+    """
+    if ds.percentile.size == 3:
+        ax.fill_between(
+            time_as_datetime,
+            y1=ds.sel(percentile="lower"),
+            y2=ds.sel(percentile="upper"),
+            alpha=0.2,
+            color=ds.attrs["plot_color"],
+        )
+        min_unc = ds.sel(percentile="lower").values
+        max_unc = ds.sel(percentile="upper").values
+
+    elif ds.percentile.size == 2:
+        ax.errorbar(
+            time_as_datetime,
+            y=ds.sel(percentile="mean"),
+            yerr=ds.sel(percentile="std"),
+            alpha=0.4,
+            fmt="none",
+            color=ds.attrs["plot_color"],
+        )
+        mean_values = ds.sel(percentile="mean").values
+        std_values = ds.sel(percentile="std").values
+        min_unc = mean_values - std_values
+        max_unc = mean_values + std_values
+    return min_unc, max_unc
+
+
 def add_line_plot(
     ax: Axes, ds: xr.Dataset, plot_type: str, add_unc: bool = True
-    ) -> pd.DataFrame:
+) -> pd.DataFrame:
     """
     Add line plot with uncertainty if requested.
     Args:
@@ -497,9 +547,9 @@ def add_line_plot(
         "alpha": 0.8,
         "color": ds.attrs["plot_color"],
         "label": ds.attrs["plot_label"],
-        }
+    }
 
-    if plot_type=="multiple_site":
+    if plot_type == "multiple_sites":
         type_plot = ds.attrs["plot_label"]
     else:
         type_plot = ds.name
@@ -511,18 +561,22 @@ def add_line_plot(
         plot_func = ax.plot
         add_kwargs = {"linewidth": 2.0, "marker": "o", "markersize": 1.5}
 
-    plot_func(
-        time_as_datetime,
-        ds.sel(percentile="mean"),
-        **kwargs,
-        **add_kwargs
-    )
+    plot_func(time_as_datetime, ds.sel(percentile="mean"), **kwargs, **add_kwargs)
 
     res = pd.DataFrame(
         {
-            "type": [type_plot,] * ds.time.size,
-            "model": [ds.attrs["exp_name"],] * ds.time.size,
-            "species": [ds.attrs["species"],] * ds.time.size,
+            "type": [
+                type_plot,
+            ]
+            * ds.time.size,
+            "model": [
+                ds.attrs["exp_name"],
+            ]
+            * ds.time.size,
+            "species": [
+                ds.attrs["species"],
+            ]
+            * ds.time.size,
             "time": time_as_datetime,
             "mean_val": ds.sel(percentile="mean").values,
         }
@@ -530,31 +584,11 @@ def add_line_plot(
 
     if not add_unc:
         return res
-    
-    if ds.percentile.size == 3:
-        ax.fill_between(
-            time_as_datetime,
-            y1=ds.sel(percentile="lower"),
-            y2=ds.sel(percentile="upper"),
-            alpha=0.2,
-            color=ds.attrs["plot_color"],
-        )
-        res["min_unc"] = ds.sel(percentile="lower").values
-        res["max_unc"] = ds.sel(percentile="upper").values
 
-    elif ds.percentile.size == 2:
-        ax.errorbar(
-            time_as_datetime,
-            y=ds.sel(percentile="mean"),
-            yerr=ds.sel(percentile="std"),
-            alpha=0.4,
-            fmt="none",
-            color=ds.attrs["plot_color"],
-        )
-        res["min_unc"] = ds.sel(percentile="mean").values - ds.sel(percentile="std")
-        res["max_unc"] = ds.sel(percentile="mean").values + ds.sel(percentile="std")
+    res["min_unc"], res["max_unc"] = get_minmax_unc(ds, time_as_datetime, ax)
 
     return res
+
 
 def plot_timeseries(
     ds_all: dict[str, xr.Dataset],
@@ -566,7 +600,7 @@ def plot_timeseries(
     config_data: dict[str, dict] = {},
     annotate_coords: dict[int, list] = {},
     presentation_mode: bool = False,
-    plot_type: Literal["separate", "together", "diff"] = "separate",
+    plot_type: plot_types = "separate",
     diff_include: list[str] | None = None,
     y_lim: None | tuple[float | None, float | None] = None,
     n_bins: int = 30,
@@ -624,9 +658,9 @@ def plot_timeseries(
     models = ds_all.keys()
 
     species_info = config_data.get("species_info", {}).get(species, {})
-    
+
     plotted_data_df = pd.DataFrame()
-    
+
     # Check the include dictionary
     data_to_plot = _prepare_data_to_plot(
         ds_all, include, diff_include, aggreg_month, time_freq_min, plot_type
@@ -654,14 +688,12 @@ def plot_timeseries(
 
         # Loop over all variables to plot
         for var in include.keys():
-            res = add_line_plot(ax[iax,0], data_to_plot[m][var], plot_type)
-            plotted_data_df = pd.concat(
-                [plotted_data_df, res], ignore_index=True
-            )
+            res = add_line_plot(ax[iax, 0], data_to_plot[m][var], plot_type)
+            plotted_data_df = pd.concat([plotted_data_df, res], ignore_index=True)
 
         # Plot histogram
         if ax.shape[1] == 2:
-            add_histogram_plot(
+            multi_histogram_plot(
                 ax[iax, 1],
                 data_to_plot[m].sel(percentile="mean"),
                 m,
@@ -876,7 +908,7 @@ def plot_sites_timeseries(
     return fig
 
 
-def add_histogram_plot(
+def multi_histogram_plot(
     ax: Axes,
     ds: xr.Dataset,
     model: str,
@@ -885,7 +917,7 @@ def add_histogram_plot(
     presentation_mode: bool,
     annotate_coords: dict[int, list],
     annotate_index: int,
-    plot_type: Literal["separate", "together", "diff"],
+    plot_type: plot_types,
     n_bins: int = 30,
     violin: bool = False,
     **kwargs,
@@ -1001,53 +1033,34 @@ def add_histogram_plot(
 
     return None
 
-def check_site_list(site_list: list | None, ds_all: dict[str, xr.Dataset])->list:
-    """
-    Check that every site in the list exists. If None, set it to all the sites available.
-    Args:
-        site_list: list of sites to check
-        ds_all: datasets into which check for the sites
-    Returns:
-        site_list: list of sites
-    """
-    if site_list is None:
-        return get_unique_sites(ds_all)
-    available_sites = get_unique_sites(ds_all)
-    for site in site_list:
-        if site not in available_sites:
-            raise ValueError(
-                f"Site {site} not found in the datasets provided. Available sites are {available_sites}."
-            )
-    return site_list
-
 
 def plot_sites_list_mf(
-    ds_all,
-    sites,
-    species,
-    variable,
-    unc_variable,
+    ds_all: dict[str, xr.Dataset],
+    sites: list[str],
+    species: str,
+    variable: str,
+    unc_variable: str | None,
     model_labels: dict[str, dict],
-    aggreg_month = False,
+    aggreg_month: bool = False,
     config_data: dict[str, dict] = {},
-    data_on_single_graph: str = "model"
-    ):
+    data_on_single_graph: str = "models",
+):
     """
-    Plot timeseries of multiple sites on the same subplots. One subplots correspond to one model.
+    Plot timeseries of multiple sites on the same subplots. One subplot corresponds to one model.
     Args:
         ds_all: xarray datasets, scaled and sliced between chosen dates and for
             chosen site.
         sites: Obs sites list, e.g. ['MHD', 'CBW'].
         species: Gas species, e.g. 'ch4'.
-        variable: variable to plot, either a variable of dataset 
+        variable: variable to plot, either a variable of dataset
             or one that can be calculated by prepare_data_to_plot
         unc_variable: variable to use as uncertainty
         model_labels: labels to use for each model
-        aggreg_month: if True, plot the data aggregated by month. 
+        aggreg_month: if True, plot the data aggregated by month.
             Used to study seasonnal cycle.
         config_data: Dictionary with settings read from json file.
             Use json filenames as keys.
-        data_on_single_graph: str, "site" or "model", determines whether each axis has multiple sites or models.
+        data_on_single_graph: str, "sites" or "models", determines whether each axis has multiple sites or models.
     Returns:
         fig: figure created
         plotted_data_df: data plotted on the figure
@@ -1056,103 +1069,77 @@ def plot_sites_list_mf(
     """
     ds_all_p = ds_all.copy()
 
-    plot_type="multiple_sites"
+    plot_type = "multiple_sites"
     models = ds_all_p.keys()
     species_info = config_data.get("species_info", {}).get(species, {})
     plotted_data_df = pd.DataFrame()
 
     # Look for sites
     sites = check_site_list(sites, ds_all_p)
-    
-    if data_on_single_graph=="models":
-        axes_looper=models
+
+    if data_on_single_graph == "models":
+        axes_looper = models
         # Create figure
         ncols = int(np.sqrt(len(models)))
-        nrows = ceil(len(models)/ncols)
+        nrows = ceil(len(models) / ncols)
 
-        fig, ax = plt.subplots(
-            nrows,
-            ncols,
-            figsize=(ncols*5 if aggreg_month else ncols*6, nrows * 3),
-            constrained_layout=True,
-            sharey="row",
-            sharex="col",
-            squeeze=False,
-        )
-        ax = ax.flatten()
+    elif data_on_single_graph == "sites":
+        axes_looper = sites
 
-        for isite, site in enumerate(sites):
+        ncols = int(np.sqrt(len(sites)))
+        nrows = ceil(len(sites) / ncols)
+
+    fig, ax = plt.subplots(
+        nrows,
+        ncols,
+        figsize=(ncols * 5 if aggreg_month else ncols * 6, nrows * 3),
+        constrained_layout=True,
+        sharey="row",
+        sharex="col",
+        squeeze=False,
+    )
+
+    ax = ax.flatten()
+
+    for isite, site in enumerate(sites):
+        for im, m in enumerate(models):
             # Select site
+            if data_on_single_graph == "models":
+                attrs_update = {"plot_label": site, "plot_color": f"C{isite:02d}"}
+                ax_index = im
+            elif data_on_single_graph == "sites":
+                attrs_update = {
+                    "plot_label": model_labels[m],
+                    "plot_color": f"C{im:02d}",
+                }
+                ax_index = isite
             ds_all_site = slice_site_dict_of_datasets(ds_all_p, site)
 
             # Prepare data to plot
             data_to_plot = _prepare_data_to_plot(
-                ds_all_site, {variable: unc_variable}, diff_include=None,
-                time_freq_min = None, aggreg_month=aggreg_month, plot_type=plot_type
+                ds_all_site,
+                {variable: unc_variable},
+                diff_include=None,
+                time_freq_min=None,
+                aggreg_month=aggreg_month,
+                plot_type=plot_type,
             )
 
             unit = _get_unit(data_to_plot)
+            data_to_plot[m][variable].attrs.update(attrs_update)
+            res = add_line_plot(
+                ax[ax_index],
+                data_to_plot[m][variable],
+                plot_type=plot_type,
+                add_unc=unc_variable,
+            )
+            plotted_data_df = pd.concat([plotted_data_df, res], ignore_index=True)
 
-            for im, m in enumerate(models):
-                data_to_plot[m][variable].attrs.update({"plot_label": site, "plot_color": f"C{isite:02d}"})
-                res = add_line_plot(
-                    ax[im],
-                    data_to_plot[m][variable],
-                    plot_type = plot_type,
-                    add_unc = unc_variable,
-                )
-                plotted_data_df = pd.concat(
-                    [plotted_data_df, res], ignore_index=True
-                )
-
-    elif data_on_single_graph=="sites":
-        axes_looper=sites
-        print("Site separated")
-        # Create figure
-        ncols = int(np.sqrt(len(sites)))
-        nrows = ceil(len(sites)/ncols)
-
-        fig, ax = plt.subplots(
-            nrows,
-            ncols,
-            figsize=(ncols*5 if aggreg_month else ncols*6, nrows * 3),
-            constrained_layout=True,
-            sharey="row",
-            sharex="col",
-            squeeze=False,
-        )
-        ax = ax.flatten()
-        for im, m in enumerate(models):
-            
-            for isite, site in enumerate(sites):
-                # Select site
-                ds_all_site = slice_site_dict_of_datasets(ds_all_p, site)
-
-                # Prepare data to plot
-                data_to_plot = _prepare_data_to_plot(
-                    ds_all_site, {variable: unc_variable}, diff_include=None,
-                    time_freq_min = None, aggreg_month=aggreg_month, plot_type=plot_type
-                )
-
-                unit = _get_unit(data_to_plot)
-
-
-                data_to_plot[m][variable].attrs.update({"plot_label": model_labels[m], "plot_color": f"C{im:02d}"})
-                res = add_line_plot(
-                    ax[isite],
-                    data_to_plot[m][variable],
-                    plot_type = plot_type,
-                    add_unc = unc_variable,
-                )
-                plotted_data_df = pd.concat(
-                    [plotted_data_df, res], ignore_index=True
-                )
-    
-    for iaxes, axes in enumerate(axes_looper):
-        ax[iaxes].set_title(site)
+    for iaxes, label in enumerate(axes_looper):
+        ax[iaxes].set_title(label)
         ax[iaxes].set_ylabel(
             " ".join(
-                [   
+                [
                     config.mf_labels.get(variable, variable),
                     species_info.get("species_print", ""),
                     f"({unit})",
@@ -1185,18 +1172,9 @@ def plot_sites_list_mf(
 
         ax[iaxes].grid(color="lightgrey", linestyle="-", linewidth=0.7)
         ax[iaxes].set_axisbelow(True)
-    # min_mf = min(min_mf, ax[iax, 0].get_ylim()[0])
-    # max_mf = max(max_mf, ax[iax, 0].get_ylim()[1])
-
-    # if y_lim is None:
-    #     y_lim = [min_mf - 0.05 * (max_mf - min_mf), max_mf + 0.1 * (max_mf - min_mf)]
-
-    # # Set all the axes to the same y-axis limits
-    # for iax, ax0 in enumerate(ax[:, 0]):
-    #     ax0.set_ylim(y_lim)
 
     logger.info(
         "If annotations in the histograms are not displaying correctly, adjust annotate_coords."
     )
-    
+
     return fig, plotted_data_df

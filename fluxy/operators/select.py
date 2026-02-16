@@ -55,7 +55,7 @@ def slice_flux(
 
     """
     ds_all_sliced = dict()
-    species_info = config_data.get("species_info",{}).get(species, None)
+    species_info = config_data.get("species_info", {}).get(species, None)
 
     if type(start_date) is str:
         start_date = [start_date] * len(ds_all.keys())
@@ -94,7 +94,7 @@ def slice_mf(
     ds_all: dict[str, xr.Dataset],
     start_date: str = None,
     end_date: str = None,
-    site: str | list [str] = None,
+    site: str | list[str] = None,
     baseline_site: str = None,
     baseline_filename: str = "InTEM_baseline_timestamps",
     data_dir: os.PathLike | None = None,
@@ -225,46 +225,51 @@ def slice_mf(
     return ds_all
 
 
-def slice_site(ds: xr.Dataset, sites: str | list[str], raise_error: bool = True) -> xr.Dataset:
+def slice_site(
+    ds: xr.Dataset, sites: str | list[str], raise_error: bool = True
+) -> xr.Dataset | None:
     """
     Slices the dataset to only include data for a given site.
 
     Args:
         ds (xarray dataset):
             Dataset with mf data of a given model.
-        site (str):
-            Site of interest.
+        sites (str | list[str]):
+            Site(s) of interest.
         raise_error:
             if True, raise an error if the site is not found in the dataset.
     Returns:
         ds (xarray dataset):
-            Dataset with mf data of a given model, sliced to only include data for the given site.
+            Dataset with mf data of a given model, sliced to only include data for the given site(s).
     """
     if not isinstance(sites, list):
-        sites = [sites,]
+        sites = [
+            sites,
+        ]
 
-    mask = ds["number_of_identifier"]*False
+    mask = ds["number_of_identifier"] * False
+    site_indices = []
     for site in sites:
         site_index = get_site_index(ds, site)
-
+        site_indices.append(site_index)
         if site_index is not None:
             mask += ds["number_of_identifier"] == site_index
         else:
             msg = f"Site {site} not found for model {ds.attrs['exp_name']}."
             if raise_error:
                 raise ValueError(msg)
-            else:        
+            else:
                 logger.warning(msg)
-        
+
     if mask.any():
         ds = ds.where(mask, drop=True)
         return ds
     else:
-        msg = f"No data for site {site} with index {site_index} in model {ds.attrs['exp_name']}."
+        msg = f"No data for any sites {sites} with indices {site_indices} in model {ds.attrs['exp_name']}."
     if raise_error:
         raise ValueError(msg)
-    else:        
-        logger.warning(msg)        
+    else:
+        logger.warning(msg)
 
 
 def slice_height(ds: xr.Dataset, intake_height: float) -> xr.Dataset:
@@ -514,6 +519,7 @@ def clean_timeseries_missing_data(
 
     return ds
 
+
 def slice_site_dict_of_datasets(
     ds_all: dict[str, xr.Dataset],
     site: str,
@@ -544,3 +550,23 @@ def slice_site_dict_of_datasets(
             )
 
     return ds_all_site
+
+
+def check_site_list(site_list: list | None, ds_all: dict[str, xr.Dataset]) -> list:
+    """
+    Check that every site in the list exists. If None, set it to all the sites available.
+    Args:
+        site_list: list of sites to check
+        ds_all: datasets into which check for the sites
+    Returns:
+        site_list: list of sites
+    """
+    if site_list is None:
+        return get_unique_sites(ds_all)
+    available_sites = get_unique_sites(ds_all)
+    for site in site_list:
+        if site not in available_sites:
+            raise ValueError(
+                f"Site {site} not found in the datasets provided. Available sites are {available_sites}."
+            )
+    return site_list

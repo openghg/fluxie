@@ -14,10 +14,11 @@ from fluxy.plots.flux_map import (
     plot_flux_map_combined_models_comparison,
     plot_flux_map_period_comparison,
 )
-from fluxy.plots.flux_timeseries import plot_country_flux,plot_country_sector_flux_bar
+from fluxy.plots.flux_timeseries import plot_country_flux, plot_country_sector_flux_bar
 from fluxy.plots.mf_timeseries import (
     plot_mf_timeseries,
-    plot_sites_timeseries
+    plot_sites_timeseries,
+    plot_sites_list_mf,
 )
 from fluxy.operators.mf import compute_mf_difference
 from fluxy.plots.mf_stats import plot_stats_mf, plot_taylor_diagram
@@ -59,7 +60,13 @@ else:
         data_dir, "flux", species, models, config_data, period=period
     )
     ds_all_flux_with_sites = read_model_output(
-        data_dir, "flux", species, models, config_data, period=period, add_sites_to_flux=True,
+        data_dir,
+        "flux",
+        species,
+        models,
+        config_data,
+        period=period,
+        add_sites_to_flux=True,
     )
 
     for m in models:
@@ -79,10 +86,11 @@ else:
             end_date,
             species=species,
             country_flux_units_print=country_flux_units_print,
-        )[m]    
+        )[m]
 
 
 site = "MHD"
+multiple_sites = ["MHD", "TAC"]
 baseline_site = None
 mf_units_print = "ppt"
 ds_all_mf = read_model_output(
@@ -99,6 +107,16 @@ ds_all_mf_sliced = slice_mf(
     start_date,
     end_date,
     site,
+    baseline_site=baseline_site,
+    data_dir=data_dir,
+    mf_units_print=mf_units_print,
+)
+
+ds_all_mf_sliced_multiple_sites = slice_mf(
+    ds_all_mf.copy(),
+    start_date,
+    end_date,
+    multiple_sites,
     baseline_site=baseline_site,
     data_dir=data_dir,
     mf_units_print=mf_units_print,
@@ -128,37 +146,38 @@ stats_ylim = {"pearson": [0, 1], "bias": [-1.5, 0.5], "crmse": [0, 1.5]}
 def test_country_flux_default():
     """Test country flux with default settings."""
 
-    plot_country_flux(
-        ds_all_flux_scaled,
-        species
-    )
+    plot_country_flux(ds_all_flux_scaled, species)
+
 
 def test_country_flux_with_inventory_raises_no_datadir():
     """Test that ValueError is raised if plot_inventory=True and data_dir is not provided."""
-    with pytest.raises(ValueError, match="data_dir must be provided to plot inventory data."):
+    with pytest.raises(
+        ValueError, match="data_dir must be provided to plot inventory data."
+    ):
         plot_country_flux(
             ds_all_flux_scaled,
             species,
             plot_inventory=True,
         )
 
+
 def test_flux_timeseries():
     kwargs = dict(
-        data_dir = data_dir,
-        plot_inventory = False,
-        inventory_years = None,
-        fix_y_axes = False,
-        add_prior = True,
-        add_prior_unc = False,
-        set_global_leg = True,
-        country_codes_as_titles = False,
-        plot_separate = True,
-        plot_combined = False,
-        resample = None,
-        resample_uncert_correlation = False,
-        plot_resample_and_original = False,
-        annex_mode = False,
-        rolling_mean = False,
+        data_dir=data_dir,
+        plot_inventory=False,
+        inventory_years=None,
+        fix_y_axes=False,
+        add_prior=True,
+        add_prior_unc=False,
+        set_global_leg=True,
+        country_codes_as_titles=False,
+        plot_separate=True,
+        plot_combined=False,
+        resample=None,
+        resample_uncert_correlation=False,
+        plot_resample_and_original=False,
+        annex_mode=False,
+        rolling_mean=False,
     )
 
     plot_country_flux(
@@ -170,29 +189,29 @@ def test_flux_timeseries():
         model_labels,
         start_date,
         end_date,
-        **kwargs
+        **kwargs,
     )
 
 
 def test_flux_timeseries_combined_unc():
     kwargs = dict(
-        data_dir = data_dir,
-        plot_inventory = False,
-        inventory_years = None,
-        fix_y_axes = False,
-        add_prior = True,
-        add_prior_unc = False,
-        set_global_leg = True,
-        country_codes_as_titles = False,
-        plot_separate = True,
-        plot_separate_unc = False,
-        plot_combined = True,
-        plot_combined_unc = True,
-        resample = None,
-        resample_uncert_correlation = False,
-        plot_resample_and_original = False,
-        annex_mode = False,
-        rolling_mean = False,
+        data_dir=data_dir,
+        plot_inventory=False,
+        inventory_years=None,
+        fix_y_axes=False,
+        add_prior=True,
+        add_prior_unc=False,
+        set_global_leg=True,
+        country_codes_as_titles=False,
+        plot_separate=True,
+        plot_separate_unc=False,
+        plot_combined=True,
+        plot_combined_unc=True,
+        resample=None,
+        resample_uncert_correlation=False,
+        plot_resample_and_original=False,
+        annex_mode=False,
+        rolling_mean=False,
     )
 
     plot_country_flux(
@@ -204,34 +223,35 @@ def test_flux_timeseries_combined_unc():
         model_labels,
         start_date,
         end_date,
-        **kwargs
+        **kwargs,
     )
+
 
 def test_flux_timeseries_multi_combined():
     combined_models_dict = {
-        'All Mean': models,
-        'Partial Mean': models[0:2],
+        "All Mean": models,
+        "Partial Mean": models[0:2],
     }
 
     kwargs = dict(
-        data_dir = data_dir,
-        plot_inventory = False,
-        inventory_years = None,
-        fix_y_axes = False,
-        add_prior = True,
-        add_prior_unc = False,
-        set_global_leg = True,
-        country_codes_as_titles = False,
-        plot_separate = True,
-        plot_separate_unc = False,
-        plot_combined = True,
-        plot_combined_unc = True,
-        resample = None,
-        resample_uncert_correlation = False,
-        plot_resample_and_original = False,
-        annex_mode = False,
-        rolling_mean = False,
-        combined_models_dict = combined_models_dict,
+        data_dir=data_dir,
+        plot_inventory=False,
+        inventory_years=None,
+        fix_y_axes=False,
+        add_prior=True,
+        add_prior_unc=False,
+        set_global_leg=True,
+        country_codes_as_titles=False,
+        plot_separate=True,
+        plot_separate_unc=False,
+        plot_combined=True,
+        plot_combined_unc=True,
+        resample=None,
+        resample_uncert_correlation=False,
+        plot_resample_and_original=False,
+        annex_mode=False,
+        rolling_mean=False,
+        combined_models_dict=combined_models_dict,
     )
 
     plot_country_flux(
@@ -243,7 +263,7 @@ def test_flux_timeseries_multi_combined():
         model_labels,
         start_date,
         end_date,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -257,7 +277,7 @@ def test_mf_timeseries():
         end_date,
         model_colors,
         model_labels,
-        config_data
+        config_data,
     )
 
 
@@ -276,6 +296,7 @@ def test_obs_modelled_separate():
         y_lim=None,
     )
 
+
 def test_obs_modelled_aggreg_month():
     fig = plot_mf_timeseries(
         ds_all_mf_sliced,
@@ -286,10 +307,16 @@ def test_obs_modelled_aggreg_month():
         config_data,
         annotate_coords,
         plot_type="separate",
-        include={"mf_observed": None, "mf_posterior": None, "posterior_above_BC":None, "observed_posterior_diff":None},
+        include={
+            "mf_observed": None,
+            "mf_posterior": None,
+            "posterior_above_BC": None,
+            "observed_posterior_diff": None,
+        },
         y_lim=None,
-        aggreg_month=True
+        aggreg_month=True,
     )
+
 
 def test_mf_timeseries_no_hist():
     fig = plot_mf_timeseries(
@@ -322,7 +349,6 @@ def test_mf_timeseries_bad_uncertainty_var():
             diff_include=["mf_posterior"],
             y_lim=None,
         )
-
 
 
 def test_obs_modelled_together():
@@ -358,6 +384,36 @@ def test_mole_fraction_diff():
         include={"mf_observed": None},
         diff_include=None,
         y_lim=None,
+    )
+
+
+def test_mf_timeseries_multiple_site_axes():
+    aggreg_month = False
+    fig = plot_sites_list_mf(
+        ds_all_mf_sliced,
+        multiple_sites,
+        species,
+        "mf_posterior",
+        "percentile_mf_posterior",
+        model_labels,
+        aggreg_month,
+        config_data,
+        "sites",
+    )
+
+
+def test_mf_timeseries_multiple_model_axes():
+    aggreg_month = False
+    fig = plot_sites_list_mf(
+        ds_all_mf_sliced,
+        multiple_sites,
+        species,
+        "mf_posterior",
+        "percentile_mf_posterior",
+        model_labels,
+        aggreg_month,
+        config_data,
+        "models",
     )
 
 
@@ -525,7 +581,7 @@ def test_plot_country_sector_flux_bar():
         regions=regions,
         sector_file=sector_file,
         create_region_sector_totals=create_region_sector_totals,
-        cell_area_test_file=True
+        cell_area_test_file=True,
     )
 
     fig = plot_country_sector_flux_bar(
@@ -540,6 +596,7 @@ def test_plot_country_sector_flux_bar():
         inventory_filename="UNFCCC_inventory",
         sectors=["agriculture", "waste", "energy", "industry"],
     )
+
 
 def test_plot_flux_map_combined_models_comparison():
 
@@ -565,12 +622,13 @@ def test_plot_flux_map_combined_models_comparison():
         set_fluxlim_percentile=set_fluxlim_percentile,
     )
 
+
 def test_plot_flux_map_period_comparison():
 
     var = "flux_total_posterior"
 
-    start_dates = ['2018-01-01', '2020-01-01'] 
-    end_dates = ['2021-01-01', '2024-01-01']
+    start_dates = ["2018-01-01", "2020-01-01"]
+    end_dates = ["2021-01-01", "2024-01-01"]
 
     fig = plot_flux_map_period_comparison(
         ds_all=ds_all_flux_with_sites_scaled,
@@ -588,6 +646,4 @@ def test_plot_flux_map_period_comparison():
         add_markers=add_markers,
         set_fluxlim=set_fluxlim,
         set_fluxlim_percentile=set_fluxlim_percentile,
-
     )
-

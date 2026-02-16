@@ -76,9 +76,11 @@ def compute_mf_difference(
     )
 
     # check species
-    species_set = {ds_left.attrs['species'],ds_left.attrs['species']}
-    if len(species_set)!=1:
-        logger.warning(f"Different species found {species_set} between the 2 compared datasets.")
+    species_set = {ds_left.attrs["species"], ds_right.attrs["species"]}
+    if len(species_set) != 1:
+        logger.warning(
+            f"Different species found {species_set} between the 2 compared datasets."
+        )
         species_set = "mix"
     else:
         species = list(species_set)[0]
