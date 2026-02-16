@@ -1162,6 +1162,83 @@
       "longitude": -0.30359
     }
   },
+  "GLE": {
+    "GEMINI": {
+      "latitude": 52.656,
+      "longitude": -1.13,
+      "height_station_masl": 54.0,
+      "long_name": "Space Park Leicester, Leicester, UK",
+      "height": ["column"],
+      "height_name": ["column"]
+    }
+  },
+
+  "GGU": {
+    "GEMINI": {
+      "latitude": 49.46,
+      "longitude": -2.54,
+      "height_station_masl": 47.0,
+      "long_name": "Elizabeth College, St Peters Port, Guernsey",
+      "height": ["column"],
+      "height_name": ["column"]
+    }
+  },
+
+  "GHA": {
+    "GEMINI": {
+      "latitude": 51.572,
+      "longitude": -1.315,
+      "height_station_masl": 142.0,
+      "long_name": "Rutherford Appleton Laboratory, Harwell, Oxfordshire, UK",
+      "height": ["column"],
+      "height_name": ["column"]
+    }
+  },
+
+  "GWE": {
+    "GEMINI": {
+      "latitude": 52.951,
+      "longitude": 1.123,
+      "height_station_masl": 18.0,
+      "long_name": "Weybourne Atmospheric Observatory, Norfolk, UK",
+      "height": ["column"],
+      "height_name": ["column"]
+    }
+  },
+
+  "GBI": {
+    "GEMINI": {
+      "latitude": 52.45,
+      "longitude": -1.93,
+      "height_station_masl": 145.0,
+      "long_name": "University of Birmingham, Birmingham, UK",
+      "height": ["column"],
+      "height_name": ["column"]
+    }
+  },
+
+  "GCA": {
+    "GEMINI": {
+      "latitude": 51.486,
+      "longitude": -3.183,
+      "height_station_masl": 23.0,
+      "long_name": "Cardiff University, Cardiff, UK",
+      "height": ["column"],
+      "height_name": ["column"]
+    }
+  },
+
+  "GNE": {
+    "GEMINI": {
+      "latitude": 54.98,
+      "longitude": -1.61,
+      "height_station_masl": 59.0,
+      "long_name": "Northumbria University, Newcastle, UK",
+      "height": ["column"],
+      "height_name": ["column"]
+    }
+  },
+
   "GMI": {
     "NOAA": {
       "height_station_masl": 0.0,

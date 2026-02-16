@@ -263,7 +263,7 @@ def resample_over_dates_list(
         ds, groups_da, resample_uncert_correlation
     )
     ds_resampled = ds_resampled.rename({"group": "time"})
-
+        
     # Create labels based on the first and last date in each group
     time_labels = []
     for group in np.unique(groups_da):
@@ -273,6 +273,86 @@ def resample_over_dates_list(
         time_labels.append(
             f"{first_time.strftime('%Y/%m')}—{last_time.strftime('%Y/%m')}"
         )
+
+    return ds_resampled, time_labels
+
+def resample_over_periods_list(
+    ds: xr.Dataset,
+    start_dates_list: List[str],
+    end_dates_list: List[str],
+    resample_uncert_correlation: bool = False,
+) -> Tuple[xr.Dataset, List[str]]:
+    """
+    Resample a dataset over custom time intervals defined by start and end date lists.
+    Time labels indicating the date range of each resampled period are also generated.
+    Args:
+        ds (xarray.Dataset):
+            Dataset with a "time" dimension.
+        start_dates_list (list of datetime-like):
+            Start dates for each interval (e.g., ['2015-01-01', '2022-01-01']).
+        end_dates_list (list of datetime-like):
+            End date for each interval (e.g., ['2018-01-01', '2025-01-01']).
+        resample_uncert_correlation (bool):
+            If True, uncertainties are averaged directly over groups.
+            If False, uncertainties are calculated as RMSE-like aggregation.
+    Returns:
+        ds_resampled (xarray.Dataset):
+            Dataset resampled over the defined time intervals.
+        time_labels (list of str):
+            Labels for each resampled period (format: "YYYY/MM—YYYY/MM").
+    """
+
+    # --- basic consistency check ---
+    if len(start_dates_list) != len(end_dates_list):
+        raise ValueError("'start_dates_list' and 'end_dates_list' must have the same length.")
+
+    n_periods = len(start_dates_list)
+
+    # Convert to numpy datetime64
+    start_dates = np.array(pd.to_datetime(start_dates_list))
+    end_dates = np.array(pd.to_datetime(end_dates_list))
+
+    if np.any(end_dates <= start_dates):
+        raise ValueError("Each end date must be strictly after its start date.")
+
+    # Initialize the groups array to store which group each time value belongs to
+    groups = np.full(ds.time.shape, np.nan)
+
+    # Track last timestamp used for each period
+    last_used_times = [None] * n_periods
+
+    # --- Assign each timestamp to exactly one interval ---
+    for i in range(n_periods):
+        s = start_dates[i]
+        e = end_dates[i]
+
+        mask = (ds.time.values >= s) & (ds.time.values < e)
+        groups[mask] = i + 1  # groups numbered from 1
+
+        last_used_times[i] = pd.to_datetime(ds.time.values[mask].max())
+
+    groups_da = xr.DataArray(groups, coords={"time": ds.time})
+
+    # Remove the group that corresponds to dates before dates_list[0] (NaN values)
+    ds = ds.where(~np.isnan(groups_da), drop=True)
+    groups_da = groups_da.where(~np.isnan(groups_da), drop=True)
+
+    # Keep only timestamps that belong to defined intervals
+    ds = ds.where(~np.isnan(groups_da), drop=True)
+    groups_da = groups_da.where(~np.isnan(groups_da), drop=True)
+
+    # Resample dataset
+    ds_resampled = calculate_resampled_dataset(
+        ds, groups_da, resample_uncert_correlation
+    )
+    ds_resampled = ds_resampled.rename({"group": "time"})
+
+    # Create labels for each period
+    time_labels = []
+    for i in range(n_periods):
+        s = pd.to_datetime(start_dates[i])
+        ie = pd.to_datetime(last_used_times[i])
+        time_labels.append(f"{s.strftime('%Y')}—{ie.strftime('%Y')}")
 
     return ds_resampled, time_labels
 
@@ -355,7 +435,7 @@ def resample_over_months_list(
     time_labels = []
     for i, group in enumerate(unique_groups):
         if isinstance(months_list[i], list):
-            time_labels.append("—".join(calendar.month_abbr[m] for m in months_list[i]))
+            time_labels.append(",".join(calendar.month_abbr[m] for m in months_list[i]))
         else:
             time_labels.append(calendar.month_abbr[months_list[i]])
 
@@ -700,16 +780,23 @@ def resample_over_period(
     ds: xr.Dataset,
     N: int = 1,
     chop_by: (
-        Literal["year", "month", "season"] | List | Literal["DJF", "MAM", "JJA", "SON"]
+        Literal["year", "month", "season"]
+        | List 
+        | Tuple[List, List]
+        | Literal["DJF", "MAM", "JJA", "SON"]
+        | None
     ) = None,
     resample_uncert_correlation: bool = False,
 ) -> Tuple[xr.Dataset, List[str]]:
     """
     Resample a dataset over a specified time period or custom intervals.
 
-    This function allows resampling over different time periods such as years,
-    months, seasons, the entire period, or custom-defined intervals provided in `chop_by`.
-    It calls appropriate resampling functions based on the value of `chop_by`.
+    Supports:
+        - years, months, seasons
+        - entire period
+        - list of single boundary dates
+        - list of month numbers
+        - tuple of (start_dates_list, end_dates_list) for custom date ranges
 
     Args:
         ds (xarray.Dataset):
@@ -718,7 +805,8 @@ def resample_over_period(
             Interval length for custom periods (e.g., for months or years).
         chop_by (str, list):
             Defines how the dataset should be chopped.
-            Options are: 'year', 'month', 'season', None, a list of dates or months, or a season.
+            Options are: 'year', 'month', 'season', None, a list of dates or months, 
+                         a season, or a tuple of lists of dates.
         resample_uncert_correlation (bool):
             If True, uncertainties are averaged directly over groups.
             If False, uncertainties are calculated as RMSE-like aggregation.
@@ -729,6 +817,37 @@ def resample_over_period(
         time_labels (list of str):
             Labels for each resampled period (e.g., "2020", "2020/03—2020/05").
     """
+
+    # ------------------------------------------------------------------
+    # Specific periods (start_dates_list, end_dates_list)
+    # ------------------------------------------------------------------
+    if isinstance(chop_by, tuple) and len(chop_by) == 2:
+
+        start_dates_list, end_dates_list = chop_by
+
+        if (
+            isinstance(start_dates_list, list) 
+            and isinstance(end_dates_list, list)
+            and len(start_dates_list) == len(end_dates_list)
+            and all(isinstance(s, (str, datetime.date, np.datetime64, pd.Timestamp))
+                    for s in start_dates_list)
+            and all(isinstance(e, (str, datetime.date, np.datetime64, pd.Timestamp))
+                    for e in end_dates_list)
+        ):
+            # Directly call the new date-range resampling
+            return resample_over_periods_list(
+                ds.copy(),
+                start_dates_list=start_dates_list,
+                end_dates_list=end_dates_list,
+                resample_uncert_correlation=resample_uncert_correlation,
+            )
+        else:
+            raise ValueError(
+                "If chop_by is a tuple, it must be (start_dates_list, end_dates_list) "
+                "with equal-length lists of valid dates."
+            )
+
+    # ------------------------------------------------------------------ 
 
     if isinstance(chop_by, list):
         # Case where chop_by is a list of dates
@@ -749,22 +868,41 @@ def resample_over_period(
             return resample_over_months_list(
                 ds.copy(), months_list, resample_uncert_correlation
             )
+
+    # ------------------------------------------------------------------
+    # Seasons (single season)
+    # ------------------------------------------------------------------
     elif chop_by in ["DJF", "MAM", "JJA", "SON"]:
         return resample_over_seasons(
             ds.copy(),
             season=chop_by,
             resample_uncert_correlation=resample_uncert_correlation,
         )
+
+    # ------------------------------------------------------------------
+    # All seasons
+    # ------------------------------------------------------------------
     elif chop_by == "season":
         return resample_over_seasons(
             ds.copy(), resample_uncert_correlation=resample_uncert_correlation
         )
+
+    # ------------------------------------------------------------------
+    # Whole-period averaging
+    # ------------------------------------------------------------------
     elif chop_by is None:
         return resample_over_whole_period(ds.copy(), resample_uncert_correlation)
+
+    # ------------------------------------------------------------------
+    # Standard year / month resampling
+    # ------------------------------------------------------------------
     elif chop_by == "year":
         return resample_over_years(ds.copy(), N, resample_uncert_correlation)
     elif chop_by == "month":
         return resample_over_months(ds.copy(), N, resample_uncert_correlation)
+
+    # ------------------------------------------------------------------
+
     else:
         raise ValueError(
             f"Option {chop_by} for chop_by not implemented. Options are year, month, season, a list of starting dates or a list of month numbers."

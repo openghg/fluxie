@@ -6,8 +6,11 @@ build-backend = "hatchling.build"
 name = "fluxy"
 version = "v2.0"
 dependencies = [
+  "numpy",
+  "pandas",
   "matplotlib",
   "xarray>=2023.08",
+  "h5py",
   "h5netcdf",
   "geopandas",
   "PyYAML",
@@ -22,6 +25,8 @@ authors = [
   {name = "Stephan Henne", email = "stephan.henne@empa.ch"},
   {name = "Joël Thanwerdas", email = "joel.thanwerdas@empa.ch"},
   {name = "Valentin Bruch"},
+  {name = "Fabian Maier", email = "fmaier@bgc-jena.mpg.de"},
+  {name = "Leah Herrfurth", email = "lherr@bgc-jena.mpg.de"},
 ]
 maintainers = [
   {name = "Alexandre Danjou", email = "alexandre.danjou@bristol.ac.uk"},
@@ -45,3 +50,5 @@ Homepage = "https://horizoneurope-paris.eu/"
 Documentation = "https://github.com/openghg/fluxy/blob/devel/README.md"
 Repository = "https://github.com/openghg/fluxy"
 "Bug Tracker" = "https://github.com/openghg/fluxy/issues"
+
+
