@@ -6,10 +6,13 @@ from typing import Literal
 logger = logging.getLogger(__name__)
 
 
-def align_time(ds_list: list[xr.Dataset],
-               only_overlapping: bool = True) -> list[xr.Dataset]:
+def align_time(
+    ds_list: list[xr.Dataset], only_overlapping: bool = True
+) -> list[xr.Dataset]:
     """
-    Check the time coordinates of a list of xarray datasets and, if they differ, align them with the time coordinate of the first dataset in the list.
+    Check the time coordinate of a list of datasets, then aligns them,
+    either only between overlapping time periods, or across all available
+    times (if only_overlapping is False).
 
     Args:
         ds_list: list of xarray datasets to be time-aligned
@@ -30,21 +33,48 @@ def align_time(ds_list: list[xr.Dataset],
             raise ValueError("Unable to infer period from dataset")
         period = np.median(dtime)
     else:
-        period = None # no period if only one timestamp
-        logger.warning("Datasets have only one time value — aligning them with the time "
-                       "coordinate of the first dataset in the list "
-                       "without checking time difference.")
+        period = None  # no period if only one timestamp
+        logger.warning(
+            "Datasets have only one time value — aligning them with the time "
+            "coordinate of the first dataset in the list "
+            "without checking time difference."
+        )
+        
 
     # Reduce datasets to their overlapping time range (only if period can be inferred)
-    if period is not None and only_overlapping:
+    if period is not None and only_overlapping == True:
         min_date = max([x.time.min() for x in ds_list]) - period / 2
         max_date = min([x.time.max() for x in ds_list]) + period / 2
         ds_list = [ds.sel(time=slice(min_date, max_date)) for ds in ds_list]
-        
+
     else:
-        all_min = [x.time.min() for x in ds_list]
-        min_date_loc = [i for i,date in enumerate(all_min) if date == min(all_min)][0]
-        ds_list = [ds.reindex(indexers={'time':ds_list[min_date_loc]['time']},fill_value=np.nan,method=None) for ds in ds_list]
+        time_warning = ["only_overlapping is set to False so all following data is included:"]
+                
+        min_date = min([x.time.min() for x in ds_list]) - period / 2
+        max_date = max([x.time.max() for x in ds_list]) + period / 2
+
+        for i, ds in enumerate(ds_list):
+            time_warning.append(f"({ds.attrs['inversion_system']}) {ds.attrs['species']}: "+
+            f"[{ds_list[i].time.min().values.astype('datetime64[D]')} to "+
+            f"{ds_list[i].time.max().values.astype('datetime64[D]')}]")
+
+            time_all = ds["time"].values
+
+            t1 = time_all[0] - period
+            while t1 >= min_date:
+                time_all = np.concatenate(([t1], time_all))
+                t1 = time_all[0] - period
+
+            t2 = time_all[-1] + period
+            while t2 <= max_date:
+                time_all = np.concatenate((time_all, [t2]))
+                t2 = time_all[-1] + period
+
+            ds_list[i] = ds.reindex(
+                indexers={"time": time_all}, fill_value=np.nan, method=None
+            )
+            
+        for w in time_warning: logger.warning(w)
 
     aligned_ds_list = [ds_list[0]]
 
@@ -52,7 +82,7 @@ def align_time(ds_list: list[xr.Dataset],
         if ds_list[0].time.equals(ds_p.time):
             aligned_ds_list.append(ds_p)
             continue
-            
+
         if period is not None:
             diff_time = abs(ds_list[0].time.values - ds_p.time.values)
             if any(diff_time > 0.1 * period):
@@ -120,7 +150,9 @@ def align_map_data(
     Args:
         ds_all (dict[xr.Dataset | xr.DataArray]):
             Dictionary of model names and corresponding xarray Datasets/DataArrays.
-
+        only_overlapping (bool):
+            If True, reduces datasets to their overlapping time range before aligning.
+            If False, includes all data and fills in missing time steps with NaNs.
     Returns:
         dict[xr.Dataset | xr.DataArray]:
             Aligned Datasets/DataArrays, with consistent variables and coordinates.

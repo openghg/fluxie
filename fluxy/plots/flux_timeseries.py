@@ -130,7 +130,6 @@ def prepare_data_to_plot(
     resample_uncert_correlation: bool = False,
     plot_resample_and_original: bool = False,
     aggreg_month: bool = False,
-    only_overlapping: bool = True
 ) -> dict[str, xr.Dataset]:
     """
     Create a single xarray dataset for each set of data to be plotted.
@@ -157,7 +156,6 @@ def prepare_data_to_plot(
         plot_resample_and_original: If True, plots both the resampled data and the data as its original frequency. If False, only plots the
             resampled data.
         aggreg_month: if True, plot the data aggregated by month. Used to study seasonnal cycle.
-        only_overlapping: If True, only keeps the time period common to all models.
     Returns:
         ds_to_plot : dictionnary of datasets to plot
     """
@@ -271,7 +269,7 @@ def prepare_data_to_plot(
 
         for group_label, model_list in combined_models_dict.items():
                 combine_mask = [model in model_list for model in ds_to_combine.keys()]
-                ds_combined = combine_dataset(ds_to_combine, combine_mask, only_overlapping)
+                ds_combined = combine_dataset(ds_to_combine, combine_mask)
                 ds_combined["combined"].attrs["model_label"] = group_label
                 if any('_resample' in s for s in model_list) and plot_resample_and_original:
                     ds_combined["combined"].attrs["model_label"] += " (resampled)"
@@ -984,7 +982,6 @@ def plot_country_flux(
     rolling_mean: bool | list[bool] = False,
     aggreg_month: bool = False,
     sector: str = "total",
-    only_overlapping: bool = True,
     xticks_at_centre: bool = False,
     plot_grid: bool = True,
     add_vline: list[str] | None = None,
@@ -1035,7 +1032,6 @@ def plot_country_flux(
         rolling_mean : If True, calculates a rolling mean (xx years) for each of the data to plot.
         aggreg_month: if True, plot the data aggregated by month. Used to study seasonnal cycle.
         sector: Sector to plot. Can be 'total' or any of the sectors defined in the datasets.
-        only_overlapping: If True, only plot the time range where all models have data.
         xticks_at_centre: if True, set the x ticks at the centre of each time period (year or month) rather than at the beginning.
         plot_grid: if True, add a faint grid to each subplot.
         add_vline: list of dates (str) where to add vertical lines on each plot. format 'YYYY-MM-DD'.
@@ -1093,8 +1089,7 @@ def plot_country_flux(
             rolling_mean=rolling_mean,
             plot_resample_and_original=plot_resample_and_original,
             resample_uncert_correlation=resample_uncert_correlation,
-            aggreg_month=aggreg_month,
-            only_overlapping=only_overlapping
+            aggreg_month=aggreg_month
         )
 
         # plot posterior and prior (if requested)
@@ -1196,8 +1191,7 @@ def plot_country_sector_flux_bar(
     resample: str | list[str] | None = None,
     resample_uncert_correlation: bool = False,
     rolling_mean: bool = False,
-    sectors: list[str] = ["agriculture", "waste", "energy", "industry"],
-    only_overlapping: bool = True,
+    sectors: list[str] = ["agriculture", "waste", "energy", "industry"]
 ) -> Figure | list:
     """
     Stacked bar plot of posterior fluxes, split by sector, for a single region, for a range of models.
@@ -1234,7 +1228,6 @@ def plot_country_sector_flux_bar(
         return_res: Wheter or not including a dictionnary with the results as output
         rolling_mean : If True, calculates a rolling mean (xx years) for each of the data to plot.
         sectors: List of emissions sectors to plot.
-        only_overlapping: If True, only plot the time range where all models have data.
     Returns:
         fig: A plot per country/region.
         res_dict : If return_res, return also a dictionnary containing the plotted results
@@ -1255,7 +1248,6 @@ def plot_country_sector_flux_bar(
         resample=resample,
         rolling_mean=rolling_mean,
         resample_uncert_correlation=resample_uncert_correlation,
-        only_overlapping=only_overlapping,
     )
 
     freqs = [ds.attrs["frequency"] for ds in ds_to_plot.values()]
@@ -1433,6 +1425,7 @@ def plot_all_species_stacked_bar(all_species: list[str],
 
     s_data = config_data.get("species_info", {})
     r_data = config_data.get("regions_info", {})
+    species_colors = config.get_default_species_colors()
 
     width = np.timedelta64(150,'D')
 
@@ -1456,7 +1449,6 @@ def plot_all_species_stacked_bar(all_species: list[str],
             plot_resample_and_original=False,
             resample_uncert_correlation=False,
             aggreg_month=False,
-            only_overlapping=False
         )
 
         models[s] = list(ds_to_plot[species].keys())[0]
@@ -1518,7 +1510,7 @@ def plot_all_species_stacked_bar(all_species: list[str],
             ds_to_plot[species][models[s]]['posterior'].values,
             width=width,
             bottom=bottom,
-            color=s_data.get(species, {}).get('color', species),
+            color=species_colors[species],
             label=s_data.get(species, {}).get('species_print', species),
             yerr=uncert,
             error_kw={'capsize':2})
