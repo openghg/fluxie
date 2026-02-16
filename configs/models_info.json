@@ -1,8 +1,9 @@
 {
     "filename_tags":{
-        "std": "PARISNID2026",
+        "std": "<model>_obs_<model>_baseline_optimized",
         "ibaseline": "<model>_obs_intem_baseline_fixed",
-        "iall": "intem_obs_intem_baseline_fixed_intem_unc"
+        "iall": "intem_obs_intem_baseline_fixed_intem_unc",
+        "paris": "PARISNID2026"
     },
 
     "model_labels":{

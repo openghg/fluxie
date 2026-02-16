@@ -19,7 +19,6 @@ from fluxy import config
 from fluxy.operators.flux_align_dataset import align_time
 from fluxy.operators.regions import extract_region_flux
 from fluxy.operators.select import slice_flux, get_intake_height, get_site_index
-from fluxy.operators.flux_align_dataset import align_time
 from fluxy.types import DataType, DataTypes, file_pattern
 
 logger = logging.getLogger(__name__)

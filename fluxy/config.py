@@ -19,6 +19,15 @@ sector_color_palette = {
     "energy": "dodgerblue",
 }
 
+species_color_palette = {
+    "ch4":"dodgerblue",
+    "n2o":"darkorange",
+    "all_hfc": "firebrick",
+    "all_pfc": "darkblue",
+    "nf3": "lightgreen",
+    "sf6": "darkturquoise",
+}
+
 mean_color_palette = ["black", "saddlebrown", "dimgray", "peru", "darkgray",
 ]
 
@@ -264,3 +273,10 @@ def get_default_sector_colors() -> list[str]:
     """
 
     return sector_color_palette
+
+def get_default_species_colors() -> list[str]:
+    """
+    Returns colors to be used for species stacked bar chart plots.
+    """
+
+    return species_color_palette
