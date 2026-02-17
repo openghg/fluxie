@@ -869,7 +869,7 @@ def add_title(ax: Axes, country: str, r_data: dict, country_codes_as_titles: boo
 
     if country_codes_as_titles and country in r_data["regions"].keys():
         ax.set_title(f'{print_country}\n{r_data["regions"][country]}')
-    else:
+    elif country_codes_as_titles == False:
         ax.set_title(f"{print_country}")
 
 def add_vlines(ax: Axes, vline_dates: list[str]):
@@ -1112,6 +1112,12 @@ def plot_country_flux(
 
         # plot inventory
         if plot_inventory:
+            
+            #plot_inventory_uncertainty, inventory_years, = update_list_params(
+            #    [plot_inventory_uncertainty, inventory_years],
+            #    expected_size=len(inventory_years),
+            #    )
+            
             inventory_df = add_inventory_barplot(
                 ax,
                 data_dir,
@@ -1471,6 +1477,7 @@ def plot_all_species_stacked_bar(all_species: list[str],
             inventories_uncert_to_plot[species][0] = np.zeros_like(inventories_to_plot[species][0].values)
 
         if s == 0:
+            inv_plot_times = inventories_to_plot[species][0].time.values
             plot_times = ds_to_plot[species][models[s]].time.values
             uncert_combined = ds_to_plot[species][models[s]]['posterior_upper'].values-ds_to_plot[species][models[s]]['posterior_lower'].values
             inventories_uncert_combined = inventories_uncert_to_plot[species][0]
@@ -1490,13 +1497,13 @@ def plot_all_species_stacked_bar(all_species: list[str],
             inventory_label = None
 
         if s == (len(all_species)-1):
-            uncert = uncert_combined
-            inventories_uncert = inventories_uncert_combined
+            uncert = uncert_combined/2.
+            inventories_uncert = inventories_uncert_combined/2.
         else:
             uncert = None
             inventories_uncert = None
 
-        ax.bar(plot_times+width,
+        ax.bar(inv_plot_times+width,
             inventories_to_plot[species][0].values,
             width=width,
             bottom=inv_bottom,
@@ -1513,7 +1520,7 @@ def plot_all_species_stacked_bar(all_species: list[str],
             color=species_colors[species],
             label=s_data.get(species, {}).get('species_print', species),
             yerr=uncert,
-            error_kw={'capsize':2})
+            error_kw={'capsize':2},alpha=0.8)
 
         if s == 0:
             flux_sum = ds_to_plot[species][models[s]]['posterior'].values
@@ -1532,6 +1539,7 @@ def plot_all_species_stacked_bar(all_species: list[str],
 
     handles, labels = ax.get_legend_handles_labels()
     ax.legend(handles[::-1], labels[::-1], 
-              ncol=4,loc='upper right',borderpad=0.4,columnspacing=1.0)
+              ncol=4,loc='upper right',borderpad=0.4,columnspacing=1.0,
+              fontsize=12)
 
     return fig
