@@ -226,7 +226,10 @@ def slice_mf(
 
 
 def slice_site(
-    ds: xr.Dataset, sites: str | list[str], raise_error: bool = True
+    ds: xr.Dataset,
+    sites: str | list[str],
+    site: str | None = None,
+    raise_error: bool = True,
 ) -> xr.Dataset | None:
     """
     Slices the dataset to only include data for a given site.
@@ -252,6 +255,7 @@ def slice_site(
     for site in sites:
         site_index = get_site_index(ds, site)
         site_indices.append(site_index)
+
         if site_index is not None:
             mask += ds["number_of_identifier"] == site_index
         else:
@@ -319,7 +323,9 @@ def get_site_index(ds: xr.Dataset, site: str) -> int | None:
     if site in ds["platform"]:
         index = np.where(ds["platform"] == site)[0][0]
         return index
-
+    elif site in ds["sitenames"]:
+        index = np.where(ds["sitenames"] == site)[0][0]
+        return index
     return None
 
 

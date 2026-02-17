@@ -490,7 +490,9 @@ def add_xlims_and_ticks(
     ax.set_xlim(xlim)
 
 
-def get_minmax_unc(ds: xr.Dataset, time_as_datetime: list, ax) -> tuple[list, list]:
+def get_minmax_unc(
+    ds: xr.Dataset, time_as_datetime: list, ax
+) -> tuple[list, list] | tuple[None, None]:
     """
     Get uncertainty min and max values to plot the uncertainty band in add_line_plot.
     Args:
@@ -499,8 +501,10 @@ def get_minmax_unc(ds: xr.Dataset, time_as_datetime: list, ax) -> tuple[list, li
         time_as_datetime: time coordinate of the dataset as list of datetime, used to plot the uncertainty band.
     Return:
         min_unc: list of the same size as time_as_datetime containing the minimum values of the uncertainty band to plot.
-        max_unc: list of the same size as time_as_datetime containing the maximum values of the uncertainty band to plot.
+
+         max_unc: list of the same size as time_as_datetime containing the maximum values of the uncertainty band to plot.
     """
+    print(ds.percentile)
     if ds.percentile.size == 3:
         ax.fill_between(
             time_as_datetime,
@@ -525,6 +529,9 @@ def get_minmax_unc(ds: xr.Dataset, time_as_datetime: list, ax) -> tuple[list, li
         std_values = ds.sel(percentile="std").values
         min_unc = mean_values - std_values
         max_unc = mean_values + std_values
+    else:
+        min_unc = None
+        max_unc = None
     return min_unc, max_unc
 
 
