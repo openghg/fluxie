@@ -285,8 +285,7 @@ def extract_region_inventory_flux(
         inventory_year: year of inventory to get.
         inventory_filename: Name of inventory file: {inventory_filename}_{species}_{inventory_year}
     Returns:
-        dataset with country selected
-
+                dataset (and uncertainty dataset, if this is available) with country selected.
     """
 
     data_dir = Path(data_dir)
@@ -348,6 +347,8 @@ def extract_region_inventory_flux(
     inv_ds = inv_ds * scaling_factor * gwp
     inv_ds.attrs["units"] = unit
     inv_ds.attrs["year"] = inventory_year
+    
+    print(inv_ds)
 
     # Get country_codes only if regions_info exists
     country_codes = r_data.get("country_codes", {})
@@ -356,6 +357,8 @@ def extract_region_inventory_flux(
     
     if inv_stdev_ds is not None:
         inv_stdev_ds = inv_stdev_ds * scaling_factor * gwp
+        inv_stdev_ds.attrs["units"] = unit
+        inv_stdev_ds.attrs["year"] = inventory_year
         if country_search in inv_ds["country"]:
             inv_stdev_ds = inv_stdev_ds.sel(country=country_search)
         elif country in inv_ds["country"]:
@@ -381,7 +384,7 @@ def extract_region_inventory_flux(
     elif country_search in available_countries:
         inv_ds = inv_ds.sel({"country": country_search})
 
-    return inv_ds.sum(dim="country", keep_attrs=True)
+    return inv_ds.sum(dim="country", keep_attrs=True),inv_stdev_ds
 
 def format_plot_regions(
     plot_regions: str | list[str] | None = None,
