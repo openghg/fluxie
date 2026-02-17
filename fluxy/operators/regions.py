@@ -347,8 +347,6 @@ def extract_region_inventory_flux(
     inv_ds = inv_ds * scaling_factor * gwp
     inv_ds.attrs["units"] = unit
     inv_ds.attrs["year"] = inventory_year
-    
-    print(inv_ds)
 
     # Get country_codes only if regions_info exists
     country_codes = r_data.get("country_codes", {})
