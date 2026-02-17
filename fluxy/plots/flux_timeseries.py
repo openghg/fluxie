@@ -168,6 +168,7 @@ def prepare_data_to_plot(
     # Convert some inputs to list and check their size
     plot_separate, plot_combined, resample, rolling_mean = update_list_params(
         [plot_separate, plot_combined, resample, rolling_mean],
+        ['plot_separate','plot_combined','resample','rolling_mean'],
         expected_size=len(ds_all_region.keys()),
     )
 
@@ -772,7 +773,7 @@ def add_xlims_and_ticks(
         max_x = date(max_x.year + 1, 1, 1)
     xlim = [min_x - (max_x - min_x) / 50, max_x + (max_x - min_x) / 50]
 
-    if year_range > timedelta(days=8 * 365.25) or yearly_freq or xticks_at_centre:
+    if year_range > timedelta(days=8 * 365.25) or yearly_freq:
         min_x = date(min_x.year, 1, 1)
         max_x = date(max_x.year + 1, 1, 1)
         step = (max_x.year - min_x.year) // 8 + 1
@@ -790,7 +791,6 @@ def add_xlims_and_ticks(
             ax.set_xticklabels(xticks.astype("datetime64[Y]"))
             ax.xaxis.set_major_locator(YearLocator())
     else:
-        
         ax.xaxis.set_minor_locator(MonthLocator())
         ax.xaxis.set_major_locator(YearLocator())
 
@@ -1113,10 +1113,11 @@ def plot_country_flux(
         # plot inventory
         if plot_inventory:
             
-            #plot_inventory_uncertainty, inventory_years, = update_list_params(
-            #    [plot_inventory_uncertainty, inventory_years],
-            #    expected_size=len(inventory_years),
-            #    )
+            plot_inventory_uncertainty, inventory_years, = update_list_params(
+                [plot_inventory_uncertainty, inventory_years],
+                ['plot_inventory_uncertainty','inventory_years'],
+                expected_size=len(inventory_years),
+                )
             
             inventory_df = add_inventory_barplot(
                 ax,

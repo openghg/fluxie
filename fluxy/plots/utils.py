@@ -19,7 +19,8 @@ from fluxy.io import load_countries_shape
 logger = logging.getLogger(__name__)
 
 
-def update_list_params(params_to_check: list, expected_size: int) -> list:
+def update_list_params(params_to_check: list, params_to_check_names: list,
+                       expected_size: int) -> list:
     """
     Check if parameters are list of the expected lenght. If they are not list, convert them to list (except if it is None).
     Raise an error if it is a list but not of the expected size.
@@ -31,7 +32,7 @@ def update_list_params(params_to_check: list, expected_size: int) -> list:
         updated_params: the updated list of lists
     """
     updated_params = list()
-    for param in params_to_check:
+    for p,param in enumerate(params_to_check):
         if param is None:
             updated_params.append([False] * expected_size)
         elif type(param) is list:
@@ -39,7 +40,7 @@ def update_list_params(params_to_check: list, expected_size: int) -> list:
                 updated_params.append(param)
             else:
                 raise ValueError(
-                    f"{param} must be a boolean or a list of booleans of the same length as models."
+                    f"{params_to_check_names[p]}:{param} must be a boolean or a list of booleans of the same length as models or inventory_years."
                 )
         else:
             updated_params.append([param] * expected_size)
