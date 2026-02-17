@@ -486,7 +486,7 @@ def add_inventory_barplot(
     for i_inv, inventory in enumerate(inventories_to_plot):
         time_as_datetime = inventory.time.values.astype("datetime64[D]").tolist()
         
-        if plot_inventory_uncertainty[i_inv] is True and inventories_uncert_to_plot[i_inv] is not None:
+        if plot_inventory_uncertainty[i_inv] is True and inventories_uncert_to_plot[i_inv] is not None and np.any(inventories_uncert_to_plot[i_inv] > 0):
             yerr = inventories_uncert_to_plot[i_inv].values
         else:
             yerr = None
