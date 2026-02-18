@@ -1406,7 +1406,6 @@ def plot_all_species_stacked_bar(all_species: list[str],
                                  plot_inventory_uncertainty: bool = True,
                                  data_dir: str | None = None,
                                  sector: str = "total",
-                                 country_flux_units_print: str = "Tg CO2-eq yr-1",
                                  y_lim: list[float] | None = None
                                  ) -> Figure:
     """
@@ -1435,6 +1434,14 @@ def plot_all_species_stacked_bar(all_species: list[str],
     species_colors = config.get_default_species_colors()
 
     width = np.timedelta64(150,'D')
+    
+    unit = []
+    for s in all_species:
+        unit.append(get_unit(ds_all_flux_scaled[s]))
+    if all(x == unit[0] for x in unit):
+        country_flux_units_print = unit[0]
+    else:
+        logger.error('Units for all species\' datasets are not equal.')
 
     ds_to_plot = {}
     inventories_to_plot = {}
@@ -1481,10 +1488,12 @@ def plot_all_species_stacked_bar(all_species: list[str],
             inv_plot_times = inventories_to_plot[species][0].time.values
             plot_times = ds_to_plot[species][models[s]].time.values
             uncert_combined = ds_to_plot[species][models[s]]['posterior_upper'].values-ds_to_plot[species][models[s]]['posterior_lower'].values
-            inventories_uncert_combined = inventories_uncert_to_plot[species][0]
+            if plot_inventory_uncertainty:
+                inventories_uncert_combined = inventories_uncert_to_plot[species][0]
         else:
             uncert_combined = np.sqrt(uncert_combined**2 + (ds_to_plot[species][models[s]]['posterior_upper'].values - ds_to_plot[species][models[s]]['posterior_lower'].values)**2)
-            inventories_uncert_combined = np.sqrt(inventories_uncert_combined**2 + inventories_uncert_to_plot[species][0]**2)
+            if plot_inventory_uncertainty:
+                inventories_uncert_combined = np.sqrt(inventories_uncert_combined**2 + inventories_uncert_to_plot[species][0]**2)
 
     for s, species in enumerate(all_species):
 
@@ -1499,7 +1508,10 @@ def plot_all_species_stacked_bar(all_species: list[str],
 
         if s == (len(all_species)-1):
             uncert = uncert_combined/2.
-            inventories_uncert = inventories_uncert_combined/2.
+            if plot_inventory_uncertainty:
+                inventories_uncert = inventories_uncert_combined/2.
+            else:
+                inventories_uncert = None
         else:
             uncert = None
             inventories_uncert = None
@@ -1533,8 +1545,9 @@ def plot_all_species_stacked_bar(all_species: list[str],
         ax.set_xticks(plot_times+(width/2))
         ax.set_xticklabels((plot_times+(width/2)).astype('datetime64[Y]'))
 
-    ax.set_ylabel('Tg y$^{-1}$ CO$_2$-eq')
-
+    #ax.set_ylabel(country_flux_units_print)
+    add_ylabel(ax,s_data,species=f'{regions} total',unit=country_flux_units_print,
+               plot_type='country_plot',sector=sector)
     if y_lim:
         ax.set_ylim(y_lim)
 
