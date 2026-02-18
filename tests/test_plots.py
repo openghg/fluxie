@@ -390,7 +390,7 @@ def test_mole_fraction_diff():
 def test_mf_timeseries_multiple_site_axes():
     aggreg_month = False
     fig = plot_sites_list_mf(
-        ds_all_mf_sliced,
+        ds_all_mf_sliced_multiple_sites,
         multiple_sites,
         species,
         "mf_posterior",
@@ -405,7 +405,7 @@ def test_mf_timeseries_multiple_site_axes():
 def test_mf_timeseries_multiple_model_axes():
     aggreg_month = False
     fig = plot_sites_list_mf(
-        ds_all_mf_sliced,
+        ds_all_mf_sliced_multiple_sites,
         multiple_sites,
         species,
         "mf_posterior",

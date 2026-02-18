@@ -504,7 +504,7 @@ def get_minmax_unc(
 
          max_unc: list of the same size as time_as_datetime containing the maximum values of the uncertainty band to plot.
     """
-    print(ds.percentile)
+    
     if ds.percentile.size == 3:
         ax.fill_between(
             time_as_datetime,
