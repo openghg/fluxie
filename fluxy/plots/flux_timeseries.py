@@ -960,7 +960,7 @@ def plot_country_flux(
     start_date: str | None = None,
     end_date: str | None = None,
     annex_mode: bool = False,
-    plot_inventory: bool = True,
+    plot_inventory: bool = False,
     plot_inventory_uncertainty: bool | list[bool] = False,
     inventory_years: list[str] | None = None,
     inventory_filename: str = "UNFCCC_inventory",
