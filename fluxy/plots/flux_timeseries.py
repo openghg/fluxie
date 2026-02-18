@@ -1394,7 +1394,6 @@ def plot_country_sector_flux_bar(
 
 def plot_all_species_stacked_bar(all_species: list[str],
                                  ds_all_flux_scaled: dict[str, xr.Dataset],
-                                 models: list[str],
                                  regions: list[str],
                                  config_data: dict[str, dict] = {},
                                  model_colors: dict[str, str] = {},
@@ -1432,10 +1431,9 @@ def plot_all_species_stacked_bar(all_species: list[str],
     s_data = config_data.get("species_info", {})
     r_data = config_data.get("regions_info", {})
     species_colors = config.get_default_species_colors()
-
-    width = np.timedelta64(150,'D')
     
     unit = []
+    
     for s in all_species:
         unit.append(get_unit(ds_all_flux_scaled[s]))
     if all(x == unit[0] for x in unit):
@@ -1446,7 +1444,9 @@ def plot_all_species_stacked_bar(all_species: list[str],
     ds_to_plot = {}
     inventories_to_plot = {}
     inventories_uncert_to_plot = {}
-
+    
+    models = []
+        
     fig,ax = plt.subplots(1,1,figsize=(10,6))
 
     for s, species in enumerate(all_species):
@@ -1464,9 +1464,7 @@ def plot_all_species_stacked_bar(all_species: list[str],
             resample_uncert_correlation=False,
             aggreg_month=False,
         )
-
-        models[s] = list(ds_to_plot[species].keys())[0]
-
+            
         inventories_to_plot[species],inventories_uncert_to_plot[species] = retrieve_inventories(
             data_dir,
             regions,
@@ -1480,13 +1478,15 @@ def plot_all_species_stacked_bar(all_species: list[str],
             inventory_filename,
             sectors=sector,
         )
+        
+        models.append(list(ds_to_plot[species].keys())[0])
 
         if inventories_uncert_to_plot[species][0] is None:
             inventories_uncert_to_plot[species][0] = np.zeros_like(inventories_to_plot[species][0].values)
 
         if s == 0:
             inv_plot_times = inventories_to_plot[species][0].time.values
-            plot_times = ds_to_plot[species][models[s]].time.values
+            plot_times = ds_to_plot[species][models[s]].time.values.astype('datetime64[Y]')
             uncert_combined = ds_to_plot[species][models[s]]['posterior_upper'].values-ds_to_plot[species][models[s]]['posterior_lower'].values
             if plot_inventory_uncertainty:
                 inventories_uncert_combined = inventories_uncert_to_plot[species][0]
@@ -1495,8 +1495,10 @@ def plot_all_species_stacked_bar(all_species: list[str],
             if plot_inventory_uncertainty:
                 inventories_uncert_combined = np.sqrt(inventories_uncert_combined**2 + inventories_uncert_to_plot[species][0]**2)
 
-    for s, species in enumerate(all_species):
+    width = np.timedelta64(150,'D')
 
+    for s, species in enumerate(all_species):
+        
         if s == 0:
             bottom = None
             inv_bottom = None
@@ -1542,8 +1544,8 @@ def plot_all_species_stacked_bar(all_species: list[str],
             flux_sum += ds_to_plot[species][models[s]]['posterior'].values
             inventory_sum += inventories_to_plot[species][0].values
 
-        ax.set_xticks(plot_times+(width/2))
-        ax.set_xticklabels((plot_times+(width/2)).astype('datetime64[Y]'))
+    ax.set_xticks(plot_times+(width/2))
+    ax.set_xticklabels((plot_times+(width/2)).astype('datetime64[Y]'))
 
     #ax.set_ylabel(country_flux_units_print)
     add_ylabel(ax,s_data,species=f'{regions} total',unit=country_flux_units_print,
