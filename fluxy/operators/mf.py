@@ -94,7 +94,7 @@ def compute_mf_difference(
         },
         attrs={
             "description": f"Difference between {model_left} and {model_right}",
-            "exp_name": f"{ds_left.attrs['exp_name']} - {ds_left.attrs['exp_name']}",
+            "exp_name": f"{ds_left.attrs['exp_name']} - {ds_right.attrs['exp_name']}",
             "species": species,
         },
     )

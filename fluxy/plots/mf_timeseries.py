@@ -1064,7 +1064,7 @@ def plot_sites_list_mf(
         unc_variable: variable to use as uncertainty
         model_labels: labels to use for each model
         aggreg_month: if True, plot the data aggregated by month.
-            Used to study seasonnal cycle.
+            Used to study seasonal cycle.
         config_data: Dictionary with settings read from json file.
             Use json filenames as keys.
         data_on_single_graph: str, "sites" or "models", determines whether each axis has multiple sites or models.
