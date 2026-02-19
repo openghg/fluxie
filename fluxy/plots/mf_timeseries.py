@@ -32,7 +32,7 @@ from fluxy.plots.utils import set_min_decimal_points
 logger = logging.getLogger(__name__)
 
 
-class plot_types(Enum):
+class plotTypes(Enum):
     SEPARATE = "separate"
     TOGETHER = "together"
     DIFF = "diff"
@@ -224,7 +224,7 @@ def _prepare_data_to_plot(
     diff_include: None | list,
     aggreg_month: bool,
     time_freq_min: FrequencyType,
-    plot_type: plot_types,
+    plot_type: plotTypes,
 ) -> dict[str, xr.Dataset]:
     """
     Create dictionnary of datasets containing all the data that will be plotted.
@@ -323,7 +323,7 @@ def _set_labels_and_colors(
     ds_dict: dict[str, xr.Dataset],
     model_labels: dict[str, str],
     model_colors: dict[str, list],
-    plot_type: plot_types,
+    plot_type: plotTypes,
 ) -> dict[str, xr.Dataset]:
     """
     Set labels and colors, that will be used by add_line_plot and multi_histogram_plot, as attributes of the variables dataset.
@@ -369,7 +369,7 @@ def _set_labels_and_colors(
 
 def _create_figure(
     models: list[str],
-    plot_type: plot_types,
+    plot_type: plotTypes,
     histogram_type: str | None,
     aggreg_month: bool,
 ) -> tuple[Figure, Axes]:
@@ -607,7 +607,7 @@ def plot_timeseries(
     config_data: dict[str, dict] = {},
     annotate_coords: dict[int, list] = {},
     presentation_mode: bool = False,
-    plot_type: plot_types = "separate",
+    plot_type: plotTypes = "separate",
     diff_include: list[str] | None = None,
     y_lim: None | tuple[float | None, float | None] = None,
     n_bins: int = 30,
@@ -924,7 +924,7 @@ def multi_histogram_plot(
     presentation_mode: bool,
     annotate_coords: dict[int, list],
     annotate_index: int,
-    plot_type: plot_types,
+    plot_type: plotTypes,
     n_bins: int = 30,
     violin: bool = False,
     **kwargs,
@@ -1050,7 +1050,7 @@ def plot_sites_list_mf(
     model_labels: dict[str, dict],
     aggreg_month: bool = False,
     config_data: dict[str, dict] = {},
-    data_on_single_graph: str = "models",
+    data_on_single_graph: Literal["models", "sites"] = "sites",
 ):
     """
     Plot timeseries of multiple sites on the same subplots. One subplot corresponds to one model.
@@ -1086,15 +1086,13 @@ def plot_sites_list_mf(
 
     if data_on_single_graph == "models":
         axes_looper = models
-        # Create figure
-        ncols = int(np.sqrt(len(models)))
-        nrows = ceil(len(models) / ncols)
-
     elif data_on_single_graph == "sites":
         axes_looper = sites
+    else:
+        raise ValueError("data_on_single_graph should be 'models' or 'sites'")
 
-        ncols = int(np.sqrt(len(sites)))
-        nrows = ceil(len(sites) / ncols)
+    ncols = int(np.sqrt(len(axes_looper)))
+    nrows = ceil(len(axes_looper) / ncols)
 
     fig, ax = plt.subplots(
         nrows,
