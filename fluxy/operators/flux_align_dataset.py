@@ -109,7 +109,6 @@ def align_time(
     ).values
 
     # Check if time difference is within reasonal bounds before reindexing
-    print(target_time)
     [check_times_within_tolerance(ds, target_time, tolerance) for ds in ds_list]
     aligned_ds_list = [
         ds.reindex(time=target_time, method="nearest", tolerance=tolerance)
