@@ -118,11 +118,18 @@ def align_time(
     # Check for added NaNs
     for ds in aligned_ds_list:
         test_var = list(ds.data_vars)[0]
-        mask_no_data = ds[test_var].isnull().values[0]
+
+        if (ds[test_var].ndim) == 1:
+            mask_no_data = ds[test_var].isnull().values[0]
+        else:
+            mask_no_data = []
+            for i in range(ds.sizes["time"]):
+                mask_no_data.append(ds[test_var].isel(time=i).isnull().all().values)
+
         if np.any(mask_no_data):
             times_no_data = ds.time.values[mask_no_data]
             logger.warning(
-                f"NaN is being added to the timeseries of {ds.attrs['inversion_system']} {ds.attrs['species']} at: {times_no_data}."
+                f"NaN is being added to the timeseries of {ds.attrs.get('inversion_system','undefined model')} {ds.attrs.get('species','')} at: {times_no_data}."
             )
 
     return aligned_ds_list
