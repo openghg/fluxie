@@ -13,6 +13,7 @@ import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.dates import YearLocator, MonthLocator
+from functools import partial
 
 def prepare_flux_data(
     species, 
@@ -173,17 +174,17 @@ def plot_multi_species_flux(
         if add_Gg_per_year_axis:
             GWP = s_data.get(gas, {}).get("gwp", None)
             # Conversion functions
-            def Tg_to_Gg(y):
+            def Tg_to_Gg(y, GWP):
                 return y * 1000 / GWP
 
-            def Gg_to_Tg(y):
+            def Gg_to_Tg(y, GWP):
                 return y * GWP / 1000
 
             # Secondary y-axis
             sec_color = 'darkred' #(196/255, 112/255, 138/255)
             secax = ax.secondary_yaxis(
                 'right',
-                functions=(Tg_to_Gg, Gg_to_Tg)
+                functions=(partial(Tg_to_Gg, GWP), partial(Gg_to_Tg, GWP))
             )
 
             secax.set_ylabel(
