@@ -48,6 +48,9 @@ legacy_names: dict[str, str] = {
     "uYobs_repeatability": "stdev_mf_observed_repeatability",
     "uYobs_variability": "stdev_mf_observed_variability",
     "uYmod": "stdev_mf_model",
+    "flux_total_prior_out":"flux_total_prior_inversion_grid",
+    "flux_total_posterior_out":"flux_total_posterior_inversion_grid"
+    
 }
 
 

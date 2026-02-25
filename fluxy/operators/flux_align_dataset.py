@@ -139,6 +139,7 @@ def align_lat_lon(
 
 def align_map_data(
     ds_all: dict[xr.Dataset | xr.DataArray],
+    only_overlapping: bool = True,
 ) -> dict[xr.Dataset | xr.DataArray]:
     """
     Prepare flux datasets for flux maps by:
@@ -189,7 +190,7 @@ def align_map_data(
     # Step 3: Align dataset coordinates
     models = list(ds_all.keys())
     ds_list = list(ds_all.values())
-    ds_list = align_time(ds_list)
+    ds_list = align_time(ds_list,only_overlapping=only_overlapping)
     ds_list = align_lat_lon(ds_list, coord="latitude")
     ds_list = align_lat_lon(ds_list, coord="longitude")
 

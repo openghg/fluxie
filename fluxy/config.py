@@ -273,10 +273,3 @@ def get_default_sector_colors() -> list[str]:
     """
 
     return sector_color_palette
-
-def get_default_species_colors() -> list[str]:
-    """
-    Returns colors to be used for species stacked bar chart plots.
-    """
-
-    return species_color_palette

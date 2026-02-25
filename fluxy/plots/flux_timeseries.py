@@ -130,6 +130,7 @@ def prepare_data_to_plot(
     resample_uncert_correlation: bool = False,
     plot_resample_and_original: bool = False,
     aggreg_month: bool = False,
+    only_overlapping: bool = True,
 ) -> dict[str, xr.Dataset]:
     """
     Create a single xarray dataset for each set of data to be plotted.
@@ -156,6 +157,8 @@ def prepare_data_to_plot(
         plot_resample_and_original: If True, plots both the resampled data and the data as its original frequency. If False, only plots the
             resampled data.
         aggreg_month: if True, plot the data aggregated by month. Used to study seasonnal cycle.
+        only_overlapping: if True, only includes data from years when all models/species available. If False, 
+            includes all available data.
     Returns:
         ds_to_plot : dictionnary of datasets to plot
     """
@@ -270,7 +273,7 @@ def prepare_data_to_plot(
 
         for group_label, model_list in combined_models_dict.items():
                 combine_mask = [model in model_list for model in ds_to_combine.keys()]
-                ds_combined = combine_dataset(ds_to_combine, combine_mask)
+                ds_combined = combine_dataset(ds_to_combine, combine_mask,only_overlapping)
                 ds_combined["combined"].attrs["model_label"] = group_label
                 if any('_resample' in s for s in model_list) and plot_resample_and_original:
                     ds_combined["combined"].attrs["model_label"] += " (resampled)"
@@ -986,6 +989,7 @@ def plot_country_flux(
     plot_grid: bool = True,
     add_vline: list[str] | None = None,
     secondary_units: str | None = None,
+    only_overlapping: bool = True
 ) -> Figure | tuple[Figure, dict[str, dict]]:
     """
     Timeseries plot of prior and posterior country fluxes, from list of
@@ -1089,7 +1093,8 @@ def plot_country_flux(
             rolling_mean=rolling_mean,
             plot_resample_and_original=plot_resample_and_original,
             resample_uncert_correlation=resample_uncert_correlation,
-            aggreg_month=aggreg_month
+            aggreg_month=aggreg_month,
+            only_overlapping=only_overlapping
         )
 
         # plot posterior and prior (if requested)
@@ -1430,7 +1435,7 @@ def plot_all_species_stacked_bar(all_species: list[str],
 
     s_data = config_data.get("species_info", {})
     r_data = config_data.get("regions_info", {})
-    species_colors = config.get_default_species_colors()
+    species_colors = config.species_color_palette
     
     unit = []
     
