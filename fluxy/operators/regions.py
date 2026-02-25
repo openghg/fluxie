@@ -285,7 +285,7 @@ def extract_region_inventory_flux(
         inventory_year: year of inventory to get.
         inventory_filename: Name of inventory file: {inventory_filename}_{species}_{inventory_year}
     Returns:
-                dataset (and uncertainty dataset, if this is available) with country selected.
+        dataset (and uncertainty dataset, if this is available) with country selected.
     """
 
     data_dir = Path(data_dir)

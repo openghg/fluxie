@@ -9,6 +9,7 @@ from typing import Tuple
 from pathlib import Path
 from datetime import date, datetime, timedelta
 from calendar import isleap, month_abbr, monthrange
+import glob
 
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
@@ -1118,6 +1119,13 @@ def plot_country_flux(
         # plot inventory
         if plot_inventory:
             
+            if inventory_years is None:
+                
+                search_years_all = sorted(glob.glob(os.path.join(data_dir,'inventory',f'{inventory_filename}_{species}_*.nc')))
+                search_years = [x.replace("_provisional","").replace('.nc','').split('_')[-1] for x in search_years_all]
+                inventory_years = [search_years[-1]]
+                logger.warning(f'inventory_years is None, so using most recent year of available data: {inventory_years}')
+            
             plot_inventory_uncertainty, inventory_years, = update_list_params(
                 [plot_inventory_uncertainty, inventory_years],
                 ['plot_inventory_uncertainty','inventory_years'],
@@ -1444,8 +1452,7 @@ def plot_all_species_stacked_bar(all_species: list[str],
     if all(x == unit[0] for x in unit):
         country_flux_units_print = unit[0]
     else:
-        logger.error('Units for all species\' datasets are not equal.')
-
+        raise ValueError('Units for all species\' datasets are not equal.')
     ds_to_plot = {}
     inventories_to_plot = {}
     inventories_uncert_to_plot = {}
@@ -1485,6 +1492,10 @@ def plot_all_species_stacked_bar(all_species: list[str],
         )
         
         models.append(list(ds_to_plot[species].keys())[0])
+        
+        if len(list(ds_to_plot[species].keys())) > 1:
+            logger.warning(f"Only the first model {list(ds_to_plot[species].keys())} will be plotted because this function is "+
+                           "currently only set up to plot inventory data and model output from one model.")
 
         if inventories_uncert_to_plot[species][0] is None:
             inventories_uncert_to_plot[species][0] = np.zeros_like(inventories_to_plot[species][0].values)

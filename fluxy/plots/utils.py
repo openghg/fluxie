@@ -39,8 +39,12 @@ def update_list_params(params_to_check: list, params_to_check_names: list,
             if len(param) == expected_size:
                 updated_params.append(param)
             else:
+                if params_to_check_names[p] in ['plot_separate','plot_combined','resample','rolling_mean']:
+                    ref_list = "models"
+                elif params_to_check_names[p] in ['plot_inventory_uncertainty','inventory_years']:
+                    ref_list = "inventory_years"
                 raise ValueError(
-                    f"{params_to_check_names[p]}:{param} must be a boolean or a list of booleans of the same length as models or inventory_years."
+                    f"{params_to_check_names[p]}:{param} must be a boolean or a list of booleans of the same length as {ref_list}."
                 )
         else:
             updated_params.append([param] * expected_size)
