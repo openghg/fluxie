@@ -1,9 +1,37 @@
 import numpy as np
 import xarray as xr
+import pandas as pd
 import logging
 from typing import Literal
 
 logger = logging.getLogger(__name__)
+
+
+def check_times_within_tolerance(
+    ds: xr.Dataset, target_time: np.ndarray, tolerance: np.timedelta64
+):
+    """
+    Check if timestamps of a dataset are within a given tolerance of at least one time value in a target time array.
+
+    Args:
+        ds: xarray dataset with time dimension
+        target_time: target time array
+        tolerance: maximum time difference allowed between timestamps.
+    """
+
+    # Convert to datetime
+    ds_time = ds.time.values.astype("datetime64[ns]")
+    target_ds_time = target_time.astype("datetime64[ns]")
+    max_diff = np.timedelta64(int(tolerance), "ns")
+
+    # Get difference between ds_time and target_time
+    time_diff = np.min(np.abs(ds_time[:, None] - target_ds_time[None, :]), axis=1)
+
+    # Check if difference is within tolerance
+    if np.any(time_diff > max_diff):
+        raise ValueError(
+            f"{ds.attrs['inversion_system']}, {ds.attrs['species']}: Timestamps are too different from target time array. Timestamps cannot be aligned."
+        )
 
 
 def align_time(
@@ -21,6 +49,7 @@ def align_time(
         aligned_ds_list: list of xarray datasets time-aligned
     """
 
+    # Check if all timestamps are equal
     time_dim_equal = [ds_list[0].time.equals(x.time) for x in ds_list[1:]]
 
     if all(time_dim_equal):
@@ -33,67 +62,71 @@ def align_time(
             raise ValueError("Unable to infer period from dataset")
         period = np.median(dtime)
     else:
-        period = None  # no period if only one timestamp
         logger.warning(
             "Datasets have only one time value — aligning them with the time "
             "coordinate of the first dataset in the list "
             "without checking time difference."
         )
-        
 
-    # Reduce datasets to their overlapping time range (only if period can be inferred)
-    if period is not None and only_overlapping == True:
+        # Redefine timestamps according to first dataset
+        aligned_ds_list = [ds_list[0]]
+        for ds_p in ds_list[1:]:
+            ds_p["time"] = ds_list[0].time
+            aligned_ds_list.append(ds_p)
+
+        return aligned_ds_list
+
+    # Define time tolerance
+    tolerance = 0.1 * period
+
+    if only_overlapping:
+        # Reduce datasets to their overlapping time range
         min_date = max([x.time.min() for x in ds_list]) - period / 2
         max_date = min([x.time.max() for x in ds_list]) + period / 2
-        ds_list = [ds.sel(time=slice(min_date, max_date)) for ds in ds_list]
+        sliced_ds_list = [ds.sel(time=slice(min_date, max_date)) for ds in ds_list]
 
-    else:
-        time_warning = ["only_overlapping is set to False so all following data is included:"]
-                
-        min_date = min([x.time.min() for x in ds_list]) - period / 2
-        max_date = max([x.time.max() for x in ds_list]) + period / 2
+        # Redefine timestamps according to first dataset
+        target_time = sliced_ds_list[0].time
+        aligned_ds_list = [sliced_ds_list[0]]
 
-        for i, ds in enumerate(ds_list):
-            time_warning.append(f"({ds.attrs['inversion_system']}) {ds.attrs['species']}: "+
-            f"[{ds_list[i].time.min().values.astype('datetime64[D]')} to "+
-            f"{ds_list[i].time.max().values.astype('datetime64[D]')}]")
+        for ds_p in sliced_ds_list[1:]:
+            if ds_p.time.equals(target_time):
+                aligned_ds_list.append(ds_p)
+                continue
 
-            time_all = ds["time"].values
-
-            t1 = time_all[0] - period
-            while t1 >= min_date:
-                time_all = np.concatenate(([t1], time_all))
-                t1 = time_all[0] - period
-
-            t2 = time_all[-1] + period
-            while t2 <= max_date:
-                time_all = np.concatenate((time_all, [t2]))
-                t2 = time_all[-1] + period
-
-            ds_list[i] = ds.reindex(
-                indexers={"time": time_all}, fill_value=np.nan, method=None
-            )
-            
-        for w in time_warning: logger.warning(w)
-
-    aligned_ds_list = [ds_list[0]]
-
-    for ds_p in ds_list[1:]:
-        if ds_list[0].time.equals(ds_p.time):
+            # Check if time difference is within reasonal bounds before rewriting timestamps
+            check_times_within_tolerance(ds_p, target_time.values, tolerance)
+            ds_p["time"] = target_time
             aligned_ds_list.append(ds_p)
-            continue
 
-        if period is not None:
-            diff_time = abs(ds_list[0].time.values - ds_p.time.values)
-            if any(diff_time > 0.1 * period):
-                raise ValueError(
-                    f"Time dimensions seem to be too different between the datasets for them to be combined "
-                    + f'(period of reference dataset: {period.astype("timedelta64[D]")}, max difference: {max(diff_time).astype("timedelta64[D]")})'
-                )
+        return aligned_ds_list
 
-        ds_aligned = ds_p
-        ds_aligned["time"] = ds_list[0].time
-        aligned_ds_list.append(ds_aligned)
+    # Define new timestamps based on min/max timestamps of all datasets
+    min_date = min([x.time.min() for x in ds_list])
+    max_date = max([x.time.max() for x in ds_list])
+    target_time = pd.date_range(
+        start=min_date.values, end=max_date.values+pd.to_timedelta(period), freq=pd.to_timedelta(period)
+    ).values
+
+    # Check if time difference is within reasonal bounds before reindexing
+    [check_times_within_tolerance(ds, target_time, tolerance) for ds in ds_list]
+    aligned_ds_list = [
+        ds.reindex(time=target_time, method="nearest", tolerance=tolerance)
+        for ds in ds_list
+    ]
+
+    # Check for added NaNs
+    for ds in aligned_ds_list:
+        test_var = list(ds.data_vars)[0]
+        mask_no_data = []
+        for i in range(ds.sizes["time"]):
+            mask_no_data.append(ds[test_var].isel(time=i).isnull().all().values)
+
+        if np.any(mask_no_data):
+            times_no_data = ds.time.values[mask_no_data]
+            logger.warning(
+                f"NaN is being added to the timeseries of {ds.attrs.get('inversion_system','undefined model')} {ds.attrs.get('species','')} at: {times_no_data}."
+            )
 
     return aligned_ds_list
 
