@@ -34,9 +34,6 @@ country_equivalent = {
 }
 
 
-
-
-
 def get_unit(ds_all: dict[str, xr.Dataset]) -> str:
     """
     Determine unit of posterior estimations from datasets. If incoherencies between datasets, an error is raised.
@@ -46,7 +43,12 @@ def get_unit(ds_all: dict[str, xr.Dataset]) -> str:
         unit: unit of posterior variables in dataset.
     """
 
-    variables_to_check = ["flux_total_posterior_country", "posterior", "flux_total_prior_country", "prior"]
+    variables_to_check = [
+        "flux_total_posterior_country",
+        "posterior",
+        "flux_total_prior_country",
+        "prior",
+    ]
 
     for var in variables_to_check:
         if all([var in ds for ds in ds_all.values()]):
@@ -62,6 +64,7 @@ def get_unit(ds_all: dict[str, xr.Dataset]) -> str:
     raise ValueError(
         f"Did not find any of the expected variables {variables_to_check} in every dataset. Thus couldn't determine unit."
     )
+
 
 def determine_subplots_arrangement(subplot_number: int) -> tuple[int, int]:
     """
@@ -230,7 +233,9 @@ def prepare_data_to_plot(
                 combined_models_dict = {"Mean": list(ds_all_region.keys())}
             else:
                 combined_model_list = sum(combined_models_dict.values(), [])
-                check_missing_models = set(combined_model_list) - set(ds_all_region.keys())
+                check_missing_models = set(combined_model_list) - set(
+                    ds_all_region.keys()
+                )
                 if check_missing_models:
                     raise ValueError(
                         f"Models in `combined_model_list` are not available: {check_missing_models}. "
@@ -248,20 +253,21 @@ def prepare_data_to_plot(
                 ]
             }
 
-        combined_resample = [resamp for comb, resamp in zip(plot_combined, resample) if comb]
-        use_resampled = ( 
-            len(unique_resample := set(combined_resample)) == 1
-            and unique_resample not in ({None}, {False})
-        )
+        combined_resample = [
+            resamp for comb, resamp in zip(plot_combined, resample) if comb
+        ]
+        use_resampled = len(
+            unique_resample := set(combined_resample)
+        ) == 1 and unique_resample not in ({None}, {False})
         if use_resampled:
-                combined_models_dict = {
-                    group_label: [f"{model}_resample" for model in model_list]
-                    for group_label, model_list in combined_models_dict.items()
-                }
-                ds_to_combine = {
-                    m: calc_rolling_mean(ds) if rm else ds
-                    for rm, (m, ds) in zip(rolling_mean, ds_resampled.items())
-                }
+            combined_models_dict = {
+                group_label: [f"{model}_resample" for model in model_list]
+                for group_label, model_list in combined_models_dict.items()
+            }
+            ds_to_combine = {
+                m: calc_rolling_mean(ds) if rm else ds
+                for rm, (m, ds) in zip(rolling_mean, ds_resampled.items())
+            }
         else:
             ds_to_combine = {
                 m: calc_rolling_mean(ds) if rm else ds
@@ -269,14 +275,16 @@ def prepare_data_to_plot(
             }
 
         for group_label, model_list in combined_models_dict.items():
-                combine_mask = [model in model_list for model in ds_to_combine.keys()]
-                ds_combined = combine_dataset(ds_to_combine, combine_mask)
-                ds_combined["combined"].attrs["model_label"] = group_label
-                if any('_resample' in s for s in model_list) and plot_resample_and_original:
-                    ds_combined["combined"].attrs["model_label"] += " (resampled)"
-                new_key = group_label.replace(" ", "_")
-                ds_combined = {f"combined_{new_key}": ds_combined["combined"]} # rename key to include group label
-                ds_to_plot.update(ds_combined)
+            combine_mask = [model in model_list for model in ds_to_combine.keys()]
+            ds_combined = combine_dataset(ds_to_combine, combine_mask)
+            ds_combined["combined"].attrs["model_label"] = group_label
+            if any("_resample" in s for s in model_list) and plot_resample_and_original:
+                ds_combined["combined"].attrs["model_label"] += " (resampled)"
+            new_key = group_label.replace(" ", "_")
+            ds_combined = {
+                f"combined_{new_key}": ds_combined["combined"]
+            }  # rename key to include group label
+            ds_to_plot.update(ds_combined)
 
     # Determine plot color and label of each dataset
     color_usage = {k: 0 for k in map_model_colors.keys()}
@@ -284,7 +292,9 @@ def prepare_data_to_plot(
     for m in ds_to_plot.keys():
         if "combined" in m:
             include_label = ds_to_plot[m].attrs.get("model_label", None)
-            model_color = config.mean_color_palette[i_comb % len(config.mean_color_palette)]
+            model_color = config.mean_color_palette[
+                i_comb % len(config.mean_color_palette)
+            ]
             i_comb += 1
         else:
             include_label = ds_to_plot[m].attrs.get("model_label", None)
@@ -306,7 +316,11 @@ def prepare_data_to_plot(
 
 
 def add_line_plot(
-    ax: Axes, ds: xr.Dataset, variable: Literal["posterior","prior"], highlighted_line: bool = False, add_unc: bool = False
+    ax: Axes,
+    ds: xr.Dataset,
+    variable: Literal["posterior", "prior"],
+    highlighted_line: bool = False,
+    add_unc: bool = False,
 ) -> dict[str, dict]:
     """
     Plot the posterior/prior data on the axis. The variable posterior/prior of the dataset ds is plotted as a line (color and label found in the dataset
@@ -318,27 +332,29 @@ def add_line_plot(
         highlighted_line: for posterior/prior, if True, the linewidth is made bigger (3.0/1.5) than when False (1.5/1.0). Typicaly used for the annexes to highlight the PARIS mean.
         add_unc: if True, plots model uncertainty.
     Returns:
-        res: dataframe with one line per timestamp and 9 columns ("type", "model", "sector", "country", "species", 
+        res: dataframe with one line per timestamp and 9 columns ("type", "model", "sector", "country", "species",
             "time", "mean_val", "min_unc", "max_unc")
     """
     if variable == "posterior":
         kwargs_plot = dict(
-            ls = "-",
-            lw = 3 if highlighted_line else 1.5,
-            alpha = 1.0,
-            label = ds.attrs["model_label"],
+            ls="-",
+            lw=3 if highlighted_line else 1.5,
+            alpha=1.0,
+            label=ds.attrs["model_label"],
         )
-        alpha_unc = 0.2        
+        alpha_unc = 0.2
     elif variable == "prior":
         kwargs_plot = dict(
-            ls = "--",
-            lw = 1.5 if highlighted_line else 1.0,
-            alpha = 1.0 if highlighted_line else 0.7,
-            label = ds.attrs["model_label"] + " prior",
+            ls="--",
+            lw=1.5 if highlighted_line else 1.0,
+            alpha=1.0 if highlighted_line else 0.7,
+            label=ds.attrs["model_label"] + " prior",
         )
         alpha_unc = 0.1
     else:
-        raise ValueError("Available options for 'variable' parameter are 'prior' and 'posterior'.")
+        raise ValueError(
+            "Available options for 'variable' parameter are 'prior' and 'posterior'."
+        )
 
     time_as_datetime = ds.time.values.astype("datetime64[D]").tolist()
 
@@ -351,11 +367,26 @@ def add_line_plot(
 
     res = pd.DataFrame(
         {
-            "type": [variable,] * ds.time.size,
-            "model": [ds.attrs["model_label"],] * ds.time.size,
-            "sector": [ds.attrs["sector"],] * ds.time.size,
-            "country": [ds.attrs["country"],] * ds.time.size,
-            "species": [ds.attrs["species"],] * ds.time.size,
+            "type": [
+                variable,
+            ]
+            * ds.time.size,
+            "model": [
+                ds.attrs["model_label"],
+            ]
+            * ds.time.size,
+            "sector": [
+                ds.attrs["sector"],
+            ]
+            * ds.time.size,
+            "country": [
+                ds.attrs["country"],
+            ]
+            * ds.time.size,
+            "species": [
+                ds.attrs["species"],
+            ]
+            * ds.time.size,
             "time": time_as_datetime,
             "mean_val": ds[variable].values,
         }
@@ -409,7 +440,7 @@ def add_inventory_barplot(
         sector: sector we want to plot.
         annex_mode: If True, replace Inventory label with a more concise version for National Inventory Report Annexes.
     Returns:
-        res: dataframe with one line per timestamp and 7 columns ("type", "model", "sector", "country", "species", 
+        res: dataframe with one line per timestamp and 7 columns ("type", "model", "sector", "country", "species",
             "time", "mean_val")
     """
 
@@ -456,11 +487,26 @@ def add_inventory_barplot(
 
         tmp = pd.DataFrame(
             {
-                "type": ["inventory",] * inventory.time.size,
-                "model": [f"inventory_{inventory.year}",] * inventory.time.size,
-                "sector": [sector,] * inventory.time.size,
-                "country": [country,] * inventory.time.size,
-                "species": [species,] * inventory.time.size,
+                "type": [
+                    "inventory",
+                ]
+                * inventory.time.size,
+                "model": [
+                    f"inventory_{inventory.year}",
+                ]
+                * inventory.time.size,
+                "sector": [
+                    sector,
+                ]
+                * inventory.time.size,
+                "country": [
+                    country,
+                ]
+                * inventory.time.size,
+                "species": [
+                    species,
+                ]
+                * inventory.time.size,
                 "time": time_as_datetime,
                 "mean_val": inventory.values,
             }
@@ -481,7 +527,7 @@ def add_sector_barplot(
         variable: variable to plot (either "posterior" or "prior")
         bottom_values: bottom values passed as argument toax.bar. Correspond to the previous heights of the stacks.
     Returns:
-        res: dataframe with one line per timestamp and 7 columns ("type", "model", "sector", "country", "species", 
+        res: dataframe with one line per timestamp and 7 columns ("type", "model", "sector", "country", "species",
             "time", "mean_val")
     """
 
@@ -526,11 +572,26 @@ def add_sector_barplot(
 
     res = pd.DataFrame(
         {
-            "type": [variable,] * ds_sector.time.size,
-            "model": [ds_sector.attrs["model_label"],] * ds_sector.time.size,
-            "sector": [sector,] * ds_sector.time.size,
-            "country": [ds_sector.attrs["country"],] * ds_sector.time.size,
-            "species": [ds_sector.attrs["species"],] * ds_sector.time.size,
+            "type": [
+                variable,
+            ]
+            * ds_sector.time.size,
+            "model": [
+                ds_sector.attrs["model_label"],
+            ]
+            * ds_sector.time.size,
+            "sector": [
+                sector,
+            ]
+            * ds_sector.time.size,
+            "country": [
+                ds_sector.attrs["country"],
+            ]
+            * ds_sector.time.size,
+            "species": [
+                ds_sector.attrs["species"],
+            ]
+            * ds_sector.time.size,
             "time": np.array(time_as_datetime) + offset,
             "mean_val": ds_sector[variable].values + bottom_values,
         }
@@ -808,6 +869,7 @@ def add_title(ax: Axes, country: str, r_data: dict, country_codes_as_titles: boo
     else:
         ax.set_title(f"{print_country}")
 
+
 def add_vlines(ax: Axes, vline_dates: list[str]):
     """
     Add vertical lines to matplotlib axes at specified dates.
@@ -823,8 +885,8 @@ def add_vlines(ax: Axes, vline_dates: list[str]):
             linestyle="dotted",
             linewidth=2.5,
         )
-        
-        
+
+
 def add_secondary_yaxis(
     ax: Axes,
     s_data: dict[str, dict],
@@ -834,7 +896,7 @@ def add_secondary_yaxis(
     secondary_unit: str,
 ):
     """
-    Add a secondary y-axis to the plot, converting from `unit` 
+    Add a secondary y-axis to the plot, converting from `unit`
     to `secondary_unit`, including CO2-eq aware conversions.
 
     Args:
@@ -848,10 +910,8 @@ def add_secondary_yaxis(
 
     # Get conversion factor between the two units
     conversion_factor = convert_units_co2eq(
-        from_unit = unit, 
-        to_unit = secondary_unit, 
-        species_info = s_data.get(species, {})
-        )
+        from_unit=unit, to_unit=secondary_unit, species_info=s_data.get(species, {})
+    )
 
     # Define foward and backward conversion functions
     def unit_to_secondary_unit(y):
@@ -862,25 +922,19 @@ def add_secondary_yaxis(
 
     # Create secondary y-axis
     secax = ax.secondary_yaxis(
-        'right',
-        functions=(unit_to_secondary_unit, secondary_unit_to_unit)
+        "right", functions=(unit_to_secondary_unit, secondary_unit_to_unit)
     )
 
     # Styling
-    sec_color = 'darkred'
-    secax.tick_params(axis='y', colors=sec_color)
-    secax.spines['right'].set_color(sec_color)
-    secax.spines['right'].set_linewidth(1.5)
+    sec_color = "darkred"
+    secax.tick_params(axis="y", colors=sec_color)
+    secax.spines["right"].set_color(sec_color)
+    secax.spines["right"].set_linewidth(1.5)
 
     # Labeling
     add_ylabel(
-        secax, 
-        s_data, 
-        species, 
-        secondary_unit, 
-        plot_type="country_plot", 
-        sector=sector
-        )
+        secax, s_data, species, secondary_unit, plot_type="country_plot", sector=sector
+    )
     secax.yaxis.label.set_color("darkred")
     secax.yaxis.label.set_rotation(270)
     secax.yaxis.labelpad = 20
@@ -982,7 +1036,6 @@ def plot_country_flux(
     s_data = config_data.get("species_info", {})
     r_data = config_data.get("regions_info", {})
 
-
     plot_regions = format_plot_regions(plot_regions, ds_all)
     unit = get_unit(ds_all)
 
@@ -1024,18 +1077,29 @@ def plot_country_flux(
         # plot posterior and prior (if requested)
         for m, ds_region in ds_to_plot.items():
             highlighted_post = ("combined" in m) & annex_mode
-            add_post_unc = (("combined" in m) & plot_combined_unc) |  (("combined" not in m) & plot_separate_unc)
+            add_post_unc = (("combined" in m) & plot_combined_unc) | (
+                ("combined" not in m) & plot_separate_unc
+            )
             if "posterior" in ds_region.data_vars:
                 posterior_df = add_line_plot(
-                    ax, ds_region, variable="posterior", highlighted_line=highlighted_post, add_unc=add_post_unc
+                    ax,
+                    ds_region,
+                    variable="posterior",
+                    highlighted_line=highlighted_post,
+                    add_unc=add_post_unc,
                 )
                 plotted_data_df = pd.concat(
                     [plotted_data_df, posterior_df], ignore_index=True
                 )
-            
 
             if add_prior:
-                prior_df = add_line_plot(ax, ds_region, variable="prior", highlighted_line=not annex_mode, add_unc=add_prior_unc)
+                prior_df = add_line_plot(
+                    ax,
+                    ds_region,
+                    variable="prior",
+                    highlighted_line=not annex_mode,
+                    add_unc=add_prior_unc,
+                )
                 plotted_data_df = pd.concat(
                     [plotted_data_df, prior_df], ignore_index=True
                 )

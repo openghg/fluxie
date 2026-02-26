@@ -244,7 +244,7 @@ def slice_site(
         ds (xarray dataset):
             Dataset with mf data of a given model, sliced to only include data for the given site(s).
     """
-    if isinstance(site,str):
+    if isinstance(site, str):
         sites = [site]
     else:
         sites = site
@@ -315,11 +315,11 @@ def get_site_index(ds: xr.Dataset, site: str) -> int | None:
             Index of site of interest in the dataset.
             Returns None if site does not exist.
     """
-    
+
     if site in ds["platform"]:
         index = np.where(ds["platform"] == site)[0][0]
         return index
-    
+
     return None
 
 
