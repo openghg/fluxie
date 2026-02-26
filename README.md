@@ -6,19 +6,39 @@ Follow the steps below to run the notebook and plot model results.
 
 ## Installation
 
+#### At your local machine
 Clone the repository and install fluxy:
 ```
 git clone https://github.com/openghg/fluxy.git
 cd fluxy
 pip install -e .
 ```
-Note: in the ICOS Jupyter Hub, you might need to restart the kernel so that package fluxy is found.
+
+#### At ICOS Jupyter Hub
+Create and activate virtual environment:
+```
+python -m venv fluxy-env         
+source fluxy-env/bin/activate
+```
+Install IPython kernel package for Jupyter into the current environment and register the current environment as a new kernel:
+```
+pip install --upgrade pip
+pip install ipykernel
+python -m ipykernel install --user --name fluxy-env --display-name "fluxy-env"
+```
+And finally install fluxy:
+```
+git clone https://github.com/openghg/fluxy.git
+cd fluxy
+pip install -e .
+```
 
 ## Quick start 
 
 If you want to try fluxy, the easiest way is to run the example notebook `scripts/example_basics.ipynb`.
 It will run with some test data and show you what fluxy can do.
 
+**Note for ICOS Jupyter Hub:** make sure that your newly created environment (fluxy-env in the example above) is the selected kernel in the drop down list in the upper right corner. If it does not show up, restart your Jupyter instance following these instructions: https://icos-carbon-portal.github.io/jupyter/how_to/#restart-your-jupyter-instance
 
 ## Prepare input files
 ### 1. Flux and concentration netCDF files with model results
