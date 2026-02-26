@@ -309,7 +309,7 @@ def add_line_plot(
     ax: Axes, ds: xr.Dataset, variable: Literal["posterior","prior"], highlighted_line: bool = False, add_unc: bool = False
 ) -> dict[str, dict]:
     """
-    Plot the posterior/prior data on the axis. The variable posterior/prior of the dataset ds_region is plotted as a line (color and label found in the dataset
+    Plot the posterior/prior data on the axis. The variable posterior/prior of the dataset ds is plotted as a line (color and label found in the dataset
     attributes) and the uncertainty (variables lower_posterior/prior, upper_posterior/prior in the dataset) is plotted as a semi-transparent filled space.
     Args:
         ax: axes on which to plot

@@ -393,12 +393,13 @@ def test_mf_timeseries_multiple_site_axes():
         ds_all_mf_sliced_multiple_sites,
         multiple_sites,
         species,
-        "mf_posterior",
-        "percentile_mf_posterior",
+        {"mf_observed": None, "mf_posterior": "percentile_mf_posterior"},
         model_labels,
+        model_colors,
         aggreg_month,
         config_data,
         "sites",
+        unc_type="FillBetween",
     )
 
 
@@ -408,12 +409,13 @@ def test_mf_timeseries_multiple_model_axes():
         ds_all_mf_sliced_multiple_sites,
         multiple_sites,
         species,
-        "mf_posterior",
-        "percentile_mf_posterior",
+        {"mf_observed": None, "mf_posterior": "percentile_mf_posterior"},
         model_labels,
+        model_colors,
         aggreg_month,
         config_data,
         "models",
+        unc_type="FillBetween",
     )
 
 

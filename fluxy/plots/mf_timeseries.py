@@ -326,7 +326,7 @@ def _set_labels_and_colors(
     plot_type: plotTypes,
 ) -> dict[str, xr.Dataset]:
     """
-    Set labels and colors, that will be used by add_line_plot and multi_histogram_plot, as attributes of the variables dataset.
+    Set labels and colors, that will be used by add_mf_line_scatter_plot and plot_histogram, as attributes of the variables dataset.
     For variables "mf_observed" and "observed_above_BC", the color will be black (and not one of model_colors) if more than one variable is plotted.
     Args:
         ds_dict: dictionnary containing the dataset with the variables to be plotted (and only them).
@@ -491,60 +491,81 @@ def add_xlims_and_ticks(
 
 
 def get_minmax_unc(
-    ds: xr.Dataset, time_as_datetime: list, ax
+    ds: xr.Dataset
 ) -> tuple[list, list] | tuple[None, None]:
     """
-    Get uncertainty min and max values to plot the uncertainty band in add_line_plot.
+    Get uncertainty min and max values to plot the uncertainty band in add_mf_line_scatter_plot.
     Args:
-        ax: axes on which to plot
         ds: dataset containing posterior/prior data
-        time_as_datetime: time coordinate of the dataset as list of datetime, used to plot the uncertainty band.
     Return:
-        min_unc: list of the same size as time_as_datetime containing the minimum values of the uncertainty band to plot.
-
-         max_unc: list of the same size as time_as_datetime containing the maximum values of the uncertainty band to plot.
+        min_unc: list of the same size as ds.time containing the minimum values of the uncertainty band to plot.
+        max_unc: list of the same size as ds.time containing the maximum values of the uncertainty band to plot.
     """
-    
-    if ds.percentile.size == 3:
-        ax.fill_between(
-            time_as_datetime,
-            y1=ds.sel(percentile="lower"),
-            y2=ds.sel(percentile="upper"),
-            alpha=0.2,
-            color=ds.attrs["plot_color"],
-        )
+    time_as_datetime = ds.time.values.astype("datetime64[D]").tolist()
+    if ds.percentile.size == 3:  
         min_unc = ds.sel(percentile="lower").values
         max_unc = ds.sel(percentile="upper").values
 
     elif ds.percentile.size == 2:
+        std_values = ds.sel(percentile="std").values
+        min_unc = std_values
+        max_unc = std_values
+    else:
+        min_unc = None
+        max_unc = None
+ 
+    return min_unc, max_unc
+
+def add_unc_plot(ax: Axes,
+    min_unc:list[np.float64], 
+    max_unc:list[np.float64],
+    plot_type: Literal["Errorbar", "FillBetween"],
+    ds: xr.Dataset
+):
+    """
+    Get uncertainty min and max values to plot the uncertainty band in add_mf_line_scatter_plot.
+    Args:
+        ax: axes on which to plot
+        min_unc: list of the same size as ds.time containing the minimum values of the uncertainty band to plot.
+        max_unc: list of the same size as ds.time containing the maximum values of the uncertainty band to plot.
+        plot_type: type of plot to use for uncertainty ("Errorbar" or "FillBetween")
+    """
+    time_as_datetime = ds.time.values.astype("datetime64[D]").tolist()
+    
+    if plot_type == "FillBetween":
+        ax.fill_between(
+            time_as_datetime,
+            y1=min_unc,
+            y2=max_unc,
+            alpha=0.2,
+            color=ds.attrs["plot_color"],
+        )
+
+    elif plot_type == "Errorbar":
         ax.errorbar(
             time_as_datetime,
             y=ds.sel(percentile="mean"),
-            yerr=ds.sel(percentile="std"),
+            yerr=min_unc,
             alpha=0.4,
             fmt="none",
             color=ds.attrs["plot_color"],
         )
-        mean_values = ds.sel(percentile="mean").values
-        std_values = ds.sel(percentile="std").values
-        min_unc = mean_values - std_values
-        max_unc = mean_values + std_values
     else:
-        min_unc = None
-        max_unc = None
-    return min_unc, max_unc
+        raise ValueError(f"Uncertainty plot type {plot_type} not implemented. Set plot_type to 'Errorbar' or 'FillBetween'.")
 
-
-def add_line_plot(
-    ax: Axes, ds: xr.Dataset, plot_type: str, add_unc: bool = True
+def add_mf_line_scatter_plot(
+    ax: Axes, ds: xr.Dataset, plot_type: str, add_unc: bool = True,
+    marker: str = "s",
+    unc_type: Literal["Errorbar", "FillBetween"] = "FillBetween"
 ) -> pd.DataFrame:
     """
-    Add line plot with uncertainty if requested.
+    Add line/scatter plot with uncertainty if requested.
     Args:
         ax: axes on which to plot
-        ds: dataset containing posterior/prior data
+        ds: dataset containing mole fraction data to plot
         plot_type: used to determine labels to display
         add_unc: if True, plot uncertainty
+        unc_type: type of plot to use for uncertainty ("Errorbar" or "FillBetween")
     Return:
         res: dataframe with data plotted
     """
@@ -563,12 +584,12 @@ def add_line_plot(
 
     if ds.name in ["mf_observed", "observed_above_BC"] or plot_type == "diff":
         plot_func = ax.scatter
-        add_kwargs = {"s": 8, "marker": "s"}
+        kwargs.update({"s": 8, "marker": marker})
     else:
         plot_func = ax.plot
-        add_kwargs = {"linewidth": 2.0, "marker": "o", "markersize": 1.5}
+        kwargs.update({"linewidth": 2.0, "marker": "o", "markersize": 1.5})
 
-    plot_func(time_as_datetime, ds.sel(percentile="mean"), **kwargs, **add_kwargs)
+    plot_func(time_as_datetime, ds.sel(percentile="mean"), **kwargs)
 
     res = pd.DataFrame(
         {
@@ -592,8 +613,8 @@ def add_line_plot(
     if not add_unc:
         return res
 
-    res["min_unc"], res["max_unc"] = get_minmax_unc(ds, time_as_datetime, ax)
-
+    res["min_unc"], res["max_unc"] = get_minmax_unc(ds)
+    add_unc_plot(ax, res["min_unc"], res["max_unc"], unc_type, ds)
     return res
 
 
@@ -616,6 +637,7 @@ def plot_timeseries(
     histogram_type: Literal["hist", "violin", "none"] | None = "hist",
     hist_kwargs: dict[str, any] = {},
     aggreg_month: bool = False,
+    unc_type: Literal["Errorbar", "FillBetween"] = "FillBetween",
 ):
     """
     Timeseries plots of observations, modelled mole fractions, baseline mf and/or
@@ -657,6 +679,8 @@ def plot_timeseries(
             line. If the frequency is lower than this, the line will be discontinous.
             see :py:func:`fluxy.operators.select.clean_timeseries_missing_data`
             for more information.
+        unc_type (str, optional):
+            Type of plot to use for uncertainty ("Errorbar" or "FillBetween"). Default is "FillBetween".
     Returns:
         fig (figure):
             A timeseries and histogram plot for each model included.
@@ -695,12 +719,12 @@ def plot_timeseries(
 
         # Loop over all variables to plot
         for var in include.keys():
-            res = add_line_plot(ax[iax, 0], data_to_plot[m][var], plot_type)
+            res = add_mf_line_scatter_plot(ax[iax, 0], data_to_plot[m][var], plot_type,unc_type)
             plotted_data_df = pd.concat([plotted_data_df, res], ignore_index=True)
 
         # Plot histogram
         if ax.shape[1] == 2:
-            multi_histogram_plot(
+            plot_histogram(
                 ax[iax, 1],
                 data_to_plot[m].sel(percentile="mean"),
                 m,
@@ -915,7 +939,7 @@ def plot_sites_timeseries(
     return fig
 
 
-def multi_histogram_plot(
+def plot_histogram(
     ax: Axes,
     ds: xr.Dataset,
     model: str,
@@ -1045,15 +1069,16 @@ def plot_sites_list_mf(
     ds_all: dict[str, xr.Dataset],
     sites: list[str],
     species: str,
-    variable: str,
-    unc_variable: str | None,
+    include: VariableType,
     model_labels: dict[str, dict],
+    model_colors: dict[str, list],
     aggreg_month: bool = False,
     config_data: dict[str, dict] = {},
     data_on_single_graph: Literal["models", "sites"] = "sites",
+    unc_type: Literal["Errorbar", "FillBetween"] = "FillBetween",
 ):
     """
-    Plot timeseries of multiple sites on the same subplots. One subplot corresponds to one model.
+    Plot timeseries of multiple site, with subplots separated by site or model.
     Args:
         ds_all: xarray datasets, scaled and sliced between chosen dates and for
             chosen site.
@@ -1068,6 +1093,7 @@ def plot_sites_list_mf(
         config_data: Dictionary with settings read from json file.
             Use json filenames as keys.
         data_on_single_graph: str, "sites" or "models", determines whether each axis has multiple sites or models.
+        unc_type: type of plot to use for uncertainty ("Errorbar" or "FillBetween"). Default is "FillBetween".
     Returns:
         fig: figure created
         plotted_data_df: data plotted on the figure
@@ -1092,38 +1118,41 @@ def plot_sites_list_mf(
         raise ValueError("data_on_single_graph should be 'models' or 'sites'")
 
     ncols = int(np.sqrt(len(axes_looper)))
+    ncols=1
     nrows = ceil(len(axes_looper) / ncols)
-
+    length = 8 if aggreg_month else 15
     fig, ax = plt.subplots(
         nrows,
         ncols,
-        figsize=(ncols * 5 if aggreg_month else ncols * 6, nrows * 3),
+        figsize=(length, nrows * 3),
         constrained_layout=True,
         sharey="row",
         sharex="col",
         squeeze=False,
     )
-
+    
     ax = ax.flatten()
-
+    if model_colors is None:
+        model_colors = config.set_model_colors(ds_dict.keys())
+    obs_markers=["s","v","^","<",">","p","P","*","+"]
     for isite, site in enumerate(sites):
         for im, m in enumerate(models):
             # Select site
+            attrs={"sites": {"plot_label": model_labels[m], "plot_color": model_colors[m][0]},
+                   "models": {"plot_label": site, "plot_color": f"C{isite:02d}"},}
+          
             if data_on_single_graph == "models":
-                attrs_update = {"plot_label": site, "plot_color": f"C{isite:02d}"}
                 ax_index = im
+                marker_index=isite
             elif data_on_single_graph == "sites":
-                attrs_update = {
-                    "plot_label": model_labels[m],
-                    "plot_color": f"C{im:02d}",
-                }
                 ax_index = isite
+                marker_index=im
             ds_all_site = slice_site_dict_of_datasets(ds_all_p, site)
 
             # Prepare data to plot
             data_to_plot = _prepare_data_to_plot(
                 ds_all_site,
-                {variable: unc_variable},
+                include,
                 diff_include=None,
                 time_freq_min=None,
                 aggreg_month=aggreg_month,
@@ -1131,21 +1160,35 @@ def plot_sites_list_mf(
             )
 
             unit = _get_unit(data_to_plot)
-            data_to_plot[m][variable].attrs.update(attrs_update)
-            res = add_line_plot(
-                ax[ax_index],
-                data_to_plot[m][variable],
-                plot_type=plot_type,
-                add_unc=unc_variable,
-            )
-            plotted_data_df = pd.concat([plotted_data_df, res], ignore_index=True)
+            for variable in include.keys():
+                if variable in ["mf_observed", "observed_above_BC"] and len(include.keys()) > 1:
+                    attrs_update = attrs[data_on_single_graph].copy()
+                    attrs_update["plot_color"] = "black"
+                    marker=obs_markers[marker_index]
+                elif data_on_single_graph == "sites":
+                    attrs_update = attrs[data_on_single_graph].copy()
+                else:
+                    attrs_update = attrs[data_on_single_graph].copy()
+                attrs_update["plot_label"] += f" {config.mf_labels.get(variable, variable)}"
+                data_to_plot[m][variable].attrs.update(attrs_update)
+                res = add_mf_line_scatter_plot(
+                    ax[ax_index],
+                    data_to_plot[m][variable],
+                    plot_type=plot_type,
+                    marker=marker,
+                    add_unc=include[variable],
+                    unc_type=unc_type,
+                )
+                plotted_data_df = pd.concat([plotted_data_df, res], ignore_index=True)
 
     for iaxes, label in enumerate(axes_looper):
+        if axes_looper == models:
+            label=model_labels[label]
         ax[iaxes].set_title(label)
         ax[iaxes].set_ylabel(
             " ".join(
                 [
-                    config.mf_labels.get(variable, variable),
+                    #config.mf_labels.get(variable, variable),
                     species_info.get("species_print", ""),
                     f"({unit})",
                 ]
@@ -1158,11 +1201,11 @@ def plot_sites_list_mf(
             labels,
             loc="upper center",
             ncol=(
-                len(labels) if len(labels) <= 6 else len(labels) // 2 + len(labels) % 2
+               len(labels) if len(labels) <= 6 else len(labels) // 2 + len(labels) % 2
             ),
             borderpad=0.4,
             columnspacing=1.0,
-            # bbox_to_anchor=legend_loc,
+            bbox_to_anchor=[   0.5, 0.96],
         )
 
         if len(data_to_plot[m].time) <= 1:

@@ -94,7 +94,7 @@ def slice_mf(
     ds_all: dict[str, xr.Dataset],
     start_date: str = None,
     end_date: str = None,
-    site: str | list[str] = None,
+    site: str | list[str] | None = None,
     baseline_site: str = None,
     baseline_filename: str = "InTEM_baseline_timestamps",
     data_dir: os.PathLike | None = None,
@@ -114,7 +114,7 @@ def slice_mf(
         end_date (str):
             Date to slice data to, e.g. '2022-01-01' would include all
             data up to 2021-12-31.
-        site (str):
+        site (str | list[str] | None):
             Obs site to select data from, e.g. 'MHD'.
         baseline_site (str):
             Site used to define baseline at, options for 'MHD', 'JFJ', or 'CMN'.
@@ -227,8 +227,7 @@ def slice_mf(
 
 def slice_site(
     ds: xr.Dataset,
-    sites: str | list[str]=[None],
-    site: str | None = None,
+    site: str | list[str],
     raise_error: bool = True,
 ) -> xr.Dataset | None:
     """
@@ -237,7 +236,7 @@ def slice_site(
     Args:
         ds (xarray dataset):
             Dataset with mf data of a given model.
-        sites (str | list[str]):
+        site (str | list[str]):
             Site(s) of interest.
         raise_error:
             if True, raise an error if the site is not found in the dataset.
@@ -247,10 +246,8 @@ def slice_site(
     """
     if isinstance(site,str):
         sites = [site]
-    if not isinstance(sites, list):
-        sites = [
-            sites,
-        ]
+    else:
+        sites = site
 
     mask = ds["number_of_identifier"] * False
     site_indices = []
@@ -261,21 +258,18 @@ def slice_site(
         if site_index is not None:
             mask += ds["number_of_identifier"] == site_index
         else:
-            msg = f"Site {site} not found for model {ds.attrs['exp_name']}."
-            if raise_error:
-                raise ValueError(msg)
-            else:
-                logger.warning(msg)
+            logger.warning(f"Site {site} not found for model {ds.attrs['exp_name']}.")
 
     if mask.any():
         ds = ds.where(mask, drop=True)
         return ds
     else:
         msg = f"No data for any sites {sites} with indices {site_indices} in model {ds.attrs['exp_name']}."
-    if raise_error:
-        raise ValueError(msg)
-    else:
-        logger.warning(msg)
+        if raise_error:
+            raise ValueError(msg)
+        else:
+            logger.warning(msg)
+            return None
 
 
 def slice_height(ds: xr.Dataset, intake_height: float) -> xr.Dataset:
@@ -325,9 +319,7 @@ def get_site_index(ds: xr.Dataset, site: str) -> int | None:
     if site in ds["platform"]:
         index = np.where(ds["platform"] == site)[0][0]
         return index
-    elif "sitenames" in ds.keys() and site in ds["sitenames"]:
-        index = np.where(ds["sitenames"] == site)[0][0]
-        return index
+    
     return None
 
 
