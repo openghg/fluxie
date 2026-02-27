@@ -105,7 +105,7 @@ def align_time(
     min_date = min([x.time.min() for x in ds_list])
     max_date = max([x.time.max() for x in ds_list])
     target_time = pd.date_range(
-        start=min_date.values, end=max_date.values+pd.to_timedelta(period), freq=pd.to_timedelta(period)
+        start=min_date.values, end=max_date.values+pd.to_timedelta(period)/2, freq=pd.to_timedelta(period)
     ).values
 
     # Check if time difference is within reasonal bounds before reindexing

@@ -486,6 +486,12 @@ def add_inventory_barplot(
         sectors=sector,
     )
     
+    plot_inventory_uncertainty, inventory_years, = update_list_params(
+        [plot_inventory_uncertainty, inventory_years],
+        ['plot_inventory_uncertainty','inventory_years'],
+        expected_size=len(inventory_years),
+        )
+    
     res = pd.DataFrame()
     for i_inv, inventory in enumerate(inventories_to_plot):
         time_as_datetime = inventory.time.values.astype("datetime64[D]").tolist()
@@ -1125,13 +1131,7 @@ def plot_country_flux(
                 search_years = [x.replace("_provisional","").replace('.nc','').split('_')[-1] for x in search_years_all]
                 inventory_years = [search_years[-1]]
                 logger.warning(f'inventory_years is None, so using most recent year of available data: {inventory_years}')
-            
-            plot_inventory_uncertainty, inventory_years, = update_list_params(
-                [plot_inventory_uncertainty, inventory_years],
-                ['plot_inventory_uncertainty','inventory_years'],
-                expected_size=len(inventory_years),
-                )
-            
+
             inventory_df = add_inventory_barplot(
                 ax,
                 data_dir,

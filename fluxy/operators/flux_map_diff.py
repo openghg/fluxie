@@ -71,13 +71,9 @@ def define_var_plot(
             ].mean(dim="time")
 
         else:
+            
             if var_p in ds:
                 var_p_bis = var_p
-            elif var_p.replace('_inversion_grid','_out') in ds:
-                var_p_bis = var_p.replace("_inversion_grid", "_out")
-                logger.warning(
-                    f"'{var_p}' not found in dataset(s) (inversion system = {ds.attrs['inversion_system']}), replaced by '{var_p_bis}' for this model."
-                )    
             else:
                 if (
                     "_inversion_grid" in var_p
