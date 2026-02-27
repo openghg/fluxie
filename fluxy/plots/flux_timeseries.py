@@ -9,7 +9,6 @@ from typing import Tuple
 from pathlib import Path
 from datetime import date, datetime, timedelta
 from calendar import isleap, month_abbr, monthrange
-import glob
 
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
@@ -456,11 +455,6 @@ def add_inventory_barplot(
         res: dataframe with one line per timestamp and 7 columns ("type", "model", "sector", "country", "species", 
             "time", "mean_val")
     """
-    
-    if type(plot_inventory_uncertainty) == bool:
-        plot_inventory_uncertainty = [plot_inventory_uncertainty] * len(inventory_years)
-        logger.info("Plotting inventory uncertainty for all inventory_years. "+
-                       "Turn this off setting `plot_inventory_uncertainty` as a list of True/False")
 
     data_dir = Path(data_dir)
 
@@ -485,13 +479,13 @@ def add_inventory_barplot(
         inventory_filename,
         sectors=sector,
     )
-    
-    plot_inventory_uncertainty, inventory_years, = update_list_params(
-        [plot_inventory_uncertainty, inventory_years],
-        ['plot_inventory_uncertainty','inventory_years'],
-        expected_size=len(inventory_years),
-        )
-    
+
+    (plot_inventory_uncertainty,) = update_list_params(
+        [plot_inventory_uncertainty],
+        ["plot_inventory_uncertainty"],
+        expected_size=len(inventories_uncert_to_plot),
+    )
+
     res = pd.DataFrame()
     for i_inv, inventory in enumerate(inventories_to_plot):
         time_as_datetime = inventory.time.values.astype("datetime64[D]").tolist()
@@ -1124,14 +1118,6 @@ def plot_country_flux(
 
         # plot inventory
         if plot_inventory:
-            
-            if inventory_years is None:
-                
-                search_years_all = sorted(glob.glob(os.path.join(data_dir,'inventory',f'{inventory_filename}_{species}_*.nc')))
-                search_years = [x.replace("_provisional","").replace('.nc','').split('_')[-1] for x in search_years_all]
-                inventory_years = [search_years[-1]]
-                logger.warning(f'inventory_years is None, so using most recent year of available data: {inventory_years}')
-
             inventory_df = add_inventory_barplot(
                 ax,
                 data_dir,
