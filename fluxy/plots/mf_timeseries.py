@@ -1147,7 +1147,7 @@ def plot_sites_list_mf(
         for im, m in enumerate(models):
             # Select site
             if m not in model_colors:
-                model_colors[m] = config.set_model_colors([m])[m]
+                model_colors[m] = config.get_default_colors()
             attrs = {
                 "sites": {
                     "plot_label": model_labels[m],
@@ -1243,3 +1243,4 @@ def plot_sites_list_mf(
     )
 
     return fig, plotted_data_df
+
