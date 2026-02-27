@@ -263,13 +263,13 @@ def slice_site(
     if mask.any():
         ds = ds.where(mask, drop=True)
         return ds
+    
+    msg = f"No data for any sites {sites} with indices {site_indices} in model {ds.attrs['exp_name']}."
+    if raise_error:
+        raise ValueError(msg)
     else:
-        msg = f"No data for any sites {sites} with indices {site_indices} in model {ds.attrs['exp_name']}."
-        if raise_error:
-            raise ValueError(msg)
-        else:
-            logger.warning(msg)
-            return None
+        logger.warning(msg)
+        return None
 
 
 def slice_height(ds: xr.Dataset, intake_height: float) -> xr.Dataset:

@@ -1079,8 +1079,8 @@ def plot_sites_list_mf(
     sites: list[str],
     species: str,
     include: VariableType,
-    model_labels: dict[str, dict],
-    model_colors: dict[str, list],
+    model_labels: dict[str, dict]={},
+    model_colors: dict[str, list]={},
     aggreg_month: bool = False,
     config_data: dict[str, dict] = {},
     data_on_single_graph: Literal["models", "sites"] = "sites",
@@ -1126,9 +1126,9 @@ def plot_sites_list_mf(
     else:
         raise ValueError("data_on_single_graph should be 'models' or 'sites'")
 
-    ncols = int(np.sqrt(len(axes_looper)))
+  
     ncols = 1
-    nrows = ceil(len(axes_looper) / ncols)
+    nrows = len(axes_looper)
     length = 8 if aggreg_month else 15
     fig, ax = plt.subplots(
         nrows,
@@ -1141,12 +1141,13 @@ def plot_sites_list_mf(
     )
 
     ax = ax.flatten()
-    if model_colors is None:
-        model_colors = config.set_model_colors(ds_dict.keys())
+    
     obs_markers = ["s", "v", "^", "<", ">", "p", "P", "*", "+"]
     for isite, site in enumerate(sites):
         for im, m in enumerate(models):
             # Select site
+            if m not in model_colors:
+                model_colors[m] = config.set_model_colors([m])[m]
             attrs = {
                 "sites": {
                     "plot_label": model_labels[m],
@@ -1181,11 +1182,9 @@ def plot_sites_list_mf(
                 ):
                     attrs_update = attrs[data_on_single_graph].copy()
                     attrs_update["plot_color"] = "black"
-                    marker = obs_markers[marker_index]
-                elif data_on_single_graph == "sites":
-                    attrs_update = attrs[data_on_single_graph].copy()
                 else:
                     attrs_update = attrs[data_on_single_graph].copy()
+                marker = obs_markers[marker_index]   
                 attrs_update[
                     "plot_label"
                 ] += f" {config.mf_labels.get(variable, variable)}"
@@ -1207,7 +1206,6 @@ def plot_sites_list_mf(
         ax[iaxes].set_ylabel(
             " ".join(
                 [
-                    # config.mf_labels.get(variable, variable),
                     species_info.get("species_print", ""),
                     f"({unit})",
                 ]
