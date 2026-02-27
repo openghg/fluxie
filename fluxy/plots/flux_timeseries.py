@@ -965,7 +965,7 @@ def plot_country_flux(
     end_date: str | None = None,
     annex_mode: bool = False,
     plot_inventory: bool = False,
-    plot_inventory_uncertainty: bool | list[bool] = False,
+    plot_inventory_uncertainty: bool | list[bool] | None = None,
     inventory_years: list[str] | None = None,
     inventory_filename: str = "UNFCCC_inventory",
     data_dir: os.PathLike | None = None,
