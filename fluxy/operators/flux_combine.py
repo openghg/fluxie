@@ -7,7 +7,8 @@ logger = logging.getLogger(__name__)
 
 
 def combine_dataset(
-    ds_all: dict[str, xr.Dataset], plot_combined: list[bool],
+    ds_all: dict[str, xr.Dataset],
+    plot_combined: list[bool],
     only_overlapping: bool = True,
 ) -> dict[str, xr.Dataset]:
     """
@@ -19,7 +20,9 @@ def combine_dataset(
         A dictionnary with 'combined' as key and the combined dataset as value.
     """
     ds_to_combined = [ds for i, ds in enumerate(ds_all.values()) if plot_combined[i]]
-    ds_to_combined_aligned = align_time(ds_to_combined, only_overlapping=only_overlapping)
+    ds_to_combined_aligned = align_time(
+        ds_to_combined, only_overlapping=only_overlapping
+    )
 
     ds_combined = xr.concat(
         ds_to_combined_aligned, "model", combine_attrs="drop_conflicts"
@@ -58,7 +61,9 @@ def combine_map_dataset(ds_all: dict[str, xr.Dataset]) -> dict[str, xr.Dataset]:
     models = list(ds_all.keys())
     ds_list = list(ds_all.values())
 
-    ds_combined = xr.concat(ds_list, dim="model", join="outer", combine_attrs="override")
+    ds_combined = xr.concat(
+        ds_list, dim="model", join="outer", combine_attrs="override"
+    )
     kwargs_combine = {"dim": "model", "keep_attrs": True}
 
     for var in ds_combined.data_vars:

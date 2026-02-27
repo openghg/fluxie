@@ -112,8 +112,20 @@ def _extract_region_flux_sector(
         "prior_lower",
         "prior_upper",
     ]
-        
-    v_present = dict(zip(ds_all.keys(),[['posterior','prior'] if f"flux_{sector}_prior_country" in ds else ['posterior'] for m,ds in ds_all.items()]))
+
+    v_present = dict(
+        zip(
+            ds_all.keys(),
+            [
+                (
+                    ["posterior", "prior"]
+                    if f"flux_{sector}_prior_country" in ds
+                    else ["posterior"]
+                )
+                for m, ds in ds_all.items()
+            ],
+        )
+    )
 
     dict_regions: dict[str, str] = regions_info.get("regions", {})
 
@@ -324,7 +336,7 @@ def extract_region_inventory_flux(
         if "inventory" in inv_ds_all.keys()
         else inv_ds_all[f"flux_{sector}_inventory_country"]
     )
-    
+
     if f"stdev_flux_{sector}_inventory_country" in inv_ds_all.keys():
         inv_stdev_ds = inv_ds_all[f"stdev_flux_{sector}_inventory_country"]
     else:
@@ -352,7 +364,7 @@ def extract_region_inventory_flux(
     country_codes = r_data.get("country_codes", {})
     # Look for the code if country_codes is defined, otherwise assume the code was given as input
     country_search = country_codes.get(country, country)
-    
+
     if inv_stdev_ds is not None:
         inv_stdev_ds = inv_stdev_ds * scaling_factor * gwp
         inv_stdev_ds.attrs["units"] = unit
@@ -365,12 +377,15 @@ def extract_region_inventory_flux(
     if country_search in inv_ds["country"]:
         return inv_ds.sel(country=country_search), inv_stdev_ds  # new format
     elif country in inv_ds["country"]:
-        return inv_ds.sel(country=country), inv_stdev_ds  # old format (would only work if the user specifies the country name)
+        return (
+            inv_ds.sel(country=country),
+            inv_stdev_ds,
+        )  # old format (would only work if the user specifies the country name)
 
     # if grouped countries:
     available_countries = inv_ds["country"].values.astype(str)
     dict_regions: dict[str, str] = r_data.get("regions", {})
-        
+
     if country_search not in available_countries and country in dict_regions.keys():
         region_search = dict_regions[country]
         country_list = region_search.split("-")
@@ -381,10 +396,13 @@ def extract_region_inventory_flux(
         )
     elif country_search in available_countries:
         inv_ds = inv_ds.sel({"country": country_search})
-        
-    logger.info('There is currently no option to plot inventory uncertainty for grouped countries. This functionality will be added later')
 
-    return inv_ds.sum(dim="country", keep_attrs=True),inv_stdev_ds
+    logger.info(
+        "There is currently no option to plot inventory uncertainty for grouped countries. This functionality will be added later"
+    )
+
+    return inv_ds.sum(dim="country", keep_attrs=True), inv_stdev_ds
+
 
 def format_plot_regions(
     plot_regions: str | list[str] | None = None,

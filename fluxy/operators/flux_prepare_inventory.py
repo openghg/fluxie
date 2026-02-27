@@ -61,7 +61,7 @@ def retrieve_inventories(
 
     ds_sectors = {y: list() for y in inventory_years}
     ds_uncert_sectors = {y: list() for y in inventory_years}
-    
+
     for sector in sectors:
         tmp, tmp_stdev = _retrieve_inventories_sector(
             data_dir,
@@ -79,11 +79,15 @@ def retrieve_inventories(
         for i, y in enumerate(inventory_years):
             ds_sectors[y].append(tmp[i].expand_dims(dim={"sector": [sector]}))
             if tmp_stdev[i] is not None:
-                ds_uncert_sectors[y].append(tmp_stdev[i].expand_dims(dim={"sector": [sector]}))
+                ds_uncert_sectors[y].append(
+                    tmp_stdev[i].expand_dims(dim={"sector": [sector]})
+                )
             else:
                 ds_uncert_sectors[y].append(None)
 
-    return [xr.concat(ds_sectors[y], dim="sector") for y in inventory_years],[xr.concat(ds_uncert_sectors[y], dim="sector") for y in inventory_years]
+    return [xr.concat(ds_sectors[y], dim="sector") for y in inventory_years], [
+        xr.concat(ds_uncert_sectors[y], dim="sector") for y in inventory_years
+    ]
 
 
 def _retrieve_inventories_sector(
@@ -141,7 +145,9 @@ def _retrieve_inventories_sector(
         ds_inv.attrs["plot_color"] = inv_color
         inventories_list.append(ds_inv.sel(time=slice(start_date, end_date)))
         if ds_inv_stdev is not None:
-            inventories_uncert_list.append(ds_inv_stdev.sel(time=slice(start_date, end_date)))
+            inventories_uncert_list.append(
+                ds_inv_stdev.sel(time=slice(start_date, end_date))
+            )
         else:
             inventories_uncert_list.append(None)
 

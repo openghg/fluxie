@@ -51,7 +51,7 @@ def plot_flux_map(
     include_title_and_labels: bool = True,
     site_marker: str = "o",
     city_marker: str = "^",
-    marker_color: str | None = None
+    marker_color: str | None = None,
 ) -> plt.Figure:
     """
     Plot posterior and prior fluxes and the difference between them for all models, time averaged.
@@ -207,7 +207,8 @@ def plot_flux_map(
             cmap_i = cmap_diff if is_diff else cmap
             border_color = c_border_diff if is_diff else c_border
             vlim_i = (-fluxlim[1], fluxlim[1]) if is_diff else fluxlim
-            if marker_color is None: marker_color = "black" if is_diff else "red"
+            if marker_color is None:
+                marker_color = "black" if is_diff else "red"
             extend_i = "both" if is_diff else "max"
 
             # Plot the data
@@ -232,7 +233,7 @@ def plot_flux_map(
                 ax_i.set_xticklabels([])
             if col > 0:
                 ax_i.set_yticklabels([])
-                
+
             if not include_title_and_labels:
                 ax_i.set_xticks([])
                 ax_i.set_yticks([])
@@ -250,10 +251,13 @@ def plot_flux_map(
                 add_site_markers(ax_i, sites_info, marker_color, site_marker)
             if add_markers:
                 add_custom_markers(
-                    ax_i, add_markers, marker_color, config_data["regions_info"],
-                    city_marker
+                    ax_i,
+                    add_markers,
+                    marker_color,
+                    config_data["regions_info"],
+                    city_marker,
                 )
-                
+
             if include_title_and_labels:
                 cbar_label_format = ["variable", "species", "units", "time"]
             else:
@@ -303,7 +307,7 @@ def plot_flux_map_model_comparison(
     sector: str = "total",
     site_marker: str = "o",
     city_marker: str = "^",
-    marker_color: str | None = None
+    marker_color: str | None = None,
 ) -> plt.Figure:
     """
     Plot a given flux variable for two models and the difference between them.
@@ -439,7 +443,8 @@ def plot_flux_map_model_comparison(
         cmap_i = cmap_diff if is_diff else cmap
         border_color = c_border_diff if is_diff else c_border
         vlim_i = (-lim[1], lim[1]) if is_diff else lim
-        if marker_color is None: marker_color = "black" if is_diff else "red"
+        if marker_color is None:
+            marker_color = "black" if is_diff else "red"
         extend_i = "both" if is_diff else "max"
 
         # Plot the data
@@ -482,8 +487,11 @@ def plot_flux_map_model_comparison(
             add_site_markers(ax_i, sites_info, marker_color, site_marker)
         if add_markers:
             add_custom_markers(
-                ax_i, add_markers, marker_color, config_data["regions_info"],
-                city_marker
+                ax_i,
+                add_markers,
+                marker_color,
+                config_data["regions_info"],
+                city_marker,
             )
 
         # Add colorbar
@@ -536,7 +544,7 @@ def plot_flux_map_over_time(
     add_gridlines: bool = False,
     site_marker: str = "o",
     city_marker: str = "^",
-    marker_color: str | None = None
+    marker_color: str | None = None,
 ) -> plt.Figure:
     """
     Plot a given flux variable averaged over specific time intervals, for all models or the model mean.
@@ -657,7 +665,8 @@ def plot_flux_map_over_time(
     is_diff = "diff" in var
     cmap = cmap_diff if is_diff else cmap
     border_color = c_border_diff if is_diff else c_border
-    if marker_color is None: marker_color = "black" if is_diff else "darkblue"
+    if marker_color is None:
+        marker_color = "black" if is_diff else "darkblue"
     extend = "both" if is_diff else "max"
 
     # Initialise figure
@@ -752,18 +761,21 @@ def plot_flux_map_over_time(
 
             if add_markers:
                 add_custom_markers(
-                    ax_i, add_markers, marker_color, config_data["regions_info"],
-                    city_marker
+                    ax_i,
+                    add_markers,
+                    marker_color,
+                    config_data["regions_info"],
+                    city_marker,
                 )
-                
+
             if add_gridlines:
                 ax_i.grid(visible=True, which="major", alpha=0.4)
-                
+
     if include_title_and_labels:
         cbar_label_format = ["variable", "species", "units", "time"]
     else:
         cbar_label_format = ["species", "units", "time"]
-        
+
     # Add colorbar
     cbar_label = print_cbar_label(
         ds,
@@ -784,6 +796,7 @@ def plot_flux_map_over_time(
     )
 
     return fig
+
 
 def plot_flux_map_combined_models_comparison(
     ds_all: dict[xr.Dataset],
@@ -810,7 +823,7 @@ def plot_flux_map_combined_models_comparison(
     sector: str = "total",
     site_marker: str = "o",
     city_marker: str = "^",
-    marker_color: str | None = None
+    marker_color: str | None = None,
 ) -> plt.Figure:
     """
     Plot a given flux variable for two groups of combined models and the difference between them.
@@ -908,7 +921,9 @@ def plot_flux_map_combined_models_comparison(
     ds_comparison = {}
     ds_comparison["group_a"] = ds_group_a["combined"]
     ds_comparison["group_b"] = ds_group_b["combined"]
-    ds_comparison["diff"] = make_model_diff_ds(ds_comparison["group_a"], ds_comparison["group_b"])
+    ds_comparison["diff"] = make_model_diff_ds(
+        ds_comparison["group_a"], ds_comparison["group_b"]
+    )
 
     # Resample over the whole time period (season=None) or a given season
     for m, ds in ds_comparison.items():
@@ -952,13 +967,14 @@ def plot_flux_map_combined_models_comparison(
     for col, (model, ds) in enumerate(ds_comparison.items()):
         ax_i = ax[col]
         lon, lat = ds.longitude, ds.latitude
-        
+
         # Determine plot settings
         is_diff = ("diff" in var) or ("diff" in model)
         cmap_i = cmap_diff if is_diff else cmap
         border_color = c_border_diff if is_diff else c_border
         vlim_i = (-lim[1], lim[1]) if is_diff else lim
-        if marker_color is None: marker_color = "black" if is_diff else "red"
+        if marker_color is None:
+            marker_color = "black" if is_diff else "red"
         extend_i = "both" if is_diff else "max"
 
         # Plot the data
@@ -998,7 +1014,11 @@ def plot_flux_map_combined_models_comparison(
             add_site_markers(ax_i, sites_info, marker_color, site_marker)
         if add_markers:
             add_custom_markers(
-                ax_i, add_markers, marker_color, config_data["regions_info"], city_marker
+                ax_i,
+                add_markers,
+                marker_color,
+                config_data["regions_info"],
+                city_marker,
             )
 
         # Add colorbar
@@ -1047,9 +1067,9 @@ def plot_flux_map_period_comparison(
     fallback_sites: list[str] | None = None,
     resample_uncert_correlation: bool = False,
     sector: str = "total",
-    site_marker: str = 'o',
-    city_marker: str = '^',
-    marker_color: str | None = None
+    site_marker: str = "o",
+    city_marker: str = "^",
+    marker_color: str | None = None,
 ) -> plt.Figure:
     """
     Plot a given flux variable averaged over two time periods and the difference, for all models or the model mean.
@@ -1146,7 +1166,9 @@ def plot_flux_map_period_comparison(
     time_labels = {}
     for key, ds in ds_dict.items():
         ds_dict[key], time_labels[key] = resample_over_period(
-            ds, chop_by=(start_dates, end_dates), resample_uncert_correlation=resample_uncert_correlation
+            ds,
+            chop_by=(start_dates, end_dates),
+            resample_uncert_correlation=resample_uncert_correlation,
         )
 
     if all([v == time_labels[key] for v in time_labels.values()]):
@@ -1202,7 +1224,8 @@ def plot_flux_map_period_comparison(
             cmap_i = cmap_diff if is_diff else cmap
             border_color = c_border_diff if is_diff else c_border
             vlim_i = (-lim[1], lim[1]) if is_diff else lim
-            if marker_color is None: marker_color = "black" if is_diff else "magenta"
+            if marker_color is None:
+                marker_color = "black" if is_diff else "magenta"
             extend_i = "both" if is_diff else "max"
 
             # Plot the data
@@ -1247,7 +1270,7 @@ def plot_flux_map_period_comparison(
                         )
                     else:
                         sites_info = get_active_sites_coordinates(
-                            ds.isel(time=[0,1]), config_data, fallback_sites
+                            ds.isel(time=[0, 1]), config_data, fallback_sites
                         )
                 except Exception as e:
                     raise RuntimeError(
@@ -1259,8 +1282,11 @@ def plot_flux_map_period_comparison(
 
             if add_markers:
                 add_custom_markers(
-                    ax_i, add_markers, marker_color, config_data["regions_info"],
-                    city_marker
+                    ax_i,
+                    add_markers,
+                    marker_color,
+                    config_data["regions_info"],
+                    city_marker,
                 )
 
             # Add colorbar

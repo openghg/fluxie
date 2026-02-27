@@ -48,10 +48,10 @@ legacy_names: dict[str, str] = {
     "uYobs_repeatability": "stdev_mf_observed_repeatability",
     "uYobs_variability": "stdev_mf_observed_variability",
     "uYmod": "stdev_mf_model",
-    "flux_total_prior_out":"flux_total_prior_inversion_grid",
-    "flux_total_posterior_out":"flux_total_posterior_inversion_grid",
-    "percentile_flux_total_prior_out":"percentile_flux_total_prior_inversion_grid",
-    "percentile_flux_total_posterior_out":"percentile_flux_total_posterior_inversion_grid"
+    "flux_total_prior_out": "flux_total_prior_inversion_grid",
+    "flux_total_posterior_out": "flux_total_posterior_inversion_grid",
+    "percentile_flux_total_prior_out": "percentile_flux_total_prior_inversion_grid",
+    "percentile_flux_total_posterior_out": "percentile_flux_total_posterior_inversion_grid",
 }
 
 
@@ -623,7 +623,9 @@ def read_flux_total_fgases(
                 ds_all[region][model].append(ds_all_region[model])
 
     # Sum species datasets by region and model to create output
-    ds_output = create_flux_total_fgases(ds_all, species, regions, models, only_overlapping)
+    ds_output = create_flux_total_fgases(
+        ds_all, species, regions, models, only_overlapping
+    )
 
     # print messages about used config
     messages_ordered_by_model = list()
@@ -675,7 +677,7 @@ def create_flux_total_fgases(ds_all, species, regions, models, only_overlapping)
         ds_list = []
         for region in regions:
             ds_tmp = xr.concat(
-                align_time(ds_all[region][model],only_overlapping),
+                align_time(ds_all[region][model], only_overlapping),
                 dim="species",
                 combine_attrs="drop_conflicts",
             )

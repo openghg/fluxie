@@ -19,8 +19,9 @@ from fluxy.io import load_countries_shape
 logger = logging.getLogger(__name__)
 
 
-def update_list_params(params_to_check: list, params_to_check_names: list,
-                       expected_size: int) -> list:
+def update_list_params(
+    params_to_check: list, params_to_check_names: list, expected_size: int
+) -> list:
     """
     Check if parameters are list of the expected lenght. If they are not list, convert them to list (except if it is None).
     Raise an error if it is a list but not of the expected size.
@@ -32,16 +33,24 @@ def update_list_params(params_to_check: list, params_to_check_names: list,
         updated_params: the updated list of lists
     """
     updated_params = list()
-    for p,param in enumerate(params_to_check):
+    for p, param in enumerate(params_to_check):
         if param is None:
             updated_params.append([False] * expected_size)
         elif type(param) is list:
             if len(param) == expected_size:
                 updated_params.append(param)
             else:
-                if params_to_check_names[p] in ['plot_separate','plot_combined','resample','rolling_mean']:
+                if params_to_check_names[p] in [
+                    "plot_separate",
+                    "plot_combined",
+                    "resample",
+                    "rolling_mean",
+                ]:
                     ref_list = "models"
-                elif params_to_check_names[p] in ['plot_inventory_uncertainty','inventory_years']:
+                elif params_to_check_names[p] in [
+                    "plot_inventory_uncertainty",
+                    "inventory_years",
+                ]:
                     ref_list = "inventory_years"
                 raise ValueError(
                     f"{params_to_check_names[p]}:{param} must be a boolean or a list of booleans of the same length as {ref_list}."
@@ -236,7 +245,7 @@ def get_frequency(
     frequency_map = {
         "yearly": "Y",
         "monthly": "M",
-        "3monthly": "3M"
+        "3monthly": "3M",
         # Add more mappings as needed
     }
 
@@ -301,7 +310,13 @@ def add_custom_markers(ax, markers, color, regions_info, city_marker="^"):
     for marker in markers:
         lon, lat = get_marker_coordinates(marker, regions_info)
         ax.scatter(
-            lon, lat, facecolor="none", edgecolor=color, marker=city_marker, s=30, zorder=2
+            lon,
+            lat,
+            facecolor="none",
+            edgecolor=color,
+            marker=city_marker,
+            s=30,
+            zorder=2,
         )
 
 
@@ -973,7 +988,7 @@ def stack_plot(
     for i, column in enumerate(df.columns):
         values = df[column].values
         # Replace NaN with 0.0
-        values = np.where(np.isnan(values), 0.0, values)  
+        values = np.where(np.isnan(values), 0.0, values)
         if area:
             ax.fill_between(
                 df.index,

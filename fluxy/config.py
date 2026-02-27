@@ -20,15 +20,20 @@ sector_color_palette = {
 }
 
 species_color_palette = {
-    "ch4":"dodgerblue",
-    "n2o":"darkorange",
+    "ch4": "dodgerblue",
+    "n2o": "darkorange",
     "all_hfc": "firebrick",
     "all_pfc": "darkblue",
     "nf3": "lightgreen",
     "sf6": "darkturquoise",
 }
 
-mean_color_palette = ["black", "saddlebrown", "dimgray", "peru", "darkgray",
+mean_color_palette = [
+    "black",
+    "saddlebrown",
+    "dimgray",
+    "peru",
+    "darkgray",
 ]
 
 # population from 2018 to 2023 (at Jan 1 each year)
