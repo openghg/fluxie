@@ -1095,7 +1095,7 @@ def plot_sites_list_mf(
     data_on_single_graph: Literal["models", "sites"] = "sites",
     unc_type: Literal["Errorbar", "FillBetween"] = "FillBetween",
     obs_markers: list[str] = ["s", "v", "^", "<", ">", "p", "P", "*", "+"],
-):
+) -> tuple[Figure, pd.DataFrame]:
     """
     Plot timeseries of multiple site, with subplots separated by site or model.
     Args:
