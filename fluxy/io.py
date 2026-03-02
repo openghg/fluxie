@@ -19,7 +19,6 @@ from fluxy import config
 from fluxy.operators.flux_align_dataset import align_time
 from fluxy.operators.regions import extract_region_flux
 from fluxy.operators.select import slice_flux, get_intake_height, get_site_index
-from fluxy.operators.flux_align_dataset import align_time
 from fluxy.types import DataType, DataTypes, file_pattern
 
 logger = logging.getLogger(__name__)
@@ -49,6 +48,10 @@ legacy_names: dict[str, str] = {
     "uYobs_repeatability": "stdev_mf_observed_repeatability",
     "uYobs_variability": "stdev_mf_observed_variability",
     "uYmod": "stdev_mf_model",
+    "flux_total_prior_out": "flux_total_prior_inversion_grid",
+    "flux_total_posterior_out": "flux_total_posterior_inversion_grid",
+    "percentile_flux_total_prior_out": "percentile_flux_total_prior_inversion_grid",
+    "percentile_flux_total_posterior_out": "percentile_flux_total_posterior_inversion_grid",
 }
 
 
@@ -495,6 +498,7 @@ def read_flux_total_fgases(
     end_date: str,
     period: str = "yearly",
     unit: str = "Tg CO2-eq yr-1",
+    only_overlapping: bool = True,
 ) -> dict[str, xr.Dataset]:
     """
     Reads in fluxes from a list of gases and sums/averages totals and uncertainties,
@@ -527,7 +531,8 @@ def read_flux_total_fgases(
             If it is a list, one value per model must be specified, e.g. ['monthly','yearly']
         unit (str):
             unit in which to put the dataset. Must be in CO2-eq
-
+        only_overlapping (bool):
+            If True, only includes time periods where all models have data. Otherwise, uses all available data.
     Returns:
         ds_all (dictionary of datasets):
             xarray dataset read directly from each model's flux netCDF.
@@ -609,7 +614,9 @@ def read_flux_total_fgases(
                 ds_all[region][model].append(ds_all_region[model])
 
     # Sum species datasets by region and model to create output
-    ds_output = create_flux_total_fgases(ds_all, species, regions, models)
+    ds_output = create_flux_total_fgases(
+        ds_all, species, regions, models, only_overlapping
+    )
 
     # print messages about used config
     messages_ordered_by_model = list()
@@ -635,7 +642,7 @@ def read_flux_total_fgases(
     return ds_output
 
 
-def create_flux_total_fgases(ds_all, species, regions, models):
+def create_flux_total_fgases(ds_all, species, regions, models, only_overlapping):
     """
     Sum species datasets by region and model to create output.
 
@@ -650,7 +657,8 @@ def create_flux_total_fgases(ds_all, species, regions, models):
             e.g. ['InTEM_NAME_EUROPE_EDGAR','ELRIS_NAME_EUROPE_EDGAR']
         regions (list of str):
             Region names used to extract fluxes. Only these regions can then be plotted.
-
+        only_overlapping (bool):
+            If True, only includes time periods where all models have data. Otherwise, uses all available data.
     Returns:
         ds_output (dictionary of datasets):
             dictionnary of xarray datasets ready to be used with fluxy plot methods.
@@ -660,7 +668,7 @@ def create_flux_total_fgases(ds_all, species, regions, models):
         ds_list = []
         for region in regions:
             ds_tmp = xr.concat(
-                align_time(ds_all[region][model]),
+                align_time(ds_all[region][model], only_overlapping),
                 dim="species",
                 combine_attrs="drop_conflicts",
             )
