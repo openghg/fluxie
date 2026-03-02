@@ -25,7 +25,6 @@ from fluxy.operators.select import (
     slice_site,
     check_site_list,
 )
-from fluxy.plots.utils import set_min_decimal_points
 
 logger = logging.getLogger(__name__)
 
