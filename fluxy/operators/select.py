@@ -269,17 +269,15 @@ def slice_site(
     else:
         sites = site
 
-    mask = xr.zeros_like(ds['number_of_identifier'], dtype=bool)
     site_indices = []
     for site in sites:
         site_index = get_site_index(ds, site)
-        site_indices.append(site_index)
-
         if site_index is not None:
-            mask |= ds["number_of_identifier"] == site_index
+            site_indices.append(site_index)
         else:
             logger.warning(f"Site {site} not found for model {ds.attrs['exp_name']}.")
 
+    mask = ds["number_of_identifier"].isin(site_indices)
     if mask.any():
         ds = ds.where(mask, drop=True)
         return ds
