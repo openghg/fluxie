@@ -367,30 +367,14 @@ def add_line_plot(
 
     res = pd.DataFrame(
         {
-            "type": [
-                variable,
-            ]
-            * ds.time.size,
-            "model": [
-                ds.attrs["model_label"],
-            ]
-            * ds.time.size,
-            "sector": [
-                ds.attrs["sector"],
-            ]
-            * ds.time.size,
-            "country": [
-                ds.attrs["country"],
-            ]
-            * ds.time.size,
-            "species": [
-                ds.attrs["species"],
-            ]
-            * ds.time.size,
             "time": time_as_datetime,
             "mean_val": ds[variable].values,
         }
     )
+    res["type"] = variable
+    res["model"] = ds.attrs["model_label"]
+    for attr in ["sector", "country", "species"]:
+        res[attr] = ds.attrs[attr]
 
     if add_unc:
         ax.fill_between(
