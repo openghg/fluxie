@@ -387,6 +387,11 @@ def test_mole_fraction_diff():
     )
 
 
+def test_plot_sites_list_mf():
+
+    fig = plot_sites_list_mf(ds_all_mf_sliced_multiple_sites)
+
+
 def test_mf_timeseries_multiple_site_axes():
     aggreg_month = False
     fig = plot_sites_list_mf(
