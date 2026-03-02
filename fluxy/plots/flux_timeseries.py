@@ -160,7 +160,7 @@ def prepare_data_to_plot(
         plot_resample_and_original: If True, plots both the resampled data and the data as its original frequency. If False, only plots the
             resampled data.
         aggreg_month: if True, plot the data aggregated by month. Used to study seasonnal cycle.
-        only_overlapping: if True, only includes data from years when all models/species available. If False, 
+        only_overlapping: if True, only includes data from years when all models/species available. If False,
             includes all available data.
     Returns:
         ds_to_plot : dictionnary of datasets to plot
@@ -174,7 +174,7 @@ def prepare_data_to_plot(
     # Convert some inputs to list and check their size
     plot_separate, plot_combined, resample, rolling_mean = update_list_params(
         [plot_separate, plot_combined, resample, rolling_mean],
-        ['plot_separate','plot_combined','resample','rolling_mean'],
+        ["plot_separate", "plot_combined", "resample", "rolling_mean"],
         expected_size=len(ds_all_region.keys()),
     )
 
@@ -267,15 +267,13 @@ def prepare_data_to_plot(
                 group_label: [f"{model}_resample" for model in model_list]
                 for group_label, model_list in combined_models_dict.items()
             }
-            ds_to_combine = {
-                m: calc_rolling_mean(ds) if rm else ds
-                for rm, (m, ds) in zip(rolling_mean, ds_resampled.items())
-            }
-        else:
-            ds_to_combine = {
-                m: calc_rolling_mean(ds) if rm else ds
-                for rm, (m, ds) in zip(rolling_mean, ds_all_region.items())
-            }
+
+        ds_to_combine = {
+            m: calc_rolling_mean(ds) if rm else ds
+            for rm, (m, ds) in zip(
+                rolling_mean, (ds_resampled if use_resampled else ds_all_region).items()
+            )
+        }
 
         for group_label, model_list in combined_models_dict.items():
             combine_mask = [model in model_list for model in ds_to_combine.keys()]
@@ -293,14 +291,13 @@ def prepare_data_to_plot(
     color_usage = {k: 0 for k in map_model_colors.keys()}
     i_comb = 0
     for m in ds_to_plot.keys():
+        include_label = ds_to_plot[m].attrs.get("model_label", None)
         if "combined" in m:
-            include_label = ds_to_plot[m].attrs.get("model_label", None)
             model_color = config.mean_color_palette[
                 i_comb % len(config.mean_color_palette)
             ]
             i_comb += 1
         else:
-            include_label = ds_to_plot[m].attrs.get("model_label", None)
             key_mc = [
                 k
                 for k in map_model_colors.keys()
@@ -482,8 +479,12 @@ def add_inventory_barplot(
     res = pd.DataFrame()
     for i_inv, inventory in enumerate(inventories_to_plot):
         time_as_datetime = inventory.time.values.astype("datetime64[D]").tolist()
-        
-        if plot_inventory_uncertainty[i_inv] is True and inventories_uncert_to_plot[i_inv] is not None and np.any(inventories_uncert_to_plot[i_inv] > 0):
+
+        if (
+            plot_inventory_uncertainty[i_inv] is True
+            and inventories_uncert_to_plot[i_inv] is not None
+            and np.any(inventories_uncert_to_plot[i_inv] > 0)
+        ):
             yerr = inventories_uncert_to_plot[i_inv].values
         else:
             yerr = None
@@ -495,9 +496,9 @@ def add_inventory_barplot(
             edgecolor=inventory.plot_color,
             align="edge",
             fill=False,
-            label=(f"NID {inventory.year}" if annex_mode else f"Inventory {inventory.year}"),
+            label=f"{'NID' if annex_mode else 'Inventory'} {inventory.year}",
             yerr=yerr,
-            error_kw={"ecolor":inventory.plot_color,"capsize":2},
+            error_kw={"ecolor": inventory.plot_color, "capsize": 2},
             zorder=0,
         )
 
@@ -665,7 +666,10 @@ def prepare_inventory_sector_barplot(
     )
 
     inventories = [inv.to_dataset(name="inv_data") for inv in inventories]
-    inventories_stdev = [inv_std.to_dataset(name="inv_data_stdev") if inv_std else None for inv_std in inventories_stdev]
+    inventories_stdev = [
+        inv_std.to_dataset(name="inv_data_stdev") if inv_std else None
+        for inv_std in inventories_stdev
+    ]
 
     return inventories, inventories_stdev
 
@@ -773,7 +777,11 @@ def add_ylabel(
 
 
 def add_xlims_and_ticks(
-    ax: Axes, yearly_freq: bool, plotted_data_df: dict[str, dict], aggreg_month: bool, xticks_at_centre: bool = False
+    ax: Axes,
+    yearly_freq: bool,
+    plotted_data_df: dict[str, dict],
+    aggreg_month: bool,
+    xticks_at_centre: bool = False,
 ):
     """
     Add x limits, ticks and ticks labels to matplotlib axes. Optimize them by looking at if they are monthly, yearly, or monthly aggregated, and covered time range.
@@ -808,7 +816,7 @@ def add_xlims_and_ticks(
             [date(year, 1, 1) for year in range(min_x.year, max_x.year, step)]
         )
         if xticks_at_centre:
-            xticks = xticks.astype('datetime64[D]') + np.timedelta64(182, 'D')
+            xticks = xticks.astype("datetime64[D]") + np.timedelta64(182, "D")
             ax.set_xticks(xticks)
             ax.set_xticklabels(xticks.astype("datetime64[Y]"))
         else:
@@ -825,7 +833,11 @@ def add_xlims_and_ticks(
 
 
 def add_legend(
-    fig: Figure, set_global_leg: bool, annex_mode: bool, plot_inventory: bool, inventory_years: int | list[int] | None = None,
+    fig: Figure,
+    set_global_leg: bool,
+    annex_mode: bool,
+    plot_inventory: bool,
+    inventory_years: int | list[int] | None = None,
 ):
     """
     Add legend.
@@ -1006,7 +1018,7 @@ def plot_country_flux(
     plot_grid: bool = True,
     add_vline: list[str] | None = None,
     secondary_units: str | None = None,
-    only_overlapping: bool = True
+    only_overlapping: bool = True,
 ) -> Figure | tuple[Figure, dict[str, dict]]:
     """
     Timeseries plot of prior and posterior country fluxes, from list of
@@ -1110,7 +1122,7 @@ def plot_country_flux(
             plot_resample_and_original=plot_resample_and_original,
             resample_uncert_correlation=resample_uncert_correlation,
             aggreg_month=aggreg_month,
-            only_overlapping=only_overlapping
+            only_overlapping=only_overlapping,
         )
 
         # plot posterior and prior (if requested)
@@ -1131,7 +1143,7 @@ def plot_country_flux(
                     [plotted_data_df, posterior_df], ignore_index=True
                 )
 
-            if add_prior and 'prior' in ds_region:
+            if add_prior and "prior" in ds_region:
                 prior_df = add_line_plot(
                     ax,
                     ds_region,
@@ -1195,7 +1207,9 @@ def plot_country_flux(
         "yearly" in [ds.attrs["frequency"] for ds in ds_to_plot.values()]
         or resample == "year"
     )
-    add_xlims_and_ticks(axes[-1], yearly_freq, plotted_data_df, aggreg_month, xticks_at_centre)
+    add_xlims_and_ticks(
+        axes[-1], yearly_freq, plotted_data_df, aggreg_month, xticks_at_centre
+    )
 
     add_legend(fig, set_global_leg, annex_mode, plot_inventory, inventory_years)
 
@@ -1224,7 +1238,7 @@ def plot_country_sector_flux_bar(
     resample: str | list[str] | None = None,
     resample_uncert_correlation: bool = False,
     rolling_mean: bool = False,
-    sectors: list[str] = ["agriculture", "waste", "energy", "industry"]
+    sectors: list[str] = ["agriculture", "waste", "energy", "industry"],
 ) -> Figure | list:
     """
     Stacked bar plot of posterior fluxes, split by sector, for a single region, for a range of models.
@@ -1418,21 +1432,23 @@ def plot_country_sector_flux_bar(
 
     return fig, plotted_data_df
 
-def plot_all_species_stacked_bar(all_species: list[str],
-                                 ds_all_flux_scaled: dict[str, xr.Dataset],
-                                 regions: list[str],
-                                 config_data: dict[str, dict] = {},
-                                 model_colors: dict[str, str] = {},
-                                 model_labels: dict[str, str] = {},
-                                 start_date: str | None = None,
-                                 end_date: str | None = None,
-                                 inventory_years: list[str] | None = None,
-                                 inventory_filename: str = "UNFCCC_inventory",
-                                 plot_inventory_uncertainty: bool = True,
-                                 data_dir: str | None = None,
-                                 sector: str = "total",
-                                 y_lim: list[float] | None = None
-                                 ) -> Figure:
+
+def plot_all_species_stacked_bar(
+    all_species: list[str],
+    ds_all_flux_scaled: dict[str, xr.Dataset],
+    regions: list[str],
+    config_data: dict[str, dict] = {},
+    model_colors: dict[str, str] = {},
+    model_labels: dict[str, str] = {},
+    start_date: str | None = None,
+    end_date: str | None = None,
+    inventory_years: list[str] | None = None,
+    inventory_filename: str = "UNFCCC_inventory",
+    plot_inventory_uncertainty: bool = True,
+    data_dir: str | None = None,
+    sector: str = "total",
+    y_lim: list[float] | None = None,
+) -> Figure:
     """
     Stacked bar plot of posterior fluxes, summed over all species, for a single region, for a range of models.
     Args:
@@ -1457,134 +1473,174 @@ def plot_all_species_stacked_bar(all_species: list[str],
     s_data = config_data.get("species_info", {})
     r_data = config_data.get("regions_info", {})
     species_colors = config.species_color_palette
-    
+
     unit = []
-    
+
     for s in all_species:
         unit.append(get_unit(ds_all_flux_scaled[s]))
     if all(x == unit[0] for x in unit):
         country_flux_units_print = unit[0]
     else:
-        raise ValueError('Units for all species\' datasets are not equal.')
+        raise ValueError("Units for all species' datasets are not equal.")
     ds_to_plot = {}
     inventories_to_plot = {}
     inventories_uncert_to_plot = {}
-    
+
     models = []
-        
-    fig,ax = plt.subplots(1,1,figsize=(10,6))
+
+    fig, ax = plt.subplots(1, 1, figsize=(10, 6))
 
     for s, species in enumerate(all_species):
 
-        ds_all_region = extract_region_flux(ds_all_flux_scaled[species], regions, r_data, sectors=sector)
+        ds_all_region = extract_region_flux(
+            ds_all_flux_scaled[species], regions, r_data, sectors=sector
+        )
         ds_to_plot[species] = prepare_data_to_plot(
             ds_all_region=ds_all_region,
             model_labels=model_labels,
             model_colors=model_colors,
             plot_separate=True,
             plot_combined=False,
-            resample='year',
+            resample="year",
             rolling_mean=False,
             plot_resample_and_original=False,
             resample_uncert_correlation=False,
             aggreg_month=False,
         )
-            
-        inventories_to_plot[species],inventories_uncert_to_plot[species] = retrieve_inventories(
-            data_dir,
-            regions,
-            species,
-            start_date,
-            end_date,
-            country_flux_units_print,
-            s_data,
-            r_data,
-            inventory_years,
-            inventory_filename,
-            sectors=sector,
+
+        inventories_to_plot[species], inventories_uncert_to_plot[species] = (
+            retrieve_inventories(
+                data_dir,
+                regions,
+                species,
+                start_date,
+                end_date,
+                country_flux_units_print,
+                s_data,
+                r_data,
+                inventory_years,
+                inventory_filename,
+                sectors=sector,
+            )
         )
-        
+
         models.append(list(ds_to_plot[species].keys())[0])
-        
+
         if len(list(ds_to_plot[species].keys())) > 1:
-            logger.warning(f"Only the first model {list(ds_to_plot[species].keys())} will be plotted because this function is "+
-                           "currently only set up to plot inventory data and model output from one model.")
+            logger.warning(
+                f"Only the first model {list(ds_to_plot[species].keys())} will be plotted because this function is "
+                + "currently only set up to plot inventory data and model output from one model."
+            )
 
         if inventories_uncert_to_plot[species][0] is None:
-            inventories_uncert_to_plot[species][0] = np.zeros_like(inventories_to_plot[species][0].values)
+            inventories_uncert_to_plot[species][0] = np.zeros_like(
+                inventories_to_plot[species][0].values
+            )
 
         if s == 0:
             inv_plot_times = inventories_to_plot[species][0].time.values
-            plot_times = ds_to_plot[species][models[s]].time.values.astype('datetime64[Y]')
-            uncert_combined = ds_to_plot[species][models[s]]['posterior_upper'].values-ds_to_plot[species][models[s]]['posterior_lower'].values
+            plot_times = ds_to_plot[species][models[s]].time.values.astype(
+                "datetime64[Y]"
+            )
+            uncert_combined = (
+                ds_to_plot[species][models[s]]["posterior_upper"].values
+                - ds_to_plot[species][models[s]]["posterior_lower"].values
+            )
             if plot_inventory_uncertainty:
                 inventories_uncert_combined = inventories_uncert_to_plot[species][0]
         else:
-            uncert_combined = np.sqrt(uncert_combined**2 + (ds_to_plot[species][models[s]]['posterior_upper'].values - ds_to_plot[species][models[s]]['posterior_lower'].values)**2)
+            uncert_combined = np.sqrt(
+                uncert_combined**2
+                + (
+                    ds_to_plot[species][models[s]]["posterior_upper"].values
+                    - ds_to_plot[species][models[s]]["posterior_lower"].values
+                )
+                ** 2
+            )
             if plot_inventory_uncertainty:
-                inventories_uncert_combined = np.sqrt(inventories_uncert_combined**2 + inventories_uncert_to_plot[species][0]**2)
+                inventories_uncert_combined = np.sqrt(
+                    inventories_uncert_combined**2
+                    + inventories_uncert_to_plot[species][0] ** 2
+                )
 
-    width = np.timedelta64(150,'D')
+    width = np.timedelta64(150, "D")
 
     for s, species in enumerate(all_species):
-        
+
         if s == 0:
             bottom = None
             inv_bottom = None
-            inventory_label = f'{inventory_years[0]} Inventory'
+            inventory_label = f"{inventory_years[0]} Inventory"
         else:
             bottom = flux_sum
             inv_bottom = inventory_sum
             inventory_label = None
 
-        if s == (len(all_species)-1):
-            uncert = uncert_combined/2.
+        if s == (len(all_species) - 1):
+            uncert = uncert_combined / 2.0
             if plot_inventory_uncertainty:
-                inventories_uncert = inventories_uncert_combined/2.
+                inventories_uncert = inventories_uncert_combined / 2.0
             else:
                 inventories_uncert = None
         else:
             uncert = None
             inventories_uncert = None
 
-        ax.bar(inv_plot_times+width,
+        ax.bar(
+            inv_plot_times + width,
             inventories_to_plot[species][0].values,
             width=width,
             bottom=inv_bottom,
-            color='lightgrey',
-            edgecolor='grey',
+            color="lightgrey",
+            edgecolor="grey",
             label=inventory_label,
             yerr=inventories_uncert,
-            error_kw={'capsize':2})
+            error_kw={"capsize": 2},
+        )
 
-        ax.bar(plot_times,
-            ds_to_plot[species][models[s]]['posterior'].values,
+        ax.bar(
+            plot_times,
+            ds_to_plot[species][models[s]]["posterior"].values,
             width=width,
             bottom=bottom,
             color=species_colors[species],
-            label=s_data.get(species, {}).get('species_print', species),
+            label=s_data.get(species, {}).get("species_print", species),
             yerr=uncert,
-            error_kw={'capsize':2},alpha=0.8)
+            error_kw={"capsize": 2},
+            alpha=0.8,
+        )
 
         if s == 0:
-            flux_sum = ds_to_plot[species][models[s]]['posterior'].values
+            flux_sum = ds_to_plot[species][models[s]]["posterior"].values
             inventory_sum = inventories_to_plot[species][0].values
         else:
-            flux_sum += ds_to_plot[species][models[s]]['posterior'].values
+            flux_sum += ds_to_plot[species][models[s]]["posterior"].values
             inventory_sum += inventories_to_plot[species][0].values
 
-    ax.set_xticks(plot_times+(width/2))
-    ax.set_xticklabels((plot_times+(width/2)).astype('datetime64[Y]'))
+    ax.set_xticks(plot_times + (width / 2))
+    ax.set_xticklabels((plot_times + (width / 2)).astype("datetime64[Y]"))
 
-    #ax.set_ylabel(country_flux_units_print)
-    add_ylabel(ax,s_data,species=f'{regions} total',unit=country_flux_units_print,
-               plot_type='country_plot',sector=sector)
+    # ax.set_ylabel(country_flux_units_print)
+    add_ylabel(
+        ax,
+        s_data,
+        species=f"{regions} total",
+        unit=country_flux_units_print,
+        plot_type="country_plot",
+        sector=sector,
+    )
     if y_lim:
         ax.set_ylim(y_lim)
 
     handles, labels = ax.get_legend_handles_labels()
-    ax.legend(handles[::-1], labels[::-1], 
-              ncol=4,loc='upper right',borderpad=0.4,columnspacing=1.0,
-              fontsize=12)
+    ax.legend(
+        handles[::-1],
+        labels[::-1],
+        ncol=4,
+        loc="upper right",
+        borderpad=0.4,
+        columnspacing=1.0,
+        fontsize=12,
+    )
 
     return fig
