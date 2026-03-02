@@ -19,7 +19,9 @@ from fluxy.io import load_countries_shape
 logger = logging.getLogger(__name__)
 
 
-def update_list_params(params_to_check: list, expected_size: int) -> list:
+def update_list_params(
+    params_to_check: list, params_to_check_names: list, expected_size: int
+) -> list:
     """
     Check if parameters are list of the expected lenght. If they are not list, convert them to list (except if it is None).
     Raise an error if it is a list but not of the expected size.
@@ -31,15 +33,27 @@ def update_list_params(params_to_check: list, expected_size: int) -> list:
         updated_params: the updated list of lists
     """
     updated_params = list()
-    for param in params_to_check:
+    for p, param in enumerate(params_to_check):
         if param is None:
             updated_params.append([False] * expected_size)
         elif type(param) is list:
             if len(param) == expected_size:
                 updated_params.append(param)
             else:
+                if params_to_check_names[p] in [
+                    "plot_separate",
+                    "plot_combined",
+                    "resample",
+                    "rolling_mean",
+                ]:
+                    ref_list = "models"
+                elif params_to_check_names[p] in [
+                    "plot_inventory_uncertainty",
+                    "inventory_years",
+                ]:
+                    ref_list = "inventory_years"
                 raise ValueError(
-                    f"{param} must be a boolean or a list of booleans of the same length as models."
+                    f"{params_to_check_names[p]}:{param} must be a boolean or a list of booleans of the same length as {ref_list}."
                 )
         else:
             updated_params.append([param] * expected_size)
@@ -158,7 +172,7 @@ def print_cbar_label(
     middle_label = " ".join(filter(None, [species_label, sector_label, units_label]))
 
     time_label = ""
-    if "time" in format:
+    if "time" in format and "time_label" in ds.attrs:
         time_label = ds.attrs["time_label"]
 
     # Construct the final label with proper line breaks
@@ -231,6 +245,7 @@ def get_frequency(
     frequency_map = {
         "yearly": "Y",
         "monthly": "M",
+        "3monthly": "3M",
         # Add more mappings as needed
     }
 
@@ -290,12 +305,18 @@ def print_period(
     return period
 
 
-def add_custom_markers(ax, markers, color, regions_info):
+def add_custom_markers(ax, markers, color, regions_info, city_marker="^"):
     """Add custom markers to the plot."""
     for marker in markers:
         lon, lat = get_marker_coordinates(marker, regions_info)
         ax.scatter(
-            lon, lat, facecolor="none", edgecolor=color, marker="^", s=30, zorder=2
+            lon,
+            lat,
+            facecolor="none",
+            edgecolor=color,
+            marker=city_marker,
+            s=30,
+            zorder=2,
         )
 
 
@@ -338,7 +359,7 @@ def get_marker_coordinates(
     return lon_marker, lat_marker
 
 
-def add_site_markers(ax, site_info, color):
+def add_site_markers(ax, site_info, color, site_marker="o"):
     """Add site markers to the plot."""
     for site, site_data in site_info.items():
         ax.scatter(
@@ -346,7 +367,7 @@ def add_site_markers(ax, site_info, color):
             site_data["latitude"],
             facecolor="none",
             edgecolor=color,
-            marker="o",
+            marker=site_marker,
             s=30,
             zorder=2,
         )
@@ -967,7 +988,7 @@ def stack_plot(
     for i, column in enumerate(df.columns):
         values = df[column].values
         # Replace NaN with 0.0
-        values = np.where(np.isnan(values), 0.0, values)  
+        values = np.where(np.isnan(values), 0.0, values)
         if area:
             ax.fill_between(
                 df.index,

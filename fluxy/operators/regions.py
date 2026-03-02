@@ -283,8 +283,7 @@ def extract_region_inventory_flux(
         inventory_year: year of inventory to get.
         inventory_filename: Name of inventory file: {inventory_filename}_{species}_{inventory_year}
     Returns:
-        dataset with country selected
-
+        dataset (and uncertainty dataset, if this is available) with country selected.
     """
 
     data_dir = Path(data_dir)
@@ -324,6 +323,11 @@ def extract_region_inventory_flux(
         else inv_ds_all[f"flux_{sector}_inventory_country"]
     )
 
+    if f"stdev_flux_{sector}_inventory_country" in inv_ds_all.keys():
+        inv_stdev_ds = inv_ds_all[f"stdev_flux_{sector}_inventory_country"]
+    else:
+        inv_stdev_ds = None
+
     gwp = 1
     target_unit = unit
     origin_unit = inv_ds.units.replace("/yr", " yr-1").replace("/y", " yr-1")
@@ -347,11 +351,21 @@ def extract_region_inventory_flux(
     # Look for the code if country_codes is defined, otherwise assume the code was given as input
     country_search = country_codes.get(country, country)
 
+    if inv_stdev_ds is not None:
+        inv_stdev_ds = inv_stdev_ds * scaling_factor * gwp
+        inv_stdev_ds.attrs["units"] = unit
+        inv_stdev_ds.attrs["year"] = inventory_year
+        if country_search in inv_ds["country"]:
+            inv_stdev_ds = inv_stdev_ds.sel(country=country_search)
+        elif country in inv_ds["country"]:
+            inv_stdev_ds = inv_stdev_ds.sel(country=country)
+
     if country_search in inv_ds["country"]:
-        return inv_ds.sel(country=country_search)  # new format
+        return inv_ds.sel(country=country_search), inv_stdev_ds  # new format
     elif country in inv_ds["country"]:
-        return inv_ds.sel(
-            country=country
+        return (
+            inv_ds.sel(country=country),
+            inv_stdev_ds,
         )  # old format (would only work if the user specifies the country name)
 
     # if grouped countries:
@@ -369,7 +383,11 @@ def extract_region_inventory_flux(
     elif country_search in available_countries:
         inv_ds = inv_ds.sel({"country": country_search})
 
-    return inv_ds.sum(dim="country", keep_attrs=True)
+    logger.info(
+        "There is currently no option to plot inventory uncertainty for grouped countries. This functionality will be added later"
+    )
+
+    return inv_ds.sum(dim="country", keep_attrs=True), inv_stdev_ds
 
 
 def format_plot_regions(

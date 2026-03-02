@@ -50,6 +50,13 @@ def define_var_plot(
             ):  # ensure both prior and posterior exists for inversion grid
                 prior = f"flux_{sector}_prior_inversion_grid"
                 posterior = f"flux_{sector}_posterior_inversion_grid"
+            elif (
+                f"flux_{sector}_prior_out" in ds
+                and f"flux_{sector}_posterior_inversion_grid" in ds
+            ):  # ensure both prior and posterior exists for inversion grid
+                prior = f"flux_{sector}_prior_out"
+                posterior = f"flux_{sector}_posterior_inversion_grid"
+
             else:
                 prior = f"flux_{sector}_prior"
                 posterior = f"flux_{sector}_posterior"
@@ -64,6 +71,7 @@ def define_var_plot(
             ].mean(dim="time")
 
         else:
+
             if var_p in ds:
                 var_p_bis = var_p
             else:
