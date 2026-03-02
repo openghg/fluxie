@@ -607,28 +607,18 @@ def add_mf_line_scatter_plot(
 
     res = pd.DataFrame(
         {
-            "type": [
-                type_plot,
-            ]
-            * ds.time.size,
-            "model": [
-                ds.attrs["exp_name"],
-            ]
-            * ds.time.size,
-            "species": [
-                ds.attrs["species"],
-            ]
-            * ds.time.size,
             "time": time_as_datetime,
             "mean_val": ds.sel(percentile="mean").values,
         }
     )
+    res["type"] = type_plot
+    res["model"] = ds.attrs["exp_name"]
+    res["species"] = ds.attrs["species"]
 
-    if not add_unc:
-        return res
-
-    res["min_unc"], res["max_unc"] = get_minmax_unc(ds)
-    add_unc_plot(ax, res["min_unc"], res["max_unc"], ds, unc_type)
+    if add_unc:
+        res["min_unc"], res["max_unc"] = get_minmax_unc(ds)
+        add_unc_plot(ax, res["min_unc"], res["max_unc"], ds, unc_type)
+        
     return res
 
 
