@@ -547,11 +547,13 @@ def add_unc_plot(
     min_unc = np.array(min_unc, dtype=float)
     max_unc = np.array(max_unc, dtype=float)
 
+    mean = da.sel(percentile="mean").values
+
     if plot_type == "FillBetween":
         ax.fill_between(
             time_as_datetime,
-            y1=min_unc,
-            y2=max_unc,
+            y1=mean - min_unc,
+            y2=mean + max_unc,
             alpha=0.2,
             color=da.attrs["plot_color"],
         )
