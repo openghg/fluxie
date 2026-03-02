@@ -494,9 +494,9 @@ def add_inventory_barplot(
         )
         tmp["type"] = "inventory"
         tmp["model"] = f"inventory_{inventory.year}"
-        tmp["sector"] = sector 
-        tmp["country"] = country 
-        tmp["species"] = species 
+        tmp["sector"] = sector
+        tmp["country"] = country
+        tmp["species"] = species
         res = pd.concat([res, tmp], ignore_index=True)
 
     return res
@@ -558,30 +558,16 @@ def add_sector_barplot(
 
     res = pd.DataFrame(
         {
-            "type": [
-                variable,
-            ]
-            * ds_sector.time.size,
-            "model": [
-                ds_sector.attrs["model_label"],
-            ]
-            * ds_sector.time.size,
-            "sector": [
-                sector,
-            ]
-            * ds_sector.time.size,
-            "country": [
-                ds_sector.attrs["country"],
-            ]
-            * ds_sector.time.size,
-            "species": [
-                ds_sector.attrs["species"],
-            ]
-            * ds_sector.time.size,
             "time": np.array(time_as_datetime) + offset,
             "mean_val": ds_sector[variable].values + bottom_values,
         }
     )
+
+    res["type"] = variable
+    res["sector"] = sector
+    res["model"] = ds_sector.attrs["model_label"]
+    res["country"] = ds_sector.attrs["country"]
+    res["species"] = ds_sector.attrs["species"]
 
     return res
 
