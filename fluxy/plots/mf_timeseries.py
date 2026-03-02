@@ -1242,9 +1242,6 @@ def plot_sites_list_mf(
             bbox_to_anchor=[0.5, 0.96],
         )
 
-        if len(data_to_plot[m].time) <= 1:
-            continue
-
         _add_xlims_and_ticks(
             ax[iaxes],
             yearly_freq=False,
