@@ -78,7 +78,7 @@ def stats_observed_vs_simulated(
     for site in sites_all:
         for model, ds in ds_all.items():
             ds_site = slice_site(ds, site, raise_error=False) 
-            if not ds_site:
+            if ds_site is None:
                 continue
 
             # select what to compare
