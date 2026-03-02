@@ -248,18 +248,18 @@ def slice_site(
     """
 
     if isinstance(ds, dict):
-        ds_all = ds 
         ds_all_site = dict()
-        for m, ds in ds_all.items():
+        for m, ds_this in ds.items():
             logger.info(f"Slicing site {site} from {m}.")
 
-            if site in ds["platform"].values:
-                ds_all_site[m] = slice_site(ds, site)
-            else:
+            if not site in ds_this["platform"].values:
                 logger.warning(
                     f"Site {site} not found in dataset for {m}. "
                     f"Continuing without {m} - {site}."
                 )
+                continue
+
+            ds_all_site[m] = slice_site(ds_this, site)
 
         return ds_all_site
 
@@ -282,7 +282,7 @@ def slice_site(
     if mask.any():
         ds = ds.where(mask, drop=True)
         return ds
-    
+
     msg = f"No data for any sites {sites} with indices {site_indices} in model {ds.attrs['exp_name']}."
     if raise_error:
         raise ValueError(msg)
@@ -539,8 +539,9 @@ def clean_timeseries_missing_data(
     return ds
 
 
-
-def check_site_list(site_list: list | None, ds_all: dict[str, xr.Dataset]) -> list:
+def check_site_list(
+    site_list: list[str] | None, ds_all: dict[str, xr.Dataset]
+) -> list[str]:
     """
     Check that every site in the list exists. If None, set it to all the sites available.
     Args:
