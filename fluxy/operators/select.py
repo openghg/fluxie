@@ -259,7 +259,7 @@ def slice_site(
                 )
                 continue
 
-            ds_all_site[m] = slice_site(ds_this, site)
+            ds_all_site[m] = slice_site(ds_this, site, raise_error=raise_error)
 
         return ds_all_site
 
