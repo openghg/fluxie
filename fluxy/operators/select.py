@@ -252,14 +252,15 @@ def slice_site(
         for m, ds_this in ds.items():
             logger.info(f"Slicing site {site} from {m}.")
 
-            if not site in ds_this["platform"].values:
+            ds_sliced = slice_site(ds_this, site, raise_error=raise_error)
+            if ds_sliced is None:
                 logger.warning(
                     f"Site {site} not found in dataset for {m}. "
                     f"Continuing without {m} - {site}."
                 )
                 continue
 
-            ds_all_site[m] = slice_site(ds_this, site, raise_error=raise_error)
+            ds_all_site[m] = ds_sliced
 
         return ds_all_site
 
