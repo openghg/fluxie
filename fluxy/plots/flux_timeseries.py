@@ -464,14 +464,15 @@ def add_inventory_barplot(
     for i_inv, inventory in enumerate(inventories_to_plot):
         time_as_datetime = inventory.time.values.astype("datetime64[D]").tolist()
 
+        this_uncert_to_plot = inventories_uncert_to_plot[i_inv]
+
+        yerr = None
         if (
             plot_inventory_uncertainty[i_inv] is True
-            and inventories_uncert_to_plot[i_inv] is not None
-            and np.any(inventories_uncert_to_plot[i_inv] > 0)
+            and this_uncert_to_plot is not None
+            and np.any(this_uncert_to_plot > 0)
         ):
-            yerr = inventories_uncert_to_plot[i_inv].values
-        else:
-            yerr = None
+            yerr = this_uncert_to_plot.values
 
         ax.bar(
             time_as_datetime,
@@ -1439,7 +1440,6 @@ def plot_all_species_stacked_bar(
         raise ValueError("Units for all species' datasets are not equal.")
     ds_to_plot = {}
     inventories_to_plot = {}
-    inventories_uncert_to_plot = {}
 
     models = []
 
@@ -1463,20 +1463,18 @@ def plot_all_species_stacked_bar(
             aggreg_month=False,
         )
 
-        inventories_to_plot[species], inventories_uncert_to_plot[species] = (
-            retrieve_inventories(
-                data_dir,
-                regions,
-                species,
-                start_date,
-                end_date,
-                country_flux_units_print,
-                s_data,
-                r_data,
-                inventory_years,
-                inventory_filename,
-                sectors=sector,
-            )
+        inventories_to_plot[species], inventories_uncert_to_plot = retrieve_inventories(
+            data_dir,
+            regions,
+            species,
+            start_date,
+            end_date,
+            country_flux_units_print,
+            s_data,
+            r_data,
+            inventory_years,
+            inventory_filename,
+            sectors=sector,
         )
 
         models.append(list(ds_to_plot[species].keys())[0])
@@ -1487,35 +1485,27 @@ def plot_all_species_stacked_bar(
                 + "currently only set up to plot inventory data and model output from one model."
             )
 
-        if inventories_uncert_to_plot[species][0] is None:
-            inventories_uncert_to_plot[species][0] = np.zeros_like(
-                inventories_to_plot[species][0].values
-            )
+        this_uncert = inventories_uncert_to_plot[0]
+
+        posterior_diff = (
+            ds_to_plot[species][models[s]]["posterior_upper"].values
+            - ds_to_plot[species][models[s]]["posterior_lower"].values
+        )
+
+        if this_uncert is None:
+            this_uncert = np.zeros_like(inventories_to_plot[species][0].values)
 
         if s == 0:
             inv_plot_times = inventories_to_plot[species][0].time.values
-            plot_times = ds_to_plot[species][models[s]].time.values.astype(
-                "datetime64[Y]"
-            )
-            uncert_combined = (
-                ds_to_plot[species][models[s]]["posterior_upper"].values
-                - ds_to_plot[species][models[s]]["posterior_lower"].values
-            )
+            plot_times = ds_to_plot.time.values.astype("datetime64[Y]")
+            uncert_combined = posterior_diff
             if plot_inventory_uncertainty:
-                inventories_uncert_combined = inventories_uncert_to_plot[species][0]
+                inventories_uncert_combined = this_uncert
         else:
-            uncert_combined = np.sqrt(
-                uncert_combined**2
-                + (
-                    ds_to_plot[species][models[s]]["posterior_upper"].values
-                    - ds_to_plot[species][models[s]]["posterior_lower"].values
-                )
-                ** 2
-            )
+            uncert_combined = np.sqrt(uncert_combined**2 + posterior_diff**2)
             if plot_inventory_uncertainty:
                 inventories_uncert_combined = np.sqrt(
-                    inventories_uncert_combined**2
-                    + inventories_uncert_to_plot[species][0] ** 2
+                    inventories_uncert_combined**2 + this_uncert**2
                 )
 
     width = np.timedelta64(150, "D")
