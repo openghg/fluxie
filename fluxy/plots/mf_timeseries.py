@@ -24,7 +24,7 @@ from fluxy.operators.select import (
     get_site_index,
     get_unique_sites,
     get_unique_site_height_pairs,
-    slice_site_dict_of_datasets,
+    slice_site,
     check_site_list,
 )
 from fluxy.plots.utils import set_min_decimal_points
@@ -1162,7 +1162,7 @@ def plot_sites_list_mf(
             elif data_on_single_graph == "sites":
                 ax_index = isite
                 marker_index = im
-            ds_all_site = slice_site_dict_of_datasets(ds_all_p, site)
+            ds_all_site = slice_site(ds_all_p, site)
 
             # Prepare data to plot
             data_to_plot = _prepare_data_to_plot(

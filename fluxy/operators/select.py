@@ -226,16 +226,18 @@ def slice_mf(
 
 
 def slice_site(
-    ds: xr.Dataset,
+    ds: xr.Dataset | dict[str, xr.Dataset],
     site: str | list[str],
     raise_error: bool = True,
-) -> xr.Dataset | None:
+) -> xr.Dataset | dict[str, xr.Dataset] | None:
     """
     Slices the dataset to only include data for a given site.
 
     Args:
         ds (xarray dataset):
             Dataset with mf data of a given model.
+            Can also be a dictionary of datasets, in which case the function
+            is applied to each dataset and return a dictionary of sliced datasets.
         site (str | list[str]):
             Site(s) of interest.
         raise_error:
@@ -244,6 +246,23 @@ def slice_site(
         ds (xarray dataset):
             Dataset with mf data of a given model, sliced to only include data for the given site(s).
     """
+
+    if isinstance(ds, dict):
+        ds_all = ds 
+        ds_all_site = dict()
+        for m, ds in ds_all.items():
+            logger.info(f"Slicing site {site} from {m}.")
+
+            if site in ds["platform"].values:
+                ds_all_site[m] = slice_site(ds, site)
+            else:
+                logger.warning(
+                    f"Site {site} not found in dataset for {m}. "
+                    f"Continuing without {m} - {site}."
+                )
+
+        return ds_all_site
+
     if isinstance(site, str):
         sites = [site]
     else:
@@ -519,37 +538,6 @@ def clean_timeseries_missing_data(
 
     return ds
 
-
-def slice_site_dict_of_datasets(
-    ds_all: dict[str, xr.Dataset],
-    site: str,
-) -> dict[str, xr.Dataset]:
-    """
-    Slices all datasets in a dictionary to only include data for a given site.
-    Args:
-        ds_all (dictionary of datasets):
-            xarray datasets read directly from each model's flux netCDF.
-        site (str):
-            Site of interest.
-    Returns:
-        ds_all_site (dictionary of datasets):
-            xarray datasets, sliced to only include data for the given site.
-    """
-
-    ds_all_site = dict()
-
-    for m, ds in ds_all.items():
-        logger.info(f"Slicing site {site} from {m}.")
-
-        if site in ds["platform"].values:
-            ds_all_site[m] = slice_site(ds, site)
-        else:
-            logger.warning(
-                f"Site {site} not found in dataset for {m}. "
-                f"Continuing without {m} - {site}."
-            )
-
-    return ds_all_site
 
 
 def check_site_list(site_list: list | None, ds_all: dict[str, xr.Dataset]) -> list:
