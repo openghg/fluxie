@@ -1196,12 +1196,12 @@ def plot_sites_list_mf(
                 marker_index = marker_index % len(obs_markers)
 
             for variable in include.keys():
+                attrs_update = attrs[data_on_single_graph].copy()
                 if (
                     variable in ["mf_observed", "observed_above_BC"]
                     and len(include.keys()) > 1
                 ):
                     attrs_update["plot_color"] = "black"
-                attrs_update = attrs[data_on_single_graph].copy()
                 label_add = f" {config.mf_labels.get(variable, variable)}"
                 attrs_update["plot_label"] += label_add
                 data_to_plot[m][variable].attrs.update(attrs_update)
