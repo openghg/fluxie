@@ -1090,6 +1090,7 @@ def plot_sites_list_mf(
     config_data: dict[str, dict] = {},
     data_on_single_graph: Literal["models", "sites"] = "sites",
     unc_type: Literal["Errorbar", "FillBetween"] = "FillBetween",
+    obs_markers: list[str] = ["s", "v", "^", "<", ">", "p", "P", "*", "+"],
 ):
     """
     Plot timeseries of multiple site, with subplots separated by site or model.
@@ -1108,6 +1109,7 @@ def plot_sites_list_mf(
             Use json filenames as keys.
         data_on_single_graph: str, "sites" or "models", determines whether each axis has multiple sites or models.
         unc_type: type of plot to use for uncertainty ("Errorbar" or "FillBetween"). Default is "FillBetween".
+        obs_markers: list of markers to use for observed data.
     Returns:
         fig: figure created
         plotted_data_df: data plotted on the figure
@@ -1146,7 +1148,6 @@ def plot_sites_list_mf(
 
     ax = ax.flatten()
 
-    obs_markers = ["s", "v", "^", "<", ">", "p", "P", "*", "+"]
     for isite, site in enumerate(sites):
         for im, m in enumerate(models):
             # Select site
