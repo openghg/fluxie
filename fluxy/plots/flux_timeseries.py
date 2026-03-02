@@ -488,30 +488,15 @@ def add_inventory_barplot(
 
         tmp = pd.DataFrame(
             {
-                "type": [
-                    "inventory",
-                ]
-                * inventory.time.size,
-                "model": [
-                    f"inventory_{inventory.year}",
-                ]
-                * inventory.time.size,
-                "sector": [
-                    sector,
-                ]
-                * inventory.time.size,
-                "country": [
-                    country,
-                ]
-                * inventory.time.size,
-                "species": [
-                    species,
-                ]
-                * inventory.time.size,
                 "time": time_as_datetime,
                 "mean_val": inventory.values,
             }
         )
+        tmp["type"] = "inventory"
+        tmp["model"] = f"inventory_{inventory.year}"
+        tmp["sector"] = sector 
+        tmp["country"] = country 
+        tmp["species"] = species 
         res = pd.concat([res, tmp], ignore_index=True)
 
     return res
