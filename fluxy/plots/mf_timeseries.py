@@ -496,26 +496,25 @@ def _add_xlims_and_ticks(
 
 
 def get_minmax_unc(ds: xr.Dataset) -> tuple[list, list] | tuple[None, None]:
-    """
-    Get uncertainty min and max values to plot the uncertainty band in add_mf_line_scatter_plot.
+    """Get uncertainty min and max values in the dataset.
+
     Args:
         ds: dataset containing posterior/prior data
     Return:
-        min_unc: list of the same size as ds.time containing the minimum values of the uncertainty band to plot.
-        max_unc: list of the same size as ds.time containing the maximum values of the uncertainty band to plot.
+        min_unc: list of the same size as ds.time containing
+            the minimum values of the uncertainty band to plot.
+        max_unc: same as min_unc but for the maximum values.
     """
-    time_as_datetime = ds.time.values.astype("datetime64[D]").tolist()
+
     if ds.percentile.size == 3:
         min_unc = ds.sel(percentile="lower").values
         max_unc = ds.sel(percentile="upper").values
 
     elif ds.percentile.size == 2:
         std_values = ds.sel(percentile="std").values
-        min_unc = std_values
-        max_unc = std_values
+        min_unc, max_unc = std_values, std_values
     else:
-        min_unc = None
-        max_unc = None
+        min_unc, max_unc = None, None
 
     return min_unc, max_unc
 
