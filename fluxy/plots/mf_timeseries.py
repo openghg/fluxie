@@ -217,7 +217,7 @@ def _retrieve_variable(ds, var, unc_var):
 
 
 def _prepare_data_to_plot(
-    ds_all: dict[str, xr.Dataset],
+    ds_all: dict[str, xr.Dataset | None],
     include: str | dict[str, str | None] | list | tuple,
     diff_include: None | list,
     aggreg_month: bool,
@@ -262,6 +262,9 @@ def _prepare_data_to_plot(
             all_var["mf_observed"] = None
 
     for m, ds in ds_all.items():
+
+        if ds is None:
+            continue
 
         # Check there is only one site in the dataset
         if (
@@ -433,12 +436,14 @@ def _get_unit(ds_dict: dict[str, xr.Dataset]) -> str:
             plot_units.append(ds_dict[m][var].attrs["units"])
 
     plot_units = list(set(plot_units))
-    if len(plot_units) != 1:
+    if len(plot_units) > 1:
         variables_set = {ds_dict[m].data_vars.keys() for m in ds_dict.keys()}
         raise ValueError(
             f"{variables_set} do not have the same units. So far, the following were found: {plot_units}."
             + "Select only one model to plot, or run 'slice_mf' with 'mf_units_print' equal to a valid mole fraction unit before running 'plot_timeseries'."
         )
+    elif len(plot_units) == 0:
+        return ""
 
     return plot_units[0]
 
@@ -1081,9 +1086,9 @@ def plot_histogram(
 
 def plot_sites_list_mf(
     ds_all: dict[str, xr.Dataset],
-    sites: list[str],
-    species: str,
-    include: VariableType,
+    sites: list[str] | None = None,
+    species: str | None = None,
+    include: VariableType = {"mf_posterior": None},
     model_labels: dict[str, dict] = {},
     model_colors: dict[str, list] = {},
     aggreg_month: bool = False,
@@ -1149,13 +1154,28 @@ def plot_sites_list_mf(
     ax = ax.flatten()
 
     for isite, site in enumerate(sites):
+
+        ds_all_site = slice_site(ds_all_p, site, raise_error=False)
+        # Prepare data to plot
+        data_to_plot = _prepare_data_to_plot(
+            ds_all_site,
+            include,
+            diff_include=None,
+            time_freq_min=None,
+            aggreg_month=aggreg_month,
+            plot_type=plot_type,
+        )
+        unit = _get_unit(data_to_plot)
         for im, m in enumerate(models):
+            if len(data_to_plot[m].dims) == 0:
+                logger.warning(f"Model {m} not found for site {site}, skipping.")
+                continue
             # Select site
             if m not in model_colors:
                 model_colors[m] = config.get_default_colors()
             attrs = {
                 "sites": {
-                    "plot_label": model_labels[m],
+                    "plot_label": model_labels.get(m, m),
                     "plot_color": model_colors[m][0],
                 },
                 "models": {"plot_label": site, "plot_color": f"C{isite:02d}"},
@@ -1175,19 +1195,6 @@ def plot_sites_list_mf(
                 )
                 marker_index = marker_index % len(obs_markers)
 
-            ds_all_site = slice_site(ds_all_p, site)
-
-            # Prepare data to plot
-            data_to_plot = _prepare_data_to_plot(
-                ds_all_site,
-                include,
-                diff_include=None,
-                time_freq_min=None,
-                aggreg_month=aggreg_month,
-                plot_type=plot_type,
-            )
-
-            unit = _get_unit(data_to_plot)
             for variable in include.keys():
                 if (
                     variable in ["mf_observed", "observed_above_BC"]
@@ -1209,7 +1216,7 @@ def plot_sites_list_mf(
                 plotted_data_df = pd.concat([plotted_data_df, res], ignore_index=True)
 
     for iaxes, label in enumerate(axes_looper):
-        if axes_looper == models:
+        if data_on_single_graph == "models":
             label = model_labels[label]
         ax[iaxes].set_title(label)
         ax[iaxes].set_ylabel(
@@ -1222,6 +1229,8 @@ def plot_sites_list_mf(
         )
 
         handles, labels = fig.axes[-1].get_legend_handles_labels()
+        if len(labels) == 0:
+            continue
         fig.legend(
             handles,
             labels,
