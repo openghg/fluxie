@@ -113,20 +113,6 @@ def _extract_region_flux_sector(
         "prior_upper",
     ]
 
-    v_present = dict(
-        zip(
-            ds_all.keys(),
-            [
-                (
-                    ["posterior", "prior"]
-                    if f"flux_{sector}_prior_country" in ds
-                    else ["posterior"]
-                )
-                for m, ds in ds_all.items()
-            ],
-        )
-    )
-
     dict_regions: dict[str, str] = regions_info.get("regions", {})
 
     flag_percentile = False
