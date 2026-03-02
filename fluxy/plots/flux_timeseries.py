@@ -1497,7 +1497,9 @@ def plot_all_species_stacked_bar(
 
         if s == 0:
             inv_plot_times = inventories_to_plot[species][0].time.values
-            plot_times = ds_to_plot.time.values.astype("datetime64[Y]")
+            plot_times = ds_to_plot[species][models[s]].time.values.astype(
+                "datetime64[Y]"
+            )
             uncert_combined = posterior_diff
             if plot_inventory_uncertainty:
                 inventories_uncert_combined = this_uncert
