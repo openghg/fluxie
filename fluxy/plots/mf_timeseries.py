@@ -443,10 +443,10 @@ def _get_unit(ds_dict: dict[str, xr.Dataset]) -> str:
     return plot_units[0]
 
 
-def add_xlims_and_ticks(
+def _add_xlims_and_ticks(
     ax: Axes,
     yearly_freq: bool,
-    plotted_data_df: dict[str, dict],
+    plotted_data_df: pd.DataFrame,
     aggreg_month: bool,
     rotate_xticks: bool = False,
 ):
@@ -802,7 +802,7 @@ def plot_timeseries(
         if len(data_to_plot[m].time) <= 1:
             continue
 
-        add_xlims_and_ticks(
+        _add_xlims_and_ticks(
             ax[iax, 0],
             yearly_freq=False,
             plotted_data_df=plotted_data_df,
@@ -1243,7 +1243,7 @@ def plot_sites_list_mf(
         if len(data_to_plot[m].time) <= 1:
             continue
 
-        add_xlims_and_ticks(
+        _add_xlims_and_ticks(
             ax[iaxes],
             yearly_freq=False,
             plotted_data_df=plotted_data_df,
