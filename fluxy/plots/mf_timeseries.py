@@ -1,6 +1,5 @@
 import logging
 from typing import Literal
-from math import ceil
 from enum import Enum
 import numpy as np
 
@@ -22,7 +21,6 @@ from fluxy.operators.select import (
     FrequencyType,
     clean_timeseries_missing_data,
     get_site_index,
-    get_unique_sites,
     get_unique_site_height_pairs,
     slice_site,
     check_site_list,
@@ -32,7 +30,7 @@ from fluxy.plots.utils import set_min_decimal_points
 logger = logging.getLogger(__name__)
 
 
-class plotTypes(Enum):
+class PlotTypes(Enum):
     SEPARATE = "separate"
     TOGETHER = "together"
     DIFF = "diff"
@@ -224,7 +222,7 @@ def _prepare_data_to_plot(
     diff_include: None | list,
     aggreg_month: bool,
     time_freq_min: FrequencyType,
-    plot_type: plotTypes,
+    plot_type: PlotTypes,
 ) -> dict[str, xr.Dataset]:
     """
     Create dictionnary of datasets containing all the data that will be plotted.
@@ -243,6 +241,8 @@ def _prepare_data_to_plot(
             and "percentile". "percentile" can take 4 values: "mean" (always present) being the main value, "lower" and "upper" (optionnals) which are the
             "upper" and "lower" boundaries of the associated uncertainty, and "std" (optionnal) which is the std / one side associated uncertainty.
     """
+
+    plot_type = PlotTypes(plot_type)
 
     if not include:
         raise ValueError(
@@ -266,7 +266,7 @@ def _prepare_data_to_plot(
         # Check there is only one site in the dataset
         if (
             len(np.unique(ds.get("number_of_identifier", 0))) > 1
-            and plot_type != "multiple_sites"
+            and plot_type != PlotTypes.MULTIPLE_SITES
         ):
             raise ValueError(
                 f"Dataset {m} contains more than one site. "
@@ -303,7 +303,7 @@ def _prepare_data_to_plot(
                 ds_var = _prepare_var(ds_clean, var, unc_var, model=m)
 
             if unc_var:
-                if plot_type == "diff":
+                if plot_type == PlotTypes.DIFF:
                     raise ValueError(
                         f"Option plot_type='diff' does not accept uncertainties. Replace '{unc_var}' by None."
                     )
@@ -323,7 +323,7 @@ def _set_labels_and_colors(
     ds_dict: dict[str, xr.Dataset],
     model_labels: dict[str, str],
     model_colors: dict[str, list],
-    plot_type: plotTypes,
+    plot_type: PlotTypes,
 ) -> dict[str, xr.Dataset]:
     """
     Set labels and colors, that will be used by add_mf_line_scatter_plot and plot_histogram, as attributes of the variables dataset.
@@ -337,12 +337,14 @@ def _set_labels_and_colors(
     Return:
         ds_dict: dictionnary of datasets where the label and color have been added as attributes of the dataset / dataset variables.
     """
+    plot_type = PlotTypes(plot_type)
+
     if model_colors is None:
         model_colors = config.set_model_colors(ds_dict.keys())
 
     for m in ds_dict.keys():
         vars_to_plot = ds_dict[m].data_vars.keys()
-        if plot_type == "diff":
+        if plot_type == PlotTypes.DIFF:
             mdiff0, mdiff1 = m.split("--")
             model_label = f"{model_labels[mdiff0]} - {model_labels[mdiff1]}"
             model_color = model_colors[mdiff0]
@@ -369,7 +371,7 @@ def _set_labels_and_colors(
 
 def _create_figure(
     models: list[str],
-    plot_type: plotTypes,
+    plot_type: PlotTypes,
     histogram_type: str | None,
     aggreg_month: bool,
 ) -> tuple[Figure, Axes]:
@@ -384,9 +386,12 @@ def _create_figure(
     Return:
         fig, ax: matplotlib figure and axes object with appropriate sizes.
     """
-    if plot_type in ["separate"]:
+
+    plot_type = PlotTypes(plot_type)
+
+    if plot_type == PlotTypes.SEPARATE:
         nrows = len(models)
-    elif plot_type in ["together", "diff"]:
+    elif plot_type in [PlotTypes.TOGETHER, PlotTypes.DIFF]:
         nrows = 1
     else:
         raise ValueError(
@@ -546,7 +551,7 @@ def add_unc_plot(
         ax.errorbar(
             time_as_datetime,
             y=ds.sel(percentile="mean"),
-            yerr=min_unc,
+            yerr=[min_unc, max_unc],
             alpha=0.4,
             fmt="none",
             color=ds.attrs["plot_color"],
@@ -560,7 +565,7 @@ def add_unc_plot(
 def add_mf_line_scatter_plot(
     ax: Axes,
     ds: xr.Dataset,
-    plot_type: str,
+    plot_type: PlotTypes,
     add_unc: bool = True,
     marker: str = "s",
     unc_type: Literal["Errorbar", "FillBetween"] | None = None,
@@ -576,6 +581,9 @@ def add_mf_line_scatter_plot(
     Return:
         res: dataframe with data plotted
     """
+
+    plot_type = PlotTypes(plot_type)
+
     time_as_datetime = ds.time.values.astype("datetime64[D]").tolist()
 
     kwargs = {
@@ -584,12 +592,12 @@ def add_mf_line_scatter_plot(
         "label": ds.attrs["plot_label"],
     }
 
-    if plot_type == "multiple_sites":
+    if plot_type == PlotTypes.MULTIPLE_SITES:
         type_plot = ds.attrs["plot_label"]
     else:
         type_plot = ds.name
 
-    if ds.name in ["mf_observed", "observed_above_BC"] or plot_type == "diff":
+    if ds.name in ["mf_observed", "observed_above_BC"] or plot_type == PlotTypes.DIFF:
         plot_func = ax.scatter
         kwargs.update({"s": 8, "marker": marker})
     else:
@@ -635,7 +643,7 @@ def plot_timeseries(
     config_data: dict[str, dict] = {},
     annotate_coords: dict[int, list] = {},
     presentation_mode: bool = False,
-    plot_type: plotTypes = "separate",
+    plot_type: PlotTypes = PlotTypes.SEPARATE,
     diff_include: list[str] | None = None,
     y_lim: None | tuple[float | None, float | None] = None,
     n_bins: int = 30,
@@ -693,6 +701,8 @@ def plot_timeseries(
             A timeseries and histogram plot for each model included.
     """
 
+    plot_type = PlotTypes(plot_type)
+
     models = ds_all.keys()
 
     species_info = config_data.get("species_info", {}).get(species, {})
@@ -722,7 +732,7 @@ def plot_timeseries(
     for i, m in enumerate(models):
 
         # Define plot_type specific settings
-        iax = i if plot_type == "separate" else 0
+        iax = i if plot_type == PlotTypes.SEPARATE else 0
 
         # Loop over all variables to plot
         for var in include.keys():
@@ -753,10 +763,14 @@ def plot_timeseries(
         max_mf = max(max_mf, ax[iax, 0].get_ylim()[1])
 
         # Set timeseries title
-        if plot_type in ["separate", "diff"]:
+        if plot_type in [PlotTypes.SEPARATE, PlotTypes.MULTIPLE_SITES]:
             plot_title = data_to_plot[m].attrs["label"]
-        elif plot_type == "together":
+        elif plot_type == PlotTypes.TOGETHER:
             plot_title = "All models"
+        elif plot_type == PlotTypes.DIFF:
+            plot_title = f"Diff"
+        else:
+            raise ValueError(f"Option {plot_type} not implemented.")
         ax[iax, 0].set_title(plot_title)
 
         # Set timeseries y-axis label and legend
@@ -957,7 +971,7 @@ def plot_histogram(
     presentation_mode: bool,
     annotate_coords: dict[int, list],
     annotate_index: int,
-    plot_type: plotTypes,
+    plot_type: PlotTypes | str,
     n_bins: int = 30,
     violin: bool = False,
     **kwargs,
@@ -985,10 +999,12 @@ def plot_histogram(
             Coordinates to annotate histogram.
         annotate_index (int):
             Model index. Used to specify annotation location if plot_type == "together".
-        plot_type (str):
+        plot_type (PlotTypes | str):
             Type of timeseries plot in which the histogram will be plotted.
             Options for "separate", "together" and "diff".
     """
+
+    plot_type = PlotTypes(plot_type)
 
     if not annotate_coords:
         annotate_coords = config.set_print_settings(presentation_mode)
@@ -1030,9 +1046,9 @@ def plot_histogram(
             if diff_include:
                 ax.vlines(0, 0, np.max(a), color="dimgrey", linewidth=3.0)
 
-        if plot_type in ["separate", "diff"]:
+        if plot_type in [PlotTypes.SEPARATE, PlotTypes.DIFF]:
             index = v
-        elif plot_type == "together":
+        elif plot_type == PlotTypes.TOGETHER:
             index = annotate_index
 
         # Compute and format mean and std of the histogram
@@ -1043,7 +1059,7 @@ def plot_histogram(
 
         # Write mean/std to histogram
         # If plot_type = togehter, print only mean/std of the first variable
-        if not (plot_type == "together" and v != 0):
+        if not (plot_type == PlotTypes.TOGETHER and v != 0):
             xcoord = annotate_coords["x"]
             ycoord = annotate_coords["ytop"] - index * annotate_coords["dy"]
             ax.annotate(
@@ -1054,7 +1070,7 @@ def plot_histogram(
             )
 
     # Write number of obs
-    if plot_type == "separate" and len(hist_to_plot) == 1:
+    if plot_type == PlotTypes.SEPARATE and len(hist_to_plot) == 1:
         var = list(vars_to_plot)[0]
         values = ds[var].values
         mask_not_nan = ~np.isnan(values)
@@ -1079,8 +1095,8 @@ def plot_sites_list_mf(
     sites: list[str],
     species: str,
     include: VariableType,
-    model_labels: dict[str, dict]={},
-    model_colors: dict[str, list]={},
+    model_labels: dict[str, dict] = {},
+    model_colors: dict[str, list] = {},
     aggreg_month: bool = False,
     config_data: dict[str, dict] = {},
     data_on_single_graph: Literal["models", "sites"] = "sites",
@@ -1111,7 +1127,7 @@ def plot_sites_list_mf(
     """
     ds_all_p = ds_all.copy()
 
-    plot_type = "multiple_sites"
+    plot_type = PlotTypes.MULTIPLE_SITES
     models = ds_all_p.keys()
     species_info = config_data.get("species_info", {}).get(species, {})
     plotted_data_df = pd.DataFrame()
@@ -1126,7 +1142,6 @@ def plot_sites_list_mf(
     else:
         raise ValueError("data_on_single_graph should be 'models' or 'sites'")
 
-  
     ncols = 1
     nrows = len(axes_looper)
     length = 8 if aggreg_month else 15
@@ -1141,7 +1156,7 @@ def plot_sites_list_mf(
     )
 
     ax = ax.flatten()
-    
+
     obs_markers = ["s", "v", "^", "<", ">", "p", "P", "*", "+"]
     for isite, site in enumerate(sites):
         for im, m in enumerate(models):
@@ -1184,7 +1199,7 @@ def plot_sites_list_mf(
                     attrs_update["plot_color"] = "black"
                 else:
                     attrs_update = attrs[data_on_single_graph].copy()
-                marker = obs_markers[marker_index]   
+                marker = obs_markers[marker_index]
                 attrs_update[
                     "plot_label"
                 ] += f" {config.mf_labels.get(variable, variable)}"
@@ -1243,4 +1258,3 @@ def plot_sites_list_mf(
     )
 
     return fig, plotted_data_df
-
