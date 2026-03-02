@@ -2,7 +2,6 @@ import numpy as np
 import xarray as xr
 import pandas as pd
 import logging
-from fluxy.operators.select import get_unique_sites, get_site_index
 from fluxy.operators.convert import get_variables
 from typing import Literal
 
