@@ -328,7 +328,7 @@ def _set_labels_and_colors(
     plot_type: PlotTypes,
 ) -> dict[str, xr.Dataset]:
     """
-    Set labels and colors, that will be used by add_mf_line_scatter_plot and plot_histogram, as attributes of the variables dataset.
+    Set labels and colors, that will be used by add_line_scatter_plot and plot_histogram, as attributes of the variables dataset.
     For variables "mf_observed" and "observed_above_BC", the color will be black (and not one of model_colors) if more than one variable is plotted.
     Args:
         ds_dict: dictionnary containing the dataset with the variables to be plotted (and only them).
@@ -527,18 +527,19 @@ def add_unc_plot(
     ax: Axes,
     min_unc: list[np.float64],
     max_unc: list[np.float64],
-    ds: xr.Dataset,
+    da: xr.DataArray,
     plot_type: Literal["Errorbar", "FillBetween"] | None = None,
 ):
     """
-    Get uncertainty min and max values to plot the uncertainty band in add_mf_line_scatter_plot.
+    Get uncertainty min and max values to plot the uncertainty band in add_line_scatter_plot.
     Args:
         ax: axes on which to plot
-        min_unc: list of the same size as ds.time containing the minimum values of the uncertainty band to plot.
-        max_unc: list of the same size as ds.time containing the maximum values of the uncertainty band to plot.
+        min_unc: list of the same size as da.time containing the minimum values of the uncertainty band to plot.
+        max_unc: same as min_unc but for the maximum values.
+        da: dataarray to plot.
         plot_type: type of plot to use for uncertainty ("Errorbar" or "FillBetween")
     """
-    time_as_datetime = ds.time.values.astype("datetime64[D]").tolist()
+    time_as_datetime = da.time.values.astype("datetime64[D]").tolist()
     if plot_type is None:
         return
     if plot_type == "FillBetween":
@@ -547,17 +548,17 @@ def add_unc_plot(
             y1=min_unc,
             y2=max_unc,
             alpha=0.2,
-            color=ds.attrs["plot_color"],
+            color=da.attrs["plot_color"],
         )
 
     elif plot_type == "Errorbar":
         ax.errorbar(
             time_as_datetime,
-            y=ds.sel(percentile="mean"),
+            y=da.sel(percentile="mean"),
             yerr=[min_unc, max_unc],
             alpha=0.4,
             fmt="none",
-            color=ds.attrs["plot_color"],
+            color=da.attrs["plot_color"],
         )
     else:
         raise ValueError(
@@ -565,9 +566,9 @@ def add_unc_plot(
         )
 
 
-def add_mf_line_scatter_plot(
+def add_line_scatter_plot(
     ax: Axes,
-    ds: xr.Dataset,
+    da: xr.DataArray,
     plot_type: PlotTypes,
     add_unc: bool = True,
     marker: str = "s",
@@ -577,7 +578,7 @@ def add_mf_line_scatter_plot(
     Add line/scatter plot with uncertainty if requested.
     Args:
         ax: axes on which to plot
-        ds: dataset containing mole fraction data to plot
+        da: dataarray containing mole fraction data to plot
         plot_type: used to determine labels to display
         add_unc: if True, plot uncertainty
         unc_type: type of plot to use for uncertainty ("Errorbar" or "FillBetween")
@@ -587,41 +588,41 @@ def add_mf_line_scatter_plot(
 
     plot_type = PlotTypes(plot_type)
 
-    time_as_datetime = ds.time.values.astype("datetime64[D]").tolist()
+    time_as_datetime = da.time.values.astype("datetime64[D]").tolist()
 
     kwargs = {
         "alpha": 0.8,
-        "color": ds.attrs["plot_color"],
-        "label": ds.attrs["plot_label"],
+        "color": da.attrs["plot_color"],
+        "label": da.attrs["plot_label"],
     }
 
     if plot_type == PlotTypes.MULTIPLE_SITES:
-        type_plot = ds.attrs["plot_label"]
+        type_plot = da.attrs["plot_label"]
     else:
-        type_plot = ds.name
+        type_plot = da.name
 
-    if ds.name in ["mf_observed", "observed_above_BC"] or plot_type == PlotTypes.DIFF:
+    if da.name in ["mf_observed", "observed_above_BC"] or plot_type == PlotTypes.DIFF:
         plot_func = ax.scatter
         kwargs.update({"s": 8, "marker": marker})
     else:
         plot_func = ax.plot
         kwargs.update({"linewidth": 2.0, "marker": "o", "markersize": 1.5})
 
-    plot_func(time_as_datetime, ds.sel(percentile="mean"), **kwargs)
+    plot_func(time_as_datetime, da.sel(percentile="mean"), **kwargs)
 
     res = pd.DataFrame(
         {
             "time": time_as_datetime,
-            "mean_val": ds.sel(percentile="mean").values,
+            "mean_val": da.sel(percentile="mean").values,
         }
     )
     res["type"] = type_plot
-    res["model"] = ds.attrs["exp_name"]
-    res["species"] = ds.attrs["species"]
+    res["model"] = da.attrs["exp_name"]
+    res["species"] = da.attrs["species"]
 
     if add_unc:
-        res["min_unc"], res["max_unc"] = get_minmax_unc(ds)
-        add_unc_plot(ax, res["min_unc"], res["max_unc"], ds, unc_type)
+        res["min_unc"], res["max_unc"] = get_minmax_unc(da)
+        add_unc_plot(ax, res["min_unc"], res["max_unc"], da, unc_type)
 
     return res
 
@@ -729,8 +730,8 @@ def plot_timeseries(
 
         # Loop over all variables to plot
         for var in include.keys():
-            res = add_mf_line_scatter_plot(
-                ax[iax, 0], data_to_plot[m][var], plot_type, unc_type
+            res = add_line_scatter_plot(
+                ax[iax, 0], data_to_plot[m][var], plot_type, unc_type=unc_type
             )
             plotted_data_df = pd.concat([plotted_data_df, res], ignore_index=True)
 
@@ -1204,7 +1205,7 @@ def plot_sites_list_mf(
                 label_add = f" {config.mf_labels.get(variable, variable)}"
                 attrs_update["plot_label"] += label_add
                 data_to_plot[m][variable].attrs.update(attrs_update)
-                res = add_mf_line_scatter_plot(
+                res = add_line_scatter_plot(
                     ax[ax_index],
                     data_to_plot[m][variable],
                     plot_type=plot_type,
