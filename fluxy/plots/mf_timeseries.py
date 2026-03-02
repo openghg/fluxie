@@ -540,8 +540,13 @@ def add_unc_plot(
         plot_type: type of plot to use for uncertainty ("Errorbar" or "FillBetween")
     """
     time_as_datetime = da.time.values.astype("datetime64[D]").tolist()
+
     if plot_type is None:
         return
+    
+    min_unc = np.array(min_unc, dtype=float)
+    max_unc = np.array(max_unc, dtype=float)
+
     if plot_type == "FillBetween":
         ax.fill_between(
             time_as_datetime,
@@ -1167,7 +1172,7 @@ def plot_sites_list_mf(
         )
         unit = _get_unit(data_to_plot)
         for im, m in enumerate(models):
-            if len(data_to_plot[m].dims) == 0:
+            if m not in data_to_plot or len(data_to_plot[m].dims) == 0:
                 logger.warning(f"Model {m} not found for site {site}, skipping.")
                 continue
             # Select site
