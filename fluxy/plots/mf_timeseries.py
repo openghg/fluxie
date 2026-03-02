@@ -618,7 +618,7 @@ def add_mf_line_scatter_plot(
     if add_unc:
         res["min_unc"], res["max_unc"] = get_minmax_unc(ds)
         add_unc_plot(ax, res["min_unc"], res["max_unc"], ds, unc_type)
-        
+
     return res
 
 
@@ -1166,6 +1166,14 @@ def plot_sites_list_mf(
             elif data_on_single_graph == "sites":
                 ax_index = isite
                 marker_index = im
+
+            if marker_index >= len(obs_markers):
+                logger.warning(
+                    f"More than {len(obs_markers)} sites or models to plot, "
+                    "some markers will be reused."
+                )
+                marker_index = marker_index % len(obs_markers)
+
             ds_all_site = slice_site(ds_all_p, site)
 
             # Prepare data to plot
@@ -1184,20 +1192,16 @@ def plot_sites_list_mf(
                     variable in ["mf_observed", "observed_above_BC"]
                     and len(include.keys()) > 1
                 ):
-                    attrs_update = attrs[data_on_single_graph].copy()
                     attrs_update["plot_color"] = "black"
-                else:
-                    attrs_update = attrs[data_on_single_graph].copy()
-                marker = obs_markers[marker_index]
-                attrs_update[
-                    "plot_label"
-                ] += f" {config.mf_labels.get(variable, variable)}"
+                attrs_update = attrs[data_on_single_graph].copy()
+                label_add = f" {config.mf_labels.get(variable, variable)}"
+                attrs_update["plot_label"] += label_add
                 data_to_plot[m][variable].attrs.update(attrs_update)
                 res = add_mf_line_scatter_plot(
                     ax[ax_index],
                     data_to_plot[m][variable],
                     plot_type=plot_type,
-                    marker=marker,
+                    marker=obs_markers[marker_index],
                     add_unc=include[variable],
                     unc_type=unc_type,
                 )
