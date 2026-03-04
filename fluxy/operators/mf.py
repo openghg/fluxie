@@ -80,8 +80,7 @@ def compute_mf_difference(
         logger.warning(
             f"Different species found {species_set} between the 2 compared datasets."
         )
-        species = species_set
-        species_set = "mix"
+        species = "mix"
     else:
         species = list(species_set)[0]
 
