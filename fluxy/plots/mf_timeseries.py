@@ -552,8 +552,8 @@ def add_unc_plot(
     if plot_type == "FillBetween":
         ax.fill_between(
             time_as_datetime,
-            y1=mean - min_unc,
-            y2=mean + max_unc,
+            y1=min_unc,
+            y2=max_unc,
             alpha=0.2,
             color=da.attrs["plot_color"],
         )
@@ -562,7 +562,7 @@ def add_unc_plot(
         ax.errorbar(
             time_as_datetime,
             y=da.sel(percentile="mean"),
-            yerr=[min_unc, max_unc],
+            yerr=[mean - min_unc, max_unc - mean],
             alpha=0.4,
             fmt="none",
             color=da.attrs["plot_color"],
