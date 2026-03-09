@@ -31,7 +31,7 @@ The most important variables are described below. Please refer to the cdl files 
 | percentile_flux_total_prior_inversion_grid     | mol m-2 s-1 | time, percentile, latitude, longitude | Percentile of prior total `<species>` fluxes on the reduced inversion grid
 | percentile_flux_total_posterior_inversion_grid | mol m-2 s-1 | time, percentile, latitude, longitude | Percentile of posterior total `<species>` fluxes on the reduced inversion grid
 
-(1) fluxy accepts any SI unit of the type "amount length-2 time-1" and "mass length-2 time-1". However, please make sure that all grid variables have the same units.
+(1) fluxie accepts any SI unit of the type "amount length-2 time-1" and "mass length-2 time-1". However, please make sure that all grid variables have the same units.
 
 | By-country variables                    | Units (2) | Dimensions    | Description                                      |
 |:----------------------------------------|:----------|:--------------|:-------------------------------------------------|
@@ -45,7 +45,7 @@ The most important variables are described below. Please refer to the cdl files 
 | *Optional*
 | covariance_flux_total_posterior_country | kg2 yr-2  | time, country, country    | Covariance of country-total posterior `<species>` fluxes
 
-(2) fluxy accepts any SI unit of the type "mass time-1" for country flux variables and "mass2 time-2" for the covariance variable. However, please make sure that all by-country variables have the same units and that the covariance variable has the respective squared units.
+(2) fluxie accepts any SI unit of the type "mass time-1" for country flux variables and "mass2 time-2" for the covariance variable. However, please make sure that all by-country variables have the same units and that the covariance variable has the respective squared units.
 
 | Auxiliary variables | Units  |  Dimensions                  | Description                                |
 |:--------------------|:-------|:-----------------------------|:-------------------------------------------|
@@ -94,7 +94,7 @@ The most important variables are described below. Please refer to the cdl files 
 | stdev_mf_observed_variability	  | mol mol-1 | index      | Variability of observed mole fraction within aggregation interval
 | stdev_mf_model                  | mol mol-1 | index      | Model uncertainty of simulated mole fraction
 
-(3) fluxy also accepts ppm, ppb and ppt. However, please make sure that all variables have the same units.
+(3) fluxie also accepts ppm, ppb and ppt. However, please make sure that all variables have the same units.
 
 ## 3. Eddy covariance flux file
 

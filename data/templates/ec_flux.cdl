@@ -82,10 +82,10 @@ variables:
 		:title = "Eddy covariance fluxes from Hardau" ; 
 		:institution = "Empa" ; 
 		:source = "Eddypro V2" ; 
-		:comment = "Data processed with Eddypro V2 for fluxy plots" ; 
+		:comment = "Data processed with Eddypro V2 for fluxie plots" ; 
 		:creation_date = "2025-07-21T16:55:02.806705" ; 
-		:fluxy_substance = "<species>" ; 
-		:fluxy_data_type = "eddy_flux" ; 
-		:fluxy_model = "EDDY_HARDAU" ; 
+		:fluxie_substance = "<species>" ; 
+		:fluxie_data_type = "eddy_flux" ; 
+		:fluxie_model = "EDDY_HARDAU" ; 
                      
 }   

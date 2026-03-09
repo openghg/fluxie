@@ -46,10 +46,10 @@ classifiers = [
 
 
 [project.urls]
-Homepage = "https://github.com/openghg/fluxy"
-Documentation = "https://github.com/openghg/fluxy/blob/devel/README.md"
-Repository = "https://github.com/openghg/fluxy"
-"Bug Tracker" = "https://github.com/openghg/fluxy/issues"
+Homepage = "https://github.com/openghg/fluxie"
+Documentation = "https://github.com/openghg/fluxie/blob/devel/README.md"
+Repository = "https://github.com/openghg/fluxie"
+"Bug Tracker" = "https://github.com/openghg/fluxie/issues"
 "PARIS project" = "https://horizoneurope-paris.eu/"
 
 
