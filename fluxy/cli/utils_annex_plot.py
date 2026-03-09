@@ -45,7 +45,7 @@ def create_str_dataframe(
     The values are string of the form "<mean> \\pm <uncertainty>", made to be usable directly to make the tex output for the annexes tables. Set the units and right number of digits.
     NOTE: Assume that the units in res is Tg CO2-eq yr-1
     Args:
-        res: pandas dataframe containing the results. It should be the output (or concatenation of outputs) of `plot_country_flux` from fluxy/plots/flux_timeseries.py
+        res: pandas dataframe containing the results. It should be the output (or concatenation of outputs) of `plot_country_flux` from fluxie/plots/flux_timeseries.py
             The columns of this dataframe are "type", "model", "sector", "country", "species", "time", "mean_val", "min_unc", "max_unc".
         inventory_year: inventory year to put in the outputted dataframe (has to b present in <res>).
         species: species to put include in the table

@@ -3,7 +3,7 @@ import xarray as xr
 
 from matplotlib.cm import get_cmap
 
-from fluxy.operators.regions import extract_region_inventory_flux
+from fluxie.operators.regions import extract_region_inventory_flux
 
 
 def retrieve_inventories(

@@ -1,5 +1,5 @@
 """
-Script to convert the concentration ts files from CSR format to netcdf fluxy format.
+Script to convert the concentration ts files from CSR format to netcdf fluxie format.
 It can be run by the csr_preprocess.ipynb notebook.
 """
 
@@ -22,7 +22,7 @@ def preprocess_conc(
     species: str,
 ):
     """
-    Main function, which converts the CSR concentration time series into the fluxy format.
+    Main function, which converts the CSR concentration time series into the fluxie format.
 
     Args:
         path_to_prior_conc (str):
@@ -32,7 +32,7 @@ def preprocess_conc(
         path_to_farfield_conc (str):
             Full path to CSR farfield contribution file
         path_to_output_conc (str):
-            Full path to the directory where the results in fluxy format are to be stored
+            Full path to the directory where the results in fluxie format are to be stored
         start_year (int):
             First year of time series
         end_year (int):
@@ -278,7 +278,7 @@ def _save_dataset_conc(
         species (str):
             Species (e.g. "ch4", "co2")
         path_to_output_conc:
-            Full path to the directory where the results in fluxy format are to be stored
+            Full path to the directory where the results in fluxie format are to be stored
         files (list):
             List with file names of the concentration time series
         ids (list):

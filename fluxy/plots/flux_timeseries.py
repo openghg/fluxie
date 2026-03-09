@@ -16,14 +16,14 @@ from matplotlib.dates import YearLocator, MonthLocator
 from matplotlib.ticker import NullFormatter
 from matplotlib import __version__ as mplt_version
 
-from fluxy import config
-from fluxy.operators.regions import extract_region_flux, format_plot_regions
-from fluxy.operators.rolling_mean import calc_rolling_mean
-from fluxy.operators.flux_timeseries_resample import resample_flux
-from fluxy.operators.flux_combine import combine_dataset
-from fluxy.operators.flux_prepare_inventory import retrieve_inventories
-from fluxy.operators.convert import convert_units_co2eq
-from fluxy.plots.utils import update_list_params
+from fluxie import config
+from fluxie.operators.regions import extract_region_flux, format_plot_regions
+from fluxie.operators.rolling_mean import calc_rolling_mean
+from fluxie.operators.flux_timeseries_resample import resample_flux
+from fluxie.operators.flux_combine import combine_dataset
+from fluxie.operators.flux_prepare_inventory import retrieve_inventories
+from fluxie.operators.convert import convert_units_co2eq
+from fluxie.plots.utils import update_list_params
 
 logger = logging.getLogger(__name__)
 
@@ -588,7 +588,7 @@ def prepare_inventory_sector_barplot(
 ) -> list[xr.Dataset]:
     """
     Prepare the inventory for the sector barplot.
-    Call fluxy.operators.flux_prepare_inventory.retrieve_inventories and change the outputed dataarrays in to dataset (with variable name "inv_data").
+    Call fluxie.operators.flux_prepare_inventory.retrieve_inventories and change the outputed dataarrays in to dataset (with variable name "inv_data").
 
     Args:
         sectors: List of emissions sectors

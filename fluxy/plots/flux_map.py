@@ -5,11 +5,11 @@ import xarray as xr
 import numpy as np
 import logging
 
-from fluxy.operators.flux_align_dataset import align_map_data
-from fluxy.operators.flux_combine import combine_map_dataset
-from fluxy.operators.flux_map_diff import define_var_plot, make_model_diff_ds
-from fluxy.operators.flux_map_resample import resample_over_period
-from fluxy.plots.utils import (
+from fluxie.operators.flux_align_dataset import align_map_data
+from fluxie.operators.flux_combine import combine_map_dataset
+from fluxie.operators.flux_map_diff import define_var_plot, make_model_diff_ds
+from fluxie.operators.flux_map_resample import resample_over_period
+from fluxie.plots.utils import (
     Region,
     add_colorbar,
     add_custom_markers,
@@ -66,7 +66,7 @@ def plot_flux_map(
         config_data (dict of dict):
             Dictionary of models and species information (read from json file).
         model_labels (list):
-            List of model_labels from fluxy.config.
+            List of model_labels from fluxie.config.
         cmap (str, optional):
             Colour map for flux plots.
         cmap_diff (str, optional):
@@ -330,7 +330,7 @@ def plot_flux_map_model_comparison(
         config_data (dict of dict):
             Dictionary of models and species information (read from json file).
         model_labels (list):
-            List of model_labels from fluxy.config.
+            List of model_labels from fluxie.config.
         cmap (str, optional):
             Colour map for flux plots.
         cmap_diff (str, optional):
@@ -562,7 +562,7 @@ def plot_flux_map_over_time(
         config_data (dict of dict):
             Dictionary of models and species information (read from json file).
         model_labels (list):
-            List of model_labels from fluxy.config.
+            List of model_labels from fluxie.config.
         chop_by (str or list):
             Time units to perform the average, options for 'year', 'month' and 'season'.
             Alternatively, a list of starting dates or months number can be provided.
@@ -1090,7 +1090,7 @@ def plot_flux_map_period_comparison(
         config_data (dict of dict):
             Dictionary of models and species information (read from json file).
         model_labels (list):
-            List of model_labels from fluxy.config.
+            List of model_labels from fluxie.config.
         chop_by (str or list):
             Time units to perform the average, options for 'year', 'month' and 'season'.
             Alternatively, a list of starting dates or months number can be provided.

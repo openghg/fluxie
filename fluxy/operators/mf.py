@@ -2,10 +2,10 @@ import numpy as np
 import xarray as xr
 import pandas as pd
 import logging
-from fluxy.operators.convert import get_variables
+from fluxie.operators.convert import get_variables
 from typing import Literal
 
-from fluxy.operators.stats import stats_observed_vs_simulated
+from fluxie.operators.stats import stats_observed_vs_simulated
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +133,7 @@ def stats_mf(
     Calculates multiple statistical measures of the fit between the posterior
     mean mf and the observed mole fraction.
 
-    This calls :py:func:`fluxy.operators.stats.stats_observed_vs_simulated`
+    This calls :py:func:`fluxie.operators.stats.stats_observed_vs_simulated`
 
     Args:
         ds_all (dictionary of datasets):

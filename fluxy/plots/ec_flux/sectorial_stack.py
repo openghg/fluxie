@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-from fluxy.plots.utils import stack_plot
+from fluxie.plots.utils import stack_plot
 
 WIND_LABELS = {
     4: ["N", "E", "S", "W"],

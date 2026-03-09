@@ -2,7 +2,7 @@ import logging
 import numpy as np
 import pandas as pd
 import xarray as xr
-from fluxy.operators.select import get_unique_sites, slice_site
+from fluxie.operators.select import get_unique_sites, slice_site
 
 
 def stats_observed_vs_simulated(

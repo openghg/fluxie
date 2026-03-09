@@ -2,7 +2,7 @@ from functools import wraps
 
 import xarray as xr
 
-from fluxy.types import DsAll
+from fluxie.types import DsAll
 
 
 def apply_to_dict_or_single(func):

@@ -1,6 +1,6 @@
 import pytest
-from fluxy.test_utils.models import test_models, get_loaded_models
-from fluxy.operators.flux_map_resample import (
+from fluxie.test_utils.models import test_models, get_loaded_models
+from fluxie.operators.flux_map_resample import (
     get_flux_mean,
     resample_over_period,
 )

@@ -15,11 +15,11 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from fluxy import config
-from fluxy.operators.flux_align_dataset import align_time
-from fluxy.operators.regions import extract_region_flux
-from fluxy.operators.select import slice_flux, get_intake_height, get_site_index
-from fluxy.types import DataType, DataTypes, file_pattern
+from fluxie import config
+from fluxie.operators.flux_align_dataset import align_time
+from fluxie.operators.regions import extract_region_flux
+from fluxie.operators.select import slice_flux, get_intake_height, get_site_index
+from fluxie.types import DataType, DataTypes, file_pattern
 
 logger = logging.getLogger(__name__)
 
@@ -546,7 +546,7 @@ def read_flux_total_fgases(
     if all_species is None:
         raise ValueError(
             f"No list of species was found in the config_data for {species}. "
-            + f"If config_data was created with read_config_files from fluxy/io.py, update configs/species_info.json."
+            + f"If config_data was created with read_config_files from fluxie/io.py, update configs/species_info.json."
         )
     if "CO2-eq" not in unit:
         raise ValueError("Unit should be in CO2-eq.")
@@ -661,7 +661,7 @@ def create_flux_total_fgases(ds_all, species, regions, models, only_overlapping)
             If True, only includes time periods where all models have data. Otherwise, uses all available data.
     Returns:
         ds_output (dictionary of datasets):
-            dictionnary of xarray datasets ready to be used with fluxy plot methods.
+            dictionnary of xarray datasets ready to be used with fluxie plot methods.
     """
     ds_output = {}
     for model in models:
@@ -768,7 +768,7 @@ def edit_vars_and_attributes(
             Options for "monthly" and "yearly".
         file_type (str):
             Output file type.
-            See :py:class:`fluxy.types.DataType` for options.
+            See :py:class:`fluxie.types.DataType` for options.
         regions_info (dict of str):
             Dictionary with country and region names (read from config file).
         species (str, optional):

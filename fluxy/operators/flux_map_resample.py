@@ -6,7 +6,7 @@ import datetime
 import warnings
 
 from typing import List, Tuple, Literal
-from fluxy.plots.utils import print_period, get_frequency
+from fluxie.plots.utils import print_period, get_frequency
 
 
 def get_flux_mean(

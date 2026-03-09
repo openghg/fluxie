@@ -4,7 +4,7 @@ import xarray as xr
 
 
 class DataTypes(Enum):
-    """Enum for different data types used in fluxy."""
+    """Enum for different data types used in fluxie."""
 
     # Flux data (emission maps)
     FLUX = "flux"

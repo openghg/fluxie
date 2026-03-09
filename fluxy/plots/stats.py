@@ -29,13 +29,13 @@ def plot_stats(
     Args:
         df_stats: DataFrame containing the statistics to plot.
             Can be calculated with the functions
-            :py:func:`fluxy.operators.stats.stats_observed_vs_simulated`
+            :py:func:`fluxie.operators.stats.stats_observed_vs_simulated`
         species: Name of the species, used in the plot title.
         variable: Name of the variable, used in the y-axis label.
         site_span: The width of the site span in the plot.
             Should be between 0.1 and 1.0.
         plot_type: Type of the plot to create.
-            One of :py:class:`fluxy.operators.stats.StatsPlotTypes`.
+            One of :py:class:`fluxie.operators.stats.StatsPlotTypes`.
         config_data: Configuration data, used to get species information.
     """
 

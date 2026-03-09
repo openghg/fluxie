@@ -1,6 +1,6 @@
 import logging
-from fluxy.types import DsAll
-from fluxy.operators.utils import apply_to_dict_or_single
+from fluxie.types import DsAll
+from fluxie.operators.utils import apply_to_dict_or_single
 import xarray as xr
 
 

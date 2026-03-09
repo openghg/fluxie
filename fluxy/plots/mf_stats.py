@@ -6,7 +6,7 @@ import mpl_toolkits.axisartist.grid_finder as gf
 import mpl_toolkits.axisartist.floating_axes as fa
 
 import numpy as np
-from fluxy import config
+from fluxie import config
 import pandas as pd
 from typing import Literal
 

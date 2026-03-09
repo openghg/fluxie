@@ -1,7 +1,7 @@
 import numpy as np
 import xarray as xr
 
-from fluxy.operators.utils import apply_to_dict_or_single
+from fluxie.operators.utils import apply_to_dict_or_single
 
 
 def sectors_group_from_config_or_dict(

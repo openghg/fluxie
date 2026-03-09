@@ -3,8 +3,8 @@ import os
 import numpy as np
 import xarray as xr
 from pathlib import Path
-from fluxy.operators.convert import get_units_conversion_factor
-from fluxy.operators.flux_align_dataset import align_lat_lon
+from fluxie.operators.convert import get_units_conversion_factor
+from fluxie.operators.flux_align_dataset import align_lat_lon
 
 logger = logging.getLogger(__name__)
 

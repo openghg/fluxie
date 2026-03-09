@@ -3,7 +3,7 @@ import logging
 import re
 from collections import Counter
 from typing import Literal
-from fluxy import config
+from fluxie import config
 
 logger = logging.getLogger(__name__)
 

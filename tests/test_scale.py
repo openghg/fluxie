@@ -1,11 +1,11 @@
 from pathlib import Path
 import pytest
-import fluxy
-from fluxy.io import read_config_files
-from fluxy.io import read_model_output
-from fluxy.operators.convert import scale_variables
+import fluxie
+from fluxie.io import read_config_files
+from fluxie.io import read_model_output
+from fluxie.operators.convert import scale_variables
 
-data_dir = Path(fluxy.__path__[0]).parent / "data" / "tests"
+data_dir = Path(fluxie.__path__[0]).parent / "data" / "tests"
 
 species = "hfc134a"
 period = "yearly"

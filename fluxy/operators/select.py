@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from fluxy.operators.convert import scale_variables
+from fluxie.operators.convert import scale_variables
 
 logger = logging.getLogger(__name__)
 

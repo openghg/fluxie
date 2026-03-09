@@ -13,8 +13,8 @@ from matplotlib.collections import LineCollection
 import matplotlib.pyplot as plt
 from copy import deepcopy
 
-from fluxy import config
-from fluxy.io import load_countries_shape
+from fluxie import config
+from fluxie.io import load_countries_shape
 
 logger = logging.getLogger(__name__)
 

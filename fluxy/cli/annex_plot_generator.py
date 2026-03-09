@@ -6,16 +6,16 @@ from pathlib import Path
 
 from config_annex_plot import AnnexConfig
 
-from fluxy.cli.utils_annex_plot import (
+from fluxie.cli.utils_annex_plot import (
     get_species_specific_settings,
     create_str_dataframe,
     make_table,
 )
-from fluxy.io import read_config_files, read_model_output, read_flux_total_fgases
-from fluxy.operators.select import slice_flux
-from fluxy.config import set_model_colors, set_model_labels
-from fluxy.plots.flux_timeseries import plot_country_flux
-from fluxy.plots.flux_map import plot_flux_map_over_time
+from fluxie.io import read_config_files, read_model_output, read_flux_total_fgases
+from fluxie.operators.select import slice_flux
+from fluxie.config import set_model_colors, set_model_labels
+from fluxie.plots.flux_timeseries import plot_country_flux
+from fluxie.plots.flux_map import plot_flux_map_over_time
 
 logger = logging.getLogger(__name__)
 

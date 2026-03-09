@@ -5,9 +5,9 @@ from typing import Literal
 import xarray as xr
 import numpy as np
 
-from fluxy import config
-from fluxy.operators.select import slice_site
-from fluxy.types import VariableType
+from fluxie import config
+from fluxie.operators.select import slice_site
+from fluxie.types import VariableType
 import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)

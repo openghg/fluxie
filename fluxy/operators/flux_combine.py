@@ -1,7 +1,7 @@
 import xarray as xr
 import logging
 
-from fluxy.operators.flux_align_dataset import align_time
+from fluxie.operators.flux_align_dataset import align_time
 
 logger = logging.getLogger(__name__)
 

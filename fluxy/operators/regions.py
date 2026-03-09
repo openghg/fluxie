@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import xarray as xr
 
-from fluxy.operators.convert import get_units_conversion_factor
+from fluxie.operators.convert import get_units_conversion_factor
 
 logger = logging.getLogger(__name__)
 
