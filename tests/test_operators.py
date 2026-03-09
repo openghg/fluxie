@@ -20,10 +20,10 @@ from fluxy.test_utils.models import (
     test_models_with_inlet,
 )
 
-ds_all_mf = get_loaded_models(test_models,"concentration")
-ds_all_flux = get_loaded_models(test_models,"flux")
+ds_all_mf = get_loaded_models(test_models, "concentration")
+ds_all_flux = get_loaded_models(test_models, "flux")
 
-ds_all_mf_with_inlet = get_loaded_models(test_models_with_inlet,"concentration")
+ds_all_mf_with_inlet = get_loaded_models(test_models_with_inlet, "concentration")
 
 
 # Test the difference between all available models
@@ -80,10 +80,11 @@ def test_slice_height(model):
     ds_all_mf__with_inlet_sliced = slice_site(ds_all_mf_with_inlet[model], site="TAC")
 
     ds_sliced = slice_height(ds_all_mf__with_inlet_sliced, intake_height=185)
-    
+
     print(ds_sliced)
 
     assert np.unique(ds_sliced["intake_height"].values == 185.0)
+
 
 ds_test = xr.Dataset(
     {

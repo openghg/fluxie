@@ -485,15 +485,6 @@ def read_model_output(
         if add_sites_to_flux and file_type == DataTypes.FLUX:
             ds_all[m] = add_sites_var(ds_all[m], filepath, m, period[i], config_data)
 
-        # Overwrite species attributes
-        current_species = ds_all[m].attrs.get("species", "not set")
-        ds_all[m].attrs["species"] = current_species
-        if species is not None and current_species != species:
-            logger.info(
-                f"'species' attribute in dataset {m} ({current_species}) differs from species {species}. It is overwritten."
-            )
-            ds_all[m].attrs["species"] = species
-
     return ds_all
 
 
@@ -788,9 +779,10 @@ def edit_vars_and_attributes(
             xarray dataset with updated variables and attributes.
     """
 
-    # Add inversion frequency to global attributes
+    # Add inversion frequency and exp name to global attributes
     if "frequency" not in ds.attrs:
         ds.attrs["frequency"] = frequency
+    ds.attrs["exp_name"] = model
 
     # Rename legacy variables
     name_dict = {
@@ -807,14 +799,14 @@ def edit_vars_and_attributes(
     filename_tags = os.path.basename(model)
     m0 = filename_tags.split("_")[0].lower()
 
-    # check the species
+    # check (and overwrite) species attribute
     if species is not None:
-        if "species" not in ds.attrs:
-            ds.attrs["species"] = species
-        elif ds.attrs["species"] != species:
+        current_species = ds.attrs.get("species", "not set")
+        if current_species != species:
             logger.info(
-                f"Species {ds.attrs['species']} in dataset does not match species {species} in model {model}."
+                f"'species' attribute in dataset {model} ({current_species}) differs from species {species}. It is overwritten."
             )
+            ds.attrs["species"] = species
 
     file_type = DataTypes(file_type)
 
