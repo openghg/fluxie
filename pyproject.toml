@@ -24,6 +24,7 @@ authors = [
   {name = "Lionel Constantin", email = "lionel.constantin@empa.ch"},
   {name = "Stephan Henne", email = "stephan.henne@empa.ch"},
   {name = "Joël Thanwerdas", email = "joel.thanwerdas@empa.ch"},
+  {name = "Peter Andrews", email = "peter.andrews@metoffice.gov.uk"},
   {name = "Valentin Bruch"},
   {name = "Fabian Maier", email = "fmaier@bgc-jena.mpg.de"},
   {name = "Leah Herrfurth", email = "lherr@bgc-jena.mpg.de"},
