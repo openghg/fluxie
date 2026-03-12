@@ -945,8 +945,8 @@ def plot_country_flux(
     config_data: dict[str, dict] = {},
     model_colors: dict[str, list] = {},
     model_labels: dict[str, str] = {},
-    start_date: str | None = None,
-    end_date: str | None = None,
+    start_date: str | list[str] | None = None,
+    end_date: str | list[str] | None = None,
     annex_mode: bool = False,
     plot_inventory: bool = False,
     plot_inventory_uncertainty: bool | list[bool] | None = None,
@@ -987,8 +987,8 @@ def plot_country_flux(
         plot_regions: Country or regions to plot, e.g. ['UNITED KINGDOM','SWITZERLAND']
         config_data: Dictionary with settings read from json file. Use json filenames as keys.
         model_colors: Models and corresponding colours used to plot the model.
-        start_date: Start dates of the data to plot (used to slice inventory data).
-        end_date: Start dates of the data to plot (used to slice inventory data).
+        start_date: Start dates of the data to plot (used to slice inventory data). Can be a single date or a list of dates of equal length to model_colors.
+        end_date: End dates of the data to plot (used to slice inventory data). Can be a single date or a list of dates of equal length to model_colors.
         annex_mode: If True, replace the labels with more concise versions for National Inventory Report Annexes.
         scale_co2eq: If True, adapt y-axis label to CO2-eq.
         plot_inventory: If True, plots inventory flux estimates as bars in each plot.
@@ -1055,8 +1055,16 @@ def plot_country_flux(
         np.any(plot_combined) if plot_combined_unc is None else plot_combined_unc
     )
 
+    if isinstance(start_date, (str, type(None))):
+        start_date = [start_date] * len(ds_all)
+    if isinstance(end_date, (str, type(None))):
+        end_date = [end_date] * len(ds_all)
+
+    start_date, end_date = dict(zip(ds_all.keys(), start_date)), dict(zip(ds_all.keys(), end_date))
     # Sel data
-    ds_all = {k: ds.sel(time=slice(start_date, end_date)) for k, ds in ds_all.items()}
+    ds_all = {
+        k: ds.sel(time=slice(start_date[k], end_date[k])) for k, ds in ds_all.items()
+    }
 
     # Create figure
     fig, axes = create_fig_and_axes(len(plot_regions))
@@ -1118,8 +1126,8 @@ def plot_country_flux(
                 data_dir,
                 country,
                 species,
-                start_date,
-                end_date,
+                min(start_date.values()),
+                max(end_date.values()),
                 unit,
                 s_data,
                 r_data,
