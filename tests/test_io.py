@@ -1,9 +1,9 @@
 from pathlib import Path
-import fluxy
-from fluxy.io import read_config_files, read_model_output, read_flux_total_fgases
-from fluxy.operators.select import slice_flux, slice_mf
-from fluxy.test_utils import data_dir
-from fluxy.test_utils.models import test_models
+import fluxie
+from fluxie.io import read_config_files, read_model_output, read_flux_total_fgases
+from fluxie.operators.select import slice_flux, slice_mf
+from fluxie.test_utils import data_dir
+from fluxie.test_utils.models import test_models
 import pytest
 
 

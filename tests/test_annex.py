@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from fluxy.cli.utils_annex_plot import create_str_dataframe
+from fluxie.cli.utils_annex_plot import create_str_dataframe
 
 
 def make_test_data():
