@@ -1,4 +1,4 @@
-# Inverse Modelling Intercomparison Tool
+# Flux Intercomparison Environment (FLUXIE)
 
 This repository contains functions to compare inverse models developed under the PARIS project, and a notebook to allow for easy use of these functions.
 
