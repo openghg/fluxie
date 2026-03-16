@@ -30,7 +30,7 @@ def stats_observed_vs_simulated(
             Name of the observed variable.
         sim_var (str):
             Name of the simulated variable.
-        sites (list): 
+        sites (list):
             Sites for which to make the stats.
 
     Returns:
@@ -66,10 +66,10 @@ def stats_observed_vs_simulated(
     # names of sites
     sites_all = get_unique_sites(ds_all)
     if sites:
-         sites_all = [site for site in sites if site in sites_all]
-         sites_missing = [site for site in sites if site not in sites_all]
-         if sites_missing:
-             logger.warning(f"Sites {sites_missing} are not present in datasets.")
+        sites_all = [site for site in sites if site in sites_all]
+        sites_missing = [site for site in sites if site not in sites_all]
+        if sites_missing:
+            logger.warning(f"Sites {sites_missing} are not present in datasets.")
 
     # init empty list to hold results for individual sites
     stats = []
@@ -77,7 +77,7 @@ def stats_observed_vs_simulated(
     # Compute stats for all sites and all models
     for site in sites_all:
         for model, ds in ds_all.items():
-            ds_site = slice_site(ds, site, raise_error=False) 
+            ds_site = slice_site(ds, site, raise_error=False)
             if ds_site is None:
                 continue
 

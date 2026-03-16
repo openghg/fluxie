@@ -298,10 +298,7 @@ def get_units_conversion_factor(
     return unit_to_base / target_to_base * M_scaling
 
 
-def convert_units_co2eq(
-    from_unit: str, to_unit: str, species_info: dict
-) -> float:
- 
+def convert_units_co2eq(from_unit: str, to_unit: str, species_info: dict) -> float:
     """
     Convert between units that may include 'CO2-eq'.
     Wraps get_units_conversion_factor and applies species GWP when needed.
@@ -318,8 +315,7 @@ def convert_units_co2eq(
 
     # Base physical conversion
     conversion_factor = get_units_conversion_factor(
-        from_unit=from_base,
-        to_unit=to_base
+        from_unit=from_base, to_unit=to_base
     )
 
     # Get GWP if needed
