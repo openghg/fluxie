@@ -23,7 +23,9 @@ from fluxie.plots.mf_timeseries import (
 from fluxie.operators.mf import compute_mf_difference
 from fluxie.plots.mf_stats import plot_stats_mf, plot_taylor_diagram
 from fluxie.test_utils import data_dir
-from fluxie.operators.flux_scale_by_sector_proportions import scale_by_sector_proportions
+from fluxie.operators.flux_scale_by_sector_proportions import (
+    scale_by_sector_proportions,
+)
 
 config_data = read_config_files()
 annotate_coords = set_print_settings()

@@ -210,7 +210,7 @@ def plot_stacked(
         errorbar_kwargs = errorbar_kwargs.copy()
         yerr = df_obs["std"].values.reshape(-1)
         # Replace NaN with 0.0
-        yerr = np.where(np.isnan(yerr), 0.0, yerr)  
+        yerr = np.where(np.isnan(yerr), 0.0, yerr)
         errorbar_kwargs["yerr"] = np.array(yerr)
     ax.errorbar(
         df_obs.index,
@@ -271,7 +271,9 @@ def plot_stacked(
         "%m_%H": "Month and hour of the day",
         "%H_%M": "Hour and minute of the day",
     }
-    x_label = "Wind direction" if wind_plot else x_labels.get(group_format, group_format)
+    x_label = (
+        "Wind direction" if wind_plot else x_labels.get(group_format, group_format)
+    )
     y_label = f"{species} Flux " " [ µmol m$^{-2}$ s$^{-1}$ ]"
     if not wind_plot:
         ax.set_ylabel(y_label)

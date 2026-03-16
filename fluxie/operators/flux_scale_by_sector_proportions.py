@@ -150,9 +150,7 @@ def scale_by_sector_proportions(
         data_dir, "sector_flux", f"{sector_file}_{species}_yearly_flux_sectors.nc"
     )
 
-    logger.info(
-        f"Using {sector_prop_path} to scale total fluxes into sector fluxes."
-    )
+    logger.info(f"Using {sector_prop_path} to scale total fluxes into sector fluxes.")
 
     ds_all_out = {}
     scaling_factor_all = {}
@@ -165,7 +163,7 @@ def scale_by_sector_proportions(
             sectors = [v.split("_")[-1] for v in ds_sectors if "total" not in v]
             logger.warning(
                 "No sectors specified, so reading sector list from sector_flux file."
-                +f" Used sectors: {sectors}"
+                + f" Used sectors: {sectors}"
             )
 
         # Convert prior and posterior flux for each sector

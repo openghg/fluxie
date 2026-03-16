@@ -16,8 +16,11 @@ def test_format_default():
 
 def test_no_region():
     """Test that format_plot_regions raises ValueError when called without plot_regions or ds_all."""
-    with pytest.raises(ValueError, match="ds_all must be provided if plot_regions is None."):
+    with pytest.raises(
+        ValueError, match="ds_all must be provided if plot_regions is None."
+    ):
         format_plot_regions()
+
 
 def test_format_from_ds_all():
     ds_mock = {
@@ -36,7 +39,7 @@ def test_format_from_ds_all():
     formatted_regions = format_plot_regions(ds_all=ds_mock)
 
     assert isinstance(formatted_regions, list)
-    for c in ['FRA', 'DEU']:
+    for c in ["FRA", "DEU"]:
         assert c in formatted_regions
-    for c in ['ITA', 'ESP']:
+    for c in ["ITA", "ESP"]:
         assert c not in formatted_regions
