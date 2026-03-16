@@ -1,5 +1,5 @@
 """
-Script to convert the CSR prior and posterior flux results into fluxy format. 
+Script to convert the CSR prior and posterior flux results into fluxie format. 
 It can be run by the csr_preprocess.ipynb notebook.
 """
 
@@ -187,7 +187,7 @@ def preprocess(
     species: str,
 ):
     """
-    Main function, which converts the CSR flux results into the fluxy format.
+    Main function, which converts the CSR flux results into the fluxie format.
 
     Args:
         path_to_prior (str):
@@ -201,7 +201,7 @@ def preprocess(
         path_to_uncertainty_country (str):
             Full path to the CSR "right-hand-side" results containing the flux uncertainties
         path_to_output (str):
-            Full path to the directory where the results in fluxy format are to be stored
+            Full path to the directory where the results in fluxie format are to be stored
         species (str):
             Species (e.g. "ch4", "co2")
 

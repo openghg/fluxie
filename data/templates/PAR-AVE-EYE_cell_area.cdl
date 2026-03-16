@@ -23,7 +23,7 @@ variables:
 		cell_area:domain = "EUROPE" ;
 
 // global attributes:
-		:description = "area per latitude longitude grid cell, used in fluxy to calculate region/country flux annual totals from spatial fluxes" ;
+		:description = "area per latitude longitude grid cell, used in fluxie to calculate region/country flux annual totals from spatial fluxes" ;
 		:creator = "Alice Ramsden, Met Office" ;
 		:creation_date = "2025-07-10" ;
 }

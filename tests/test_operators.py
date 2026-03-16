@@ -6,15 +6,15 @@ import pytest
 import xarray as xr
 import pandas as pd
 import numpy as np
-from fluxy.operators.mf import compute_mf_difference, stats_mf
-from fluxy.operators.select import (
+from fluxie.operators.mf import compute_mf_difference, stats_mf
+from fluxie.operators.select import (
     slice_flux,
     slice_mf,
     clean_timeseries_missing_data,
     slice_height,
     slice_site,
 )
-from fluxy.test_utils.models import (
+from fluxie.test_utils.models import (
     get_loaded_models,
     test_models,
     test_models_with_inlet,

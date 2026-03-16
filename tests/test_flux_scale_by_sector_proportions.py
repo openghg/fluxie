@@ -1,11 +1,11 @@
 import pytest
 from pathlib import Path
-import fluxy
-from fluxy.operators.flux_scale_by_sector_proportions import scale_by_sector_proportions
-from fluxy.io import read_config_files, read_model_output
-from fluxy.operators.select import slice_flux
+import fluxie
+from fluxie.operators.flux_scale_by_sector_proportions import scale_by_sector_proportions
+from fluxie.io import read_config_files, read_model_output
+from fluxie.operators.select import slice_flux
 
-data_dir = Path(fluxy.__path__[0]).parent / "data" / "tests"
+data_dir = Path(fluxie.__path__[0]).parent / "data" / "tests"
 config_data = read_config_files()
 
 
