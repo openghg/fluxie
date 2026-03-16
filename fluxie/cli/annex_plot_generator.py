@@ -274,16 +274,21 @@ def produce_plots(
     annual_res = pd.concat(annual_res_list, ignore_index=True)
 
     hfcs_list = [s for s in annual_res.species.unique() if s[:3].lower() == "hfc"]
-    pfcs_list = [s for s in annual_res.species.unique() if s[:3].lower() in ["pfc","cf4"]]
+    pfcs_list = [
+        s for s in annual_res.species.unique() if s[:3].lower() in ["pfc", "cf4"]
+    ]
     main_gases_list = ["ch4", "n2o", "sf6", "nf3", "all_pfc", "all_hfc"]
 
-    for name, species_list in zip(["hfc", "pfc", "main_gases"],
-                                  [hfcs_list, pfcs_list, main_gases_list]):
+    for name, species_list in zip(
+        ["hfc", "pfc", "main_gases"], [hfcs_list, pfcs_list, main_gases_list]
+    ):
         print(f"\nTABLE {name.upper().replace('_',' ')}")
-        sp_res = create_str_dataframe(annual_res,
-                    inventory_years,
-                    species_list,
-                    table_start_date=annex_config_data.start_date_table)
+        sp_res = create_str_dataframe(
+            annual_res,
+            inventory_years,
+            species_list,
+            table_start_date=annex_config_data.start_date_table,
+        )
         make_table(sp_res, output_path / f"{name}_res_{region}.tex", inventory_years)
         sp_res.to_csv(output_path / f"{name}_res_{region}.csv", index=False)
 

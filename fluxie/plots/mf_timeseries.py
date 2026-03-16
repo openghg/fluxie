@@ -543,7 +543,7 @@ def add_unc_plot(
 
     if plot_type is None:
         return
-    
+
     min_unc = np.array(min_unc, dtype=float)
     max_unc = np.array(max_unc, dtype=float)
 

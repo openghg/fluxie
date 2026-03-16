@@ -35,53 +35,54 @@ start_date_fgases = {
 
 # Lat/Lon limits in spatial maps
 map_limits = {
-    "UK": [-12,6,47,65],
-    "SWITZERLAND": [4,12,44.5,50],
-    "GERMANY": [2.5,15.5,46,57], #NOTE: equal to automatic GERMANY country mask, but needed for proper ITMS comparison
-    "ITALY": [5,20,35,49],
+    "UK": [-12, 6, 47, 65],
+    "SWITZERLAND": [4, 12, 44.5, 50],
+    # NOTE: equal to automatic GERMANY country mask, but needed for proper ITMS comparison
+    "GERMANY": [2.5, 15.5, 46, 57],
+    "ITALY": [5, 20, 35, 49],
     "NETHERLANDS": "BENELUX",
     "BELGIUM": "BENELUX",
     "BENELUX": "BENELUX",
-    "IRELAND": [-12,-2,50,58],
-    "HUNGARY": [14,25,44.5,50.5],
-    "NORWAY": [3,33,55,79],
+    "IRELAND": [-12, -2, 50, 58],
+    "HUNGARY": [14, 25, 44.5, 50.5],
+    "NORWAY": [3, 33, 55, 79],
 }
 
 # Limits in posterior spatial map color scale (in units flux_units_print)
 # default = "auto"
 fluxlim = {
     "UK": {
-        "pfc116": [0,0.16],
-        "pfc318": [0,0.1],
-        "nf3": [0,0.04],
+        "pfc116": [0, 0.16],
+        "pfc318": [0, 0.1],
+        "nf3": [0, 0.04],
     },
     "IRELAND": {
-        "cf4": [0,0.5],
-        "pfc218": [0,0.4],
-        "pfc318": [0,0.1],
-        "sf6": [0,0.4],
-        "nf3": [0,0.04],
+        "cf4": [0, 0.5],
+        "pfc218": [0, 0.4],
+        "pfc318": [0, 0.1],
+        "sf6": [0, 0.4],
+        "nf3": [0, 0.04],
     },
     "NETHERLANDS": {
-        "ch4": [0,40000],
-        "cf4": [0,1],
-        "pfc218": [0,0.2],
-        "sf6": [0,1],
+        "ch4": [0, 40000],
+        "cf4": [0, 1],
+        "pfc218": [0, 0.2],
+        "sf6": [0, 1],
     },
     "BELGIUM": {
-        "ch4": [0,40000],
-        "cf4": [0,1],
-        "pfc218": [0,0.2],
-        "sf6": [0,1],
+        "ch4": [0, 40000],
+        "cf4": [0, 1],
+        "pfc218": [0, 0.2],
+        "sf6": [0, 1],
     },
     "BENELUX": {
-        "ch4": [0,40000],
-        "cf4": [0,1],
-        "pfc218": [0,0.2],
-        "sf6": [0,1],
+        "ch4": [0, 40000],
+        "cf4": [0, 1],
+        "pfc218": [0, 0.2],
+        "sf6": [0, 1],
     },
     "ITALY": {
-        "hfc23": [0,1],
+        "hfc23": [0, 1],
     },
 }
 
@@ -112,7 +113,7 @@ fluxlim_percentiles = {
         "hfc23": 0.95,
         "hfc236fa": 0.98,
         "hfc245fa": 0.95,
-        "hfc365mfc": 0.985,      
+        "hfc365mfc": 0.985,
         "cf4": 0.97,
         "sf6": 0.96,
     },
@@ -205,7 +206,7 @@ fluxlim_percentiles = {
         "hfc236fa": 0.985,
         "hfc245fa": 0.96,
         "hfc365mfc": 0.96,
-        "hfc4310mee": 0.98,   
+        "hfc4310mee": 0.98,
         "pfc116": 0.9999,
     },
     "HUNGARY": {
@@ -215,7 +216,7 @@ fluxlim_percentiles = {
         "hfc134a": 0.95,
         "hfc143a": 0.999,
         "hfc227ea": 0.97,
-        "hfc23":0.98,
+        "hfc23": 0.98,
         "cf4": 0.98,
         "pfc116": 0.995,
         "pfc218": 1,

@@ -263,7 +263,7 @@ def resample_over_dates_list(
         ds, groups_da, resample_uncert_correlation
     )
     ds_resampled = ds_resampled.rename({"group": "time"})
-        
+
     # Create labels based on the first and last date in each group
     time_labels = []
     for group in np.unique(groups_da):
@@ -275,6 +275,7 @@ def resample_over_dates_list(
         )
 
     return ds_resampled, time_labels
+
 
 def resample_over_periods_list(
     ds: xr.Dataset,
@@ -304,7 +305,9 @@ def resample_over_periods_list(
 
     # --- basic consistency check ---
     if len(start_dates_list) != len(end_dates_list):
-        raise ValueError("'start_dates_list' and 'end_dates_list' must have the same length.")
+        raise ValueError(
+            "'start_dates_list' and 'end_dates_list' must have the same length."
+        )
 
     n_periods = len(start_dates_list)
 
@@ -781,7 +784,7 @@ def resample_over_period(
     N: int = 1,
     chop_by: (
         Literal["year", "month", "season"]
-        | List 
+        | List
         | Tuple[List, List]
         | Literal["DJF", "MAM", "JJA", "SON"]
         | None
@@ -805,7 +808,7 @@ def resample_over_period(
             Interval length for custom periods (e.g., for months or years).
         chop_by (str, list):
             Defines how the dataset should be chopped.
-            Options are: 'year', 'month', 'season', None, a list of dates or months, 
+            Options are: 'year', 'month', 'season', None, a list of dates or months,
                          a season, or a tuple of lists of dates.
         resample_uncert_correlation (bool):
             If True, uncertainties are averaged directly over groups.
@@ -826,13 +829,17 @@ def resample_over_period(
         start_dates_list, end_dates_list = chop_by
 
         if (
-            isinstance(start_dates_list, list) 
+            isinstance(start_dates_list, list)
             and isinstance(end_dates_list, list)
             and len(start_dates_list) == len(end_dates_list)
-            and all(isinstance(s, (str, datetime.date, np.datetime64, pd.Timestamp))
-                    for s in start_dates_list)
-            and all(isinstance(e, (str, datetime.date, np.datetime64, pd.Timestamp))
-                    for e in end_dates_list)
+            and all(
+                isinstance(s, (str, datetime.date, np.datetime64, pd.Timestamp))
+                for s in start_dates_list
+            )
+            and all(
+                isinstance(e, (str, datetime.date, np.datetime64, pd.Timestamp))
+                for e in end_dates_list
+            )
         ):
             # Directly call the new date-range resampling
             return resample_over_periods_list(
@@ -847,7 +854,7 @@ def resample_over_period(
                 "with equal-length lists of valid dates."
             )
 
-    # ------------------------------------------------------------------ 
+    # ------------------------------------------------------------------
 
     if isinstance(chop_by, list):
         # Case where chop_by is a list of dates
