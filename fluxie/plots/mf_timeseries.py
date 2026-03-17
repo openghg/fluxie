@@ -1,3 +1,4 @@
+import itertools
 import logging
 from typing import Literal
 from enum import Enum
@@ -15,7 +16,7 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import NullFormatter
 
 from fluxie import config
-from fluxie.plots.utils import set_min_decimal_points
+from fluxie.plots.utils import set_min_decimal_points, parse_include
 from fluxie.types import VariableType
 from fluxie.operators.select import (
     FrequencyType,
@@ -217,17 +218,17 @@ def _retrieve_variable(ds, var, unc_var):
 
 def _prepare_data_to_plot(
     ds_all: dict[str, xr.Dataset | None],
-    include: str | dict[str, str | None] | list | tuple,
-    diff_include: None | list,
-    aggreg_month: bool,
-    time_freq_min: FrequencyType,
-    plot_type: PlotTypes,
+    all_var: dict[str, str | None],
+    diff_include: list[str] | None = None,
+    aggreg_month: bool = False,
+    time_freq_min: FrequencyType = None,
+    plot_type: PlotTypes = PlotTypes.SEPARATE,
 ) -> dict[str, xr.Dataset]:
     """
     Create dictionnary of datasets containing all the data that will be plotted.
     Args:
         ds_all: dictionnary of dataset from which the variable are taken
-        include: variables to plot in the main panel. If is a dictionnary : the keys are the variables to plot and the
+        all_var: variables to plot in the main panel. If is a dictionnary : the keys are the variables to plot and the
             values the uncertainty that will be shaded around them.
         diff_include: variables that will be plot in the secondary (histogram) panel.
             In this function, they are treated as the ones passed with `include` parameter.
@@ -242,17 +243,6 @@ def _prepare_data_to_plot(
     """
 
     plot_type = PlotTypes(plot_type)
-
-    if not include:
-        raise ValueError(
-            "The include dictionary is empty. Please provide variables to include in the plot."
-        )
-    if isinstance(include, str):
-        all_var = {include: None}
-    elif isinstance(include, (list, tuple)):
-        all_var = {var: None for var in include}
-    else:
-        all_var = include.copy()
 
     data_to_plot = {m: xr.Dataset() for m in ds_all.keys()}
     if isinstance(diff_include, list):
@@ -314,7 +304,9 @@ def _prepare_data_to_plot(
             )
 
         # Add some global attributes to each var
-        attrs_global = {attr: ds_all[m].attrs[attr] for attr in ["exp_name", "species"]}
+        attrs_global = {
+            attr: ds_all[m].attrs.get(attr, None) for attr in ["exp_name", "species"]
+        }
         for var in data_to_plot[m].data_vars:
             data_to_plot[m][var].attrs.update(attrs_global)
 
@@ -711,8 +703,10 @@ def plot_timeseries(
     plotted_data_df = pd.DataFrame()
 
     # Check the include dictionary
+    all_var = parse_include(include)
+
     data_to_plot = _prepare_data_to_plot(
-        ds_all, include, diff_include, aggreg_month, time_freq_min, plot_type
+        ds_all, all_var, diff_include, aggreg_month, time_freq_min, plot_type
     )
     data_to_plot = _set_labels_and_colors(
         data_to_plot, model_labels, model_colors, plot_type
@@ -726,7 +720,7 @@ def plot_timeseries(
     fig, ax = _create_figure(ds_all.keys(), plot_type, histogram_type, aggreg_month)
 
     logger.info(
-        f"Plotting {len(models)} models with {len(include.keys())} variables in {plot_type} mode."
+        f"Plotting {len(models)} models with {len(all_var.keys())} variables in {plot_type} mode."
     )
 
     # Loop over all models
@@ -736,7 +730,7 @@ def plot_timeseries(
         iax = i if plot_type == PlotTypes.SEPARATE else 0
 
         # Loop over all variables to plot
-        for var in include.keys():
+        for var in all_var.keys():
             res = add_line_scatter_plot(
                 ax[iax, 0], data_to_plot[m][var], plot_type, unc_type=unc_type
             )
@@ -834,13 +828,13 @@ def plot_timeseries(
 
 def plot_sites_timeseries(
     ds_all: dict[str, xr.Dataset],
-    var: str,
-    species: str,
-    start_date: str,
-    end_date: str,
-    model_colors: dict[str, str],
-    model_labels: dict[str, str],
-    config_data: dict[str, dict],
+    var: str | dict[str, str] = "mf_observed",
+    species: str | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    model_colors: dict[str, str] | None = None,
+    model_labels: dict[str, str] | None = None,
+    config_data: dict[str, dict] = {},
     margin: float = 0.1,
     separate_by_height: bool = False,
 ):
@@ -850,8 +844,9 @@ def plot_sites_timeseries(
     Args:
         ds_all (dictionary xarray Datasets):
             Dictionnary of xarray returned by read_output_model.
-        var (str):
-            Var for which the timeseries should be plotted
+        var (str | dict[str, str]):
+            Var for which the timeseries should be plotted.
+            If dict, it is a mapping for each model of which variable to plot.
         species (str):
             Gas species, e.g. 'ch4'.
         start_date (str):
@@ -873,9 +868,21 @@ def plot_sites_timeseries(
     """
 
     models = ds_all.keys()
-    dt_start_date = np.datetime64(start_date)
-    dt_end_date = np.datetime64(end_date)
+
+    if model_labels is None:
+        model_labels = {m: m for m in models}
     model_labels_copy = model_labels.copy()
+
+    if model_colors is None:
+        model_colors = {}
+
+        default_color = config.get_default_colors()
+        cycler = itertools.cycle(default_color)
+        for m in models:
+            model_colors[m] = [next(cycler)]
+
+    if not isinstance(var, dict):
+        var = {m: var for m in models}
 
     # create list of grouped site-height pairs
     site_list = get_unique_site_height_pairs(ds_all, separate_by_height)
@@ -891,12 +898,14 @@ def plot_sites_timeseries(
     else:
         model_offset = 1
 
+    min_dts = []
+    max_dts = []
+
     for site_iter, (site, height) in enumerate(site_list):
         if site_iter != 0:
             # Add grey vertical line between sites
-            ax.plot(
-                [site_iter - 0.5, site_iter - 0.5],
-                [dt_start_date, dt_end_date],
+            ax.axvline(
+                x=site_iter - 0.5,
                 c="gray",
                 ls="-",
                 lw=1,
@@ -910,11 +919,18 @@ def plot_sites_timeseries(
                 continue
             # Scatter a vertical line at times where data is available
             mask = (ds_all[m]["number_of_identifier"] == site_index) & (
-                ds_all[m][var].notnull()
+                ds_all[m][var[m]].notnull()
             )
             if separate_by_height:
                 mask &= ds_all[m]["intake_height"] == height
             data = ds_all[m]["time"].where(mask, drop=True)
+
+            if data.size == 0:
+                continue
+
+            min_dts.append(np.nanmin(data))
+            max_dts.append(np.nanmax(data))
+
             ax.scatter(
                 (site_iter + model_offset * i - 0.5 + margin) * np.ones(data.size),
                 data,
@@ -927,6 +943,10 @@ def plot_sites_timeseries(
             model_labels_copy[m] = None
 
     # Define plot settings
+    dt_start_date = (
+        np.datetime64(start_date) if start_date is not None else np.min(min_dts)
+    )
+    dt_end_date = np.datetime64(end_date) if end_date is not None else np.max(max_dts)
     ax.set_ylim(
         dt_start_date - np.timedelta64(1, "D"), dt_end_date + np.timedelta64(1, "D")
     )
@@ -953,12 +973,10 @@ def plot_sites_timeseries(
     plt.legend(loc="upper left", markerscale=4, bbox_to_anchor=(1, 1))
 
     species_info = config_data.get("species_info", {}).get(species, {})
-    fig.suptitle(
-        (
-            f'Timestamps with {species_info.get("species_print","")} assimilated observations between'
-            f"\n{start_date} and {end_date}"
-        )
-    )
+    title = f'Timestamps with {species_info.get("species_print","")} assimilated observations'
+    if start_date is not None and end_date is not None:
+        title += f" between \n {start_date} and {end_date}"
+    fig.suptitle(title)
 
     return fig
 
@@ -1160,15 +1178,15 @@ def plot_sites_list_mf(
 
     ax = ax.flatten()
 
+    all_var = parse_include(include)
+
     for isite, site in enumerate(sites):
 
         ds_all_site = slice_site(ds_all_p, site, raise_error=False)
         # Prepare data to plot
         data_to_plot = _prepare_data_to_plot(
             ds_all_site,
-            include,
-            diff_include=None,
-            time_freq_min=None,
+            all_var,
             aggreg_month=aggreg_month,
             plot_type=plot_type,
         )
@@ -1202,11 +1220,11 @@ def plot_sites_list_mf(
                 )
                 marker_index = marker_index % len(obs_markers)
 
-            for variable in include.keys():
+            for variable in all_var.keys():
                 attrs_update = attrs[data_on_single_graph].copy()
                 if (
                     variable in ["mf_observed", "observed_above_BC"]
-                    and len(include.keys()) > 1
+                    and len(all_var.keys()) > 1
                 ):
                     attrs_update["plot_color"] = "black"
                 label_add = f" {config.mf_labels.get(variable, variable)}"
@@ -1217,7 +1235,7 @@ def plot_sites_list_mf(
                     data_to_plot[m][variable],
                     plot_type=plot_type,
                     marker=obs_markers[marker_index],
-                    add_unc=include[variable],
+                    add_unc=all_var[variable],
                     unc_type=unc_type,
                 )
                 plotted_data_df = pd.concat([plotted_data_df, res], ignore_index=True)

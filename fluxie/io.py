@@ -488,6 +488,45 @@ def read_model_output(
     return ds_all
 
 
+def read_file(
+    filepath: os.PathLike,
+    file_type: DataType | str | None = None,
+    model_name: str | None = None,
+) -> dict[str, xr.Dataset]:
+    """Read a single fluxy file."""
+
+    filepath = Path(filepath)
+    if model_name is None:
+        model_name = filepath.stem
+
+    ds = xr.load_dataset(filepath)
+
+    if file_type is None:
+        # Try to deduce file type from variables present in the dataset
+        if "flux_total_prior_country" in ds.data_vars:
+            file_type = DataTypes.FLUX
+        elif "mf_observed" in ds.data_vars:
+            file_type = DataTypes.CONCENTRATION
+        elif "eddy_flux_observed" in ds.data_vars:
+            file_type = DataTypes.EDDY_FLUX
+        else:
+            raise ValueError(
+                f"Could not deduce file type from dataset variables. Please specify file_type."
+            )
+        logger.info(f"Deduced file type as {file_type} based on dataset variables.")
+
+    ds = edit_vars_and_attributes(
+        ds,
+        model_name,
+        frequency="unknown",
+        file_type=file_type,
+        regions_info={},
+        site_info={},
+    )
+
+    return {model_name: ds}
+
+
 def read_flux_total_fgases(
     data_dir: str,
     species: str,

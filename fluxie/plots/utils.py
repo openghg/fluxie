@@ -15,8 +15,38 @@ from copy import deepcopy
 
 from fluxie import config
 from fluxie.io import load_countries_shape
+from fluxie.types import VariableType
+
 
 logger = logging.getLogger(__name__)
+
+
+def parse_include(include: VariableType) -> dict[str, str | None]:
+    """Parse the include argument of variables to include in a plot.
+
+    The include argument can be specified in several ways:
+
+    - str: a single variable to plot, with no uncertainty.
+    - list or tuple of str: a list of variables to plot, with no uncertainty.
+    - dict: a dictionary where the keys are the variables to plot and the values
+        are the uncertainty variable to plot as error bar/uncertainty band.
+        The uncertainty variable can be None if no uncertainty is to be plotted
+        for the corresponding variable.
+
+
+    """
+    if not include:
+        raise ValueError(
+            "The include dictionary is empty. Please provide variables to include in the plot."
+        )
+    if isinstance(include, str):
+        all_var = {include: None}
+    elif isinstance(include, (list, tuple)):
+        all_var = {var: None for var in include}
+    else:
+        all_var = include.copy()
+
+    return all_var
 
 
 def update_list_params(
