@@ -1242,7 +1242,7 @@ def plot_sites_list_mf(
 
     for iaxes, label in enumerate(axes_looper):
         if data_on_single_graph == "models":
-            label = model_labels[label]
+            label = model_labels.get(label, label)
         ax[iaxes].set_title(label)
         ax[iaxes].set_ylabel(
             " ".join(
