@@ -84,18 +84,23 @@ def create_str_dataframe(
         ]
 
     res["time"] = pd.to_datetime(res["time"])
+    
+    all_models = model + [f"inventory_{inventory_year}"]
+    
     data = res[
         (res.country == region)
         & (res.sector == sector)
-        & (res.model.isin([model, f"inventory_{inventory_year}"]))
+        & (res.model.isin(all_models))
         & res.species.isin(species)
         & (res.type.isin(["posterior", "inventory"]))
         & (res.time >= table_start_date)
     ].reset_index(drop=True)
+    
+    print(data)
 
     data["year"] = pd.to_datetime(data["time"]).dt.year.astype(str)
     species_order = (
-        data[data.model == model]
+        data[data.model.isin(all_models)]
         .groupby("species")
         .mean_val.mean()
         .sort_values(ascending=False)
@@ -103,6 +108,7 @@ def create_str_dataframe(
     )
 
     rescaled_data = list()
+    print(data.species.unique())
     for species in data.species.unique():
         data_per_species = data[data.species == species].copy()
 
@@ -134,6 +140,8 @@ def create_str_dataframe(
             data_per_species["units"] = (
                 "\\footnotesize{$\\left (\\rm{TgCO}_{2}\\rm{\\text{-}eq} \\cdot \\rm{yr}^{-1} \\right )$}"
             )
+            
+        print(f'DATA = {data_per_species}')
 
         n_figure = 3 if species in ["ch4", "n2o"] else 2
         n_digits = int(n_figure - max_exp - 1)
@@ -207,13 +215,16 @@ def make_table(
     inventory_years: str | int,
     descriptive_cols: list[str] = ["species", "units", "source"],
     hline_place: dict[str] = {"source": "PARIS mean"},
+    species: str = None,
 ):
-    if "hfc" in str(output_path):
-        species = "HFCs"
-    elif "pfc" in str(output_path):
-        species = "PFCs"
-    if "main_gases" in str(output_path):
-        species = "the main greenhouse gases of focus"
+    
+    if not species:
+        if "hfc" in str(output_path):
+            species = "HFCs"
+        elif "pfc" in str(output_path):
+            species = "PFCs"
+        elif "main_gases" in str(output_path):
+            species = "the main greenhouse gases of focus"
     # Set latex Table env and number of cols
     tmp = str(output_path).split("/")[-1].split(".")[0]
     label = "\n \\label{" + tmp + "}"

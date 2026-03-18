@@ -7,6 +7,8 @@
     },
 
     "model_labels":{
+        "InTEM_NAME_EUROPE_NID2026":"InTEM monthly",
+        "InTEM_NAME_EUROPE_NID2026_annual":"InTEM yearly",
         "ELRIS_NAME_paris" : "ELRIS",
         "InTEM_NAME_paris" : "InTEM",
         "RHIME_NAME_paris" : "RHIME",

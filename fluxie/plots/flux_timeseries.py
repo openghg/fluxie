@@ -1056,7 +1056,7 @@ def plot_country_flux(
     )
 
     # Sel data
-    ds_all = {k: ds.sel(time=slice(start_date, end_date)) for k, ds in ds_all.items()}
+    ds_all = {k: ds.sel(time=slice(min(start_date), max(end_date))) for k, ds in ds_all.items()}
 
     # Create figure
     fig, axes = create_fig_and_axes(len(plot_regions))
