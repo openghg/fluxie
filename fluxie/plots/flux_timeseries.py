@@ -453,7 +453,7 @@ def add_inventory_barplot(
         inventory_filename,
         sectors=sector,
     )
-
+    
     (plot_inventory_uncertainty,) = update_list_params(
         [plot_inventory_uncertainty],
         ["plot_inventory_uncertainty"],
@@ -465,7 +465,7 @@ def add_inventory_barplot(
         time_as_datetime = inventory.time.values.astype("datetime64[D]").tolist()
 
         this_uncert_to_plot = inventories_uncert_to_plot[i_inv]
-
+        
         yerr = None
         if (
             plot_inventory_uncertainty[i_inv] is True
@@ -473,7 +473,7 @@ def add_inventory_barplot(
             and np.any(this_uncert_to_plot > 0)
         ):
             yerr = this_uncert_to_plot.values
-
+            
         ax.bar(
             time_as_datetime,
             inventory,
@@ -486,13 +486,17 @@ def add_inventory_barplot(
             error_kw={"ecolor": inventory.plot_color, "capsize": 2},
             zorder=0,
         )
-
+        
         tmp = pd.DataFrame(
             {
                 "time": time_as_datetime,
                 "mean_val": inventory.values,
             }
-        )
+            )
+        if yerr is not None:
+            tmp["min_unc"] = inventory.values-yerr
+            tmp["max_unc"] = inventory.values+yerr
+
         tmp["type"] = "inventory"
         tmp["model"] = f"inventory_{inventory.year}"
         tmp["sector"] = sector

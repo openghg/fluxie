@@ -371,6 +371,7 @@ def extract_region_inventory_flux(
     # if grouped countries:
     available_countries = inv_ds["country"].values.astype(str)
     dict_regions: dict[str, str] = r_data.get("regions", {})
+    inv_stdev_ds = None
 
     if country_search not in available_countries and country in dict_regions.keys():
         region_search = dict_regions[country]
