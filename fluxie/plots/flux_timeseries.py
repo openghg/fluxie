@@ -1060,6 +1060,8 @@ def plot_country_flux(
     )
 
     # Sel data
+    if type(start_date) != list: start_date = [start_date]
+    if type(end_date) != list: end_date = [end_date]
     ds_all = {k: ds.sel(time=slice(min(start_date), max(end_date))) for k, ds in ds_all.items()}
 
     # Create figure
