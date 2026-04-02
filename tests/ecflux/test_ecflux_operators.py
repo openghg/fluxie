@@ -1,9 +1,8 @@
-from fluxy.io import read_model_output, read_config_files
-from fluxy.operators.sectors import group_sectors
-from fluxy.operators.stats import stats_observed_vs_simulated
-from fluxy.plots.ec_flux.sectorial_stack import plot_stacked
-from fluxy.test_utils import data_dir
-
+from fluxie.io import read_model_output, read_config_files
+from fluxie.operators.sectors import group_sectors
+from fluxie.operators.stats import stats_observed_vs_simulated
+from fluxie.plots.ec_flux.sectorial_stack import plot_stacked
+from fluxie.test_utils import data_dir
 
 test_models = ["EDDY_HARDAU", "EDDY_HARDAU_STORAGE_2LAYERS"]
 

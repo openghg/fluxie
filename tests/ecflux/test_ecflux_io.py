@@ -1,6 +1,6 @@
-from fluxy.io import read_config_files, read_model_output
-from fluxy.types import DataTypes
-from fluxy.test_utils import data_dir
+from fluxie.io import read_config_files, read_model_output
+from fluxie.types import DataTypes
+from fluxie.test_utils import data_dir
 
 import pytest
 

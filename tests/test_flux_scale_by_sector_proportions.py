@@ -1,11 +1,13 @@
 import pytest
 from pathlib import Path
-import fluxy
-from fluxy.operators.flux_scale_by_sector_proportions import scale_by_sector_proportions
-from fluxy.io import read_config_files, read_model_output
-from fluxy.operators.select import slice_flux
+import fluxie
+from fluxie.operators.flux_scale_by_sector_proportions import (
+    scale_by_sector_proportions,
+)
+from fluxie.io import read_config_files, read_model_output
+from fluxie.operators.select import slice_flux
 
-data_dir = Path(fluxy.__path__[0]).parent / "data" / "tests"
+data_dir = Path(fluxie.__path__[0]).parent / "data" / "tests"
 config_data = read_config_files()
 
 
@@ -27,7 +29,7 @@ def test_scale_by_sector_proportions():
     create_region_sector_totals = True  # if True, uses country_fraction variable to sum spatial sector fluxes to region sector fluxes
 
     ds_all_flux_scaled = {}
-    
+
     ds_all_flux = read_model_output(
         data_dir, "flux", species, models, config_data, period=period
     )
@@ -52,7 +54,7 @@ def test_scale_by_sector_proportions():
         sector_file=sector_file,
         create_region_sector_totals=create_region_sector_totals,
         sectors=["agriculture"],
-        cell_area_test_file=True
+        cell_area_test_file=True,
     )
 
     # variables flux_agriculture_prior, flux_agriculture_posterior,

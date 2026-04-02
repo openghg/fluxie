@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling >= 1.26"]
 build-backend = "hatchling.build"
 
 [project]
-name = "fluxy"
-version = "v2.0"
+name = "fluxie"
+version = "0.0.1"
 dependencies = [
   "numpy",
   "pandas",
@@ -24,19 +24,20 @@ authors = [
   {name = "Lionel Constantin", email = "lionel.constantin@empa.ch"},
   {name = "Stephan Henne", email = "stephan.henne@empa.ch"},
   {name = "Joël Thanwerdas", email = "joel.thanwerdas@empa.ch"},
+  {name = "Peter Andrews", email = "peter.andrews@metoffice.gov.uk"},
   {name = "Valentin Bruch"},
   {name = "Fabian Maier", email = "fmaier@bgc-jena.mpg.de"},
   {name = "Leah Herrfurth", email = "lherr@bgc-jena.mpg.de"},
 ]
 maintainers = [
-  {name = "Alexandre Danjou", email = "alexandre.danjou@bristol.ac.uk"},
   {name = "Alice Ramsden", email = "alice.ramsden@metoffice.gov.uk"},
   {name = "Daniela Brito Melo", email = "daniela.britomelo@empa.ch"},
-  {name = "Hélène De Longueville", email = "helene.delongueville@bristol.ac.uk"},
+  {name = "Lionel Constantin", email = "lionel.constantin@empa.ch"},
 ]
-description = "PARIS inverse modelling intercomparison tool"
+description = "Inverse modelling intercomparison tool"
 readme = "README.md"
-license = {file = "LICENSE.txt"}
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
 keywords = ["inverse modelling", "greenhouse gases", "emission fluxes", "mole fractions"]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
@@ -46,9 +47,10 @@ classifiers = [
 
 
 [project.urls]
-Homepage = "https://horizoneurope-paris.eu/"
-Documentation = "https://github.com/openghg/fluxy/blob/devel/README.md"
-Repository = "https://github.com/openghg/fluxy"
-"Bug Tracker" = "https://github.com/openghg/fluxy/issues"
+Homepage = "https://github.com/openghg/fluxie"
+Documentation = "https://github.com/openghg/fluxie/blob/devel/README.md"
+Repository = "https://github.com/openghg/fluxie"
+"Bug Tracker" = "https://github.com/openghg/fluxie/issues"
+"PARIS project" = "https://horizoneurope-paris.eu/"
 
 

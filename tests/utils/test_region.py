@@ -1,6 +1,6 @@
 import xarray as xr
 
-from fluxy.plots.utils import get_map_bounds
+from fluxie.plots.utils import get_map_bounds
 
 
 def test_get_map_bounds_tuple():

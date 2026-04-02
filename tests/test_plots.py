@@ -1,29 +1,31 @@
 from pathlib import Path
 import pytest
-import fluxy
-from fluxy.config import set_print_settings
-from fluxy.config import set_model_colors
-from fluxy.config import set_model_labels
-from fluxy.io import read_config_files, read_model_output, read_flux_total_fgases
-from fluxy.operators.mf import stats_mf
-from fluxy.operators.select import slice_flux, slice_mf
-from fluxy.plots.flux_map import (
+import fluxie
+from fluxie.config import set_print_settings
+from fluxie.config import set_model_colors
+from fluxie.config import set_model_labels
+from fluxie.io import read_config_files, read_model_output, read_flux_total_fgases
+from fluxie.operators.mf import stats_mf
+from fluxie.operators.select import slice_flux, slice_mf
+from fluxie.plots.flux_map import (
     plot_flux_map,
     plot_flux_map_model_comparison,
     plot_flux_map_over_time,
     plot_flux_map_combined_models_comparison,
     plot_flux_map_period_comparison,
 )
-from fluxy.plots.flux_timeseries import plot_country_flux, plot_country_sector_flux_bar
-from fluxy.plots.mf_timeseries import (
+from fluxie.plots.flux_timeseries import plot_country_flux, plot_country_sector_flux_bar
+from fluxie.plots.mf_timeseries import (
     plot_mf_timeseries,
     plot_sites_timeseries,
     plot_sites_list_mf,
 )
-from fluxy.operators.mf import compute_mf_difference
-from fluxy.plots.mf_stats import plot_stats_mf, plot_taylor_diagram
-from fluxy.test_utils import data_dir
-from fluxy.operators.flux_scale_by_sector_proportions import scale_by_sector_proportions
+from fluxie.operators.mf import compute_mf_difference
+from fluxie.plots.mf_stats import plot_stats_mf, plot_taylor_diagram
+from fluxie.test_utils import data_dir
+from fluxie.operators.flux_scale_by_sector_proportions import (
+    scale_by_sector_proportions,
+)
 
 config_data = read_config_files()
 annotate_coords = set_print_settings()

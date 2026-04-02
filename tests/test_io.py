@@ -1,9 +1,9 @@
 from pathlib import Path
-import fluxy
-from fluxy.io import read_config_files, read_model_output, read_flux_total_fgases
-from fluxy.operators.select import slice_flux, slice_mf
-from fluxy.test_utils import data_dir
-from fluxy.test_utils.models import test_models
+import fluxie
+from fluxie.io import read_config_files, read_model_output, read_flux_total_fgases
+from fluxie.operators.select import slice_flux, slice_mf
+from fluxie.test_utils import data_dir
+from fluxie.test_utils.models import test_models
 import pytest
 
 
@@ -19,7 +19,13 @@ def test_read_flux(model, add_sites_to_flux):
     period = "yearly"
 
     ds_all_flux = read_model_output(
-        data_dir, "flux", species, [model], config_data, period=period, add_sites_to_flux=add_sites_to_flux
+        data_dir,
+        "flux",
+        species,
+        [model],
+        config_data,
+        period=period,
+        add_sites_to_flux=add_sites_to_flux,
     )
 
     assert model in ds_all_flux, f"Model {model} not found in the loaded flux datasets"
@@ -38,7 +44,9 @@ def test_read_mf(model):
         data_dir, "concentration", species, [model], config_data, period=period
     )
 
-    assert model in ds_all_mf, f"Model {model} not found in the loaded mole fraction datasets"
+    assert (
+        model in ds_all_mf
+    ), f"Model {model} not found in the loaded mole fraction datasets"
 
 
 def test_read_config_default():

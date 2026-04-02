@@ -1,4 +1,4 @@
-# Inverse Modelling Intercomparison Tool
+# Flux Intercomparison Environment (FLUXIE)
 
 This repository contains functions to compare inverse models developed under the PARIS project, and a notebook to allow for easy use of these functions.
 
@@ -7,38 +7,38 @@ Follow the steps below to run the notebook and plot model results.
 ## Installation
 
 #### At your local machine
-Clone the repository and install fluxy:
+Clone the repository and install fluxie:
 ```
-git clone https://github.com/openghg/fluxy.git
-cd fluxy
+git clone https://github.com/openghg/fluxie.git
+cd fluxie
 pip install -e .
 ```
 
 #### At ICOS Jupyter Hub
 Create and activate virtual environment:
 ```
-python -m venv fluxy-env         
-source fluxy-env/bin/activate
+python -m venv fluxie-env         
+source fluxie-env/bin/activate
 ```
 Install IPython kernel package for Jupyter into the current environment and register the current environment as a new kernel:
 ```
 pip install --upgrade pip
 pip install ipykernel
-python -m ipykernel install --user --name fluxy-env --display-name "fluxy-env"
+python -m ipykernel install --user --name fluxie-env --display-name "fluxie-env"
 ```
-And finally install fluxy:
+And finally install fluxie:
 ```
-git clone https://github.com/openghg/fluxy.git
-cd fluxy
+git clone https://github.com/openghg/fluxie.git
+cd fluxie
 pip install -e .
 ```
 
 ## Quick start 
 
-If you want to try fluxy, the easiest way is to run the example notebook `scripts/example_basics.ipynb`.
-It will run with some test data and show you what fluxy can do.
+If you want to try fluxie, the easiest way is to run the example notebook `scripts/example_basics.ipynb`.
+It will run with some test data and show you what fluxie can do.
 
-**Note for ICOS Jupyter Hub:** make sure that your newly created environment (fluxy-env in the example above) is the selected kernel in the drop down list in the upper right corner. If it does not show up, restart your Jupyter instance following these instructions: https://icos-carbon-portal.github.io/jupyter/how_to/#restart-your-jupyter-instance
+**Note for ICOS Jupyter Hub:** make sure that your newly created environment (fluxie-env in the example above) is the selected kernel in the drop down list in the upper right corner. If it does not show up, restart your Jupyter instance following these instructions: https://icos-carbon-portal.github.io/jupyter/how_to/#restart-your-jupyter-instance
 
 ## Prepare input files
 ### 1. Flux and concentration netCDF files with model results
