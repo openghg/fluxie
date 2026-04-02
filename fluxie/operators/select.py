@@ -61,7 +61,13 @@ def slice_flux(
         start_date = [start_date] * len(ds_all.keys())
     if type(end_date) is str:
         end_date = [end_date] * len(ds_all.keys())
-
+    if len(start_date) == 1 and len(ds_all.keys()) > 1:
+        start_date = start_date * len(ds_all.keys())
+        logger.warning(f'Applying single start_date {start_date[0]} to all models')
+    if len(end_date) == 1 and len(ds_all.keys()) > 1:
+        end_date = end_date * len(ds_all.keys())
+        logger.warning(f'Applying single end_date {end_date[0]} to all models')
+    
     for im, m in enumerate(ds_all.keys()):
         logger.info(f"Masking data from {m}.")
 
