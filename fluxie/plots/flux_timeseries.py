@@ -1060,7 +1060,9 @@ def plot_country_flux(
     if isinstance(end_date, (str, type(None))):
         end_date = [end_date] * len(ds_all)
 
-    start_date, end_date = dict(zip(ds_all.keys(), start_date)), dict(zip(ds_all.keys(), end_date))
+    start_date, end_date = dict(zip(ds_all.keys(), start_date)), dict(
+        zip(ds_all.keys(), end_date)
+    )
     # Sel data
     ds_all = {
         k: ds.sel(time=slice(start_date[k], end_date[k])) for k, ds in ds_all.items()
