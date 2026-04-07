@@ -10,6 +10,7 @@ def stats_observed_vs_simulated(
     obs_var: str,
     sim_var: str,
     sites: list = None,
+    assimilate_flag: int = 1,
 ) -> pd.DataFrame:
     """
     Calculates multiple statistical measures of the fit between the observed
@@ -32,6 +33,8 @@ def stats_observed_vs_simulated(
             Name of the simulated variable.
         sites (list):
             Sites for which to make the stats.
+        assimilate_flag (int):
+            Value of the assimilation flag to use for masking the data. Default is 1, which means to use only assimilated data.
 
     Returns:
         stats (pandas.DataFrame):
@@ -85,8 +88,19 @@ def stats_observed_vs_simulated(
             obs = ds_site[obs_var]
             sim = ds_site[sim_var]
 
+            mask_assimilated = np.where(
+                ds_site["assimilation_flag"] == assimilate_flag, True, False
+            )
+            if not mask_assimilated.any():
+                logger.warning(f"No assimilated data for site {site} in model {model}.")
+                continue
+
+            obs = obs.where(mask_assimilated)
+            sim = sim.where(mask_assimilated)
+
             # Remove the nans
             mask_nan = ~np.isnan(obs) & ~np.isnan(sim)
+
             if not mask_nan.any():
                 logger.warning(f"No valid data for site {site} in model {model}.")
                 continue

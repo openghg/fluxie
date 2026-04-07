@@ -128,6 +128,7 @@ def stats_mf(
         "prior", "posterior", "prior_above_BC", "posterior_above_BC"
     ] = "prior",
     sites: list = None,
+    assimilate_flag: int = 1,
 ) -> pd.DataFrame:
     """
     Calculates multiple statistical measures of the fit between the posterior
@@ -145,6 +146,7 @@ def stats_mf(
             'posterior_above_BC' for regional part of mole fraction, i.e. with
             BC contribution subtracted from both observation and simulation.
         sites: sites for which to make the stats.
+        assimilate_flag: Value of the assimilation flag to use for masking the data. Default is 1, which means to use only assimilated data.
     Returns:
         stats (pandas.DataFrame):
             Dataframe containing the statistical measures.
@@ -186,8 +188,5 @@ def stats_mf(
         raise ValueError()
 
     return stats_observed_vs_simulated(
-        ds_all,
-        obs_var=obs,
-        sim_var=sim,
-        sites=sites,
+        ds_all, obs_var=obs, sim_var=sim, sites=sites, assimilate_flag=assimilate_flag
     )
