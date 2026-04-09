@@ -17,22 +17,10 @@ dependencies = [
 ]
 requires-python = ">=3.8"
 authors = [
-  {name = "Alexandre Danjou", email = "alexandre.danjou@bristol.ac.uk"},
-  {name = "Alice Ramsden", email = "alice.ramsden@metoffice.gov.uk"},
-  {name = "Daniela Brito Melo", email = "daniela.britomelo@empa.ch"},
-  {name = "Hélène De Longueville", email = "helene.delongueville@bristol.ac.uk"},
-  {name = "Lionel Constantin", email = "lionel.constantin@empa.ch"},
-  {name = "Stephan Henne", email = "stephan.henne@empa.ch"},
-  {name = "Joël Thanwerdas", email = "joel.thanwerdas@empa.ch"},
-  {name = "Peter Andrews", email = "peter.andrews@metoffice.gov.uk"},
-  {name = "Valentin Bruch"},
-  {name = "Fabian Maier", email = "fmaier@bgc-jena.mpg.de"},
-  {name = "Leah Herrfurth", email = "lherr@bgc-jena.mpg.de"},
+  {name = "Fluxie developers"},
 ]
 maintainers = [
-  {name = "Alice Ramsden", email = "alice.ramsden@metoffice.gov.uk"},
-  {name = "Daniela Brito Melo", email = "daniela.britomelo@empa.ch"},
-  {name = "Lionel Constantin", email = "lionel.constantin@empa.ch"},
+  {name = "Fluxie maintainers"},
 ]
 description = "Inverse modelling intercomparison tool"
 readme = "README.md"
