@@ -508,7 +508,8 @@ def add_inventory_barplot(
 
 
 def add_sector_barplot(
-    ax: Axes, ds_sector: xr.Dataset, variable: str, bottom_values: np.ndarray | float
+    ax: Axes, ds_sector: xr.Dataset, variable: str, bottom_values: np.ndarray | float,
+    gaps_between_bars: bool = False
 ) -> dict[str, dict]:
     """
     Add a layer to the stacked barplot. The layer correspond to a sector.
@@ -528,9 +529,13 @@ def add_sector_barplot(
     freq = ds_sector.attrs.get("frequency", "unknown")
 
     if variable == "inv_data" or freq in ["year", "yearly"]:
+        if gaps_between_bars:
+            d = 300
+        else:
+            d = 365
         time_as_datetime = ds_sector.time.values.astype("datetime64[Y]").tolist()
         width = [
-            timedelta(days=366) if isleap(date.year) else timedelta(days=365)
+            timedelta(days=d+1) if isleap(date.year) else timedelta(days=d)
             for date in time_as_datetime
         ]
         offset = timedelta(days=183)
@@ -570,12 +575,11 @@ def add_sector_barplot(
 
     res["type"] = variable
     res["sector"] = sector
-    res["model"] = ds_sector.attrs["model_label"]
-    res["country"] = ds_sector.attrs["country"]
-    res["species"] = ds_sector.attrs["species"]
+    res["model"] = ds_sector.attrs["model_label"] if "model_label" in ds_sector.attrs else f"inventory"
+    res["country"] = ds_sector.attrs["country"] if "country" in ds_sector.attrs else None
+    res["species"] = ds_sector.attrs["species"] if "species" in ds_sector.attrs else None
 
     return res
-
 
 def prepare_inventory_sector_barplot(
     sectors: list[str],
@@ -731,7 +735,7 @@ def add_ylabel(
             )
         elif plot_type.split("-")[1] == "inventory":
             ax.set_ylabel(
-                f"{kwargs['inventory_filename'].replace('_',' ')} {kwargs['year']}\n{print_country} {s_data.get(species, {}).get('species_print', species)}"
+                f"{kwargs['inventory_filename'].replace('_',' ').replace('inventory','Inventory')} {kwargs['year']}\n{print_country} {s_data.get(species, {}).get('species_print', species)}"
                 f" ({unit.replace('2','$_{{2}}$').replace('-1','$^{{-1}}$')})"
             )
 
@@ -1201,6 +1205,9 @@ def plot_country_sector_flux_bar(
     resample_uncert_correlation: bool = False,
     rolling_mean: bool = False,
     sectors: list[str] = ["agriculture", "waste", "energy", "industry"],
+    xticks_at_centre: bool = False,
+    plot_grid: bool = True,
+    gaps_between_bars: bool = False
 ) -> Figure | list:
     """
     Stacked bar plot of posterior fluxes, split by sector, for a single region, for a range of models.
@@ -1237,6 +1244,9 @@ def plot_country_sector_flux_bar(
         return_res: Wheter or not including a dictionnary with the results as output
         rolling_mean : If True, calculates a rolling mean (xx years) for each of the data to plot.
         sectors: List of emissions sectors to plot.
+        xticks_at_centre: If True, moves xticks to centre of timestamps.
+        plot_grid: If True, plots light grey x and y grid behind data.
+        gaps_between_bars: If True, reduces width of annual bars to improve readability.
     Returns:
         fig: A plot per country/region.
         res_dict : If return_res, return also a dictionnary containing the plotted results
@@ -1288,21 +1298,25 @@ def plot_country_sector_flux_bar(
 
     for i, (m, ds) in enumerate(ds_to_plot.items()):
 
-        if plot_inventory_or_prior == "prior":
-            ax_data = axes[2 * i]
-            ax_comp = axes[2 * i + 1]
-        else:
-            ax_data = axes[i]
-
         # plot posterior (and eventually prior)
         former_sector = None
         for sector in sectors:
+            
             vars_to_plot = (
                 ["posterior", "prior"]
                 if plot_inventory_or_prior == "prior"
                 else ["posterior"]
             )
-            for var, ax in zip(vars_to_plot, [ax_data, ax_comp]):
+
+            if plot_inventory_or_prior == "prior":
+                ax_data = axes[2 * i]
+                ax_comp = axes[2 * i + 1]
+                var_ax_zip = zip(vars_to_plot, [ax_data, ax_comp])
+            else:
+                ax_data = axes[i]
+                var_ax_zip =  zip(vars_to_plot, [ax_data])
+
+            for var, ax in var_ax_zip:
                 bottom_values = (
                     plotted_data_df[
                         (plotted_data_df.sector == former_sector)
@@ -1310,9 +1324,10 @@ def plot_country_sector_flux_bar(
                         & (plotted_data_df.model == ds.attrs["model_label"])
                     ].mean_val
                     if former_sector
-                    else 0
+                    else np.zeros(ds.time.values.shape[0])
                 )
-                res = add_sector_barplot(ax, ds.sel(sector=sector), var, bottom_values)
+                res = add_sector_barplot(ax, ds.sel(sector=sector), var, 
+                                         bottom_values, gaps_between_bars)
                 plotted_data_df = pd.concat([plotted_data_df, res], ignore_index=True)
 
             former_sector = sector
@@ -1347,13 +1362,15 @@ def plot_country_sector_flux_bar(
                 bottom_values = (
                     plotted_data_df[
                         (plotted_data_df.sector == former_sector)
-                        & (plotted_data_df.type == "inventory")
-                        & (plotted_data_df.model == f"inventory_{year}")
+                        & (plotted_data_df.type == "inv_data")
+                        & (plotted_data_df.model == "inventory")
                     ].mean_val
+                    
                     if former_sector
-                    else 0
+                    else np.zeros(inv[0].time.values.shape[0])
                 )
-                res = add_sector_barplot(ax, ds.sel(sector=sector), var, bottom_values)
+                res = add_sector_barplot(ax, inv[0].sel(sector=sector), 'inv_data', 
+                                         bottom_values, gaps_between_bars)
                 plotted_data_df = pd.concat([plotted_data_df, res], ignore_index=True)
                 former_sector = sector
             ax.legend(ncol=2, borderpad=0.4, columnspacing=1.0)
@@ -1370,7 +1387,8 @@ def plot_country_sector_flux_bar(
 
     # plot grid and legend
     for ax in axes:
-        ax.grid(visible=True, which="major", alpha=0.4)
+        if plot_grid:
+            ax.grid(visible=True, which="major", alpha=0.4)
         ax_data.legend(ncol=2, borderpad=0.4, columnspacing=1.0)
 
     # set y lim
@@ -1390,7 +1408,8 @@ def plot_country_sector_flux_bar(
     # set xlim and xticks
     yearly_freq = ("year" in freqs) or ("yearly" in freqs)
 
-    add_xlims_and_ticks(axes[-1], yearly_freq, plotted_data_df, aggreg_month=False)
+    add_xlims_and_ticks(axes[-1], yearly_freq, plotted_data_df, aggreg_month=False, 
+                        xticks_at_centre=xticks_at_centre)
 
     return fig, plotted_data_df
 

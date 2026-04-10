@@ -84,11 +84,17 @@ def retrieve_inventories(
                 )
             else:
                 ds_uncert_sectors[y].append(None)
+                
+                
+                
+    #for y in inventory_years:
+    #    print(ds_uncert_sectors[y])
+    #    print(all(ds_uncert_sectors[y]) == None)
+                
+    ds_sectors_all = [xr.concat(ds_sectors[y], dim="sector") for y in inventory_years]
+    ds_uncert_sectors_all = [xr.concat(ds_uncert_sectors[y],dim=sector) for y in inventory_years if all(a is None for a in ds_uncert_sectors[y]) == False]
 
-    return [xr.concat(ds_sectors[y], dim="sector") for y in inventory_years], [
-        xr.concat(ds_uncert_sectors[y], dim="sector") for y in inventory_years
-    ]
-
+    return ds_sectors_all,ds_uncert_sectors_all
 
 def _retrieve_inventories_sector(
     data_dir: str,

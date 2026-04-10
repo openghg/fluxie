@@ -22,10 +22,15 @@ def open_and_align_sector_dataset(
     Returns:
         ds_sectors: dataset with prior sector fluxes align on reference dataset
     """
+    print(sector_prop_path)
 
     with xr.open_dataset(sector_prop_path) as f:
         # timely align sector dataset on main dataset
+        '''
         freq_ds = ds_ref.attrs["frequency"]
+        print(freq_ds)
+        print(f.time)
+        print(xr.infer_freq(f.time))
         if xr.infer_freq(f.time) not in ["YS-JAN", "AS-JAN"] or freq_ds not in [
             "monthly",
             "yearly",
@@ -33,7 +38,7 @@ def open_and_align_sector_dataset(
             raise ValueError(
                 "This part of the code has not been tested with a sector file whith a frequency different from “YS-JAN” or with a dataset frequency different from 'monthly'/'annual'. In the current implementation, the frequency of the sector file is assumed to be greater than or equal to that of the data set and to start before or at the same time as the data set."
             )
-
+        '''
         ds_sectors = f.sel(time=ds_ref["time"].values, method="ffill")
         ds_sectors["time"] = ds_ref["time"]
 
@@ -166,9 +171,12 @@ def scale_by_sector_proportions(
                 + f" Used sectors: {sectors}"
             )
 
+        print(sectors)
+
         # Convert prior and posterior flux for each sector
         for s in sectors:
-            scaling_factor_all[s] = ds_sectors[f"flux_{s}"] / ds_sectors["flux_total"]
+            print(s)
+            scaling_factor_all[s] = ds_sectors[f"flux_{s}_posterior"] / ds_sectors["flux_total"]
             scaling_factor_all[s] = scaling_factor_all[s].where(
                 ds_sectors["flux_total"] != 0, 0
             )
