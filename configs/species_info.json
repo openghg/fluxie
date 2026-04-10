@@ -136,6 +136,22 @@
         "species_print": "SO$_2$F$_2$",
         "molar_mass": 102.06
     },
+    "hcfc124": {
+        "species_print": "HCFC-124",
+        "molar_mass": 136.45
+    },
+    "hcfc141b": {
+        "species_print": "HCFC-141b",
+        "molar_mass": 116.9
+    },
+    "hcfc142b": {
+        "species_print": "HCFC-142b",
+        "molar_mass": 100.45 
+    },
+    "hcfc22": {
+        "species_print": "HCFC-22",
+        "molar_mass": 86.45
+    },
     "all_hfc": {
         "list_species": ["hfc125","hfc134a","hfc143a","hfc152a","hfc23","hfc227ea","hfc245fa","hfc32","hfc365mfc","hfc236fa","hfc4310mee"],
         "species_print": "Total HFC"
