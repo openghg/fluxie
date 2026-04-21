@@ -43,7 +43,6 @@ def make_AR_table(df: pd.DataFrame,
 
     annual_res = pd.concat([res_combined], ignore_index=True)
     #annual_res = pd.concat([df], ignore_index=True)
-    
 
     all_sp_res = {}
 
@@ -63,8 +62,6 @@ def make_AR_table(df: pd.DataFrame,
 
     species_print = s_data[species]['species_print']
     units_print = country_flux_units_print.replace('-1',"$^{-1}$")
-    
-    print(units_print)
 
     caption = "\n \\caption{" + f"{species_print} emission {units_print} estimates with 1$\sigma$ uncertainty" + "}"
     label = "\n \\label{" + f"{species}_emit" + "}"
@@ -110,7 +107,6 @@ def make_AR_table(df: pd.DataFrame,
     #return all_sp_res
     
     for i,t in enumerate(all_years):
-        print(t)
         new_line = f"{t}"
         for r in regions:
             if r != 'UK' and int(t) > 2023:
