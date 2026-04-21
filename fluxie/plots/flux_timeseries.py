@@ -204,7 +204,7 @@ def prepare_data_to_plot(
     # Add original datasets to plot
     if not any(resample) or plot_resample_and_original:
         ds_original_flux = {
-            m: v for (i, (m, v)) in enumerate(ds_all_region.items()) if plot_separate[i]
+            m: v for (i, (m, v)) in enumerate(ds_all_region.items()) #if plot_separate[i]
         }
         ds_to_plot.update(ds_original_flux)
 
@@ -217,7 +217,7 @@ def prepare_data_to_plot(
             {
                 m: v
                 for (i, (m, v)) in enumerate(ds_resampled.items())
-                if plot_separate[i]
+                #if plot_separate[i]
             }
         )
 
@@ -225,7 +225,7 @@ def prepare_data_to_plot(
     for m, rm, ps, rs in zip(
         ds_all_region.keys(), rolling_mean, plot_separate, resample
     ):
-        if rm & ps:  # if rolling_mean and plot_separate
+        if rm:# & ps:  # if rolling_mean and plot_separate
             model = m + "_resample" if rs else m
             ds_to_plot[model] = calc_rolling_mean(ds_to_plot[model])
 
@@ -233,16 +233,16 @@ def prepare_data_to_plot(
     if any(plot_combined):
         if is_plot_combined_single_true:
             if combined_models_dict is None:
-                combined_models_dict = {"Mean": list(ds_all_region.keys())}
+                combined_models_dict = {"Mean": list(ds_to_plot.keys())}
             else:
                 combined_model_list = sum(combined_models_dict.values(), [])
                 check_missing_models = set(combined_model_list) - set(
-                    ds_all_region.keys()
+                    ds_to_plot.keys()
                 )
                 if check_missing_models:
                     raise ValueError(
                         f"Models in `combined_model_list` are not available: {check_missing_models}. "
-                        f"Available models: {list(ds_all_region.keys())}"
+                        f"Available models: {list(ds_to_plot.keys())}"
                     )
         else:
             if combined_models_dict is not None:
@@ -252,7 +252,7 @@ def prepare_data_to_plot(
                 )
             combined_models_dict = {
                 "Mean": [
-                    m for (i, m) in enumerate(ds_all_region.keys()) if plot_combined[i]
+                    m for (i, m) in enumerate(ds_to_plot.keys()) if plot_combined[i]
                 ]
             }
 
@@ -262,6 +262,7 @@ def prepare_data_to_plot(
         use_resampled = len(
             unique_resample := set(combined_resample)
         ) == 1 and unique_resample not in ({None}, {False})
+
         if use_resampled:
             combined_models_dict = {
                 group_label: [f"{model}_resample" for model in model_list]
@@ -269,13 +270,13 @@ def prepare_data_to_plot(
             }
 
         ds_to_combine = {
-            m: calc_rolling_mean(ds) if rm else ds
+            m: ds # calc_rolling_mean(ds) if rm else ds
             for rm, (m, ds) in zip(
-                rolling_mean, (ds_resampled if use_resampled else ds_all_region).items()
+                rolling_mean, (ds_resampled if use_resampled else ds_to_plot).items()
             )
         }
-
-        for group_label, model_list in combined_models_dict.items():
+        
+        for i,(group_label, model_list) in enumerate(combined_models_dict.items()):
             combine_mask = [model in model_list for model in ds_to_combine.keys()]
             ds_combined = combine_dataset(ds_to_combine, combine_mask, only_overlapping)
             ds_combined["combined"].attrs["model_label"] = group_label
@@ -286,6 +287,10 @@ def prepare_data_to_plot(
                 f"combined_{new_key}": ds_combined["combined"]
             }  # rename key to include group label
             ds_to_plot.update(ds_combined)
+            if plot_separate[i] == False:
+                ds_to_plot = ds_combined.copy()
+            else:
+                ds_to_plot.update(ds_combined)
 
     # Determine plot color and label of each dataset
     color_usage = {k: 0 for k in map_model_colors.keys()}
@@ -1090,7 +1095,6 @@ def plot_country_flux(
             aggreg_month=aggreg_month,
             only_overlapping=only_overlapping,
         )
-
         # plot posterior and prior (if requested)
         for m, ds_region in ds_to_plot.items():
             highlighted_post = ("combined" in m) & annex_mode
@@ -1108,7 +1112,7 @@ def plot_country_flux(
                 plotted_data_df = pd.concat(
                     [plotted_data_df, posterior_df], ignore_index=True
                 )
-
+                
             if add_prior and "prior" in ds_region:
                 prior_df = add_line_plot(
                     ax,
@@ -1169,10 +1173,21 @@ def plot_country_flux(
             )
 
     add_ylim(axes, "country", plot_regions, plotted_data_df, fix_y_axes, set_global_leg)
-    yearly_freq = (
-        "yearly" in [ds.attrs["frequency"] for ds in ds_to_plot.values()]
-        or resample == "year"
-    )
+
+    for ds in ds_to_plot.values():
+        if "frequency" in ds.attrs:
+            if "yearly" in ds.attrs["frequency"]:
+                yearly_freq = True
+        elif 'year' in resample:
+            yearly_freq = True
+        else:
+            yearly_freq = False
+
+    #yearly_freq = (
+    #    "yearly" in [ds.attrs["frequency"] for ds in ds_to_plot.values()]
+    #    or resample == "year"
+    #)
+    
     add_xlims_and_ticks(
         axes[-1], yearly_freq, plotted_data_df, aggreg_month, xticks_at_centre
     )
