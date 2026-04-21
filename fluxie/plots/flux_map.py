@@ -545,6 +545,9 @@ def plot_flux_map_over_time(
     site_marker: str = "o",
     city_marker: str = "^",
     marker_color: str | None = None,
+    xlabels: str | None = None,
+    no_ticks: bool = False,
+    separate_colorbars: bool = False,
 ) -> plt.Figure:
     """
     Plot a given flux variable averaged over specific time intervals, for all models or the model mean.
@@ -607,6 +610,12 @@ def plot_flux_map_over_time(
             Marker for city locations.
         marker_color (str):
             Marker color.
+        xlabels (list of str, optional):
+            List of x-axis labels to add to the plots. Should have the same length as the number of axes
+        no_ticks (bool, optional):
+            If True, removes axis ticks.
+        separate_colorbars (bool, optional):
+            If True, plots the colorbar alongside each subplot
     Returns:
         fig (figure):
             A plot of spatial flux of the variable specified in var
@@ -744,7 +753,8 @@ def plot_flux_map_over_time(
             if col == 0 and not plot_combined and include_title_and_labels:
                 # Row titles
                 ax_i.set_ylabel(model_labels.get(model, model))
-
+            if xlabels:
+                ax_i.set_xlabel(xlabels[col + row])
             # Add sites and markers if specified
             if add_sites:
                 try:
@@ -770,30 +780,52 @@ def plot_flux_map_over_time(
 
             if add_gridlines:
                 ax_i.grid(visible=True, which="major", alpha=0.4)
-
-    if include_title_and_labels:
-        cbar_label_format = ["variable", "species", "units", "time"]
-    else:
-        cbar_label_format = ["species", "units", "time"]
-
-    # Add colorbar
-    cbar_label = print_cbar_label(
-        ds,
-        species_info,
-        var,
-        sector=sector if sector != "total" else "",
-        format=cbar_label_format,
-    )
-    add_colorbar(
-        fig,
-        ax,
-        im,
-        extend=extend,
-        label=cbar_label,
-        n_cbar=1,
-        idx_cbar=1,
-        colorbar_type="figure",
-    )
+            if no_ticks:
+                for tic in ax_i.xaxis.get_major_ticks():
+                    tic.tick1line.set_visible(False)
+                for tic in ax_i.yaxis.get_major_ticks():
+                    tic.tick1line.set_visible(False)
+            if include_title_and_labels:
+                cbar_label_format = ["variable", "species", "units", "time"]
+            else:
+                cbar_label_format = ["species", "units", "time"]
+            if separate_colorbars:
+                # Add colorbar
+                cbar_label = print_cbar_label(
+                    ds,
+                    species_info,
+                    var,
+                    sector=sector if sector != "total" else "",
+                    format=cbar_label_format,
+                )
+                add_colorbar(
+                    fig,
+                    ax_i,
+                    im,
+                    extend=extend,
+                    label=cbar_label,
+                    n_cbar=1,
+                    idx_cbar=1,
+                    colorbar_type="figure",
+                )
+    if not separate_colorbars:
+        cbar_label = print_cbar_label(
+            ds,
+            species_info,
+            var,
+            sector=sector if sector != "total" else "",
+            format=cbar_label_format,
+        )
+        add_colorbar(
+            fig,
+            ax,
+            im,
+            extend=extend,
+            label=cbar_label,
+            n_cbar=fig_rows * fig_cols,
+            idx_cbar=fig_rows * fig_cols,
+            colorbar_type="figure",
+        )
 
     return fig
 

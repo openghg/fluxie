@@ -96,7 +96,14 @@ stat_labels = {
 units_scale = {
     "mf": {"mol mol-1": 1, "ppm": 1e-6, "ppb": 1e-9, "ppt": 1e-12},  # mf base unit
     "amount": {"kmol": 1e3, "mol": 1},  # amount of substance base unit
-    "mass": {"Tg": 1e12, "Gg": 1e9, "Mg": 1e6, "kg": 1e3, "g": 1},  # mass base unit
+    "mass": {
+        "Tg": 1e12,
+        "Gg": 1e9,
+        "Mg": 1e6,
+        "kg": 1e3,
+        "g": 1,
+        "t": 1e6,
+    },  # mass base unit
     "time": {
         "yr": 60 * 60 * 24 * 365,
         "a": 60 * 60 * 24 * 365,
