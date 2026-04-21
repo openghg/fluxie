@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import os
 from fluxie.cli.utils_annex_plot import create_str_dataframe
 
@@ -29,12 +30,19 @@ def make_AR_table(df: pd.DataFrame,
     A text file containing the table, saved to the specified output directory.
     """
     
-    res_combined = df.replace({'model':['InTEM yearly','InTEM monthly']},'InTEM')
+    all_model_names = []
+    for m in np.unique(df['model'].values):
+        if 'inventory' not in m:
+            all_model_names.append(m)
+    
+    #res_combined = df.replace({'model':['InTEM yearly','InTEM monthly']},'InTEM')
+    res_combined = df.replace({'model':[all_model_names]},'InTEM')
 
     species_list = [species]
     if type(start_date) != list: start_date = [start_date]
 
     annual_res = pd.concat([res_combined], ignore_index=True)
+    #annual_res = pd.concat([df], ignore_index=True)
 
     all_sp_res = {}
 
@@ -43,6 +51,7 @@ def make_AR_table(df: pd.DataFrame,
             annual_res,
             inventory_years,
             species_list,
+            #model=['InTEM',f'inventory_{max(inventory_years)}'],
             model=['InTEM',f'inventory_{max(inventory_years)}'],
             table_start_date=min(start_date),
             region=r,
@@ -94,11 +103,18 @@ def make_AR_table(df: pd.DataFrame,
             + "\n \\end{table}")
 
     all_lines = ""
-
+    
+    #return all_sp_res
+    
     for i,t in enumerate(all_years):
         new_line = f"{t}"
         for r in regions:
-            new_line += f"&  {all_sp_res[r][t].values[1]}&  {all_sp_res[r][t].values[0]}".replace("\\pm","${\\pm}$")
+            if r != 'UK' and int(t) > 2023:
+                new_line += f"&  &  {all_sp_res[r][t].values[0]}".replace("\\pm","${\\pm}$")
+
+            else:
+                new_line += f"&  {all_sp_res[r][t].values[1]}&  {all_sp_res[r][t].values[0]}".replace("\\pm","${\\pm}$")
+                
         new_line = "\n" + new_line + " \\\\"
         all_lines += new_line
         
