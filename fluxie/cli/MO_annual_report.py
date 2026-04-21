@@ -110,11 +110,12 @@ def make_AR_table(df: pd.DataFrame,
     #return all_sp_res
     
     for i,t in enumerate(all_years):
+        print(t)
         new_line = f"{t}"
         for r in regions:
-            print(all_sp_res[r][t].values)
-            if species in ['ch4','n2o','sf6','nf3']:
-                new_line += f"&  {all_sp_res[r][t].values[1]}&  {all_sp_res[r][t].values[0]}".replace("\\pm","${\\pm}$")
+            if r != 'UK' and int(t) > 2023:
+                new_line += f"&  &  {all_sp_res[r][t].values[0]}".replace("\\pm","${\\pm}$")
+
             else:
                 new_line += f"&  {all_sp_res[r][t].values[1]}&  {all_sp_res[r][t].values[0]}".replace("\\pm","${\\pm}$")
                 
