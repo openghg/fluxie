@@ -920,7 +920,7 @@ def plot_sites_timeseries(
                 data,
                 ".",
                 color=model_colors[m][0],
-                ms=5,
+                ms=3,
                 label=model_labels_copy[m],
             )
 
