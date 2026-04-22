@@ -190,7 +190,7 @@ def slice_mf(
         if not keep_unassimilated:
             # Mask assimilated data only
             mask &= ds_all[m]["assimilation_flag"] == 1
-        ds_all[m] = ds_all[m].where(mask, drop=True)
+        ds_all[m] = ds_all[m].isel(index=mask)
 
         # Slice according to intake height
         if intake_height is not None:
@@ -279,7 +279,7 @@ def slice_site(
 
     mask = ds["number_of_identifier"].isin(site_indices)
     if mask.any():
-        ds = ds.where(mask, drop=True)
+        ds = ds.isel(index=mask)
         return ds
 
     msg = f"No data for any sites {sites} with indices {site_indices} in model {ds.attrs['exp_name']}."
