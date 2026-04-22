@@ -918,9 +918,9 @@ def plot_sites_timeseries(
             ax.plot(
                 (site_iter + model_offset * i - 0.5 + margin) * np.ones(data.size),
                 data,
-                ".",
+                "o",
                 color=model_colors[m][0],
-                ms=3,
+                ms=1.4142,
                 label=model_labels_copy[m],
             )
 
