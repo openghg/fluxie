@@ -150,20 +150,23 @@ def align_lat_lon(
     """
 
     # Check if coordinates agree exactly.
-    if all(ds_list[0][coord].equals(x[coord]) for x in ds_list[1:]):
+    dim_equal = all(ds_list[0][coord].equals(x[coord]) for x in ds_list[1:])
+    if dim_equal:
         return ds_list
 
     tolerance = 2e-4  # degrees
 
     # Select common range of coordinates if the coordinate sizes differ.
     ref_dim_size = ds_list[0][coord].size
-    if any(x[coord].size != ref_dim_size for x in ds_list[1:]):
+    dim_sizes_differ = any(x[coord].size != ref_dim_size for x in ds_list[1:])
+    if dim_sizes_differ:
         start = max(x[coord].values[0] for x in ds_list) - tolerance
         end = min(x[coord].values[-1] for x in ds_list) + tolerance
         ds_list = [x.sel({coord: slice(start, end)}) for x in ds_list]
         # Check if the coordinate sizes agree now.
         common_dim_size = ds_list[0][coord].size
-        if any(common_dim_size != x[coord].size for x in ds_list[1:]):
+        dim_sizes_differ = any(x[coord].size != common_dim_size for x in ds_list[1:])
+        if dim_sizes_differ:
             raise ValueError(
                 f"{coord} dimensions seem to be too different between the datasets for them to be combined."
             )
