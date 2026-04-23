@@ -584,7 +584,7 @@ def add_sector_barplot(
     res["country"] = ds_sector.attrs["country"] if "country" in ds_sector.attrs else None
     res["species"] = ds_sector.attrs["species"] if "species" in ds_sector.attrs else None
 
-    return res
+    return res,width
 
 def prepare_inventory_sector_barplot(
     sectors: list[str],
@@ -1354,7 +1354,7 @@ def plot_country_sector_flux_bar(
                     if former_sector
                     else np.zeros(ds.time.values.shape[0])
                 )
-                res = add_sector_barplot(ax, ds.sel(sector=sector), var, 
+                res,width = add_sector_barplot(ax, ds.sel(sector=sector), var, 
                                          bottom_values, gaps_between_bars)
                 plotted_data_df = pd.concat([plotted_data_df, res], ignore_index=True)
 
@@ -1399,7 +1399,7 @@ def plot_country_sector_flux_bar(
                     if former_sector
                     else np.zeros(inv[0].time.values.shape[0])
                 )
-                res = add_sector_barplot(ax, inv[0].sel(sector=sector), 'inv_data', 
+                res,width = add_sector_barplot(ax, inv[0].sel(sector=sector), 'inv_data', 
                                          bottom_values, gaps_between_bars)
                 plotted_data_df = pd.concat([plotted_data_df, res], ignore_index=True)
                 former_sector = sector
@@ -1415,12 +1415,6 @@ def plot_country_sector_flux_bar(
                 year=year,
                 annex_mode=annex_mode
             )
-            
-    # add shading based on vertical line
-    #if vertical_line:
-    #    print(ax_data.get_ylim())
-    #    ax_data.fill_between(ax_data.get_ylim()[0],(np.datetime64(vertical_line),ax_data.get_ylim()[0],ax_data.get_ylim()[1],
-    #                         color='dimgrey',alpha=0.2)
 
     # plot grid and legend
     for ax in axes:
@@ -1441,6 +1435,13 @@ def plot_country_sector_flux_bar(
         plotted_data_df,
         fix_y_axes,
     )
+
+    # add shading based on vertical line
+    if vertical_line:
+        ax_data.fill_between(np.arange(np.datetime64(start_date)-np.timedelta64(width[0]),
+                                       np.datetime64(vertical_line),np.timedelta64(10,'D')),
+                             0,ax_data.get_ylim()[1],
+                             color='dimgrey',alpha=0.2,zorder=0,label='2 sites')
 
     # set xlim and xticks
     yearly_freq = ("year" in freqs) or ("yearly" in freqs)
