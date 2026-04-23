@@ -145,10 +145,10 @@ If the sequence of name tags is too long, a simplified name tag can be defined i
 
 ## Citing fluxie 
 
-If you use fluxie in your research, please use the zenodo:
+If you use fluxie in your research, please use the Zenodo:
 
 * open https://doi.org/10.5281/zenodo.19184134 
 * choose the version of fluxie you used in your project
 * this will select the correct DOI for that version
-* You can use the citation field on the zenodo page to get a citation for the format you need
+* You can use the citation field on the Zenodo page to get a citation for the format you need
 
