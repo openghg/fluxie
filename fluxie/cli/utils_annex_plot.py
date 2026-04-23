@@ -146,7 +146,7 @@ def create_str_dataframe(
         data_per_species["mean_val"] = data_per_species.mean_val.apply(
             lambda x: f"{x:.{n_digits}f}"
         )
-        if include_inventory_uncert == True:
+        if include_inventory_uncert == True and 'max_unc' in data_per_species:
             data_per_species["unc"] = data_per_species.apply(
                 lambda x: (
                     f"{(x.max_unc-x.min_unc)/2:.{n_digits}f}"

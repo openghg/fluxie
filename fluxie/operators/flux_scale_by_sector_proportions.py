@@ -3,7 +3,7 @@ import os
 import numpy as np
 import xarray as xr
 from pathlib import Path
-from fluxie.operators.convert import get_units_conversion_factor
+from fluxie.operators.convert import get_units_conversion_factor,convert_units_co2eq
 from fluxie.operators.flux_align_dataset import align_lat_lon
 
 logger = logging.getLogger(__name__)
@@ -22,7 +22,6 @@ def open_and_align_sector_dataset(
     Returns:
         ds_sectors: dataset with prior sector fluxes align on reference dataset
     """
-    print(sector_prop_path)
 
     with xr.open_dataset(sector_prop_path) as f:
         # timely align sector dataset on main dataset
@@ -43,9 +42,10 @@ def open_and_align_sector_dataset(
         ds_sectors["time"] = ds_ref["time"]
 
         # spatially align sector dataset on main dataset
-        ds_sectors = ds_sectors.rename({"lat": "latitude", "lon": "longitude"})
-        _, ds_sectors = align_lat_lon([ds_ref, ds_sectors], "latitude")
-        _, ds_sectors = align_lat_lon([ds_ref, ds_sectors], "longitude")
+        if "lat" in ds_sectors.coords:
+            ds_sectors = ds_sectors.rename({"lat": "latitude", "lon": "longitude"})
+            _, ds_sectors = align_lat_lon([ds_ref, ds_sectors], "latitude")
+            _, ds_sectors = align_lat_lon([ds_ref, ds_sectors], "longitude")
 
     return ds_sectors
 
@@ -151,8 +151,12 @@ def scale_by_sector_proportions(
                 if "-" in r_data[r]:
                     region_codes += r_data[r].split("-")
 
-    sector_prop_path = os.path.join(
-        data_dir, "sector_flux", f"{sector_file}_{species}_yearly_flux_sectors.nc"
+    #sector_prop_path = os.path.join(
+    #    data_dir, "sector_flux", f"{sector_file}_{species}_yearly_flux_sectors.nc"
+    #)
+    
+    sector_prop_path = sector_prop_path = os.path.join(
+        data_dir, "PRIOR",species, f"PRIOR_{sector_file}_{species}_monthly.nc"
     )
 
     logger.info(f"Using {sector_prop_path} to scale total fluxes into sector fluxes.")
@@ -176,9 +180,9 @@ def scale_by_sector_proportions(
         # Convert prior and posterior flux for each sector
         for s in sectors:
             print(s)
-            scaling_factor_all[s] = ds_sectors[f"flux_{s}_posterior"] / ds_sectors["flux_total"]
+            scaling_factor_all[s] = ds_sectors[f"flux_{s}_posterior"] / ds_sectors["flux_total_posterior"]
             scaling_factor_all[s] = scaling_factor_all[s].where(
-                ds_sectors["flux_total"] != 0, 0
+                ds_sectors["flux_total_posterior"] != 0, 0
             )
 
             for suff in ["posterior", "prior"]:
@@ -194,11 +198,10 @@ def scale_by_sector_proportions(
         # Convert prior and posterior country flux for each sector if needed
         if create_region_sector_totals:
             # derive factor for unit conversion
-            molar_mass = config_data["species_info"][species]["molar_mass"]
-            units_factor = get_units_conversion_factor(
+            units_factor = convert_units_co2eq(
                 ds[f"flux_{s}_prior"].attrs["units"].replace(" m-2 ", " "),
                 country_flux_units_print,
-                molar_mass,
+                config_data["species_info"][species],
             )
 
             # check for crountry_fraction

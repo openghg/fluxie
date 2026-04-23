@@ -13,6 +13,7 @@ def make_AR_table(df: pd.DataFrame,
                   inventory_years: str | int,
                   species: str | None =  None,
                   include_inventory_uncert: bool = True,
+                  include_inventory: bool = True,
                   n_digits: int = 2):
     """
     Function to create a table of inventory and InTEM emission estimates, in the format
@@ -37,6 +38,10 @@ def make_AR_table(df: pd.DataFrame,
     
     #res_combined = df.replace({'model':['InTEM yearly','InTEM monthly']},'InTEM')
     res_combined = df.replace({'model':[all_model_names]},'InTEM')
+    
+    all_read_in = ['InTEM']
+    if include_inventory:
+        all_read_in.append(f'inventory_{max(inventory_years)}')
 
     species_list = [species]
     if type(start_date) != list: start_date = [start_date]
@@ -45,17 +50,16 @@ def make_AR_table(df: pd.DataFrame,
     #annual_res = pd.concat([df], ignore_index=True)
 
     all_sp_res = {}
-
     for r in regions:
         all_sp_res[r] = create_str_dataframe(
             annual_res,
             inventory_years,
             species_list,
             #model=['InTEM',f'inventory_{max(inventory_years)}'],
-            model=['InTEM',f'inventory_{max(inventory_years)}'],
+            model=all_read_in,
             table_start_date=min(start_date),
             region=r,
-            include_inventory_uncert=True,
+            include_inventory_uncert=include_inventory_uncert,
             n_digits=2)
     
     all_years = [t for t in all_sp_res[r] if t not in ['species','units','source']]
@@ -69,6 +73,7 @@ def make_AR_table(df: pd.DataFrame,
     region_title = ""
     type_title = "Years"
     fill_line = ""
+    cols_line = "\n {\\begin{tabular}{|l|"
 
     for r in regions:
         if r == 'NW_EU2':
@@ -76,9 +81,20 @@ def make_AR_table(df: pd.DataFrame,
         else:
             region_name = r
             
-        region_title += f" & {region_name} & {region_name}"
-        type_title += f" & Inventory & InTEM"
-        fill_line += " & &"
+        if include_inventory: 
+            type_title += f" & Inventory & InTEM"
+            region_title += f" & {region_name} & {region_name}"
+            fill_line += " & &"
+            
+        else:
+            type_title += f" & InTEM"
+            region_title += f" & {region_name}"
+            fill_line += " &"
+
+    if include_inventory:
+        cols_line += f"{'c'*len(regions)}|{'c'*len(regions)}|}}"
+    else:
+        cols_line += f"{'c'*len(regions)}|}}"
     
     region_title = "\n " + region_title.strip() + " \\\\"
     type_title = "\n " + type_title.removesuffix('& ') + "\\\\"
@@ -89,7 +105,7 @@ def make_AR_table(df: pd.DataFrame,
             + "\n \\centering"
             + caption
             + label
-            + "\n {\\begin{tabular}{|l|cc|cc|}"
+            + cols_line
             + "\n \\hline"
             + region_title
             + type_title
@@ -110,10 +126,16 @@ def make_AR_table(df: pd.DataFrame,
         new_line = f"{t}"
         for r in regions:
             if r != 'UK' and int(t) > 2023:
-                new_line += f"&  &  {all_sp_res[r][t].values[0]}".replace("\\pm","${\\pm}$")
-
+                if include_inventory:
+                    new_line += f"&  &  {all_sp_res[r][t].values[0]}".replace("\\pm","${\\pm}$")
+                else:
+                    new_line += f"&  {all_sp_res[r][t].values[0]}".replace("\\pm","${\\pm}$")
             else:
-                new_line += f"&  {all_sp_res[r][t].values[1]}&  {all_sp_res[r][t].values[0]}".replace("\\pm","${\\pm}$")
+                if include_inventory:
+                    new_line += f"&  {all_sp_res[r][t].values[1]}&  {all_sp_res[r][t].values[0]}".replace("\\pm","${\\pm}$")
+                else:
+                    new_line += f"&  {all_sp_res[r][t].values[0]}".replace("\\pm","${\\pm}$")
+                    
                 
         new_line = "\n" + new_line + " \\\\"
         all_lines += new_line
