@@ -132,7 +132,9 @@ def align_time(
 
 
 def align_lat_lon(
-    ds_list: list[xr.Dataset], coord: Literal["latitude", "longitude"]
+    ds_list: list[xr.Dataset],
+    coord: Literal["latitude", "longitude"],
+    rel_tolerance: float = 0.01,
 ) -> list[xr.Dataset]:
     """
     Check the latitude/longitude coordinate of a list of xarray datasets and align them.
@@ -145,6 +147,8 @@ def align_lat_lon(
 
     Args:
         ds_list: list of xarray datasets to be latitude/longitude-aligned
+        coord: coordinate name (latitude or longitude)
+        rel_tolerance: float, tolerance coordinates relative to grid spacing
     Returns:
         aligned_ds_list: list of xarray datasets latitude/longitude-aligned
     """
@@ -154,7 +158,7 @@ def align_lat_lon(
     if dim_equal:
         return ds_list
 
-    tolerance = 2e-4  # degrees
+    tolerance = rel_tolerance * abs(ds_list[0][coord].diff(coord).mean().item())
 
     # Select common range of coordinates if the coordinate sizes differ.
     ref_dim_size = ds_list[0][coord].size
