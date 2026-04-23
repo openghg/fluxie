@@ -142,7 +142,6 @@ If the sequence of name tags is too long, a simplified name tag can be defined i
 
 3. In the subsequent cells under each numbered section, edit the plotting options according to your preference and run the cells to produce various plots.
 
-
 ## Citing fluxie 
 
 If you use fluxie in your research, please use the Zenodo:
