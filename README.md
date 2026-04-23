@@ -4,6 +4,9 @@ This repository contains functions to compare inverse models developed under the
 
 Follow the steps below to run the notebook and plot model results.
 
+[![DOI](https://zenodo.org/badge/764175505.svg)](https://doi.org/10.5281/zenodo.19184134)
+
+
 ## Installation
 
 #### At your local machine
