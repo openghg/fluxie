@@ -373,16 +373,17 @@ def add_line_plot(
         **kwargs_plot,
     )
     if variable == "posterior" and plot_trends:
+       
         err = np.mean(
             [ds[f"{variable}_lower"].values, ds[f"{variable}_upper"].values], axis=0
         )
         opt, cov = curve_fit(
-            linear, [i.year for i in time_as_datetime], ds[variable], sigma=err
+            linear, [i.year+i.month/12 for i in time_as_datetime], ds[variable], sigma=err
         )
 
         ax.plot(
             time_as_datetime,
-            linear(np.array([i.year for i in time_as_datetime]), *opt),
+            linear(np.array([i.year+i.month/12 for i in time_as_datetime]), *opt),
             color=ds.attrs["model_color"],
             linestyle=":",
             label=ds.attrs["model_label"] + " trend",
@@ -430,6 +431,7 @@ def add_inventory_barplot(
     sector: str | list[str],
     annex_mode: bool,
     plot_inventory_uncertainty: list[bool] | bool = False,
+    plot_trends:bool=False
 ) -> dict[str, dict]:
     """
     Retrieve and plot the inventories as bar plots. If multiple inventories are plotted, the older the inventory is, the smaller
@@ -511,7 +513,19 @@ def add_inventory_barplot(
             error_kw={"ecolor": inventory.plot_color, "capsize": 2},
             zorder=0,
         )
+        if plot_trends:
+            opt, cov = curve_fit(
+                linear, [i.year+i.month/12 for i in time_as_datetime], inventory, sigma=yerr
+            )
+            ax.plot(
+                time_as_datetime,
+                linear(np.array([i.year+i.month/12 for i in time_as_datetime]), *opt),
+                color="grey",
+                linestyle=":",
+                label="Inventory trend",
+            )
 
+            print(f"Inventory trend for country is: {opt[0]} {unit}")
         tmp = pd.DataFrame(
             {
                 "time": time_as_datetime,
@@ -1156,6 +1170,7 @@ def plot_country_flux(
                 sector,
                 annex_mode,
                 plot_inventory_uncertainty,
+                plot_trends=plot_trends
             )
             plotted_data_df = pd.concat(
                 [plotted_data_df, inventory_df], ignore_index=True
