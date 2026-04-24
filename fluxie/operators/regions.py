@@ -143,6 +143,7 @@ def _extract_region_flux_sector(
             for v in target_flux_vars:
                 variable = flux_var_names[v]
                 if variable not in ds_region.variables:
+                    logger.warning(f'{variable} not present in {m} this may cause errors later in the code.')
                     continue
                 ds_region[v] = ds_region[variable].sum(dim="country", keep_attrs=True)
 
@@ -194,6 +195,7 @@ def _extract_region_flux_sector(
             for v in target_flux_vars:
                 variable = flux_var_names[v]
                 if variable not in ds_region.variables:
+                    logger.warning(f'{variable} not present in {m} this may cause errors later in the code.')
                     continue
                 ds_region[v] = ds_region[variable]
                 var_percentile = f"percentile_flux_{sector}_{v}_country"

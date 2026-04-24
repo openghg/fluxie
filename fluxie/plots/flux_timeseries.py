@@ -563,7 +563,7 @@ def add_sector_barplot(
     ax.bar(
         time_as_datetime,
         ds_sector[variable].values,
-        label=sector.title(),
+        label='LULUCF' if sector == 'land' else sector.title(),
         color=sector_colors[sector],
         bottom=bottom_values,
         alpha=0.7,
@@ -1325,7 +1325,7 @@ def plot_country_sector_flux_bar(
         fig, axes = create_fig_and_axes(n_plots, transpose=True)
 
     for i, (m, ds) in enumerate(ds_to_plot.items()):
-
+        
         # plot posterior (and eventually prior)
         former_sector = None
         for sector in sectors:
@@ -1438,7 +1438,7 @@ def plot_country_sector_flux_bar(
 
     # add shading based on vertical line
     if vertical_line:
-        ax_data.fill_between(np.arange(np.datetime64(start_date)-np.timedelta64(width[0]),
+        ax_data.fill_between(np.arange(np.datetime64(ds.time.values[0])-np.timedelta64(width[0]),
                                        np.datetime64(vertical_line),np.timedelta64(10,'D')),
                              0,ax_data.get_ylim()[1],
                              color='dimgrey',alpha=0.2,zorder=0,label='2 sites')
@@ -1446,7 +1446,7 @@ def plot_country_sector_flux_bar(
     # set xlim and xticks
     yearly_freq = ("year" in freqs) or ("yearly" in freqs)
 
-    add_xlims_and_ticks(axes[-1], yearly_freq, plotted_data_df, aggreg_month=False, 
+    add_xlims_and_ticks(ax, yearly_freq, plotted_data_df, aggreg_month=False, 
                         xticks_at_centre=xticks_at_centre)
 
     return fig, plotted_data_df
@@ -1589,7 +1589,7 @@ def plot_all_species_stacked_bar(
         if s == (len(all_species) - 1):
             uncert = uncert_combined / 2.0
             if plot_inventory_uncertainty:
-                inventories_uncert = inventories_uncert_combined / 2.0
+                inventories_uncert = inventories_uncert_combined #/ 2.0
             else:
                 inventories_uncert = None
         else:
@@ -1653,4 +1653,4 @@ def plot_all_species_stacked_bar(
         fontsize=12,
     )
 
-    return fig
+    return fig,flux_sum,uncert,inventory_sum,inventories_uncert,plot_times

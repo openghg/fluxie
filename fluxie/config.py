@@ -15,7 +15,7 @@ color_palette = {
 sector_color_palette = {
     "agriculture": "darkgreen",
     "waste": "purple",
-    "industry": "dimgrey",
+    "industry": "darkblue",
     "energy": "dodgerblue",
     "land": "tan"
 }
