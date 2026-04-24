@@ -389,7 +389,7 @@ def add_line_plot(
             label=ds.attrs["model_label"] + " trend",
         )
 
-        print(f"{ds.model_label} trend for {ds.attrs["country"]} is: {opt[0]} {unit}")
+        print(f"{ds.model_label} trend for {ds.attrs["country"]} is: {opt[0]:7.3f} {unit}")
 
     res = pd.DataFrame(
         {
@@ -525,7 +525,7 @@ def add_inventory_barplot(
                 label="Inventory trend",
             )
 
-            print(f"Inventory trend for country is: {opt[0]} {unit}")
+            print(f"Inventory trend for {country} is: {opt[0]:7.3f} {unit}")
         tmp = pd.DataFrame(
             {
                 "time": time_as_datetime,
