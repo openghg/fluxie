@@ -17,10 +17,10 @@ dependencies = [
 ]
 requires-python = ">=3.8"
 authors = [
-  {name = "Fluxie developers"},
+  {name = "FLUXIE developers"},
 ]
 maintainers = [
-  {name = "Fluxie maintainers"},
+  {name = "FLUXIE maintainers"},
 ]
 description = "Inverse modelling intercomparison tool"
 readme = "README.md"
