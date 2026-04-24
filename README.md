@@ -141,3 +141,13 @@ If the sequence of name tags is too long, a simplified name tag can be defined i
 2. The notebook is organized in 3 sections numbered 1 to 3. At the top of each section, specify the models you want to plot, species name, start/end dates, etc (plotting options are described in front of each variable). Run the top cell to read in the data and select values between the chosen dates.
 
 3. In the subsequent cells under each numbered section, edit the plotting options according to your preference and run the cells to produce various plots.
+
+## Citing fluxie
+
+If you use fluxie in your research, please use Zenodo:
+
+- open https://doi.org/10.5281/zenodo.19184134
+- choose the version of fluxie you used in your project
+- this will select the correct DOI for that version
+- You can use the citation field on the Zenodo page to get a citation for the format you need
+
