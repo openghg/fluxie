@@ -50,7 +50,7 @@ def test_align_lat_lon_single_dataset_returns_input():
 
 def test_align_lat_lon_aligns_close_coordinates():
 
-    aligned = align_lat_lon([ds_ref, ds_close], coord="latitude")
+    aligned = align_lat_lon([ds_ref, ds_close], coord="latitude", rel_tolerance=0.01)
 
     assert aligned[0]["latitude"].identical(ds_ref["latitude"])
     assert aligned[1]["latitude"].identical(ds_ref["latitude"])
@@ -81,4 +81,4 @@ def test_align_lat_lon_with_different_lengths():
 def test_align_lat_lon_with_too_different_lengths():
 
     with pytest.raises(ValueError, match="cover too different ranges "):
-        align_lat_lon([ds_ref, ds_short], coord="latitude")
+        align_lat_lon([ds_ref, ds_short], coord="latitude", min_rel_overlap=0.8)
