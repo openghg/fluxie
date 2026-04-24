@@ -9,8 +9,8 @@ Developers of the main code:
 
 * Alice Ramsden (UK Met Office)
 * Daniela Brito Melo (Empa)
-* Hélène De Longueville (University of Bristol)
 * Alexandre Danjou (University of Bristol)
+* Hélène De Longueville (University of Bristol)
 * Lionel Constantin (Empa)
 * Joël Thanwerdas (Empa)
 * Stephan Henne (Empa)
