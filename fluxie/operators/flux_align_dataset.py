@@ -135,7 +135,7 @@ def align_lat_lon(
     ds_list: list[xr.Dataset],
     coord: Literal["latitude", "longitude"],
     rel_tolerance: float = 0.01,
-    min_rel_overlap: float = 0.02,
+    min_rel_overlap: float = 0.98,
 ) -> list[xr.Dataset]:
     """
     Check the latitude/longitude coordinate of a list of xarray datasets and align them.
