@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: 'If FLUXIE contributes to a project that leads to a scientific publication, please acknowledge this fact by citing the correct version using Zenodo.'
+title: 'FLUXIE: Flux Intercomparison Environment'
+authors:
+  - name: The FLUXIE Team
+    website: https://github.com/openghg/fluxie/blob/devel/CREDITS.md
+type: software
+url: 'https://github.com/openghg/fluxie'
+repository-code: 'https://github.com/openghg/fluxie'
