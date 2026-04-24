@@ -938,6 +938,12 @@ def add_secondary_yaxis(
     secax.yaxis.labelpad = 20
 
 
+def parse_date(date, list_length):
+    if isinstance(date, (str, type(None))):
+        date = [date] * list_length
+    return date
+
+
 def plot_country_flux(
     ds_all: dict[str, xr.Dataset],
     species: str,
@@ -1054,11 +1060,9 @@ def plot_country_flux(
     plot_combined_unc = (
         np.any(plot_combined) if plot_combined_unc is None else plot_combined_unc
     )
-
-    if isinstance(start_date, (str, type(None))):
-        start_date = [start_date] * len(ds_all)
-    if isinstance(end_date, (str, type(None))):
-        end_date = [end_date] * len(ds_all)
+    date_length = len(ds_all)
+    start_date = parse_date(start_date, date_length)
+    end_date = parse_date(end_date, date_length)
 
     start_date, end_date = dict(zip(ds_all.keys(), start_date)), dict(
         zip(ds_all.keys(), end_date)
