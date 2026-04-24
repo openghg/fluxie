@@ -562,7 +562,11 @@ def add_sector_barplot(
 
     freq = ds_sector.attrs.get("frequency", "unknown")
 
-    if variable == "inv_data" or freq in ["year", "yearly"]:
+    if variable == "inv_data" or freq in ["year", "yearly", "unknown"]:
+        if gaps_between_bars:
+            d = 300
+        else:
+            d = 365
         time_as_datetime = ds_sector.time.values.astype("datetime64[Y]").tolist()
         width = [
             timedelta(days=366) if isleap(date.year) else timedelta(days=365)
@@ -588,7 +592,7 @@ def add_sector_barplot(
     ax.bar(
         time_as_datetime,
         ds_sector[variable].values,
-        label=sector.title(),
+        label='LULUCF' if sector == 'land' else sector.title(),
         color=sector_colors[sector],
         bottom=bottom_values,
         alpha=0.7,
@@ -609,7 +613,7 @@ def add_sector_barplot(
     res["country"] = ds_sector.attrs["country"]
     res["species"] = ds_sector.attrs["species"]
 
-    return res
+    return res,width
 
 
 def prepare_inventory_sector_barplot(
@@ -732,6 +736,7 @@ def add_ylabel(
     species: str,
     unit: str,
     plot_type: str,
+    annex_mode: bool = False,
     **kwargs: str | int,
 ):
     """
@@ -752,25 +757,29 @@ def add_ylabel(
     # sector plot - posterior
     elif "sector_barplot" in plot_type:
 
-        print_country = country_equivalent.get(kwargs["region"], kwargs["region"])
-
+        print_country_species = f"{country_equivalent.get(kwargs['region'], kwargs['region'])} {s_data.get(species, {}).get('species_print', species)}"
+        print_units = f"({unit.replace('2','$_{{2}}$').replace('-1','$^{{-1}}$')})"
         if plot_type.split("-")[1] == "posterior":
-            ax.set_ylabel(
-                f"{kwargs['label']}\n{print_country} {s_data.get(species, {}).get('species_print', species)}"
-                f" ({unit.replace('2','$_{{2}}$').replace('-1','$^{{-1}}$')})"
+            if annex_mode:
+                ax.set_ylabel(f"{print_country_species} {print_units}"
             )
+            else:
+             ax.set_ylabel(f"{kwargs['label']}\n{print_country_species} {print_units}"
+            )   
+            
         elif plot_type.split("-")[1] == "prior":
-            ax.set_ylabel(
-                f"Prior\n{print_country} {s_data.get(species, {}).get('species_print', species)}"
-                f" ({unit.replace('2','$_{{2}}$').replace('-1','$^{{-1}}$')})"
+            if annex_mode:
+                ax.set_ylabel(f"Prior\n {print_country_species} {print_units}"
+            )
+            else:
+                ax.set_ylabel(f"Prior\n {print_country_species} {print_units}"
             )
         elif plot_type.split("-")[1] == "inventory":
-            ax.set_ylabel(
-                f"{kwargs['inventory_filename'].replace('_',' ')} {kwargs['year']}\n{print_country} {s_data.get(species, {}).get('species_print', species)}"
-                f" ({unit.replace('2','$_{{2}}$').replace('-1','$^{{-1}}$')})"
-            )
-
-
+            if annex_mode:
+                ax.set_ylabel(f"{print_country_species} {print_units}")
+            else:
+                ax.set_ylabel(f"{kwargs['inventory_filename'].replace('_',' ').replace('inventory','Inventory')} {print_country_species} {print_units}")
+                
 def add_xlims_and_ticks(
     ax: Axes,
     yearly_freq: bool,
@@ -1238,6 +1247,14 @@ def plot_country_sector_flux_bar(
     resample_uncert_correlation: bool = False,
     rolling_mean: bool = False,
     sectors: list[str] = ["agriculture", "waste", "energy", "industry"],
+    xticks_at_centre: bool = False,
+    plot_grid: bool = True,
+    gaps_between_bars: bool = False,
+    plot_separate: bool = False,
+    plot_combined: bool = True,
+    only_overlapping: bool = False,
+    annex_mode: bool = True,
+    vertical_line: str | None = None
 ) -> Figure | list:
     """
     Stacked bar plot of posterior fluxes, split by sector, for a single region, for a range of models.
@@ -1294,16 +1311,19 @@ def plot_country_sector_flux_bar(
         resample=resample,
         rolling_mean=rolling_mean,
         resample_uncert_correlation=resample_uncert_correlation,
+        plot_separate=plot_separate,
+        plot_combined=plot_combined,
+        only_overlapping=only_overlapping
     )
 
-    freqs = [ds.attrs["frequency"] for ds in ds_to_plot.values()]
+    freqs = [ds.attrs["frequency"]  if "frequency" in ds.attrs else "unknown" for ds in ds_to_plot.values()]
 
     if plot_inventory_or_prior == "inventory":
         start_date = str(min([ds.time.values.min() for ds in ds_to_plot.values()]))[:10]
         end_date = str(max([ds.time.values.max() for ds in ds_to_plot.values()]))[:10]
         inv_plot_data = prepare_inventory_sector_barplot(
             sectors,
-            start_date,
+            np.datetime64(start_date,'Y'),
             end_date,
             data_dir,
             plot_region,
@@ -1349,7 +1369,8 @@ def plot_country_sector_flux_bar(
                     if former_sector
                     else 0
                 )
-                res = add_sector_barplot(ax, ds.sel(sector=sector), var, bottom_values)
+                res,width = add_sector_barplot(ax, ds.sel(sector=sector), var, 
+                                         bottom_values, gaps_between_bars)
                 plotted_data_df = pd.concat([plotted_data_df, res], ignore_index=True)
 
             former_sector = sector
@@ -1363,9 +1384,10 @@ def plot_country_sector_flux_bar(
             plot_type=f"{plot_type}-posterior",
             region=plot_region,
             label=ds.attrs["model_label"],
+            annex_mode=annex_mode
         )
         if plot_inventory_or_prior == "prior":
-            ax_comp.legend(ncol=2, borderpad=0.4, columnspacing=1.0)
+            ax_comp.legend(ncol=1, borderpad=0.4, columnspacing=1.0)
             add_ylabel(
                 ax_comp,
                 s_data,
@@ -1373,6 +1395,7 @@ def plot_country_sector_flux_bar(
                 unit,
                 plot_type=f"{plot_type}-prior",
                 region=plot_region,
+                annex_mode=annex_mode
             )
 
     # plot inventory sector bar
@@ -1390,10 +1413,11 @@ def plot_country_sector_flux_bar(
                     if former_sector
                     else 0
                 )
-                res = add_sector_barplot(ax, ds.sel(sector=sector), var, bottom_values)
+                res,width = add_sector_barplot(ax, inv[0].sel(sector=sector), 'inv_data', 
+                                         bottom_values, gaps_between_bars)
                 plotted_data_df = pd.concat([plotted_data_df, res], ignore_index=True)
                 former_sector = sector
-            ax.legend(ncol=2, borderpad=0.4, columnspacing=1.0)
+            ax.legend(ncol=1, borderpad=0.4, columnspacing=1.0,loc='upper right')
             add_ylabel(
                 ax,
                 s_data,
@@ -1403,12 +1427,14 @@ def plot_country_sector_flux_bar(
                 region=plot_region,
                 inventory_filename=inventory_filename,
                 year=year,
+                annex_mode=annex_mode
             )
 
     # plot grid and legend
     for ax in axes:
-        ax.grid(visible=True, which="major", alpha=0.4)
-        ax_data.legend(ncol=2, borderpad=0.4, columnspacing=1.0)
+        if plot_grid:
+            ax.grid(visible=True, which="major", alpha=0.4)
+        ax_data.legend(ncol=1, borderpad=0.4, columnspacing=1.0,loc='upper right')
 
     # set y lim
     if not fix_y_axes:
@@ -1423,6 +1449,13 @@ def plot_country_sector_flux_bar(
         plotted_data_df,
         fix_y_axes,
     )
+
+    # add shading based on vertical line
+    if vertical_line:
+        ax_data.fill_between(np.arange(np.datetime64(ds.time.values[0])-np.timedelta64(width[0]),
+                                       np.datetime64(vertical_line),np.timedelta64(10,'D')),
+                             0,ax_data.get_ylim()[1],
+                             color='dimgrey',alpha=0.2,zorder=0,label='2 sites')
 
     # set xlim and xticks
     yearly_freq = ("year" in freqs) or ("yearly" in freqs)
@@ -1569,7 +1602,7 @@ def plot_all_species_stacked_bar(
         if s == (len(all_species) - 1):
             uncert = uncert_combined / 2.0
             if plot_inventory_uncertainty:
-                inventories_uncert = inventories_uncert_combined / 2.0
+                inventories_uncert = inventories_uncert_combined #/ 2.0
             else:
                 inventories_uncert = None
         else:
@@ -1633,4 +1666,4 @@ def plot_all_species_stacked_bar(
         fontsize=12,
     )
 
-    return fig
+    return fig,flux_sum,uncert,inventory_sum,inventories_uncert,plot_times
