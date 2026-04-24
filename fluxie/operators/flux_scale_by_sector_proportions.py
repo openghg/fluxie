@@ -175,11 +175,9 @@ def scale_by_sector_proportions(
                 + f" Used sectors: {sectors}"
             )
 
-        print(sectors)
-
         # Convert prior and posterior flux for each sector
         for s in sectors:
-            print(s)
+            print(f'Working on {s}...')
             scaling_factor_all[s] = ds_sectors[f"flux_{s}_posterior"] / ds_sectors["flux_total_posterior"]
             scaling_factor_all[s] = scaling_factor_all[s].where(
                 ds_sectors["flux_total_posterior"] != 0, 0
