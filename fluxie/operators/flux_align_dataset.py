@@ -189,22 +189,21 @@ def align_lat_lon(
         np.allclose(reference, x[coord].values, atol=tolerance, rtol=0)
         for x in ds_list[1:]
     )
-    if dim_close:
-        # Use coordinates of first model as reference.
-        aligned_ds_list = [ds_ref]
-
-        for ds_p in ds_list[1:]:
-            if ds_ref[coord].equals(ds_p[coord]):
-                aligned_ds_list.append(ds_p)
-                continue
-            # Replace coordinate with coordinate of first model.
-            ds_aligned = ds_p.copy(deep=False)
-            ds_aligned[coord] = ds_ref[coord]
-            aligned_ds_list.append(ds_aligned)
-    else:
+    if not dim_close:
         raise ValueError(
             f"{coord} dimensions seem to be too different between the datasets for them to be combined."
         )
+    # Use coordinates of first model as reference.
+    aligned_ds_list = [ds_ref]
+
+    for ds_p in ds_list[1:]:
+        if ds_ref[coord].equals(ds_p[coord]):
+            aligned_ds_list.append(ds_p)
+            continue
+        # Replace coordinate with coordinate of first model.
+        ds_aligned = ds_p.copy(deep=False)
+        ds_aligned[coord] = ds_ref[coord]
+        aligned_ds_list.append(ds_aligned)
 
     return aligned_ds_list
 
