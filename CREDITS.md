@@ -43,4 +43,4 @@ Managers of the repository, pull requests and issues:
 
 ## Funding
 
-The main development of Fluxie took part within the PARIS project (Process Attribution of Regional Emissions), funded by the European Union (Grant Agreement 101081430).
+The main development of Fluxie took part within the [PARIS project](https://horizoneurope-paris.eu/) (Process Attribution of Regional Emissions), funded by the European Union (Grant Agreement 101081430).
