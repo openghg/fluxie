@@ -3,66 +3,44 @@
 Fluxie is an open-source project developed by a team of researchers and developers from various institutions.
 We would like to acknowledge the contributions of all individuals who have been involved in the development and maintenance of fluxie.
 
-## Current maintainers
+## Code developers
 
-Active developers and maintainers of fluxie
+Developers of the main code:
 
+* Alice Ramsden (UK Met Office)
+* Daniela Brito Melo (Empa)
+* Hélène De Longueville (University of Bristol)
+* Alexandre Danjou (University of Bristol)
+* Lionel Constantin (Empa)
+* Joël Thanwerdas (Empa)
+* Stephan Henne (Empa)
+* Peter Andrews (UK Met Office)
 
-Daniela Brito Melo
-* Empa
+## Scientific contributors
 
-Alice Ramsden
-* UK Met Office 
+Non-developers contributing to the conceptualization and strategy:
 
-Peter Andrews
-* UK Met Office
+* Alistair Manning (UK Met Office)
+* Anita Ganesan (University of Bristol)
 
-Prasad Sutar
-* University of Bristol
+## Other contributors
 
-Lionel Constantin
-* Empa
+Contributors to bug fixes, pre-processing scripts, and code documentation:
 
+* Valentin Bruch (Deutscher Wetterdienst)
+* Fabian Maier (Max Planck Institute for Biogeochemistry)
+* Leah Herrfurth (Max Planck Institute for Biogeochemistry)
 
+## Code maintainers
 
-## External contributors
+Managers of the repository, pull requests and issues:
 
-External contributors, not part of the core team
+* Lionel Constantin (Empa)
+* Prasad Sutar (University of Bristol)
+* Daniela Brito Melo (Empa)
+* Alice Ramsden (UK Met Office) 
+* Peter Andrews (UK Met Office)
 
-Joël Thanwerdas
-* Empa
+## Funding
 
-
-Fabian Maier
-* Max Planck Institute for Biogeochemistry
-
-Leah Herrfurth
-* Max Planck Institute for Biogeochemistry
-
-## Previous developers
-
-Alexandre Danjou
-* University of Bristol
-
-Hélène De Longueville
-* University of Bristol
-
-
-
-Valentin Bruch
-* Deutscher Wetterdienst
-
-
-
-## Acknowledgements
-
-Supervisors of the project
-
-
-Stephan Henne
-* Empa 
-
-
-## Funding 
-
-PARIS project 
+The main development of Fluxie took part within the PARIS project (Process Attribution of Regional Emissions), funded by the European Union (Grant Agreement 101081430).
