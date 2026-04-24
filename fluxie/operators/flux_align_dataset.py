@@ -132,40 +132,78 @@ def align_time(
 
 
 def align_lat_lon(
-    ds_list: list[xr.Dataset], coord: Literal["latitude", "longitude"]
+    ds_list: list[xr.Dataset],
+    coord: Literal["latitude", "longitude"],
+    rel_tolerance: float = 0.01,
+    min_rel_overlap: float = 0.05,
 ) -> list[xr.Dataset]:
     """
-    Check the latitude/longitude coordinate of a list of xarray datasets and, if they differ, align them with the latitudes/longitudes of the first dataset in the list.
+    Check the latitude/longitude coordinate of a list of xarray datasets and align them.
+
+    If coordinates cover a different range, select the intersection.
+    If the coordinates agree approximately, align them with the
+    latitudes/longitudes of the first dataset in the list.
+    If the coordinates differ such that an interpolation is required,
+    raise a ValueError.
 
     Args:
         ds_list: list of xarray datasets to be latitude/longitude-aligned
+        coord: coordinate name (latitude or longitude)
+        rel_tolerance: float, tolerance coordinates relative to grid spacing
+        min_rel_overlap: float, minimum relative overlap of coordinates.
     Returns:
         aligned_ds_list: list of xarray datasets latitude/longitude-aligned
     """
 
-    dim_equal = [ds_list[0][coord].equals(x[coord]) for x in ds_list[1:]]
-
-    if all(dim_equal):
+    # Check if coordinates agree exactly.
+    dim_equal = all(ds_list[0][coord].equals(x[coord]) for x in ds_list[1:])
+    if dim_equal:
         return ds_list
 
-    dim_close = [
-        np.allclose(ds_list[0][coord].values, x[coord].values) for x in ds_list[1:]
-    ]  # Small tolerance
-    if all(dim_close):
-        aligned_ds_list = [ds_list[0]]
+    tolerance = rel_tolerance * abs(ds_list[0][coord].diff(coord).mean().item())
 
-        for ds_p in ds_list[1:]:
-            if ds_list[0][coord].equals(ds_p[coord]):
-                aligned_ds_list.append(ds_p)
-                continue
+    # Select common range of coordinates if the coordinate sizes differ.
+    ref_dim_size = ds_list[0][coord].size
+    dim_sizes_differ = any(x[coord].size != ref_dim_size for x in ds_list[1:])
+    if dim_sizes_differ:
+        start = max(x[coord].values[0] for x in ds_list) - tolerance
+        end = min(x[coord].values[-1] for x in ds_list) + tolerance
+        ds_list = [x.sel({coord: slice(start, end)}) for x in ds_list]
+        # Check if the coordinate sizes agree now.
+        common_dim_size = ds_list[0][coord].size
+        dim_sizes_differ = any(x[coord].size != common_dim_size for x in ds_list[1:])
+        if dim_sizes_differ:
+            raise ValueError(
+                f"{coord} dimensions seem to be too different between the datasets for them to be combined."
+            )
+        # Fail if the overlap of the area covered by all models is too small
+        if common_dim_size < min_rel_overlap * ref_dim_size:
+            raise ValueError(
+                f"{coord} dimensions of the datasets cover too different ranges for them to be combined (threshold: {min_rel_overlap:%}."
+            )
 
-            ds_aligned = ds_p
-            ds_aligned[coord] = ds_list[0][coord]
-            aligned_ds_list.append(ds_p)
-    else:
+    # Check if the coordinates agree approximately within the given tolerance.
+    ds_ref = ds_list[0]
+    reference = ds_ref[coord].values
+    dim_close = all(
+        np.allclose(reference, x[coord].values, atol=tolerance, rtol=0)
+        for x in ds_list[1:]
+    )
+    if not dim_close:
         raise ValueError(
             f"{coord} dimensions seem to be too different between the datasets for them to be combined."
         )
+    # Use coordinates of first model as reference.
+    aligned_ds_list = [ds_ref]
+
+    for ds_p in ds_list[1:]:
+        if ds_ref[coord].equals(ds_p[coord]):
+            aligned_ds_list.append(ds_p)
+            continue
+        # Replace coordinate with coordinate of first model.
+        ds_aligned = ds_p.copy(deep=False)
+        ds_aligned[coord] = ds_ref[coord]
+        aligned_ds_list.append(ds_aligned)
 
     return aligned_ds_list
 
