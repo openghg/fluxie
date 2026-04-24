@@ -543,7 +543,7 @@ def add_unc_plot(
 
     if plot_type is None:
         return
-    
+
     min_unc = np.array(min_unc, dtype=float)
     max_unc = np.array(max_unc, dtype=float)
 
@@ -915,11 +915,12 @@ def plot_sites_timeseries(
             if separate_by_height:
                 mask &= ds_all[m]["intake_height"] == height
             data = ds_all[m]["time"].where(mask, drop=True)
-            ax.scatter(
+            ax.plot(
                 (site_iter + model_offset * i - 0.5 + margin) * np.ones(data.size),
                 data,
-                c=model_colors[m][0],
-                s=2,
+                "o",
+                color=model_colors[m][0],
+                ms=1.4142,
                 label=model_labels_copy[m],
             )
 

@@ -4,7 +4,6 @@ from fluxie.operators.stats import stats_observed_vs_simulated
 from fluxie.plots.ec_flux.sectorial_stack import plot_stacked
 from fluxie.test_utils import data_dir
 
-
 test_models = ["EDDY_HARDAU", "EDDY_HARDAU_STORAGE_2LAYERS"]
 
 
