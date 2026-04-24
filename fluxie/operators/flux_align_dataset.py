@@ -135,6 +135,7 @@ def align_lat_lon(
     ds_list: list[xr.Dataset],
     coord: Literal["latitude", "longitude"],
     rel_tolerance: float = 0.01,
+    min_rel_overlap: float = 0.02,
 ) -> list[xr.Dataset]:
     """
     Check the latitude/longitude coordinate of a list of xarray datasets and align them.
@@ -149,6 +150,7 @@ def align_lat_lon(
         ds_list: list of xarray datasets to be latitude/longitude-aligned
         coord: coordinate name (latitude or longitude)
         rel_tolerance: float, tolerance coordinates relative to grid spacing
+        min_rel_overlap: float, minimum relative overlap of coordinates.
     Returns:
         aligned_ds_list: list of xarray datasets latitude/longitude-aligned
     """
@@ -175,16 +177,17 @@ def align_lat_lon(
                 f"{coord} dimensions seem to be too different between the datasets for them to be combined."
             )
         # Fail if the overlap of the area covered by all models is too small
-        if common_dim_size < 0.1 * ref_dim_size:
+        if common_dim_size < min_rel_overlap * ref_dim_size:
             raise ValueError(
-                f"{coord} dimensions of the datasets cover too different ranges for them to be combined."
+                f"{coord} dimensions of the datasets cover too different ranges for them to be combined (threshold: {min_rel_overlap:%}."
             )
 
     # Check if the coordinates agree approximately within the given tolerance.
     ds_ref = ds_list[0]
     reference = ds_ref[coord].values
     dim_close = all(
-        np.allclose(reference, x[coord].values, atol=tolerance) for x in ds_list[1:]
+        np.allclose(reference, x[coord].values, atol=tolerance, rtol=0)
+        for x in ds_list[1:]
     )
     if dim_close:
         # Use coordinates of first model as reference.
