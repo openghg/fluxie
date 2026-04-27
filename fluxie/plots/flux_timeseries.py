@@ -380,12 +380,12 @@ def add_line_plot(
     if variable == "posterior" and plot_trends:
        
         err = np.mean(
-            [ds[f"{variable}_lower"].values, ds[f"{variable}_upper"].values], axis=0
+            [ds[variable].values-ds[f"{variable}_lower"].values, ds[f"{variable}_upper"].values-ds[variable].values], axis=0
         )
         opt, cov = curve_fit(
             linear, [i.year+i.month/12 for i in time_as_datetime], ds[variable], sigma=err
         )
-
+       
         ax.plot(
             time_as_datetime,
             linear(np.array([i.year+i.month/12 for i in time_as_datetime]), *opt),
@@ -393,7 +393,7 @@ def add_line_plot(
             linestyle=":",
             label=ds.attrs["model_label"] + " trend",
         )
-
+      
         print(f"{ds.model_label} trend for {ds.attrs["country"]} is: {opt[0]:7.3f} {unit}")
 
     res = pd.DataFrame(
@@ -529,7 +529,7 @@ def add_inventory_barplot(
                 linestyle=":",
                 label="Inventory trend",
             )
-
+            
             print(f"Inventory trend for {country} is: {opt[0]:7.3f} {unit}")
         tmp = pd.DataFrame(
             {
@@ -1233,7 +1233,8 @@ def plot_country_flux(
             yearly_freq = True
         else:
             yearly_freq = False
-    
+    #print(yearly_freq)
+    yearly_freq=True
     add_xlims_and_ticks(
         axes[-1], yearly_freq, plotted_data_df, aggreg_month, xticks_at_centre
     )
