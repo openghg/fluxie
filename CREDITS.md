@@ -13,13 +13,13 @@ Developers of the main code:
 * Hélène De Longueville (University of Bristol)
 * Lionel Constantin (Empa)
 * Joël Thanwerdas (Empa)
-* Stephan Henne (Empa)
 * Peter Andrews (UK Met Office)
 
 ## Scientific contributors
 
 Non-developers contributing to the conceptualization and strategy:
 
+* Stephan Henne (Empa)
 * Alistair Manning (UK Met Office)
 * Anita Ganesan (University of Bristol)
 
