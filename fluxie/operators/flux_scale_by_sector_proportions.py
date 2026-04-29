@@ -94,7 +94,8 @@ def scale_by_sector_proportions(
     regions=None,
     config_data=dict[str, dict],
     sector_file: str = "EUROPE_EDGAR",
-    create_region_sector_totals: bool = True,
+    create_sectors: list[bool] | bool = True,
+    create_region_sector_totals: list[bool] | bool = True,
     sectors: list[str] | None = None,
     cell_area_test_file: bool = False,
 ) -> xr.Dataset:
@@ -122,6 +123,8 @@ def scale_by_sector_proportions(
             Use json filenames as keys.
         sector_file (str):
             Start of sector file name, e.g. 'EUROPE_EDGAR'
+        create_sectors (bool):
+            If True, calculates sector spatial fluxes. Can be set as a 
         create_region_sector_totals (bool):
             If True, sums spatial fluxes over country_fraction masks
             to create country/region totals.
@@ -137,6 +140,14 @@ def scale_by_sector_proportions(
     logger.warning(
         f"Scaling fluxes to create sector flux totals, this can be slow (>1 minute to run) if using lots of models and regions."
     )
+    
+    if type(create_sectors) == bool:
+        create_sectors = [create_sectors] * len(list(ds_all.keys()))
+        logger.warning('Creating sector-level emissions for all models')
+    if type(create_region_sector_totals) == bool:
+        create_region_sector_totals = [create_region_sector_totals] * len(list(ds_all.keys()))
+        logger.warning('Creating sector-level region emissions for all models')
+        
 
     r_data = config_data.get("regions_info", {})["country_codes"]
 
@@ -165,105 +176,107 @@ def scale_by_sector_proportions(
     scaling_factor_all = {}
 
     for m, (model, ds) in enumerate(ds_all.items()):
+        
+        if create_sectors[m]:
 
-        ds_sectors = open_and_align_sector_dataset(sector_prop_path, ds)
+            ds_sectors = open_and_align_sector_dataset(sector_prop_path, ds)
 
-        if m == 0 and sectors == None:
-            sectors = [v.split("_")[-1] for v in ds_sectors if "total" not in v]
-            logger.warning(
-                "No sectors specified, so reading sector list from sector_flux file."
-                + f" Used sectors: {sectors}"
-            )
-
-        # Convert prior and posterior flux for each sector
-        for s in sectors:
-            print(f'Working on {s}...')
-            scaling_factor_all[s] = ds_sectors[f"flux_{s}_posterior"] / ds_sectors["flux_total_posterior"]
-            scaling_factor_all[s] = scaling_factor_all[s].where(
-                ds_sectors["flux_total_posterior"] != 0, 0
-            )
-
-            for suff in ["posterior", "prior"]:
-                ds[f"flux_{s}_{suff}"] = (
-                    ds[f"flux_total_{suff}"] * scaling_factor_all[s]
-                )
-                ds[f"flux_{s}_{suff}"].attrs = {
-                    "units": ds[f"flux_total_{suff}"].attrs["units"],
-                    "_FillValue": np.nan,
-                    "long_name": f"{suff} {s} {species} flux, created by scaling total flux by sector proportions",
-                }
-
-        # Convert prior and posterior country flux for each sector if needed
-        if create_region_sector_totals:
-            # derive factor for unit conversion
-            units_factor = convert_units_co2eq(
-                ds[f"flux_{s}_prior"].attrs["units"].replace(" m-2 ", " "),
-                country_flux_units_print,
-                config_data["species_info"][species],
-            )
-
-            # check for crountry_fraction
-            if "country_fraction" not in ds:
-                raise ValueError(
-                    f"country_fraction variable not present in dataset for {model} "
-                    "Cannot add sector country totals."
+            if m == 0 and sectors == None:
+                sectors = [v.split("_")[-1] for v in ds_sectors if "total" not in v]
+                logger.warning(
+                    "No sectors specified, so reading sector list from sector_flux file."
+                    + f" Used sectors: {sectors}"
                 )
 
-            # check for cell_area and create if needed
-            if "cell_area" not in ds:
-                ds["cell_area"] = create_cell_area(ds, cell_area_test_file, sector_file)
-            logger.warning(
-                "cell_area should be in meter square and flux in something per m-2. No check is made on this for the moment."
-            )
+            # Convert prior and posterior flux for each sector
+            for s in sectors:
+                print(f'Working on {s}...')
+                scaling_factor_all[s] = ds_sectors[f"flux_{s}_posterior"] / ds_sectors["flux_total_posterior"]
+                scaling_factor_all[s] = scaling_factor_all[s].where(
+                    ds_sectors["flux_total_posterior"] != 0, 0
+                )
 
-            # calculate sector country flux (prior/posterior) from sector flux (prior/posterior), cell_area, country_fraction and unit_factor
-            for i, s in enumerate(sectors):
-                if regions:
-                    ds_flux_country_list = list()
+                for suff in ["posterior", "prior"]:
+                    ds[f"flux_{s}_{suff}"] = (
+                        ds[f"flux_total_{suff}"] * scaling_factor_all[s]
+                    )
+                    ds[f"flux_{s}_{suff}"].attrs = {
+                        "units": ds[f"flux_total_{suff}"].attrs["units"],
+                        "_FillValue": np.nan,
+                        "long_name": f"{suff} {s} {species} flux, created by scaling total flux by sector proportions",
+                    }
 
-                    for country in np.unique(region_codes):
-                        if country not in ds.country:
-                            continue
-                        tmp_list = []
-                        for suff in ["posterior", "prior"]:
-                            tmp_list.append(
-                                (
-                                    ds[f"flux_{s}_{suff}"]
-                                    * ds["country_fraction"].sel(country=country)
-                                    * ds["cell_area"]
-                                ).sum(dim=["latitude", "longitude"])
-                                * units_factor
-                            )
-                            tmp_list[-1].name = f"flux_{s}_{suff}_country"
-                        ds_flux_country_list.append(
-                            xr.merge(tmp_list, compat="no_conflicts")
-                        )
+            # Convert prior and posterior country flux for each sector if needed
+            if create_region_sector_totals[m]:
+                # derive factor for unit conversion
+                units_factor = convert_units_co2eq(
+                    ds[f"flux_{s}_prior"].attrs["units"].replace(" m-2 ", " "),
+                    country_flux_units_print,
+                    config_data["species_info"][species],
+                )
 
-                    ds_flux_country = xr.concat(ds_flux_country_list, dim="country")
-
-                    ds = xr.merge(
-                        [ds, ds_flux_country], compat="no_conflicts", join="outer"
+                # check for crountry_fraction
+                if "country_fraction" not in ds:
+                    raise ValueError(
+                        f"country_fraction variable not present in dataset for {model} "
+                        "Cannot add sector country totals."
                     )
 
-                else:
-                    if i == 0 and m == 0:
-                        logger.warning(
-                            "Calculating sector fluxes for all regions. This can be very slow."
-                        )
-                    for suff in ["posterior", "prior"]:
-                        ds[f"flux_{s}_{suff}_country"] = (
-                            ds[f"flux_{s}_{suff}"]
-                            * ds["country_fraction"]
-                            * ds["cell_area"]
-                        ).sum(dim=["latitude", "longitude"]) * units_factor
+                # check for cell_area and create if needed
+                if "cell_area" not in ds:
+                    ds["cell_area"] = create_cell_area(ds, cell_area_test_file, sector_file)
+                logger.warning(
+                    "cell_area should be in meter square and flux in something per m-2. No check is made on this for the moment."
+                )
 
-                # add atributes to created variables
-                for suff in ["posterior", "prior"]:
-                    ds[f"flux_{s}_{suff}_country"].attrs = {
-                        "units": country_flux_units_print,
-                        "_FillValue": np.nan,
-                        "long_name": f"country {s} {species} {suff} flux, created by scaling total flux by sector proportions",
-                    }
+                # calculate sector country flux (prior/posterior) from sector flux (prior/posterior), cell_area, country_fraction and unit_factor
+                for i, s in enumerate(sectors):
+                    if regions:
+                        ds_flux_country_list = list()
+
+                        for country in np.unique(region_codes):
+                            if country not in ds.country:
+                                continue
+                            tmp_list = []
+                            for suff in ["posterior", "prior"]:
+                                tmp_list.append(
+                                    (
+                                        ds[f"flux_{s}_{suff}"]
+                                        * ds["country_fraction"].sel(country=country)
+                                        * ds["cell_area"]
+                                    ).sum(dim=["latitude", "longitude"])
+                                    * units_factor
+                                )
+                                tmp_list[-1].name = f"flux_{s}_{suff}_country"
+                            ds_flux_country_list.append(
+                                xr.merge(tmp_list, compat="no_conflicts")
+                            )
+
+                        ds_flux_country = xr.concat(ds_flux_country_list, dim="country")
+
+                        ds = xr.merge(
+                            [ds, ds_flux_country], compat="no_conflicts", join="outer"
+                        )
+
+                    else:
+                        if i == 0 and m == 0:
+                            logger.warning(
+                                "Calculating sector fluxes for all regions. This can be very slow."
+                            )
+                        for suff in ["posterior", "prior"]:
+                            ds[f"flux_{s}_{suff}_country"] = (
+                                ds[f"flux_{s}_{suff}"]
+                                * ds["country_fraction"]
+                                * ds["cell_area"]
+                            ).sum(dim=["latitude", "longitude"]) * units_factor
+
+                    # add atributes to created variables
+                    for suff in ["posterior", "prior"]:
+                        ds[f"flux_{s}_{suff}_country"].attrs = {
+                            "units": country_flux_units_print,
+                            "_FillValue": np.nan,
+                            "long_name": f"country {s} {species} {suff} flux, created by scaling total flux by sector proportions",
+                        }
 
         ds_all_out[model] = ds
 

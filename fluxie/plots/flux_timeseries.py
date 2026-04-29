@@ -241,7 +241,6 @@ def prepare_data_to_plot(
                 check_missing_models = set(combined_model_list) - set(
                     ds_all_region.keys()
                 )
-                print(combined_model_list)
                 if check_missing_models:
                     raise ValueError(
                         f"Models in `combined_model_list` are not available: {check_missing_models}. "
@@ -1229,6 +1228,8 @@ def plot_country_flux(
         if "frequency" in ds.attrs:
             if "yearly" in ds.attrs["frequency"]:
                 yearly_freq = True
+            else:
+                yearly_freq = False
         elif 'year' in resample:
             yearly_freq = True
         else:
