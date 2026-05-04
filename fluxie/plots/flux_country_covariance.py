@@ -48,7 +48,7 @@ def plot_flux_country_covariance(
     # number of models required to decide on plot layout
     models = list(ds.keys())
     nn_models = len(ds)
-    if nn_models==0:
+    if nn_models == 0:
         logger.warn("No model contains posterior covariance. Skipping plot.")
         return None
 
