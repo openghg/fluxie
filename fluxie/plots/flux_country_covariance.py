@@ -1,7 +1,10 @@
+import logging
 import matplotlib.pyplot as plt
 import xarray as xr
 import numpy as np
 from fluxie.plots.utils import add_colorbar
+
+logger = logging.getLogger(__name__)
 
 
 def plot_flux_country_covariance(
@@ -19,7 +22,7 @@ def plot_flux_country_covariance(
         ds_all (dictionary of datasets):
             Dictionary of fluxes xarray datasets.
         selected_countries (list of str):
-            Countries to be evaluated.
+            Countries to be evaluated or None if all should be shown.
         model_labels (list):
             List of model_labels from fluxie.config.
         cov_max (float, optional):
@@ -45,10 +48,14 @@ def plot_flux_country_covariance(
     # number of models required to decide on plot layout
     models = list(ds.keys())
     nn_models = len(ds)
+    if nn_models==0:
+        logger.warn("No model contains posterior covariance. Skipping plot.")
+        return None
 
     # start plot layout
-    fig, ax = plt.subplots(ncols=nn_models, figsize=(10, 10 * nn_models))
+    fig, ax = plt.subplots(ncols=nn_models, figsize=(10, 10 * nn_models), squeeze=False)
     fig.tight_layout()
+    ax = ax.flatten()
     for ii, mod in enumerate(ds):
 
         #  extract the data from each model
