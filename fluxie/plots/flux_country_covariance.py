@@ -48,7 +48,8 @@ def plot_flux_country_covariance(
     nn_models = len(ds)
    
     # start plot layout
-    fig, ax = plt.subplots(ncols=nn_models)
+    fig, ax = plt.subplots(ncols=nn_models, figsize=(10, 10*nn_models))
+    fig.tight_layout()
     for ii, mod in enumerate(ds): 
 
         #  extract the data from each model 
