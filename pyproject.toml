@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling >= 1.26"]
+requires = ["hatchling >= 1.26", "uv-dynamic-versioning"]
 build-backend = "hatchling.build"
 
 [project]
 name = "fluxie"
-version = "0.0.1"
+dynamic = ["version"]
 dependencies = [
   "numpy",
   "pandas",
@@ -16,6 +16,10 @@ dependencies = [
   "PyYAML",
 ]
 requires-python = ">=3.8"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
 authors = [
   {name = "Alexandre Danjou", email = "alexandre.danjou@bristol.ac.uk"},
   {name = "Alice Ramsden", email = "alice.ramsden@metoffice.gov.uk"},
