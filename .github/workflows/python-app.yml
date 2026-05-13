@@ -5,9 +5,11 @@ name: Python application
 
 on:
   push:
+    branches: [ "devel", "main" ]
     tags:
       - "v*"
   pull_request:
+    branches: [ "devel", "main" ]
 
 permissions:
   contents: read
@@ -72,4 +74,4 @@ jobs:
         run: uv build
 
       - name: Publish
-        run: uv publish --trusted-publishing always --dry-run
+        run: uv publish --trusted-publishing always
