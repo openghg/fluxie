@@ -17,7 +17,6 @@ dependencies = [
 ]
 requires-python = ">=3.8"
 
-# ─── FIXED: MOVED DIRECTLY UNDER [project] ───
 authors = [
   {name = "FLUXIE developers"},
 ]
