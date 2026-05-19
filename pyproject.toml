@@ -38,8 +38,8 @@ classifiers = [
 source = "uv-dynamic-versioning"
 
 [project.urls]
-Homepage = "https://github.com"
-Documentation = "https://github.com/blob/devel/README.md"
-Repository = "https://github.com"
-"Bug Tracker" = "https://github.com/issues"
-"PARIS project" = "https://horizoneurope-paris.eu"
+Homepage = "https://github.com/openghg/fluxie"
+Documentation = "https://github.com/openghg/fluxie/blob/devel/README.md"
+Repository = "https://github.com/openghg/fluxie"
+"Bug Tracker" = "https://github.com/openghg/fluxie/issues"
+"PARIS project" = "https://horizoneurope-paris.eu/"
