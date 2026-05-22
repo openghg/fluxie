@@ -333,6 +333,7 @@ def add_line_plot(
     add_unc: bool = False,
     unit: str = None,
     plot_trends: bool = False,
+    use_err:bool=True
 ) -> dict[str, dict]:
     """
     Plot the posterior/prior data on the axis. The variable posterior/prior of the dataset ds is plotted as a line (color and label found in the dataset
@@ -379,12 +380,16 @@ def add_line_plot(
     if variable == "posterior" and plot_trends:
        
         err = np.mean(
-            [ds[f"{variable}_lower"].values, ds[f"{variable}_upper"].values], axis=0
+            [ds[variable].values-ds[f"{variable}_lower"].values, ds[f"{variable}_upper"].values-ds[variable].values], axis=0
         )
-        opt, cov = curve_fit(
-            linear, [i.year+i.month/12 for i in time_as_datetime], ds[variable], sigma=err
-        )
-
+        if use_err:
+            opt, cov = curve_fit(
+             linear, [i.year+i.month/12 for i in time_as_datetime], ds[variable], sigma=err
+         )
+        else:
+               opt, cov = curve_fit(
+             linear, [i.year+i.month/12 for i in time_as_datetime], ds[variable]
+         )
         ax.plot(
             time_as_datetime,
             linear(np.array([i.year+i.month/12 for i in time_as_datetime]), *opt),
@@ -435,7 +440,8 @@ def add_inventory_barplot(
     sector: str | list[str],
     annex_mode: bool,
     plot_inventory_uncertainty: list[bool] | bool = False,
-    plot_trends:bool=False
+    plot_trends:bool=False,
+    use_err:bool=True
 ) -> dict[str, dict]:
     """
     Retrieve and plot the inventories as bar plots. If multiple inventories are plotted, the older the inventory is, the smaller
@@ -456,6 +462,8 @@ def add_inventory_barplot(
         sector: sector we want to plot.
         annex_mode: If True, replace Inventory label with a more concise version for National Inventory Report Annexes.
         plot_inventory_uncertainty: If True and uncertainty available, plots inventory error bars. If a list is provided, should be of same size as inventory_years.
+        plot_trends: If true, plots the trends over all years given.
+        use_err: Calculate the trend using the uncertainty or not.
     Returns:
         res: dataframe with one line per timestamp and 7 columns ("type", "model", "sector", "country", "species",
             "time", "mean_val")
@@ -518,9 +526,14 @@ def add_inventory_barplot(
             zorder=0,
         )
         if plot_trends:
-            opt, cov = curve_fit(
-                linear, [i.year+i.month/12 for i in time_as_datetime], inventory, sigma=yerr
-            )
+            if use_err:
+                opt, cov = curve_fit(
+                 linear, [i.year+i.month/12 for i in time_as_datetime], inventory, sigma=yerr
+             )
+            else:
+                opt, cov = curve_fit(
+                 linear, [i.year+i.month/12 for i in time_as_datetime], inventory
+             )
             ax.plot(
                 time_as_datetime,
                 linear(np.array([i.year+i.month/12 for i in time_as_datetime]), *opt),
@@ -1035,6 +1048,7 @@ def plot_country_flux(
     secondary_units: str | None = None,
     only_overlapping: bool = True,
     plot_trends: bool = False,
+    use_err:bool=True
 ) -> Figure | tuple[Figure, dict[str, dict]]:
     """
     Timeseries plot of prior and posterior country fluxes, from list of
@@ -1085,6 +1099,8 @@ def plot_country_flux(
         plot_grid: if True, add a faint grid to each subplot.
         add_vline: list of dates (str) where to add vertical lines on each plot. format 'YYYY-MM-DD'.
         secondary_units: If provided, add a secondary y-axis with these units.
+        plot_trends: Whether to calculate and plot the linear trend over time.
+        use_err: Whether to use the uncertainty when calculating the trend. 
     Returns:
         fig: A plot per country/region.
         res_dict : If return_res, return also a dataframe containing the plotted results. The columns of this dataframe are "type" (possible values "prior"/"posterior"/"inventory"),
@@ -1158,6 +1174,7 @@ def plot_country_flux(
                     add_unc=add_post_unc,
                     unit=unit,
                     plot_trends=plot_trends,
+                    use_err=use_err
                 )
                 plotted_data_df = pd.concat(
                     [plotted_data_df, posterior_df], ignore_index=True
@@ -1192,7 +1209,8 @@ def plot_country_flux(
                 sector,
                 annex_mode,
                 plot_inventory_uncertainty,
-                plot_trends=plot_trends
+                plot_trends=plot_trends,
+                use_err=use_err
             )
             plotted_data_df = pd.concat(
                 [plotted_data_df, inventory_df], ignore_index=True
@@ -1234,7 +1252,7 @@ def plot_country_flux(
             yearly_freq = True
         else:
             yearly_freq = False
-    
+
     add_xlims_and_ticks(
         axes[-1], yearly_freq, plotted_data_df, aggreg_month, xticks_at_centre
     )
