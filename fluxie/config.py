@@ -6,7 +6,7 @@ import os
 logger = logging.getLogger(__name__)
 
 color_palette = {
-    0: [["blue", "dodgerblue"], ["dodgerblue", "skyblue"], ["deepskyblue", "cyan"]],
+    0: [["darkgreen", "dodgerblue"], ["darkorange", "skyblue"], ["dodgerblue", "cyan"]],
     1: [["purple", "mediumpurple"], ["deeppink", "pink"], ["darkorange", "red"]],
     2: [["darkgreen", "green"], ["limegreen", "palegreen"], ["olive", "lightgreen"]],
     3: [["darkorange", "orange"], ["gold", "khaki"], ["yellow", "lightyellow"]],
@@ -17,7 +17,8 @@ sector_color_palette = {
     "waste": "purple",
     "industry": "darkblue",
     "energy": "dodgerblue",
-    "land": "tan"
+    "land": "tan",
+    "natural": "darkorange"
 }
 
 species_color_palette = {

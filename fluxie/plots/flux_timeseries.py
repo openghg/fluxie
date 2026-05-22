@@ -393,7 +393,7 @@ def add_line_plot(
             label=ds.attrs["model_label"] + " trend",
         )
 
-        print(f"{ds.model_label} trend for {ds.attrs["country"]} is: {opt[0]:7.3f} {unit}")
+        print(f"\n{ds.model_label} trend for {ds.attrs['country']} is: {opt[0]:7.3f} {unit}\n")
 
     res = pd.DataFrame(
         {
@@ -529,7 +529,7 @@ def add_inventory_barplot(
                 label="Inventory trend",
             )
 
-            print(f"Inventory trend for {country} is: {opt[0]:7.3f} {unit}")
+            print(f"\nInventory trend for {country} is: {opt[0]:7.3f} {unit}\n")
         tmp = pd.DataFrame(
             {
                 "time": time_as_datetime,
@@ -870,7 +870,7 @@ def add_legend(
         if isinstance(fig.axes[0], list):
             legend_loc = (0.5, 1.1)
         else:
-            legend_loc = (0.5, 1.15)
+            legend_loc = (0.5, 1.1)
         handles, labels = fig.axes[0].get_legend_handles_labels()
         fig.legend(
             handles,
@@ -1323,6 +1323,17 @@ def plot_country_sector_flux_bar(
         fig: A plot per country/region.
         res_dict : If return_res, return also a dictionnary containing the plotted results
     """
+    
+    if type(sectors) == list:
+        sectors_dict = {"model":sectors,
+                        "inventory":sectors}
+    elif type(sectors) == dict:
+        sectors_dict = sectors.copy()
+        if "model" not in sectors_dict.keys():
+            raise ValueError("'model' key not included in sectors, either set sectors to a list which applies to all plots, or correct this.")
+        elif plot_inventory_or_prior == "inventory" and "inventory" not in sectors:
+            raise ValueError("'inventory' key not included in sectors, either set sectors to a list which applies to all plots, or correct this.")
+
     plot_type = "sector_barplot"
     s_data = config_data.get("species_info", {})
     r_data = config_data.get("regions_info", {})
@@ -1331,7 +1342,7 @@ def plot_country_sector_flux_bar(
     plotted_data_df = pd.DataFrame()
 
     # prepare data
-    ds_all_region = extract_region_flux(ds_all, plot_region, r_data, sectors=sectors)
+    ds_all_region = extract_region_flux(ds_all, plot_region, r_data, sectors=sectors_dict["model"])
     ds_to_plot = prepare_data_to_plot(
         ds_all_region,
         model_labels,
@@ -1350,7 +1361,7 @@ def plot_country_sector_flux_bar(
         start_date = str(min([ds.time.values.min() for ds in ds_to_plot.values()]))[:10]
         end_date = str(max([ds.time.values.max() for ds in ds_to_plot.values()]))[:10]
         inv_plot_data = prepare_inventory_sector_barplot(
-            sectors,
+            sectors_dict["inventory"],
             np.datetime64(start_date,'Y'),
             end_date,
             data_dir,
@@ -1382,7 +1393,7 @@ def plot_country_sector_flux_bar(
 
         # plot posterior (and eventually prior)
         former_sector = None
-        for sector in sectors:
+        for sector in sectors_dict["model"]:
             vars_to_plot = (
                 ["posterior", "prior"]
                 if plot_inventory_or_prior == "prior"
@@ -1405,6 +1416,10 @@ def plot_country_sector_flux_bar(
             former_sector = sector
 
         # set y_label inventory_filename, year
+        
+        if ds.attrs["model_label"] == 'Mean':
+            ds.attrs["model_label"] = 'Combined model mean'
+        
         add_ylabel(
             ax_data,
             s_data,
@@ -1432,7 +1447,7 @@ def plot_country_sector_flux_bar(
         for year, (i, inv) in zip(inventory_years, enumerate(inv_plot_data)):
             ax = axes[-i - 1]
             former_sector = None
-            for sector in sectors:
+            for sector in sectors_dict["inventory"]:
                 bottom_values = (
                     plotted_data_df[
                         (plotted_data_df.sector == former_sector)

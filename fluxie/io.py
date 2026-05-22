@@ -1137,6 +1137,7 @@ def add_sites_var(
 
     if frequency == "yearly":
         flux_keys = flux_times.dt.year.values
+    #elif frequency == "monthly":
     elif "monthly" in frequency:
         flux_keys = list(zip(flux_times.dt.year.values, flux_times.dt.month.values))
         flux_keys = np.array(flux_keys, dtype=[("year", "i4"), ("month", "i4")])
@@ -1152,6 +1153,7 @@ def add_sites_var(
         if frequency == "yearly":
             mf_keys = valid_times.dt.year.values
         elif "monthly" in frequency:
+        #elif frequency == "monthly":
             years = valid_times.dt.year.values
             months = valid_times.dt.month.values
             # Mask NaN, otherwise conversion to int won't work

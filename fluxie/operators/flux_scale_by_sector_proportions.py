@@ -143,10 +143,10 @@ def scale_by_sector_proportions(
     
     if type(create_sectors) == bool:
         create_sectors = [create_sectors] * len(list(ds_all.keys()))
-        logger.warning('Creating sector-level emissions for all models')
+        logger.warning('Creating sector-level emissions for all models.')
     if type(create_region_sector_totals) == bool:
         create_region_sector_totals = [create_region_sector_totals] * len(list(ds_all.keys()))
-        logger.warning('Creating sector-level region emissions for all models')
+        logger.warning('Creating sector-level region emissions for all models.')
         
 
     r_data = config_data.get("regions_info", {})["country_codes"]
@@ -167,7 +167,7 @@ def scale_by_sector_proportions(
     #)
     
     sector_prop_path = sector_prop_path = os.path.join(
-        data_dir, "PRIOR",species, f"PRIOR_{sector_file}_{species}_monthly.nc"
+        data_dir, "PRIOR",species, f"PRIOR_{sector_file}.nc"
     )
 
     logger.info(f"Using {sector_prop_path} to scale total fluxes into sector fluxes.")
@@ -252,7 +252,10 @@ def scale_by_sector_proportions(
                                 xr.merge(tmp_list, compat="no_conflicts")
                             )
 
-                        ds_flux_country = xr.concat(ds_flux_country_list, dim="country")
+                        if len(regions) > 1:
+                            ds_flux_country = xr.concat(ds_flux_country_list, dim="country")
+                        else:
+                            ds_flux_country = ds_flux_country_list[0]
 
                         ds = xr.merge(
                             [ds, ds_flux_country], compat="no_conflicts", join="outer"

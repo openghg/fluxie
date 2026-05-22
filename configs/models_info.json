@@ -7,8 +7,12 @@
     },
 
     "model_labels":{
-        "InTEM_NAME_EUROPE_NID2026":"InTEM monthly",
-        "InTEM_NAME_EUROPE_NID2026_annual":"InTEM yearly",
+        "InTEM_ERA5_EUROPE_NID2026_G": "InTEM ERA5 2 sites",
+        "InTEM_NAME_EUROPE_AR2026":"InTEM monthly, annualised",
+        "InTEM_NAME_EUROPE_NID2026_annual":"InTEM ERA-Interim/UM 2 sites",
+        "InTEM_ERA5_EUROPE_NID2026_G_sector_proportions": "InTEM ERA5 2 sites",
+        "InTEM_NAME_EUROPE_AR2026_sector_proportions":"InTEM monthly, annualised",
+        "InTEM_NAME_EUROPE_NID2026_annual_sector_proportions":"InTEM ERA-Interim/UM 2 sites",
         "ELRIS_NAME_paris" : "ELRIS",
         "InTEM_NAME_paris" : "InTEM",
         "RHIME_NAME_paris" : "RHIME",
@@ -19,7 +23,11 @@
         "ELRIS_NAME_EUROPE_UNIFORM" : "ELRIS uniform",
         "InTEM_NAME_EUROPE_uniform_prior_20250118_obs" : "InTEM uniform",
         "RHIME_NAME_EUROPE_UNIFORM" : "RHIME uniform",
-        "Flexinvert_Flexpart_EUROPE_uniform" : "Flexinvert uniform"
+        "Flexinvert_Flexpart_EUROPE_uniform" : "Flexinvert uniform",
+        "PRIOR_EUROPE_EDGAR_v8":"EDGAR v8",
+        "PRIOR_EUROPE_EDGAR_v2025":"EDGAR v2025",
+        "PRIOR_EUROPE_EDGAR_v2025_monthly":"EDGAR v2025 monthly",
+        "PRIOR_EUROPE_EDGAR_v2025_CEH":"CEH monthly"
     },
 
     "species_name":{
