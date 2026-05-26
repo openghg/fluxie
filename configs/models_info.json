@@ -24,7 +24,11 @@
         "ELRIS_NAME_EUROPE_UNIFORM" : "ELRIS uniform",
         "InTEM_NAME_EUROPE_uniform_prior_20250118_obs" : "InTEM uniform",
         "RHIME_NAME_EUROPE_UNIFORM" : "RHIME uniform",
-        "Flexinvert_Flexpart_EUROPE_uniform" : "Flexinvert uniform"
+        "Flexinvert_Flexpart_EUROPE_uniform" : "Flexinvert uniform",
+        "InTEM_NAME_EUROPE_flatlandsea_manualouter4_100uncertUK_basicsoilsink_MHWBJB":"InTEM basic 3.5x soil sink",
+        "InTEM_NAME_EUROPE_flatlandsea_manualouter4_100uncertUK_nosoilsink_MHWBJB":"InTEM no soil sink"
+
+
     },
 
     "species_name":{
