@@ -60,6 +60,9 @@ def create_str_dataframe(
     Return:
         output: pandas Dataframe contianing the string values that will be put in the .tex files for the annexes tables.
     """
+    
+    print('PLOT UNCERT')
+    print(include_inventory_uncert)
 
     if not table_start_date:
         table_start_date = np.datetime64("1900-01-01")
@@ -79,6 +82,9 @@ def create_str_dataframe(
                 f"`sector` parameter should be provided when there is more than one region in `res` (currently present: {res.sector.unique()})."
             )
         sector = res.sector.unique()[0]
+        
+    print('SECTOR')
+    print(sector)
 
     if not isinstance(species, list):
         species = [
@@ -97,6 +103,8 @@ def create_str_dataframe(
         & (res.type.isin(["posterior", "inventory"]))
         & (res.time >= table_start_date)
     ].reset_index(drop=True)
+    
+    print(data)
     
     data["year"] = pd.to_datetime(data["time"]).dt.year.astype(str)
     species_order = (
@@ -130,7 +138,10 @@ def create_str_dataframe(
             max_exp += 3
         elif max_exp < -4:
             for var in ["mean_val", "min_unc", "max_unc"]:
-                data_per_species[var] *= 1e6
+                try:
+                    data_per_species[var] *= 1e6
+                except:
+                    logger.warning(f'No {var} in dataset')
             data_per_species["units"] = (
                 "\\footnotesize{$\\left (\\rm{MgCO}_{2}\\rm{\\text{-}eq} \\cdot \\rm{yr}^{-1} \\right )$}"
             )
@@ -146,22 +157,23 @@ def create_str_dataframe(
         data_per_species["mean_val"] = data_per_species.mean_val.apply(
             lambda x: f"{x:.{n_digits}f}"
         )
-        if include_inventory_uncert == True and 'max_unc' in data_per_species:
-            data_per_species["unc"] = data_per_species.apply(
-                lambda x: (
-                    f"{(x.max_unc-x.min_unc)/2:.{n_digits}f}"
-                ),
-                axis=1,
-            )
-        else:
-            data_per_species["unc"] = data_per_species.apply(
-                lambda x: (
-                    f"{(x.max_unc-x.min_unc)/2:.{n_digits}f}"
-                    if x.type != "inventory"
-                    else ""
-                ),
-                axis=1,
-            )
+        if include_inventory_uncert == True:
+            if 'max_unc' in data_per_species:
+                data_per_species["unc"] = data_per_species.apply(
+                    lambda x: (
+                        f"{(x.max_unc-x.min_unc)/2:.{n_digits}f}"
+                    ),
+                    axis=1,
+                )
+            else:
+                data_per_species["unc"] = data_per_species.apply(
+                    lambda x: (
+                        f"{(x.max_unc-x.min_unc)/2:.{n_digits}f}"
+                        if x.type != "inventory"
+                        else ""
+                    ),
+                    axis=1,
+                )
 
         data_per_species = pd.concat([data_per_species])
 
@@ -174,7 +186,7 @@ def create_str_dataframe(
             axis=1,
         )
     else:data["val"] = data.apply(
-            lambda x: x.mean_val if x.type == "inventory" else f"{x.mean_val} \\pm {x.unc}",
+            lambda x: x.mean_val if x.type == "inventory" else f"{x.mean_val}",
             axis=1,
         )
 

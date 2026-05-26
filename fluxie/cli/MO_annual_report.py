@@ -1,7 +1,10 @@
 import pandas as pd
 import numpy as np
 import os
+import logging
 from fluxie.cli.utils_annex_plot import create_str_dataframe
+
+logger = logging.getLogger(__name__)
 
 def make_AR_table(df: pd.DataFrame,
                   output_dir,
@@ -14,7 +17,9 @@ def make_AR_table(df: pd.DataFrame,
                   species: str | None =  None,
                   include_inventory_uncert: bool = True,
                   include_inventory: bool = True,
-                  n_digits: int = 2):
+                  n_digits: int = 2,
+                  save_csv: bool = True,
+                  sector: str = 'total'):
     """
     Function to create a table of inventory and InTEM emission estimates, in the format
     required for the Met Office annual report.
@@ -37,7 +42,9 @@ def make_AR_table(df: pd.DataFrame,
             all_model_names.append(m)
     
     #res_combined = df.replace({'model':['InTEM yearly','InTEM monthly']},'InTEM')
-    res_combined = df.replace({'model':[all_model_names]},'InTEM')
+    res_combined = df.replace({'model':all_model_names},'InTEM')
+    
+    print(res_combined)
     
     all_read_in = ['InTEM']
     if include_inventory:
@@ -51,6 +58,9 @@ def make_AR_table(df: pd.DataFrame,
 
     all_sp_res = {}
     for r in regions:
+        logger.warning("If you get an 'Index contains duplicate entries' error, "
+                       "this may be because the two models overlap in time. To fix this "
+                       "set start_date and end_date and lists of dates with no overlap.")
         all_sp_res[r] = create_str_dataframe(
             annual_res,
             inventory_years,
@@ -60,7 +70,8 @@ def make_AR_table(df: pd.DataFrame,
             table_start_date=min(start_date),
             region=r,
             include_inventory_uncert=include_inventory_uncert,
-            n_digits=2)
+            n_digits=2,
+            sector=sector)
     
     all_years = [t for t in all_sp_res[r] if t not in ['species','units','source']]
 
@@ -68,10 +79,12 @@ def make_AR_table(df: pd.DataFrame,
     units_print = country_flux_units_print.replace('-1',"$^{-1}$")
 
     caption = "\n \\caption{" + f"{species_print} emission {units_print} estimates with 1$\sigma$ uncertainty" + "}"
+    caption_csv = f"CH4 emission {units_print.replace('$^{-1}$','-1')} estimates with 1-sigma uncertainty\n"
     label = "\n \\label{" + f"{species}_emit" + "}"
 
     region_title = ""
     type_title = "Years"
+    type_title_csv = "Years"
     fill_line = ""
     cols_line = "\n {\\begin{tabular}{|l|"
 
@@ -83,11 +96,19 @@ def make_AR_table(df: pd.DataFrame,
             
         if include_inventory: 
             type_title += f" & Inventory & InTEM"
+            if include_inventory_uncert:
+                type_title_csv += f",Inventory,Inventory_uncert,InTEM,InTEM_uncert"
+            else:
+                type_title_csv += f",Inventory,InTEM"
             region_title += f" & {region_name} & {region_name}"
             fill_line += " & &"
             
         else:
             type_title += f" & InTEM"
+            if include_inventory_uncert:
+                type_title_csv += f",InTEM,InTEM_uncert"
+            else:
+                type_title_csv += f",InTEM"
             region_title += f" & {region_name}"
             fill_line += " &"
 
@@ -98,6 +119,7 @@ def make_AR_table(df: pd.DataFrame,
     
     region_title = "\n " + region_title.strip() + " \\\\"
     type_title = "\n " + type_title.removesuffix('& ') + "\\\\"
+    type_title_csv = "\n" + type_title_csv + "\n"
     fill_line = "\n " + fill_line.strip() + " \\\\"
 
     header = ("\\begin{table}[H]" 
@@ -119,33 +141,61 @@ def make_AR_table(df: pd.DataFrame,
             + "\n \\end{table}")
 
     all_lines = ""
+    all_lines_csv = ""
+    
+    print(all_sp_res)
     
     #return all_sp_res
     
     for i,t in enumerate(all_years):
         new_line = f"{t}"
+        new_line_csv = f"{t}"
         for r in regions:
             if r != 'UK' and int(t) > 2023:
                 if include_inventory:
                     new_line += f"&  &  {all_sp_res[r][t].values[0]}".replace("\\pm","${\\pm}$")
+                    new_line_csv += f",,{all_sp_res[r][t].values[0]}".replace(" \\pm ",",")
+                    
                 else:
                     new_line += f"&  {all_sp_res[r][t].values[0]}".replace("\\pm","${\\pm}$")
+                    new_line_csv += f",{all_sp_res[r][t].values[0]}".replace(" \\pm ",",")
+                    
             else:
                 if include_inventory:
+                    if include_inventory_uncert == True:
+                        extra_commas = ',,'
+                    else:
+                        extra_commas = ','
                     new_line += f"&  {all_sp_res[r][t].values[1]}&  {all_sp_res[r][t].values[0]}".replace("\\pm","${\\pm}$")
+                    if all_sp_res[r][t].values[1] == ' ':
+                        new_line_csv += f",{extra_commas}{all_sp_res[r][t].values[0]}".replace(" \\pm ",",")
+                    else:
+                        new_line_csv += f",{all_sp_res[r][t].values[1]},{all_sp_res[r][t].values[0]}".replace(" \\pm ",",")
+                    
                 else:
                     new_line += f"&  {all_sp_res[r][t].values[0]}".replace("\\pm","${\\pm}$")
-                    
-                
+                    new_line_csv += f",{all_sp_res[r][t].values[0]}".replace(" \\pm ",",")
+                                    
         new_line = "\n" + new_line + " \\\\"
+        new_line_csv = "\n" + new_line_csv
+
         all_lines += new_line
+        all_lines_csv += new_line_csv
         
     outlines = header + all_lines + footer
+    outlines_csv = caption_csv + type_title_csv + all_lines_csv
 
     output_path = os.path.join(output_dir,f'{species}_{output_name}_table.tex')
-
+    output_path_csv = os.path.join(output_dir,f'{species}_{output_name}_table.txt')
+    
     with open(output_path,'w') as f:
         f.writelines(outlines)
-        
+
     print(f'Table saved to : {output_path}')
+
+    if save_csv == True:
+        with open(output_path_csv,'w') as f:
+            f.writelines(outlines_csv)
+        
+        print(f'Table saved to : {output_path_csv}')
     

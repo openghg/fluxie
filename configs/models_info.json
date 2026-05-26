@@ -8,10 +8,10 @@
 
     "model_labels":{
         "InTEM_ERA5_EUROPE_NID2026_G": "InTEM ERA5 2 sites",
-        "InTEM_NAME_EUROPE_AR2026":"InTEM monthly, annualised",
+        "InTEM_NAME_EUROPE_AR2026":"InTEM UKV all sites, monthly annualised",
         "InTEM_NAME_EUROPE_NID2026_annual":"InTEM ERA-Interim/UM 2 sites",
         "InTEM_ERA5_EUROPE_NID2026_G_sector_proportions": "InTEM ERA5 2 sites",
-        "InTEM_NAME_EUROPE_AR2026_sector_proportions":"InTEM monthly, annualised",
+        "InTEM_NAME_EUROPE_AR2026_sector_proportions":"InTEM monthly all sites, annualised",
         "InTEM_NAME_EUROPE_NID2026_annual_sector_proportions":"InTEM ERA-Interim/UM 2 sites",
         "ELRIS_NAME_paris" : "ELRIS",
         "InTEM_NAME_paris" : "InTEM",
