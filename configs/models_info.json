@@ -26,7 +26,9 @@
         "RHIME_NAME_EUROPE_UNIFORM" : "RHIME uniform",
         "Flexinvert_Flexpart_EUROPE_uniform" : "Flexinvert uniform",
         "InTEM_NAME_EUROPE_flatlandsea_manualouter4_100uncertUK_basicsoilsink_MHWBJB":"InTEM basic 3.5x soil sink",
-        "InTEM_NAME_EUROPE_flatlandsea_manualouter4_100uncertUK_nosoilsink_MHWBJB":"InTEM no soil sink"
+        "InTEM_NAME_EUROPE_flatlandsea_manualouter4_100uncertUK_nosoilsink_MHWBJB":"InTEM no soil sink",
+        "InTEM_NAME_EUROPE_flatlandsea_manualouter4_100uncertUK_halfamericaatlantic_MHWBJB":"InTEM 1/2 America and Atlantic prior",
+        "InTEM_NAME_EUROPE_flatlandsea_manualouter4_100uncertUK_025matrixsoilsink_MHWBJB":"InTEM 0p25 matrix soil sink"
 
 
     },
