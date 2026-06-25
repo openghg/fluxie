@@ -17,9 +17,6 @@ variables:
         time:bounds = "time_bnds" ;
 		time:standard_name = "time" ; 
     double time_bnds(index, nbnds) ; 		// mandatory 
-		time_bnds:long_name = "start and end points of each time step" ; 
-		time_bnds:calendar = "proleptic_gregorian" ;
-		time_bnds:units = "days since 1970-01-01 00:00:00" ;
 	double longitude(index) ; 				//mandatory
         longitude:_FillValue = NaNf ;
         longitude:long_name = "sample_longitude_in_decimal_degrees" ;
@@ -38,6 +35,7 @@ variables:
         altitude:units = "m" ;
         altitude:comment = "Altitude (surface elevation plus sample intake height) at which air sample was collected" ;
 		altitude:standard_name = "altitude" ; 
+		altitude:positive = "up" ; 
     float intake_height(index) ;			// optional 
         intake_height:_FillValue = NaNf ;
         intake_height:long_name = "Height above ground at which air sample was collected" ;
@@ -49,6 +47,7 @@ variables:
         altitude_model:units = "m" ;
         altitude_model:comment = "Altitude (surface elevation plus sample intake height) at which model was evaluated" ;
 		altitude_model:standard_name = "altitude" ; 
+		altitude_model:positive = "up" ; 
     float intake_height_model(index) ;			// optional 
         intake_height_model:_FillValue = NaNf ;
         intake_height_model:long_name = "Height above model ground at which model concentrations were evaluated" ;
@@ -193,8 +192,10 @@ variables:
 		:inversion_system_version = "1.2.0" ;
 		:experiment = "EDGARprior" ;
         :project = "Process Attribution of Regional emISsions (PARIS)" ;
-		:references = "" ;
-		:comment = "" ; //	use "comment" for a comprehensive description of the dataset (like abstract for a paper) or use "summary" for this description and "comment" for any other comment and information  
+		:references = "Inversion code based on\n",
+			" Stohl et al., Atmos. Chem. Phys., 2009, doi:10.5194/acp-9-1597-2009\n",
+			" Henne et al., Atmos. Chem. Phys., 2016, doi:10.5194/acp-16-3683-2016" ;
+		:comment = "Should not be empty!" ; //	use "comment" for a comprehensive description of the dataset (like abstract for a paper) or use "summary" for this description and "comment" for any other comment and information  
 		:summary = "" ; 
 		:license = "CC-BY-4.0" ;
         :history = "2024-01-11 21:35:03 saved from ELRIS R package" ;
