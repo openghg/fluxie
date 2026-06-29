@@ -1,7 +1,7 @@
 import numpy as np
 import xarray as xr
 
-from matplotlib.cm import get_cmap
+from matplotlib.pyplot import get_cmap
 
 from fluxie.operators.regions import extract_region_inventory_flux
 
