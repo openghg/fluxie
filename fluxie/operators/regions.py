@@ -183,9 +183,9 @@ def _extract_region_flux_sector(
                     (
                         (
                             ds_region[f"flux_{sector}_posterior_country"]
-                            - ds_region[f"percentile_flux_{sector}_posterior_country"].isel(
-                                percentile=min_percentile_index
-                            )
+                            - ds_region[
+                                f"percentile_flux_{sector}_posterior_country"
+                            ].isel(percentile=min_percentile_index)
                         )
                         ** 2
                     ).sum(dim="country")
@@ -195,7 +195,9 @@ def _extract_region_flux_sector(
                     f"Covariance matrix is not available for {m}. A posteriori uncertainty of {country} emissions based on uncorrelated uncertainty."
                 )
                 ds_region["sigma_posterior"] = np.sqrt(
-                    ((ds_region[f"stdev_flux_{sector}_posterior_country"]) ** 2).sum(dim="country")
+                    ((ds_region[f"stdev_flux_{sector}_posterior_country"]) ** 2).sum(
+                        dim="country"
+                    )
                 )
             else:
                 logger.warning(
