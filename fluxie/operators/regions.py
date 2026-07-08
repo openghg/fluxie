@@ -179,7 +179,7 @@ def _extract_region_flux_sector(
                 logger.warning(
                     f"Covariance matrix is not available for {m}. A posteriori uncertainty of {country} emissions based on uncorrelated uncertainty."
                 )
-                ds_region["sigma_prior"] = np.sqrt(
+                ds_region["sigma_posterior"] = np.sqrt(
                     (
                         (
                             ds_region[f"flux_{sector}_posterior_country"]
