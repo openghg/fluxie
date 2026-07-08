@@ -60,9 +60,6 @@ def create_str_dataframe(
     Return:
         output: pandas Dataframe contianing the string values that will be put in the .tex files for the annexes tables.
     """
-    
-    print('PLOT UNCERT')
-    print(include_inventory_uncert)
 
     if not table_start_date:
         table_start_date = np.datetime64("1900-01-01")
@@ -82,9 +79,6 @@ def create_str_dataframe(
                 f"`sector` parameter should be provided when there is more than one region in `res` (currently present: {res.sector.unique()})."
             )
         sector = res.sector.unique()[0]
-        
-    print('SECTOR')
-    print(sector)
 
     if not isinstance(species, list):
         species = [
@@ -104,9 +98,8 @@ def create_str_dataframe(
         & (res.time >= table_start_date)
     ].reset_index(drop=True)
     
-    print(data)
-    
     data["year"] = pd.to_datetime(data["time"]).dt.year.astype(str)
+    
     species_order = (
         data[data.model.isin(all_models)]
         .groupby("species")

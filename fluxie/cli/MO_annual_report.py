@@ -18,8 +18,9 @@ def make_AR_table(df: pd.DataFrame,
                   include_inventory_uncert: bool = True,
                   include_inventory: bool = True,
                   n_digits: int = 2,
+                  save_latex: bool = True,
                   save_csv: bool = True,
-                  sector: str = 'total'):
+                  sectors: list[str] | str = 'total'):
     """
     Function to create a table of inventory and InTEM emission estimates, in the format
     required for the Met Office annual report.
@@ -36,15 +37,17 @@ def make_AR_table(df: pd.DataFrame,
     A text file containing the table, saved to the specified output directory.
     """
     
+    if type(sectors) == str:
+        sectors = [sectors]
+    
     all_model_names = []
-    for m in np.unique(df['model'].values):
+    for m in np.unique(df[sectors[0]]['model'].values):
         if 'inventory' not in m:
             all_model_names.append(m)
-    
-    #res_combined = df.replace({'model':['InTEM yearly','InTEM monthly']},'InTEM')
-    res_combined = df.replace({'model':all_model_names},'InTEM')
-    
-    print(res_combined)
+
+    res_combined = {}
+    for s in sectors:
+        res_combined[s] = df[s].replace({'model':all_model_names},'InTEM')
     
     all_read_in = ['InTEM']
     if include_inventory:
@@ -53,27 +56,37 @@ def make_AR_table(df: pd.DataFrame,
     species_list = [species]
     if type(start_date) != list: start_date = [start_date]
 
-    annual_res = pd.concat([res_combined], ignore_index=True)
-    #annual_res = pd.concat([df], ignore_index=True)
-
-    all_sp_res = {}
-    for r in regions:
-        logger.warning("If you get an 'Index contains duplicate entries' error, "
-                       "this may be because the two models overlap in time. To fix this "
-                       "set start_date and end_date and lists of dates with no overlap.")
-        all_sp_res[r] = create_str_dataframe(
-            annual_res,
-            inventory_years,
-            species_list,
-            #model=['InTEM',f'inventory_{max(inventory_years)}'],
-            model=all_read_in,
-            table_start_date=min(start_date),
-            region=r,
-            include_inventory_uncert=include_inventory_uncert,
-            n_digits=2,
-            sector=sector)
+    annual_res = {}
+    for s in sectors:
+        annual_res[s] = pd.concat([res_combined[s]], ignore_index=True)
     
-    all_years = [t for t in all_sp_res[r] if t not in ['species','units','source']]
+    logger.warning("If you get an 'Index contains duplicate entries' error, "
+                        "this may be because the two models overlap in time. To fix this "
+                        "set start_date and end_date and lists of dates with no overlap.")
+    
+    all_sp_res = {}
+    
+    for r in regions:
+        
+        all_sp_res[r] = {}
+        
+        for s in sectors:
+            
+            print(s)
+        
+            all_sp_res[r][s] = create_str_dataframe(
+                annual_res[s],
+                inventory_years,
+                species_list,
+                #model=['InTEM',f'inventory_{max(inventory_years)}'],
+                model=all_read_in,
+                table_start_date=min(start_date),
+                region=r,
+                include_inventory_uncert=include_inventory_uncert,
+                n_digits=2,
+                sector=s)
+    
+    all_years = [t for t in all_sp_res[r][sectors[0]] if t not in ['species','units','source']]
 
     species_print = s_data[species]['species_print']
     units_print = country_flux_units_print.replace('-1',"$^{-1}$")
@@ -94,28 +107,40 @@ def make_AR_table(df: pd.DataFrame,
         else:
             region_name = r
             
-        if include_inventory: 
-            type_title += f" & Inventory & InTEM"
-            if include_inventory_uncert:
-                type_title_csv += f",Inventory,Inventory_uncert,InTEM,InTEM_uncert"
-            else:
-                type_title_csv += f",Inventory,InTEM"
-            region_title += f" & {region_name} & {region_name}"
-            fill_line += " & &"
+        for s in sectors:
             
-        else:
-            type_title += f" & InTEM"
-            if include_inventory_uncert:
-                type_title_csv += f",InTEM,InTEM_uncert"
+            if sectors == ['total']:
+                sector_name = ''
+                sector_name_csv = ''
+                
             else:
-                type_title_csv += f",InTEM"
-            region_title += f" & {region_name}"
-            fill_line += " &"
+                sector_name = f' {s.capitalize()}'
+                sector_name_csv = f'_{s.capitalize()}'
+                
+            if include_inventory: 
+                type_title += f" & Inventory{sector_name} & InTEM{sector_name}"
+                if include_inventory_uncert:
+                    type_title_csv += f",Inventory{sector_name_csv},Inventory{sector_name_csv}_uncert,InTEM{sector_name_csv},InTEM{sector_name_csv}_uncert"
+                else:
+                    type_title_csv += f",Inventory{sector_name_csv},InTEM{sector_name_csv}"
+                region_title += f" & {region_name} & {region_name}"
+                fill_line += " & &"
+                
+            else:
+                type_title += f" & InTEM{sector_name}"
+                if include_inventory_uncert:
+                    type_title_csv += f",InTEM{sector_name_csv},InTEM{sector_name_csv}_uncert"
+                else:
+                    type_title_csv += f",InTEM{sector_name_csv}"
+                region_title += f" & {region_name}"
+                fill_line += " &"
+
+    n_cols = len(regions)*len(sectors)
 
     if include_inventory:
-        cols_line += f"{'c'*len(regions)}|{'c'*len(regions)}|}}"
+        cols_line += f"{'c'*n_cols}|{'c'*n_cols}|}}"
     else:
-        cols_line += f"{'c'*len(regions)}|}}"
+        cols_line += f"{'c'*n_cols}|}}"
     
     region_title = "\n " + region_title.strip() + " \\\\"
     type_title = "\n " + type_title.removesuffix('& ') + "\\\\"
@@ -143,38 +168,35 @@ def make_AR_table(df: pd.DataFrame,
     all_lines = ""
     all_lines_csv = ""
     
-    print(all_sp_res)
-    
-    #return all_sp_res
-    
     for i,t in enumerate(all_years):
         new_line = f"{t}"
         new_line_csv = f"{t}"
         for r in regions:
-            if r != 'UK' and int(t) > 2023:
-                if include_inventory:
-                    new_line += f"&  &  {all_sp_res[r][t].values[0]}".replace("\\pm","${\\pm}$")
-                    new_line_csv += f",,{all_sp_res[r][t].values[0]}".replace(" \\pm ",",")
-                    
-                else:
-                    new_line += f"&  {all_sp_res[r][t].values[0]}".replace("\\pm","${\\pm}$")
-                    new_line_csv += f",{all_sp_res[r][t].values[0]}".replace(" \\pm ",",")
-                    
-            else:
-                if include_inventory:
-                    if include_inventory_uncert == True:
-                        extra_commas = ',,'
+            for s in sectors:
+                if r != 'UK' and int(t) > 2023:
+                    if include_inventory:
+                        new_line += f"&  &  {all_sp_res[r][s][t].values[0]}".replace("\\pm","${\\pm}$")
+                        new_line_csv += f",,{all_sp_res[r][s][t].values[0]}".replace(" \\pm ",",")
+                        
                     else:
-                        extra_commas = ','
-                    new_line += f"&  {all_sp_res[r][t].values[1]}&  {all_sp_res[r][t].values[0]}".replace("\\pm","${\\pm}$")
-                    if all_sp_res[r][t].values[1] == ' ':
-                        new_line_csv += f",{extra_commas}{all_sp_res[r][t].values[0]}".replace(" \\pm ",",")
-                    else:
-                        new_line_csv += f",{all_sp_res[r][t].values[1]},{all_sp_res[r][t].values[0]}".replace(" \\pm ",",")
-                    
+                        new_line += f"&  {all_sp_res[r][s][t].values[0]}".replace("\\pm","${\\pm}$")
+                        new_line_csv += f",{all_sp_res[r][s][t].values[0]}".replace(" \\pm ",",")
+                        
                 else:
-                    new_line += f"&  {all_sp_res[r][t].values[0]}".replace("\\pm","${\\pm}$")
-                    new_line_csv += f",{all_sp_res[r][t].values[0]}".replace(" \\pm ",",")
+                    if include_inventory:
+                        if include_inventory_uncert == True:
+                            extra_commas = ',,'
+                        else:
+                            extra_commas = ','
+                        new_line += f"&  {all_sp_res[r][s][t].values[1]}&  {all_sp_res[r][s][t].values[0]}".replace("\\pm","${\\pm}$")
+                        if all_sp_res[r][s][t].values[1] == ' ':
+                            new_line_csv += f",{extra_commas}{all_sp_res[r][s][t].values[0]}".replace(" \\pm ",",")
+                        else:
+                            new_line_csv += f",{all_sp_res[r][s][t].values[1]},{all_sp_res[r][s][t].values[0]}".replace(" \\pm ",",")
+                        
+                    else:
+                        new_line += f"&  {all_sp_res[r][s][t].values[0]}".replace("\\pm","${\\pm}$")
+                        new_line_csv += f",{all_sp_res[r][s][t].values[0]}".replace(" \\pm ",",")
                                     
         new_line = "\n" + new_line + " \\\\"
         new_line_csv = "\n" + new_line_csv
@@ -188,14 +210,16 @@ def make_AR_table(df: pd.DataFrame,
     output_path = os.path.join(output_dir,f'{species}_{output_name}_table.tex')
     output_path_csv = os.path.join(output_dir,f'{species}_{output_name}_table.txt')
     
-    with open(output_path,'w') as f:
-        f.writelines(outlines)
+    if save_latex == True:
+        with open(output_path,'w') as f:
+            f.writelines(outlines)
 
-    print(f'Table saved to : {output_path}')
+        print(f'Table saved to : {output_path}')
 
     if save_csv == True:
         with open(output_path_csv,'w') as f:
             f.writelines(outlines_csv)
         
         print(f'Table saved to : {output_path_csv}')
-    
+        
+    return outlines_csv
