@@ -20,7 +20,8 @@ def make_AR_table(df: pd.DataFrame,
                   n_digits: int = 2,
                   save_latex: bool = True,
                   save_csv: bool = True,
-                  sectors: list[str] | str = 'total'):
+                  sectors: list[str] | str = 'total',
+                  inv_model: str = 'Inversion'):
     """
     Function to create a table of inventory and InTEM emission estimates, in the format
     required for the Met Office annual report.
@@ -47,9 +48,9 @@ def make_AR_table(df: pd.DataFrame,
 
     res_combined = {}
     for s in sectors:
-        res_combined[s] = df[s].replace({'model':all_model_names},'InTEM')
+        res_combined[s] = df[s].replace({'model':all_model_names},inv_model)
     
-    all_read_in = ['InTEM']
+    all_read_in = [inv_model]
     if include_inventory:
         all_read_in.append(f'inventory_{max(inventory_years)}')
 
@@ -71,14 +72,11 @@ def make_AR_table(df: pd.DataFrame,
         all_sp_res[r] = {}
         
         for s in sectors:
-            
-            print(s)
         
             all_sp_res[r][s] = create_str_dataframe(
                 annual_res[s],
                 inventory_years,
                 species_list,
-                #model=['InTEM',f'inventory_{max(inventory_years)}'],
                 model=all_read_in,
                 table_start_date=min(start_date),
                 region=r,
@@ -118,20 +116,20 @@ def make_AR_table(df: pd.DataFrame,
                 sector_name_csv = f'_{s.capitalize()}'
                 
             if include_inventory: 
-                type_title += f" & Inventory{sector_name} & InTEM{sector_name}"
+                type_title += f" & Inventory{sector_name} & {inv_model}{sector_name}"
                 if include_inventory_uncert:
                     type_title_csv += f",Inventory{sector_name_csv},Inventory{sector_name_csv}_uncert,InTEM{sector_name_csv},InTEM{sector_name_csv}_uncert"
                 else:
-                    type_title_csv += f",Inventory{sector_name_csv},InTEM{sector_name_csv}"
+                    type_title_csv += f",Inventory{sector_name_csv},{inv_model}{sector_name_csv}"
                 region_title += f" & {region_name} & {region_name}"
                 fill_line += " & &"
                 
             else:
-                type_title += f" & InTEM{sector_name}"
+                type_title += f" & {inv_model}{sector_name}"
                 if include_inventory_uncert:
-                    type_title_csv += f",InTEM{sector_name_csv},InTEM{sector_name_csv}_uncert"
+                    type_title_csv += f",{inv_model}{sector_name_csv},{inv_model}{sector_name_csv}_uncert"
                 else:
-                    type_title_csv += f",InTEM{sector_name_csv}"
+                    type_title_csv += f",{inv_model}{sector_name_csv}"
                 region_title += f" & {region_name}"
                 fill_line += " &"
 

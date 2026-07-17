@@ -235,7 +235,8 @@ def prepare_data_to_plot(
     if any(plot_combined):
         if is_plot_combined_single_true:
             if combined_models_dict is None:
-                combined_models_dict = {"Mean": list(ds_to_plot.keys())}
+                #combined_models_dict = {"Mean": list(ds_to_plot.keys())}
+                combined_models_dict = {"InTEM": list(ds_to_plot.keys())}
             else:
                 combined_model_list = sum(combined_models_dict.values(), [])
                 check_missing_models = set(combined_model_list) - set(
@@ -253,7 +254,9 @@ def prepare_data_to_plot(
                     " To combine the models listed in `combined_models_dict`, please set `plot_combined = True`."
                 )
             combined_models_dict = {
-                "Mean": [
+                #"Mean": [
+                "InTEM": [
+                    
                     m for (i, m) in enumerate(ds_to_plot.keys()) if plot_combined[i]
                 ]
             }
@@ -612,10 +615,17 @@ def add_sector_barplot(
         width = [np.mean(width), *width, np.mean(width)]
         offset = timedelta(days=0)
 
+    print(ds_sector)
+
+    if sector == 'land' or sector == 'lulucf':
+        bar_label = 'LULUCF'
+    else:
+        bar_label = sector.title()
+
     ax.bar(
         time_as_datetime,
         ds_sector[variable].values,
-        label='LULUCF' if sector == 'land' else sector.title(),
+        label=bar_label,
         color=sector_colors[sector],
         bottom=bottom_values,
         alpha=0.7,
@@ -1228,7 +1238,7 @@ def plot_country_flux(
             ax.grid(visible=True, which="major", alpha=0.4)
 
         # set ax title
-        add_title(ax, country, r_data, country_codes_as_titles)
+        #add_title(ax, country, r_data, country_codes_as_titles)
 
         # add secondary axis
         if secondary_units is not None:
@@ -1284,7 +1294,7 @@ def plot_country_sector_flux_bar(
     resample: str | list[str] | None = None,
     resample_uncert_correlation: bool = False,
     rolling_mean: bool = False,
-    sectors: list[str] = ["agriculture", "waste", "energy", "industry"],
+    sectors: dict[list[str]] | list[str] = ["agriculture", "waste", "energy", "industry"],
     xticks_at_centre: bool = False,
     plot_grid: bool = True,
     gaps_between_bars: bool = False,

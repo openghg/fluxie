@@ -180,7 +180,10 @@ def scale_by_sector_proportions(
         if create_sectors[m]:
 
             ds_sectors = open_and_align_sector_dataset(sector_prop_path, ds)
-
+            
+            for c in ['latitude','longitude']:
+                ds = ds.assign_coords({c:np.round(ds[c],3)})
+                
             if m == 0 and sectors == None:
                 sectors = [v.split("_")[-1] for v in ds_sectors if "total" not in v]
                 logger.warning(
@@ -248,6 +251,7 @@ def scale_by_sector_proportions(
                                     * units_factor
                                 )
                                 tmp_list[-1].name = f"flux_{s}_{suff}_country"
+                                #print(tmp_list)
                             ds_flux_country_list.append(
                                 xr.merge(tmp_list, compat="no_conflicts")
                             )
