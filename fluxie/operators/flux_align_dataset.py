@@ -7,6 +7,113 @@ from typing import Literal
 logger = logging.getLogger(__name__)
 
 
+def _timedelta_to_ns(value: np.timedelta64) -> np.timedelta64:
+    """Convert a timedelta scalar to nanoseconds for stable comparisons."""
+    return value.astype("timedelta64[ns]")
+
+
+def _get_time_tolerance(period: np.timedelta64) -> np.timedelta64:
+    return np.timedelta64(int(_timedelta_to_ns(period).astype(int) * 0.1), "ns")
+
+
+def _is_regular_or_missing_periods(
+    dtime: np.ndarray, period: np.timedelta64, tolerance: np.timedelta64
+) -> bool:
+    """
+    Check that time gaps are close to the period or whole multiples of it.
+
+    Missing complete periods create gaps like 2 years in otherwise yearly data.
+    Those are acceptable for alignment, but non-periodic gaps are not.
+    """
+
+    period_ns = _timedelta_to_ns(period).astype(int)
+    tolerance_ns = tolerance.astype(int)
+    dtime_ns = dtime.astype("timedelta64[ns]").astype(int)
+
+    if period_ns <= 0:
+        return False
+
+    multiples = np.maximum(np.rint(dtime_ns / period_ns).astype(int), 1)
+    return np.all(np.abs(dtime_ns - multiples * period_ns) <= tolerance_ns)
+
+
+def _infer_period_from_frequency_attr(
+    ds_list: list[xr.Dataset],
+) -> np.timedelta64 | None:
+    frequency_periods = {
+        "month": np.timedelta64(30, "D"),
+        "monthly": np.timedelta64(30, "D"),
+        "year": np.timedelta64(365, "D"),
+        "yearly": np.timedelta64(365, "D"),
+        "annual": np.timedelta64(365, "D"),
+        "annually": np.timedelta64(365, "D"),
+    }
+    periods = []
+    for ds in ds_list:
+        frequency = str(ds.attrs.get("frequency", "")).lower()
+        if frequency in frequency_periods:
+            periods.append(frequency_periods[frequency])
+
+    if not periods:
+        return None
+
+    if not all(period == periods[0] for period in periods[1:]):
+        raise ValueError(
+            "Unable to infer period from dataset: datasets have incompatible frequency attributes."
+        )
+
+    return periods[0]
+
+
+def _infer_period(ds_list: list[xr.Dataset]) -> np.timedelta64:
+    period_from_attr = _infer_period_from_frequency_attr(ds_list)
+    if period_from_attr is not None:
+        return period_from_attr
+
+    dtime = []
+    for ds in ds_list:
+        if ds.time.size <= 1:
+            continue
+        time_values = np.sort(ds.time.values.astype("datetime64[ns]"))
+        dtime.append(time_values[1:] - time_values[:-1])
+
+    if not dtime:
+        raise ValueError("Unable to infer period from dataset")
+
+    dtime = np.concatenate(dtime)
+    dtime = dtime[dtime > np.timedelta64(0, "ns")]
+    if dtime.size == 0:
+        raise ValueError("Unable to infer period from dataset")
+
+    candidates = [np.median(dtime), np.min(dtime)]
+    for period in candidates:
+        tolerance = _get_time_tolerance(period)
+        if _is_regular_or_missing_periods(dtime, period, tolerance):
+            if np.any(np.abs(dtime - period) > tolerance):
+                logger.warning(
+                    "Missing time periods detected while aligning datasets. "
+                    "Alignment will continue using the inferred period."
+                )
+            return period
+
+    raise ValueError("Unable to infer period from dataset")
+
+
+def _target_times_within_tolerance(
+    target_time: np.ndarray, ds_time: np.ndarray, tolerance: np.timedelta64
+) -> np.ndarray:
+    target_time = target_time.astype("datetime64[ns]")
+    ds_time = ds_time.astype("datetime64[ns]")
+
+    if target_time.size == 0:
+        return np.array([], dtype=bool)
+    if ds_time.size == 0:
+        return np.zeros(target_time.size, dtype=bool)
+
+    time_diff = np.min(np.abs(target_time[:, None] - ds_time[None, :]), axis=1)
+    return time_diff <= tolerance
+
+
 def check_times_within_tolerance(
     ds: xr.Dataset, target_time: np.ndarray, tolerance: np.timedelta64
 ):
@@ -22,7 +129,7 @@ def check_times_within_tolerance(
     # Convert to datetime
     ds_time = ds.time.values.astype("datetime64[ns]")
     target_ds_time = target_time.astype("datetime64[ns]")
-    max_diff = np.timedelta64(int(tolerance), "ns")
+    max_diff = _timedelta_to_ns(tolerance)
 
     # Get difference between ds_time and target_time
     time_diff = np.min(np.abs(ds_time[:, None] - target_ds_time[None, :]), axis=1)
@@ -55,12 +162,9 @@ def align_time(
     if all(time_dim_equal):
         return ds_list
 
-    # Infer period of first dataset (only if it has >1 time step)
-    if ds_list[0].time.size > 1:
-        dtime = ds_list[0].time.values[1:] - ds_list[0].time.values[:-1]
-        if any(abs(dtime - np.median(dtime)) > 0.1 * np.median(dtime)):
-            raise ValueError("Unable to infer period from dataset")
-        period = np.median(dtime)
+    # Infer period of datasets (only if one dataset has >1 time step)
+    if any(ds.time.size > 1 for ds in ds_list):
+        period = _infer_period(ds_list)
     else:
         logger.warning(
             "Datasets have only one time value — aligning them with the time "
@@ -77,7 +181,7 @@ def align_time(
         return aligned_ds_list
 
     # Define time tolerance
-    tolerance = 0.1 * period
+    tolerance = _get_time_tolerance(period)
 
     if only_overlapping:
         # Reduce datasets to their overlapping time range
@@ -85,19 +189,22 @@ def align_time(
         max_date = min([x.time.max() for x in ds_list]) + period / 2
         sliced_ds_list = [ds.sel(time=slice(min_date, max_date)) for ds in ds_list]
 
-        # Redefine timestamps according to first dataset
-        target_time = sliced_ds_list[0].time
-        aligned_ds_list = [sliced_ds_list[0]]
-
+        # Redefine timestamps according to times available in all datasets.
+        target_time = sliced_ds_list[0].time.values
         for ds_p in sliced_ds_list[1:]:
-            if ds_p.time.equals(target_time):
-                aligned_ds_list.append(ds_p)
-                continue
+            target_time = target_time[
+                _target_times_within_tolerance(
+                    target_time, ds_p.time.values, tolerance
+                )
+            ]
 
-            # Check if time difference is within reasonal bounds before rewriting timestamps
-            check_times_within_tolerance(ds_p, target_time.values, tolerance)
-            ds_p["time"] = target_time
-            aligned_ds_list.append(ds_p)
+        if target_time.size == 0:
+            raise ValueError("Datasets do not have overlapping timestamps.")
+
+        aligned_ds_list = [
+            ds.reindex(time=target_time, method="nearest", tolerance=tolerance)
+            for ds in sliced_ds_list
+        ]
 
         return aligned_ds_list
 

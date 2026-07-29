@@ -674,13 +674,15 @@ def create_flux_total_fgases(ds_all, species, regions, models, only_overlapping)
             )
 
             ds_summed = [
-                ds_tmp[["prior", "posterior"]].sum(dim="species", keep_attrs=True),
+                ds_tmp[["prior", "posterior"]].sum(
+                    dim="species", keep_attrs=True, min_count=1
+                ),
             ]
             for var in ["prior", "posterior"]:
                 ds_unc = np.sqrt(
-                    ((ds_tmp[[f"{var}_lower", f"{var}_upper"]] - ds_tmp[var]) ** 2).sum(
-                        dim="species", keep_attrs=True
-                    )
+                    (
+                        (ds_tmp[[f"{var}_lower", f"{var}_upper"]] - ds_tmp[var]) ** 2
+                    ).sum(dim="species", keep_attrs=True, min_count=1)
                 )
                 ds_unc[f"{var}_lower"] = ds_summed[0][var] - ds_unc[f"{var}_lower"]
                 ds_unc[f"{var}_upper"] = ds_summed[0][var] + ds_unc[f"{var}_upper"]
