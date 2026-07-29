@@ -839,7 +839,7 @@ def plot_sites_timeseries(
     species: str | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
-    model_colors: dict[str, str] | None = None,
+    model_colors: dict[str, list[str]] | None = None,
     model_labels: dict[str, str] | None = None,
     config_data: dict[str, dict] | None = None,
     margin: float = 0.1,
@@ -849,27 +849,27 @@ def plot_sites_timeseries(
     Plot the timeseries of data available for each site and model.
 
     Args:
-        ds_all (dictionary xarray Datasets):
+        ds_all:
             Dictionnary of xarray returned by read_output_model.
-        var (str):
+        var:
             Var for which the timeseries should be plotted
-        species (str):
+        species:
             Gas species, e.g. 'ch4'.
-        start_date (str):
+        start_date:
             Date to plot data from, e.g. '2021-01-01'
-        end_date (str):
+        end_date:
             Date to plot data to, e.g. '2022-01-01' would include all
             data up to 2021-12-31.
-        model_colors (dict of str):
+        model_colors:
             Models and corresponding colours used to plot the model.
-        model_labels (dict of dict):
+        model_labels:
             Dictionary with model lables.
-        config_data (dict of dict):
+        config_data:
             Dictionary with settings read from json file.
             Use json filenames as keys.
-        margin (float):
+        margin:
             Horizontal space between datapoints from different models.
-        separate_by_height (bool):
+        separate_by_height:
             If True, separates obs by intake height and by site.
     """
 
