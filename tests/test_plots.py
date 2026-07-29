@@ -283,6 +283,11 @@ def test_mf_timeseries():
     )
 
 
+def test_sites_timeseries_minimal_args():
+
+    fig = plot_sites_timeseries(ds_all_mf, "mf_posterior")
+
+
 def test_obs_modelled_separate():
     fig = plot_mf_timeseries(
         ds_all_mf_sliced,
