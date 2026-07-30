@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 def plot_flux_map(
     ds_all: dict[xr.Dataset],
-    species: str,
+    species: str | list[str],
     region: Region = None,
     config_data: dict[str, any] = {},
     model_labels: dict[str, str] = {},
@@ -59,7 +59,7 @@ def plot_flux_map(
     Args:
         ds_all (dictionary of datasets):
             Dictionary of fluxes xarray datasets.
-        species (str):
+        species (str, list):
             Gas species, e.g. 'ch4'.
         region (str or list):
             Region to plot, e.g. 'FRANCE', 'EUROPE', [lon_min, lon_max, lat_min, lat_max].
@@ -120,6 +120,8 @@ def plot_flux_map(
             Three maps, for each model, of the flux prior, the flux posterior and the difference between both.
     """
 
+    is_multispecies = isinstance(species, list)
+
     # Check for inversion_grid and sector option
     if plot_inversion_grid_flux == True and sector != "total":
         raise ValueError(
@@ -170,16 +172,38 @@ def plot_flux_map(
 
     # Load country lines and species information
     country_lines = compute_boundary_geometry(map_bounds)
-    species_info = config_data.get("species_info", {}).get(species, {})
+    # species_info = config_data.get("species_info", {}).get(species, {})
 
     # Set flux limits
-    fluxlim = set_flux_limits(
-        ds_dict,
-        var_fluxlim,
-        map_bounds,
-        option=set_fluxlim,
-        custom_percentile=set_fluxlim_percentile,
-    )
+    if is_multispecies and set_fluxlim == "auto":
+
+        fluxlim = {}
+
+        for sp in species:
+
+            species_ds = {
+                k: v
+                for k, v in ds_dict.items()
+                if k.startswith(f"{sp}__")
+            }
+
+            fluxlim[sp] = set_flux_limits(
+                species_ds,
+                var_fluxlim,
+                map_bounds,
+                option="auto",
+                custom_percentile=set_fluxlim_percentile,
+            )
+
+    else:
+
+        fluxlim = set_flux_limits(
+            ds_dict,
+            var_fluxlim,
+            map_bounds,
+            option=set_fluxlim,
+            custom_percentile=set_fluxlim_percentile,
+        )
 
     # Initialize figure
     n_rows = len(vars_list)
@@ -187,9 +211,44 @@ def plot_flux_map(
     figsize = define_map_figsize(
         map_bounds, n_rows, n_cols, fixed_value=3 * n_rows, fixed_dimension="height"
     )
-    fig, ax = plt.subplots(n_rows, n_cols, figsize=figsize, layout="compressed")
+    fig, ax = plt.subplots(n_rows, n_cols, figsize=figsize)
+
+    ax = np.array(ax, ndmin=2)
+
+    if n_cols == 1 and n_rows > 1:
+        ax = ax.T
+
+    column_flux_im = {}
+    column_diff_im = {}
+    column_species_info = {}
 
     for col, (model, ds) in enumerate(ds_dict.items()):
+
+        if is_multispecies:
+
+            if "__" not in model:
+                raise ValueError(
+                    "When species is a list, ds_all keys must have format 'species__model'"
+                )
+            species_name, model_name = model.split("__", 1)
+
+            species_info = (
+                config_data
+                .get("species_info", {})
+                .get(species_name, {})
+            )
+
+        else:
+
+            species_name = species
+            model_name = model
+
+            species_info = (
+                config_data
+                .get("species_info", {})
+                .get(species, {})
+            )
+        
         lon, lat = ds.longitude, ds.latitude
         sites_info = (
             get_active_sites_coordinates(ds, config_data, fallback_sites)
@@ -197,16 +256,27 @@ def plot_flux_map(
             else ""
         )
 
-        model_axes = ax if n_cols == 1 else (ax[:, col] if n_rows > 1 else ax[col])
+        model_axes = ax[:, col]
 
         for row, var in enumerate(vars_list):
-            ax_i = model_axes if n_rows == 1 else model_axes[row]
+            ax_i = ax[row, col]
 
             # Determine plot settings
             is_diff = "diff" in var
             cmap_i = cmap_diff if is_diff else cmap
             border_color = c_border_diff if is_diff else c_border
-            vlim_i = (-fluxlim[1], fluxlim[1]) if is_diff else fluxlim
+
+            if is_multispecies and set_fluxlim == "auto":
+                fluxlim_species = fluxlim[species_name]
+            else:
+                fluxlim_species = fluxlim
+
+            vlim_i = (
+                (-fluxlim_species[1], fluxlim_species[1])
+                if is_diff
+                else fluxlim_species
+            )
+
             if marker_color is None:
                 marker_color = "black" if is_diff else "red"
             extend_i = "both" if is_diff else "max"
@@ -221,6 +291,15 @@ def plot_flux_map(
                 vmax=vlim_i[1],
                 shading="nearest",
             )
+
+            if not is_diff:
+                column_flux_im[col] = im
+
+            if is_diff:
+                column_diff_im[col] = im
+
+            column_species_info[col] = species_info
+
             plot_country_borders(
                 ax=ax_i, lines=country_lines, border_color=border_color
             )
@@ -241,7 +320,12 @@ def plot_flux_map(
             # Add titles
             # Column titles
             if row == 0 and include_title_and_labels:
-                ax_i.set_title(model_labels.get(model, model))
+
+                if is_multispecies:
+                    ax_i.set_title(species_info.get("species_print", species_name))
+                else:
+                    ax_i.set_title(model_labels.get(model, model))
+
             # Row titles
             if col == 0 and include_title_and_labels:
                 ax_i.set_ylabel(define_flux_label(var))
@@ -258,29 +342,117 @@ def plot_flux_map(
                     city_marker,
                 )
 
-            if include_title_and_labels:
-                cbar_label_format = ["variable", "species", "units", "time"]
-            else:
-                cbar_label_format = ["species", "units", "time"]
 
-            # Add colorbar (only for the last column)
+            if is_multispecies:
+
+                if include_title_and_labels:
+                    cbar_label_format = ["variable", "units", "time"]
+                else:
+                    cbar_label_format = ["units", "time"]
+
+            else:
+
+                if include_title_and_labels:
+                    cbar_label_format = ["variable", "species", "units", "time"]
+                else:
+                    cbar_label_format = ["species", "units", "time"]
+
+    fig.subplots_adjust(bottom=0.20, right=0.92)
+
+    for col, (model, ds) in enumerate(ds_dict.items()):
+
+        species_info = (
+            {}
+            if is_multispecies
+            else column_species_info[col]
+)
+        if only == "prior":
+            flux_var = var_prior
+        else:
+            flux_var = var_posterior
+
+        if only in ["prior", "posterior"]:
+            flux_label = print_cbar_label(
+                ds,
+                species_info,
+                flux_var,
+                format=["variable", "time", "units"],
+            )
+        else:
+            flux_label = print_cbar_label(
+                ds,
+                species_info,
+                flux_var,
+                format=["variable"],
+            )
+
+        diff_label = print_cbar_label(
+            ds,
+            species_info,
+            var_diff,
+            format=["variable", "time", "units"],
+        )
+
+        # position based on bottom subplot in column
+        bottom_ax = ax[-1, col]
+
+        bbox = bottom_ax.get_position()
+
+
+        if col in column_flux_im:
+
+            flux_cax = fig.add_axes([
+                bbox.x0,
+                bbox.y0 - 0.06,
+                bbox.width,
+                0.012,
+            ])
+
+            flux_cb = fig.colorbar(
+                column_flux_im[col],
+                cax=flux_cax,
+                orientation="horizontal",
+            )
+
             if col == n_cols - 1:
-                cbar_label = print_cbar_label(
-                    ds,
-                    species_info,
-                    var,
-                    format=cbar_label_format,
-                )  # TODO Here, based on the last iteration. Check if consistent for all models?
-                add_colorbar(
-                    fig,
-                    ax_i,
-                    im,
-                    extend_i,
-                    label=cbar_label,
-                    n_cbar=n_rows,
-                    idx_cbar=row,
-                    colorbar_type="row",
+
+                flux_cb.ax.text(
+                    1.05,
+                    0.5,
+                    flux_label,
+                    transform=flux_cb.ax.transAxes,
+                    ha="left",
+                    va="center",
+                    fontsize=8,
                 )
+
+        if col in column_diff_im:
+
+            diff_cax = fig.add_axes([
+                bbox.x0,
+                bbox.y0 - 0.11,
+                bbox.width,
+                0.012,
+            ])
+
+            diff_cb = fig.colorbar(
+                column_diff_im[col],
+                cax=diff_cax,
+                orientation="horizontal",
+            )
+            
+            if col == n_cols - 1:
+
+                diff_cb.ax.text(
+                    1.05,
+                    0.5,
+                    diff_label,
+                    transform=diff_cb.ax.transAxes,
+                    ha="left",
+                    va="center",
+                    fontsize=8,
+                )
+            
     return fig
 
 

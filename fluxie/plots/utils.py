@@ -159,7 +159,18 @@ def print_cbar_label(
             A formatted colorbar label including variable, species, units, and period.
     """
 
-    var_label = f"{define_flux_label(var)}" if "variable" in format else ""
+    if "variable" in format:
+
+        var_label = define_flux_label(var)
+
+        if var_label in ["Prior", "Posterior"]:
+            var_label = "Flux"
+
+        elif "diff" in var:
+            var_label = "Flux Difference"
+
+    else:
+        var_label = ""
 
     species_label = (
         f"{species_info.get('species_print')}" if "species" in format else ""
