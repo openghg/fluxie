@@ -982,7 +982,7 @@ def plot_histogram(
     Plots a histogram on a specified axis.
 
     Args:
-        axis (matplotlib.axes.Axes):
+        ax (matplotlib.axes.Axes):
             Matplotlib subplot axis where the histogram should be plotted.
         ds (xarray dataset):
             Dataset with results from a particular model.
