@@ -101,18 +101,18 @@ def define_var_plot(
 def make_model_diff_ds(
     ds1: xr.Dataset,
     ds2: xr.Dataset,
-):
+) -> xr.Dataset:
     """
-    Create a difference xarray.Dataset between two model datasets.
+    Create a difference between two model datasets.
 
     Args:
-        ds1 (xr.Dataset):
+        ds1:
             First model dataset.
-        ds2 (xr.Dataset):
+        ds2:
             Second model dataset.
 
     Returns:
-        xr.Dataset: A new xarray.Dataset containing the computed differences or combinations for the supported variables.
+        A new dataset containing the computed differences or combinations for the supported variables.
     """
 
     diff = {}

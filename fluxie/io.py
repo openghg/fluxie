@@ -251,7 +251,7 @@ def get_filename(
         data_dir (str):
             Path to top data directory.
         read_standard_run (bool):
-            If True, constructs filename from models_info['standard_run'][<model_run_keys>].
+            If True, constructs filename from `models_info['standard_run'][<model_run_keys>]`.
             If entry "<model_run_keys>" don't exist, constructs filename from items in "<run_keys>".
             If entry "<run_keys>" don't exist, constructs filename from items in "default".
         filepath_kwargs (dict of str):
@@ -404,7 +404,7 @@ def read_model_output(
         add_sites_to_flux (bool):
             If true, add sites variable to flux dataset.
         read_standard_run (bool):
-            If True, constructs filename from models_info['standard_run'][<model_run_keys>].
+            If True, constructs filename from `models_info['standard_run'][<model_run_keys>]`.
             If entry "<model_run_keys>" don't exist, constructs filename from items in "<run_keys>".
             If entry "<run_keys>" don't exist, constructs filename from items in "default".
         model_filepath_dict (dict of dict):

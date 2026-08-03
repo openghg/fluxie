@@ -83,7 +83,7 @@ def create_cell_area(
 
 def scale_by_sector_proportions(
     data_dir: str,
-    ds_all: dict[xr.Dataset],
+    ds_all: dict[str, xr.Dataset],
     species: str,
     country_flux_units_print: str,
     regions=None,
@@ -102,7 +102,7 @@ def scale_by_sector_proportions(
     Args:
         data_dir (str):
             Path to top data directory.
-        ds (xarray dataset):
+        ds_all:
             xarray dataset with model data.
         species (str):
             Gas species, e.g. 'ch4'.

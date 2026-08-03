@@ -7,8 +7,8 @@ def calc_rolling_mean(ds: xr.Dataset, time_period: int = 3) -> xr.Dataset:
     WARNING : Only valid for time_period = 3 for now.
 
     Args:
-        ds : input dataset on which rolling mean will be applied
-        time_period : time period for the rolling mean (only 3 is currently coded)
+        ds: input dataset on which rolling mean will be applied
+        time_period: time period for the rolling mean (only 3 is currently coded)
     Return
         dataset where rolling mean have been applied, attributes are conserved
     """

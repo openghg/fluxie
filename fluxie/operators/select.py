@@ -346,10 +346,10 @@ def get_unique_sites(ds_all: dict[str, xr.Dataset]) -> list[str]:
     Gets list of all sites present in all datasets.
 
     Args:
-        ds (xarray dataset):
+        ds_all:
             Dictionary of datasets with mf data from all models.
     Returns:
-        sites (list of str):
+        sites:
             List of unique and sorted sites from all datasets.
     """
 
@@ -419,8 +419,6 @@ def get_unique_site_height_pairs(
     Args:
         ds_all:
             Dictionary of datasets with mf data from all models.
-        site_list:
-            List of unique sites from all models.
         separate_by_height:
             If True, includes a tuple per site height, if False, returns a tuple per
             site, with the second index set to None for all sites,

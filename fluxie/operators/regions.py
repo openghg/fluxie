@@ -276,7 +276,7 @@ def extract_region_inventory_flux(
 
     Args:
         data_dir: directory which contains the data (should have inside a directory named 'inventory').
-        specie: Gas species, e.g. 'ch4'.
+        species: Gas species, e.g. 'ch4'.
         unit: unit in which the inventory should be converted.
         s_data: Dictionary of species with information for plotting (read from json file).
         r_data: Dictionary with country and region names (read from json file).

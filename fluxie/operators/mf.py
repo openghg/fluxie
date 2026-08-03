@@ -139,7 +139,7 @@ def stats_mf(
         ds_all (dictionary of datasets):
             xarray datasets from slice_mf(), sliced between chosen dates
             but still containing all sites.
-        stats_type :
+        stats_type:
             type of statistics to be computed. One of 'prior', 'posterior' for
             statistics on the absolute mole fractions and 'prior_above_BC',
             'posterior_above_BC' for regional part of mole fraction, i.e. with
