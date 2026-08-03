@@ -996,7 +996,6 @@ def plot_country_flux(
         start_date: Start dates of the data to plot (used to slice inventory data). Can be a single date or a list of dates of equal length to model_colors.
         end_date: End dates of the data to plot (used to slice inventory data). Can be a single date or a list of dates of equal length to model_colors.
         annex_mode: If True, replace the labels with more concise versions for National Inventory Report Annexes.
-        scale_co2eq: If True, adapt y-axis label to CO2-eq.
         plot_inventory: If True, plots inventory flux estimates as bars in each plot.
         plot_inventory_uncertainty: If True and uncertainty available, plots inventory error bars. If a list is provided, should be of same size as inventory_years.
         inventory_years: List of inventory data from different years to include. If None, only plots the most recent inventory data.
@@ -1024,7 +1023,7 @@ def plot_country_flux(
             If False, recalculates uncertainty assuming no correlation between all averaged periods, by taking the square root of the summed variances, divided by the number of averaging periods.
         plot_resample_and_original: If True, plots both the resampled data and the data as its original frequency. If False, only plots the resampled data.
         return_res: Wheter or not including a dictionnary with the results as output
-        rolling_mean : If True, calculates a rolling mean (xx years) for each of the data to plot.
+        rolling_mean: If True, calculates a rolling mean (xx years) for each of the data to plot.
         aggreg_month: if True, plot the data aggregated by month. Used to study seasonnal cycle.
         sector: Sector to plot. Can be 'total' or any of the sectors defined in the datasets.
         xticks_at_centre: if True, set the x ticks at the centre of each time period (year or month) rather than at the beginning.
@@ -1219,35 +1218,22 @@ def plot_country_sector_flux_bar(
         ds_all: xarray datasets of fluxes, scaled and sliced between
             chosen dates.
         species: Gas species, e.g. 'ch4'.
-        plot_regions: Country or regions to plot, e.g. ['UNITED KINGDOM','SWITZERLAND']
+        plot_region: Country or regions to plot, e.g. ['UNITED KINGDOM','SWITZERLAND']
         config_data: Dictionary with settings read from json file. Use json filenames as keys.
         model_colors: Models and corresponding colours used to plot the model.
-        start_date: Start dates of the data to plot (used to slice inventory data).
-        end_date: Start dates of the data to plot (used to slice inventory data).
-        annex_mode: If True, replace the labels with more concise versions for National Inventory Report Annexes.
-        scale_co2eq: If True, adapt y-axis label to CO2-eq.
-        plot_inventory: If True, plots inventory flux estimates as bars in each plot.
+        plot_inventory_or_prior: Whether to add the inventory or prior data.
         inventory_years: List of inventory data from different years to include. If None, only plots the most recent inventory data.
         inventory_filename: Name of inventory file: {inventory_filename}_{species}_{inventory_year}
         data_dir: Path to top data directory, used to read inventory data files.
         fix_y_axes: If True, uses a consistent y axis for all plots.
-        set_global_leg: If True, plots one single legend instead of one legend per subplot.
-        country_codes_as_titles: If True, uses list of country codes as titles, instead of the region names.
-        plot_separate: If True, plots model result as separate line. List must be of same size as models, e.g. [True, False, False].
-            If a single boolean is provided, the same flag is assumed for all models.
-        plot_combined: If True, the model is included in combined average result to be plotted. List must be of same size as models, e.g. [False, True, True].
-            If a single boolean is provided, the same flag is assumed for all models.
         resample: Option to be passed to resample built-in function of xarray Dataset. For yearly average, 'YS' option should be used; 'QS-DEC' for seasonaly average.
             See http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
         resample_uncert_correlation: If True, calculates the resampled uncertainty as the mean from all averaged periods.
             If False, recalculates uncertainty assuming no correlation between all averaged periods, by taking the square root of the summed variances, divided by the number of averaging periods.
-        plot_resample_and_original: If True, plots both the resampled data and the data as its original frequency. If False, only plots the resampled data.
-        return_res: Wheter or not including a dictionnary with the results as output
-        rolling_mean : If True, calculates a rolling mean (xx years) for each of the data to plot.
+        rolling_mean: If True, calculates a rolling mean (xx years) for each of the data to plot.
         sectors: List of emissions sectors to plot.
     Returns:
         fig: A plot per country/region.
-        res_dict : If return_res, return also a dictionnary containing the plotted results
     """
     plot_type = "sector_barplot"
     s_data = config_data.get("species_info", {})

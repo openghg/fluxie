@@ -32,7 +32,7 @@ def plot_correlation(
     lims: LimsTuple | tuple[LimsTuple, LimsTuple] | None = None,
     figsize: tuple[float, float] = (10, 10),
     cmap: str = "YlOrRd",
-):
+) -> plt.Figure:
     """Plot correlation between two timeseries.
 
     Args:
