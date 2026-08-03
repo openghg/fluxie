@@ -20,13 +20,13 @@ def compute_mf_difference(
     dataset.
 
     Args:
-        ds_all (dictionary of datasets):
+        ds_all:
             xarray datasets from all models, sliced between chosen dates.
-        models_to_subtract (list of str):
+        models_to_subtract:
             List with two elements which correspond to the names of the models
             to subtract.
     Returns:
-        ds_diff (dictionary of dataset):
+        ds_diff:
             Dictionary with one single key pointing to an xarray dataset.
             Key is given by the two elements in models_to_subtract separated
             by a minus sign (-).
@@ -136,7 +136,7 @@ def stats_mf(
     This calls :py:func:`fluxie.operators.stats.stats_observed_vs_simulated`
 
     Args:
-        ds_all (dictionary of datasets):
+        ds_all:
             xarray datasets from slice_mf(), sliced between chosen dates
             but still containing all sites.
         stats_type:
@@ -146,7 +146,7 @@ def stats_mf(
             BC contribution subtracted from both observation and simulation.
         sites: sites for which to make the stats.
     Returns:
-        stats (pandas.DataFrame):
+        stats:
             Dataframe containing the statistical measures.
     """
 

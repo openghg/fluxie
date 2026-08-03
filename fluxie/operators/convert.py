@@ -18,19 +18,19 @@ def scale_variables(
     Scales mole fractions, country fluxes and fluxes according to print units.
 
     Args:
-        model (str):
+        model:
             Name tag of the model being scaled.
             i.e. '<inversionModel>_<optional_identifying_tags>', preceded by subdirectory if applicable
-        ds_model (xarray dataset):
+        ds_model:
             Sliced dataset with mf data from model.
-        species_info (dictionary of str):
+        species_info:
             Dictionary with species-specific settings.
-        print_units (dictionary of str):
+        print_units:
             Option for keys are: 'mf_unit', 'country_flux_unit', 'flux_unit'
             Keys point to units to which mole fractions/country fluxes/fluxes should be converted to.
             If None, no scaling is applied.
     Returns:
-        ds_model (xarray dataset):
+        ds_model:
             Sliced and scaled dataset.
     """
 
@@ -125,14 +125,14 @@ def get_variables(ds_model: xr.Dataset, unit_type: str) -> tuple[list[str], str 
     Finds variables of a given type in a dataset.
 
     Args:
-        ds_model (xarray dataset):
+        ds_model:
             Dataset with data from a model.
-        unit_type (str):
+        unit_type:
             Unit type of interest (e.g. "mf", "mass1 length-2 time-1")
     Returns:
-        var_names (list of str):
+        var_names:
             Names of variables in the dataset with unit_type units.
-        unique_units (str | None):
+        unique_units:
             unit_type explicit units used in the dataset (e.g. "mol mol-1", "kg m-2 s-1")
             Set to None if different units are present.
     """
@@ -177,12 +177,12 @@ def get_unit_type_and_conversion_to_base(input_unit: str) -> tuple[float, list[s
         "<letters><(-)integer>" separated by spaces (e.g. "kg m-2 s-1")
 
     Args:
-        input_unit (str):
+        input_unit:
             Units of a given variable.
     Returns:
-        conversion_factor (float):
+        conversion_factor:
             Scaling factor to base unit.
-        unit_dim_type (list of str):
+        unit_dim_type:
             Unit type of input_unit (e.g. ["mass1", "length-2", "time-1"])
     """
 
@@ -236,14 +236,14 @@ def get_units_conversion_factor(
     The current implementation only applies the conversion if the units exponent is equal to 1.
 
     Args:
-        from_unit (str):
+        from_unit:
             Units of the variable to be converted.
-        to_unit (str):
+        to_unit:
             Target units.
-        molar_mass (float):
+        molar_mass:
             Molar mass (g mol-1) to be used in g<->mol conversion.
     Returns:
-        conversion_factor (float):
+        conversion_factor:
             Scaling factor that guarantees the requested units conversion.
     """
 

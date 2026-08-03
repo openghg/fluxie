@@ -86,8 +86,8 @@ def scale_by_sector_proportions(
     ds_all: dict[str, xr.Dataset],
     species: str,
     country_flux_units_print: str,
-    regions=None,
-    config_data=dict[str, dict],
+    regions: list[str] | None = None,
+    config_data: dict[str, dict] = None,
     sector_file: str = "EUROPE_EDGAR",
     create_region_sector_totals: bool = True,
     sectors: list[str] | None = None,
@@ -100,31 +100,34 @@ def scale_by_sector_proportions(
     to produce region/country sector totals.
 
     Args:
-        data_dir (str):
+        data_dir:
             Path to top data directory.
         ds_all:
             xarray dataset with model data.
-        species (str):
+        species:
             Gas species, e.g. 'ch4'.
-        sectors (list of str):
+        sectors:
             Emissions sectors to include, options for 'agriculture', 'waste',
             'energy' and 'industry'.
-        country_flux_units_print (str):
+        country_flux_units_print:
             Units for country flux, e.g. 'Gg yr-1'
-        config_data (dict):
-            config_data (dict of dict):
+        regions:
+            List of regions to include, e.g. ['BEL', 'FRA', 'DEU', 'NLD', 'LUX'] or ['BEL-LUX-NLD'].
+            If None, all regions are included.
+        config_data:
+            config_data:
             Dictionary with settings read from json file.
             Use json filenames as keys.
-        sector_file (str):
+        sector_file:
             Start of sector file name, e.g. 'EUROPE_EDGAR'
-        create_region_sector_totals (bool):
+        create_region_sector_totals:
             If True, sums spatial fluxes over country_fraction masks
             to create country/region totals.
-        cell_area_test_file (bool):
+        cell_area_test_file:
             Only used in tests. If True, extracts cell_area from a smaller test file
             with restricted lat/lons.
     Returns:
-        ds (xarray dataset):
+        ds:
             Input ds, with added flux_sector_prior and flux_sector_posterior variables.
             If regions is not None, also contains region/country sector total variables.
     """

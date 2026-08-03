@@ -24,17 +24,17 @@ def stats_observed_vs_simulated(
         * Normalised root mean square error
 
     Args:
-        ds_all (dictionary of datasets):
+        ds_all:
             xarray datasets
-        obs_var (str):
+        obs_var:
             Name of the observed variable.
-        sim_var (str):
+        sim_var:
             Name of the simulated variable.
-        sites (list):
+        sites:
             Sites for which to make the stats.
 
     Returns:
-        stats (pandas.DataFrame):
+        stats:
             Statistical measures, for each site and for each model between observations and
             simulations. Columns:
                 * 'model': model string

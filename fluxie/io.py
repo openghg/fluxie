@@ -60,10 +60,10 @@ def read_json(filepath: os.PathLike) -> dict[str, dict]:
     Reads json file.
 
     Args:
-        filepath (str or Path):
+        filepath:
             Path to json file including filename.
     Returns:
-        json_data (dictionary of dictionaries):
+        json_data:
             Dictionary with data read from filepath.
     """
 
@@ -83,10 +83,10 @@ def read_yaml(filepath: os.PathLike) -> dict[str, dict]:
     Reads yaml file.
 
     Args:
-        filepath (str or Path):
+        filepath:
             Path to yaml file including filename.
     Returns:
-        yaml_data (dictionary of dictionaries):
+        yaml_data:
             Dictionary with data read from filepath.
     """
 
@@ -108,7 +108,7 @@ def read_config_files(
     Reads all configuration files.
 
     Returns:
-        data_dict (dictionary of dictionaries):
+        data_dict:
             Dictionary with keys equal to files basename (without extension).
             Each key points to a dictionary with the data from each config file.
     """
@@ -155,13 +155,13 @@ def make_template(*args: str | tuple[str], suffix: str | None = None) -> str:
     Tuple elements are expected to indicate filename parts and are joined with "_".
 
     Args:
-        args (tuple of str or tuples):
+        args:
             Tuple with all input arguments (folder directories and filename parts).
-        suffix (str):
+        suffix:
             If provided, a suffix is added to the filename template.
 
     Returns:
-        template (str):
+        template:
             String composed of template elements (e.g. "{arg1}/{arg2}{suffix}")
     """
 
@@ -189,13 +189,13 @@ def fill_template(template: str, **kwargs: str) -> str:
     Replace filename template with respective input arguments.
 
     Args:
-        template (str):
+        template:
             Filename template. Output from make_template.
-        kwargs (str):
+        kwargs:
             Elements to fill the template.
 
     Returns:
-        filepath (str):
+        filepath:
             Full path to file given by template with elements replaced by kwargs.
     """
 
@@ -237,29 +237,29 @@ def get_filename(
     Get complete path to the output file.
 
     Args:
-        model (str):
+        model:
             Key specifying model name, e.g. 'elris'
-        species (str):
+        species:
             Gas species, e.g. 'ch4'.
-        period (str):
+        period:
             Inversion period as specified in the model filename.
-        file_pattern (str):
+        file_pattern:
             String that should be added at the end of the filename.
-        config_data (dict of dict):
+        config_data:
             Dictionary with settings read from config file.
             Use config filenames as keys.
-        data_dir (str):
+        data_dir:
             Path to top data directory.
-        read_standard_run (bool):
+        read_standard_run:
             If True, constructs filename from `models_info['standard_run'][<model_run_keys>]`.
             If entry "<model_run_keys>" don't exist, constructs filename from items in "<run_keys>".
             If entry "<run_keys>" don't exist, constructs filename from items in "default".
-        filepath_kwargs (dict of str):
+        filepath_kwargs:
             Dictionary with filename parameters (key options: "data_dir", "model_dir", "species_dir", "sub_dir", "model_name")
             If missing, filename parameters are deduced from model.
 
     Returns:
-        filepath (Path):
+        filepath:
             Complete path to output file.
     """
 
@@ -384,35 +384,35 @@ def read_model_output(
     Extracts mole fraction or flux timeseries data from each model.
 
     Args:
-        data_dir (str):
+        data_dir:
             Path to top data directory.
-        file_type (DataType):
+        file_type:
             DataType that indicate file to read (flux, concentration or eddy_flux)
-        species (str):
+        species:
             Gas species, e.g. 'ch4'.
-        models (list of str):
+        models:
             Model name tags specifying model runs,
             i.e. '<inversionModel>_<optional_identifying_tags>', preceded by subdirectory if applicable,
             e.g. ['InTEM_NAME_EUROPE_EDGAR','ELRIS_NAME_EUROPE_EDGAR']
-        config_data (dict of dict):
+        config_data:
             Dictionary with settings read from config file.
             Use config filenames as keys.
-        period (str or list of str):
+        period:
             Inversion period as specified in the model filename.
             If it is a string, the same period is considered for all models.
             If it is a list, one value per model must be specified, e.g. ['monthly','yearly']
-        add_sites_to_flux (bool):
+        add_sites_to_flux:
             If true, add sites variable to flux dataset.
-        read_standard_run (bool):
+        read_standard_run:
             If True, constructs filename from `models_info['standard_run'][<model_run_keys>]`.
             If entry "<model_run_keys>" don't exist, constructs filename from items in "<run_keys>".
             If entry "<run_keys>" don't exist, constructs filename from items in "default".
-        model_filepath_dict (dict of dict):
+        model_filepath_dict:
             Dictionary with the elements of models as keys and a dictionary of filename parameters as values.
             If not provided, the filename parameters are deduced from models.
 
     Returns:
-        ds_all (dictionary of datasets):
+        ds_all:
             xarray dataset read directly from each model's mole fraction netCDF.
     """
     file_type = DataTypes(file_type)
@@ -506,35 +506,35 @@ def read_flux_total_fgases(
     of the notebook.
 
     Args:
-        data_dir (str):
+        data_dir:
             Path to top data directory.
-        species (str):
+        species:
             'all_hfc' or 'all_pfc'
-        models (list of str):
+        models:
             Model name tags specifying model runs,
             i.e. models[i] = '<inversionModel>_<run_key>', preceded by subdirectory if applicable, e.g. ['InTEM','ELRIS'].
             The model name tag for each species is taken from standard_run[models[i]] in models_info.json, preceded by <inversionModel>.
             If standard_run[models[i]] does not exist in models_info.json, standard_run["default"] is used.
-        regions (list of str):
+        regions:
             Region names used to extract fluxes. Only these regions can then be plotted.
-        config_data (dict of dict):
+        config_data:
             Dictionary with settings read from config file.
             Use config filenames as keys.
-        start_date (str):
+        start_date:
             Date to slice data from, e.g. '2021-01-01'
-        end_date (str):
+        end_date:
             Date to slice data to, e.g. '2022-01-01' would include all
             data up to 2021-12-31.
-        period (str or list of str):
+        period:
             Inversion period as specified in the model filename.
             If it is a string, the same period is considered for all models.
             If it is a list, one value per model must be specified, e.g. ['monthly','yearly']
-        unit (str):
+        unit:
             unit in which to put the dataset. Must be in CO2-eq
-        only_overlapping (bool):
+        only_overlapping:
             If True, only includes time periods where all models have data. Otherwise, uses all available data.
     Returns:
-        ds_all (dictionary of datasets):
+        ds_all:
             xarray dataset read directly from each model's flux netCDF.
     """
 
@@ -642,25 +642,31 @@ def read_flux_total_fgases(
     return ds_output
 
 
-def create_flux_total_fgases(ds_all, species, regions, models, only_overlapping):
+def create_flux_total_fgases(
+    ds_all: dict[str, dict[str, list[xr.Dataset]]],
+    species: str,
+    regions: list[str],
+    models: list[str],
+    only_overlapping: bool = True,
+) -> dict[str, xr.Dataset]:
     """
     Sum species datasets by region and model to create output.
 
     Args:
-        ds_all (dictionnary of dictionnary of list of xarray datasets):
+        ds_all:
             First keys are the regions, second the model, the list contains all the data for the species to be summed.
-        species (str):
+        species:
             'all_hfc' or 'all_pfc'
-        models (list of str):
+        models:
             Model name tags specifying model runs,
             i.e. '<inversionModel>_<optional_identifying_tags>', preceded by subdirectory if applicable,
             e.g. ['InTEM_NAME_EUROPE_EDGAR','ELRIS_NAME_EUROPE_EDGAR']
-        regions (list of str):
+        regions:
             Region names used to extract fluxes. Only these regions can then be plotted.
-        only_overlapping (bool):
+        only_overlapping:
             If True, only includes time periods where all models have data. Otherwise, uses all available data.
     Returns:
-        ds_output (dictionary of datasets):
+        ds_output:
             dictionnary of xarray datasets ready to be used with fluxie plot methods.
     """
     ds_output = {}
@@ -699,12 +705,12 @@ def load_countries_shape(region_bounds: tuple = ()) -> gpd.geodataframe:
     Load Natural Earth vector map data and optionally filters for a specific region.
 
     Args:
-        region_bounds (tuple, optional):
+        region_bounds:
             A tuple of (min_lon, max_lon, min_lat, max_lat) to filter the map.
             Default is None, which loads the full world.
 
     Returns:
-        gdf (GeoDataFrame):
+        gdf:
             A GeoDataFrame containing the country boundaries for the specified region.
     """
 
@@ -758,24 +764,24 @@ def edit_vars_and_attributes(
     This function would not be needed if all files complied with the data format.
 
     Args:
-        ds (xarray dataset):
+        ds:
             xarray dataset with model data.
-        model (str):
+        model:
             Model name tag corresponding to ds,
             i.e. '<inversionModel>_<optional_identifying_tags>', preceded by subdirectory if applicable
-        frequency (str):
+        frequency:
             Frequency of the inversion results present in the dataset.
             Options for "monthly" and "yearly".
-        file_type (str):
+        file_type:
             Output file type.
             See :py:class:`fluxie.types.DataType` for options.
-        regions_info (dict of str):
+        regions_info:
             Dictionary with country and region names (read from config file).
-        species (str, optional):
+        species:
             Gas species, e.g. 'ch4'. If None, no species attribute is added.
 
     Returns:
-        ds (xarray dataset):
+        ds:
             xarray dataset with updated variables and attributes.
     """
 
@@ -1063,19 +1069,19 @@ def add_sites_var(
     using the corresponding concentration dataset.
 
     Args:
-        ds_flux (xarray dataset):
+        ds_flux:
             xarray dataset with model data.
-        filepath_flux (Path):
+        filepath_flux:
             Path to the flux NetCDF file.
-        model (str):
+        model:
             Model name tag corresponding to ds_flux.
-        frequency (str):
+        frequency:
             Frequency of the inversion results present in the dataset.
-        config_data (dict of str):
+        config_data:
             Dictionary with settings read from json file.
 
     Returns:
-        ds_flux (xarray dataset):
+        ds_flux:
             xarray dataset with a new 'sites' variable added if the concentration
             file exists. If not, returns the original ds_flux unchanged.
     """

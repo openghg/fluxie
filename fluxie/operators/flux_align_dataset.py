@@ -220,9 +220,9 @@ def align_map_data(
       - aligning time and spatial coordinates.
 
     Args:
-        ds_all (dict[xr.Dataset | xr.DataArray]):
+        ds_all:
             Dictionary of model names and corresponding xarray Datasets/DataArrays.
-        only_overlapping (bool):
+        only_overlapping:
             If True, reduces datasets to their overlapping time range before aligning.
             If False, includes all data and fills in missing time steps with NaNs.
     Returns:

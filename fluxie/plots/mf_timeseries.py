@@ -662,43 +662,43 @@ def plot_timeseries(
     the difference between specified variables and observations.
 
     Args:
-        ds_all (dictionary of datasets):
+        ds_all:
             xarray datasets, scaled and sliced between chosen dates and for
             chosen site.
-        include (dict of str):
+        include:
             Dictionary keys are variables to include in the plot.
             The respective values are the uncertainty variables to plot as error bar/uncertainty band.
-        species (str):
+        species:
             Gas species, e.g. 'ch4'.
-        site (str):
+        site:
             Obs site, e.g. 'MHD'.
-        model_colors (dict of str):
+        model_colors:
             Models and corresponding colours used to plot the model.
-        model_labels (dict of str):
+        model_labels:
             Labels to use for each model
-        config_data (dict of dict):
+        config_data:
             Dictionary with settings read from json file.
             Use json filenames as keys.
-        annotate_coords (dict of lists):
+        annotate_coords:
             Coordinates to annotate histogram.
         presentation_mode (logical) (optional):
             If True, adjust annotation position and xlabel rotation to accomodate bigger fonts.
-        diff_include (list of str):
+        diff_include:
             Variables included in the 'obs - variable' difference histogram.
             If None, plots the histogram of the variables specified in include.
-        y_lim (list of float, optional):
+        y_lim:
             Mix/max y axis limits to apply to all plots.
-        n_bins (int):
+        n_bins:
             Number of bins to use in the histogram.
-        time_freq_min (FrequencyType, optional):
+        time_freq_min:
             Time frequency minimum of the timeserie that should be shown as continous
             line. If the frequency is lower than this, the line will be discontinous.
             see :py:func:`fluxie.operators.select.clean_timeseries_missing_data`
             for more information.
-        unc_type (str, optional):
+        unc_type:
             Type of plot to use for uncertainty ("Errorbar" or "FillBetween"). Default is "FillBetween".
     Returns:
-        fig (figure):
+        fig:
             A timeseries and histogram plot for each model included.
     """
 
@@ -848,27 +848,27 @@ def plot_sites_timeseries(
     Plot the timeseries of data available for each site and model.
 
     Args:
-        ds_all (dictionary xarray Datasets):
+        ds_all:
             Dictionnary of xarray returned by read_output_model.
-        var (str):
+        var:
             Var for which the timeseries should be plotted
-        species (str):
+        species:
             Gas species, e.g. 'ch4'.
-        start_date (str):
+        start_date:
             Date to plot data from, e.g. '2021-01-01'
-        end_date (str):
+        end_date:
             Date to plot data to, e.g. '2022-01-01' would include all
             data up to 2021-12-31.
-        model_colors (dict of str):
+        model_colors:
             Models and corresponding colours used to plot the model.
-        model_labels (dict of dict):
+        model_labels:
             Dictionary with model lables.
-        config_data (dict of dict):
+        config_data:
             Dictionary with settings read from json file.
             Use json filenames as keys.
-        margin (float):
+        margin:
             Horizontal space between datapoints from different models.
-        separate_by_height (bool):
+        separate_by_height:
             If True, separates obs by intake height and by site.
     """
 
@@ -982,26 +982,26 @@ def plot_histogram(
     Plots a histogram on a specified axis.
 
     Args:
-        ax (matplotlib.axes.Axes):
+        ax:
             Matplotlib subplot axis where the histogram should be plotted.
-        ds (xarray dataset):
+        ds:
             Dataset with results from a particular model.
-        model (str):
+        model:
             Model name tag to which the dataset ds refers to.
             i.e. '<inversionModel>_<optional_identifying_tags>', preceded by subdirectory if applicable
-        vars_to_plot (list of str):
+        vars_to_plot:
             Variables plotted in the timeseries plot.
             These variables are directly plotted in the histogram if diff_include is None.
-        diff_include (list of str):
+        diff_include:
             Variables included in the 'obs - variable' difference histogram.
             If None, plots the histogram of the variables specified in vars_to_plot.
         presentation_mode (logical) (optional):
             If True, adjust annotation position to accomodate bigger fonts.
-        annotate_coords (dict of lists):
+        annotate_coords:
             Coordinates to annotate histogram.
-        annotate_index (int):
+        annotate_index:
             Model index. Used to specify annotation location if plot_type == "together".
-        plot_type (PlotTypes | str):
+        plot_type:
             Type of timeseries plot in which the histogram will be plotted.
             Options for "separate", "together" and "diff".
     """
@@ -1112,7 +1112,7 @@ def plot_sites_list_mf(
             chosen site.
         sites: Obs sites list, e.g. ['MHD', 'CBW'].
         species: Gas species, e.g. 'ch4'.
-        include (dict of str):
+        include:
             Dictionary keys are variables to include in the plot.
             The respective values are the uncertainty variables to plot as error bar/uncertainty band.
         model_labels: labels to use for each model

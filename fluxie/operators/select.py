@@ -29,28 +29,28 @@ def slice_flux(
     calls scaling functions.
 
     Args:
-        ds_all (dictionary of datasets):
+        ds_all:
             xarray datasets read directly from each model's flux netCDF.
-        start_date (str):
+        start_date:
             Date to slice data from, e.g. '2021-01-01'
-        end_date (str):
+        end_date:
             Date to slice data to, e.g. '2022-01-01' would include all
             data up to 2021-12-31.
-        config_data (dict of dict):
+        config_data:
             Dictionary with settings read from json file.
             Use json filename as keys.
-        species (str):
+        species:
             Gas species, used to choose scaling units, e.g. 'ch4'.
             Set to None to prevent scaling.
-        flux_units_print (str):
+        flux_units_print:
             Units to which fluxes should be converted to.
             Expected format: "<letters><(-)integer>" separated by spaces (e.g. "mol m-2 s-1").
-        country_flux_units_print (str):
+        country_flux_units_print:
             Units to which country fluxes should be converted to.
             Expected format: "<letters><(-)integer>" separated by spaces (e.g. "Tg yr-1").
             Conversion to CO2 equivalent can be specified with tag "CO2-eq" (e.g. "Tg CO2-eq yr-1").
     Returns:
-        ds_all (dictionary of datasets):
+        ds_all:
             xarray datasets, scaled, converted, and sliced between chosen dates.
 
     """
@@ -107,28 +107,28 @@ def slice_mf(
     given time limits, and/or for the chosen site.
 
     Args:
-        ds_all (dictionary of datasets):
+        ds_all:
             xarray datasets read directly from each model's flux netCDF.
-        start_date (str):
+        start_date:
             Date to slice data from, e.g. '2021-01-01'
-        end_date (str):
+        end_date:
             Date to slice data to, e.g. '2022-01-01' would include all
             data up to 2021-12-31.
-        site (str | list[str] | None):
+        site:
             Obs site to select data from, e.g. 'MHD'.
-        baseline_site (str):
+        baseline_site:
             Site used to define baseline at, options for 'MHD', 'JFJ', or 'CMN'.
             If None, does not mask timeseries by baseline times.
-        data_dir (str):
+        data_dir:
             Path to top data directory, used to read baseline info files.
-        mf_units_print (str):
+        mf_units_print:
             Units to which mole fractions should be converted to.
             Expected format: "<letters><(-)integer>" separated by spaces (e.g. "mol mol-1")
-        keep_unassimilated (bool):
+        keep_unassimilated:
             If True, keeps unassimilated data (assimilation_flag != 1).
             If False, only keeps assimilated data (assimilation_flag == 1).
     Returns:
-        ds_all (dictionary of datasets):
+        ds_all:
             xarray datasets, scaled and sliced between chosen dates and for
             chosen site.
     """
@@ -234,16 +234,16 @@ def slice_site(
     Slices the dataset to only include data for a given site.
 
     Args:
-        ds (xarray dataset):
+        ds:
             Dataset with mf data of a given model.
             Can also be a dictionary of datasets, in which case the function
             is applied to each dataset and return a dictionary of sliced datasets.
-        site (str | list[str]):
+        site:
             Site(s) of interest.
         raise_error:
             if True, raise an error if the site is not found in the dataset.
     Returns:
-        ds (xarray dataset):
+        ds:
             Dataset with mf data of a given model, sliced to only include data for the given site(s).
     """
 
@@ -295,12 +295,12 @@ def slice_height(ds: xr.Dataset, intake_height: float) -> xr.Dataset:
     Slices the dataset to only include data for a given intake height.
 
     Args:
-        ds (xarray dataset):
+        ds:
             Dataset with mf data of a given model.
-        intake_height (str):
+        intake_height:
             intake_height of interest.
     Returns:
-        ds (xarray dataset):
+        ds:
             Dataset with mf data of a given model, sliced to only include data for the given intake_height.
     """
 
@@ -324,12 +324,12 @@ def get_site_index(ds: xr.Dataset, site: str) -> int | None:
     Gets the index of a given site in a dataset.
 
     Args:
-        ds (xarray dataset):
+        ds:
             Dataset with mf data of a given model.
-        site (str):
+        site:
             Site of interest.
     Returns:
-        index (int):
+        index:
             Index of site of interest in the dataset.
             Returns None if site does not exist.
     """
@@ -369,12 +369,12 @@ def get_intake_height(site: str, site_info: dict[str, dict]) -> int | None:
     This assumes use of the heighest height from all available at the specified site.
 
     Args:
-        site (str):
+        site:
             3-letter site code.
-        site_info (dict of dict):
+        site_info:
             Data extracted from site_info.json.
     Returns:
-        max_height (int):
+        max_height:
             Maximum height from all networks and inlets available at the site.
     """
 
@@ -469,16 +469,16 @@ def clean_timeseries_missing_data(
     Adds back in NaN related to data gaps.
 
     Args:
-        ds (xarray dataset):
+        ds:
             Original dataset with mf data.
-        min_freq (str, optional):
+        min_freq:
             Minimum frequency of the time series, e.g. '1h' for hourly data.
             If provided, will add NaN values to the dataset to fill in gaps.
             If None, a default frequency will be used based on the median time difference.
             This can be given either as a string compatible with pandas frequency strings
             or as a timedelta object.
     Returns:
-        ds (xarray dataset):
+        ds:
             Modified dataset with NaN in data gaps.
     """
 

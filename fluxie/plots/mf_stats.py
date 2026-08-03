@@ -31,22 +31,22 @@ class TaylorDiagram:
         Initialize the axis for the Taylor Diagram.
 
         Args:
-            std_range (tuple):
+            std_range:
                 Two floats (min, max). It indicates the range for the radial coordinate.
-            std_unit (str):
+            std_unit:
                 Unit for the standard deviation. It is only used for the axis label.
-            std_obs (float):
+            std_obs:
                 Observed standard deviation.
                 It makes sense to have it only if all markers share the same observed standard deviation.
-            fig (Figure):
+            fig:
                 Instance of a matplotlib figure. The axis for the Taylor Diagram will be added as as
                 subplot to this figure.
-            position (tuple):
+            position:
                 Three integers (nrows, ncols, index). The subplot will take the index position
                 on a grid with nrows rows and ncols columns.
-            markersize (int):
+            markersize:
                 Size of the markers.
-            normalized (bool):
+            normalized:
                 If True, the standard deviation is normalized to the observed standard deviation.
                 If False, the standard deviation is plotted in absolute units.
         """
@@ -162,11 +162,11 @@ class TaylorDiagram:
         Add markers representing sample points to the Taylor diagram.
 
         Args:
-            stds (list of floats):
+            stds:
                 Standard deviations of the sample points
-            pearsons (list of floats):
+            pearsons:
                 Pearson's correlation coefficiens of the sample points
-            label (str):
+            label:
                 Label for the sample points, used in the legend.
             *args, **kwargs: Additional plotting parameters (e.g., color, marker).
         """
@@ -184,7 +184,7 @@ class TaylorDiagram:
         Add centered RMSE contours to the Taylor diagram.
 
         Args:
-            levels (int):
+            levels:
                 Number of contour levels
             **kwargs: Additional contour parameters.
         """
@@ -217,30 +217,30 @@ def plot_stats_mf(
     Plots statistics for all sites, for all models.
 
     Args:
-        stats (pandas.DataFrame):
+        stats:
             Statistical measures, for each site and for each model.
-        stats_to_plot (list of str):
+        stats_to_plot:
             Statistical measures to plot.
-        species (str):
+        species:
             Gas species, e.g. 'ch4'.
-        model_colors (dict of str):
+        model_colors:
             Models and corresponding colours used to plot the model.
-        model_labels (dict of str):
+        model_labels:
             Models and corresponding labels used to plot the stats.
-        config_data (dict of dict):
+        config_data:
             Dictionary with settings read from json file.
             Use json filenames as keys.
-        mf_units_print (str):
+        mf_units_print:
             Mole fraction units used in plots
-        stats_type (str):
+        stats_type:
             Type of statistics to be plotted. Should be the same as used in call to stats_mf().
-        stats_ylim (dict of lists):
+        stats_ylim:
             Limits for y-axis of individual statistic plots. Can be given for selected
             statistics only or passed as None for automatic axis range.
         start_date (str) and end_date (str):
             Dates used to title the plot.
     Returns:
-        fig (figure):
+        fig:
             Plot showing each model's fit statistics, for each site.
     """
 
@@ -326,36 +326,36 @@ def plot_taylor_diagram(
     Plots statistics for all sites, for all models.
 
     Args:
-        stats (dict of pd.DataFrame):
+        stats:
             Dictionary containing statistics for each model and each site.
             The keys should match the entries in the `include` parameter.
-        model_colors (dict of str):
+        model_colors:
             Models and corresponding colours used to plot the markers.
-        model_labels (dict of str):
+        model_labels:
             Models and corresponding labels used to label the markers.
-        stat_markers (list of str):
+        stat_markers:
             Marker styles used to plot the stats specified in the `include` parameter, sharing the same index.
             If only one marker is provided, it will be applied to all stats.
-        normalize (bool):
+        normalize:
             If True, normalizes the data by the standard deviation of the observations.
             If False, plots the absolute data.
-        plot_type_model (str):
+        plot_type_model:
             If 'separate', plots each model in a separate subplot.
             If 'together', plots all models in the same subplot.
-        plot_type_stat (str):
+        plot_type_stat:
             If 'separate', plots each statistic in a separate subplot.
             If 'together', plots all statistics in the same subplot.
-        include (list of str):
+        include:
             List of statistics to include in the plot.
             Options are 'prior' and 'posterior'.
-        std_range (tuple of float):
+        std_range:
             Range for the standard deviation axis, in units provided with `std_unit` if `normalize` = True.
-        std_unit (str):
+        std_unit:
             Unit for the standard deviation axis label.
-        check_sites (bool):
+        check_sites:
             If True, color different sites with different colors.
     Returns:
-        fig (figure):
+        fig:
             Plot showing each model's fit statistics, for each site.
     """
 

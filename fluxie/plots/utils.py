@@ -118,10 +118,10 @@ def define_flux_label(var: str) -> str:
     the var name if the var is not a key of config.special_flux_labels.
 
     Args:
-        var (str):
+        var:
             The variable name in the dataset.
     Returns:
-        label(str):
+        label:
             Flux label.
     """
     if var in config.special_flux_labels:
@@ -143,19 +143,19 @@ def print_cbar_label(
     Generate a colorbar label for a dataset variable.
 
     Args:
-        ds (xr.DataArray):
+        ds:
             The DataArray containing the variable. The DataArray should be named with the name of the variable
             (e.g. "posterior_prior_diff", "flux_total_prior", ...)
-        species_info (dict):
+        species_info:
             A dictionary with metadata for species, including display names.
-        var (str, optional):
+        var:
             The variable name in the dataset.
-        format (list[str], optional):
+        format:
             Specifies the components to include in the label.
             Options: ['variable', 'species', 'units', 'time']. Default includes all.
 
     Returns:
-        cbar_label(str):
+        cbar_label:
             A formatted colorbar label including variable, species, units, and period.
     """
 
@@ -188,11 +188,11 @@ def get_units(
     Retrieve and format the units of an xarray DataArray.
 
     Args:
-        data (xr.DataArray):
+        data:
             The xarray DataArray from which to retrieve the units.
 
     Returns:
-        period (str):
+        period:
             A formatted string representing the units.
     """
     if not isinstance(data, xr.DataArray):
@@ -213,11 +213,11 @@ def format_units(units: str) -> str:
     Format units string to replace negative exponents with LaTeX-compatible superscripts.
 
     Args:
-        units (str):
+        units:
             The units string to format.
 
     Returns:
-        formatted_units (str):
+        formatted_units:
             The formatted units string with LaTeX-compatible superscripts.
     """
     if not isinstance(units, str):
@@ -234,7 +234,7 @@ def get_frequency(
     Determine the temporal frequency of a dataset for a given species ('Y' for yearly, 'M' for monthly).
 
     Args:
-        ds (xr.Dataset):
+        ds:
             The dataset containing metadata attributes related to frequency.
 
     Returns:
@@ -269,15 +269,15 @@ def print_period(
     Generate a formatted string representing the time period covered by a dataset.
 
     Args:
-        ds (xr.Dataset):
+        ds:
             The dataset containing a `time` dimension to determine the start and end dates.
-        freq (str):
+        freq:
             The temporal frequency (e.g., 'Y' for yearly, 'M' for monthly) to format the dates.
-        season (str, optional):
+        season:
             A seasonal label (e.g., 'DJF', 'MAM') to include in the output. Default is None.
 
     Returns:
-        period (str):
+        period:
             A formatted string representing the dataset's time period, optionally including a season.
     """
 
@@ -328,11 +328,11 @@ def get_marker_coordinates(
     Retrieve latitude and longitude coordinates for a specified marker.
 
     Args:
-        marker (str | tuple):
+        marker:
             The location identifier.
             - If a string, it must match a key in `point_source` in regions_info.json.
             - If a tuple, it must contain exactly two numeric values representing (latitude, longitude).
-        regions_info (dict of str):
+        regions_info:
             Dictionary with country and region names (read from json file).
 
     Returns:
@@ -382,11 +382,11 @@ def get_active_sites_coordinates(
     Retrieve coordinates for active platforms/sites from an xarray Dataset.
 
     Args:
-        ds (xr.Dataset):
+        ds:
            xarray flux dataset.
-        config_data (dict):
+        config_data:
             Dictionary of sites with information for plotting (read from json file).
-        fallback_sites (list[str] | None):
+        fallback_sites:
             A list of site/platform names to use if no active sites are found in `ds`.
 
     Returns:
@@ -427,11 +427,11 @@ def get_sites_coordinates(
     If 'sites' is missing, use it from another dataset where it's available.
 
     Args:
-        ds_all (dict):
+        ds_all:
             Dictionary of xarray datasets.
-        config_data (dict):
+        config_data:
             Dictionary of sites with information for plotting (read from json file).
-        fallback_sites (list[str] | None):
+        fallback_sites:
             A list of site names to use as a fallback if 'sites' is not found in the datasets.
             If None, the first available 'sites' in the datasets will be used as fallback.
 
@@ -459,12 +459,12 @@ def extract_site_info(
     Extract latitude and longitude for each site from site_info in the config data.
 
     Args:
-        sites (list[str]): A list of site names to extract information for.
-        config_data (dict[str, dict]): A dictionary containing configuration data,
+        sites: A list of site names to extract information for.
+        config_data: A dictionary containing configuration data,
                                        where 'site_info' holds the latitude and longitude info.
 
     Returns:
-        sites_coordinates (dict[str, dict]): A dictionary mapping site names to their respective latitude and longitude.
+        sites_coordinates: A dictionary mapping site names to their respective latitude and longitude.
     """
 
     site_info = config_data.get("site_info", {})
@@ -526,15 +526,15 @@ def get_map_bounds(
     3. None, in which case the bounds are read from the datasets.
 
     Args:
-        ds_all (list[xr.Dataset]):
+        ds_all:
             A list of xarray datasets to get the bounds from.
-        region (str | list[float] | None):
+        region:
             The region name or bounding box coordinates. See above for details.
-        config_data (dict[str, any]):
+        config_data:
             Configuration data containing regions information.
 
     Returns:
-        map_bounds (tuple[float, float, float, float]):
+        map_bounds:
             The bounding coordinates of the region or dataset (lon_min, lon_max, lat_min, lat_max).
 
 
@@ -593,15 +593,15 @@ def get_bounds_from_country_fraction(
     Get the bounding coordinates of a region based on the "country_fracion" of the regions in the inoput datasets.
 
     Args:
-        ds_all (list[xr.Dataset]):
+        ds_all:
             A list of xarray datasets to get the bounds from.
-        region (str | list[float] | None):
+        region:
             The region name .
-        config_data (dict[str, any]):
+        config_data:
             Configuration data containing regions information.
 
     Returns:
-        map_bounds (tuple[float, float, float, float]):
+        map_bounds:
             The bounding coordinates of the region or dataset (lon_min, lon_max, lat_min, lat_max).
     """
     clip_regions = list()
@@ -663,12 +663,12 @@ def get_bounds_from_gpd_regions(
     Get the bounding coordinates of a list of regions using geopandas library by recursively calling _get_bounds_from_gpd_region.
 
     Args:
-        region_name (list):
+        region_name:
             List of country/region/continent names to get the coordinates for.
         **kwargs: parameters to pass to _get_bounds_from_gpd_region
 
     Returns:
-        region_coordinates (tuple):
+        region_coordinates:
             The bounding coordinates of the region (lon_min, lon_max, lat_min, lat_max).
     """
 
@@ -693,19 +693,19 @@ def _get_bounds_from_gpd_region(
     Get the bounding coordinates of a specified country/region/continent using geopandas library.
 
     Args:
-        region_name (str):
+        region_name:
             The name of the country or continent or region to get the coordinates for.
-        regions_info (dict of str):
+        regions_info:
             Dictionary with country and region names (read from json file).
-        zoom_degree (float):
+        zoom_degree:
             The number of degrees to zoom in/out from the bounding box. Default is 1.
-        clip_region (list[float]):
+        clip_region:
             Coordinates ([min_lon, min_lat, max_lon, max_lat]) use to restrict the boundaries of the region.
             For example, if the focus is on France and clip_region is the extent of continental Europe, overseas territory
             (Reunion, Mayotte,...) won't be included; if no clip region is provided, they will be included.
 
     Returns:
-        region_coordinates (tuple):
+        region_coordinates:
             The bounding coordinates of the region (lon_min, lon_max, lat_min, lat_max).
     """
     world = load_countries_shape()
@@ -772,7 +772,7 @@ def compute_boundary_geometry(map_bounds):
     compared to directly plotting the boundaries inside the loop in flux_map.py.
 
     Args:
-        map_bounds (tuple):
+        map_bounds:
             Bounding box (minx, miny, maxx, maxy) to filter countries.
 
     Returns:
@@ -794,11 +794,11 @@ def plot_country_borders(ax, lines, border_color):
     Plot country borders on a given matplotlib axis.
 
     Args:
-        ax (matplotlib.axes.Axes):
+        ax:
             The axis to add the country borders to.
-        lines (list):
+        lines:
             A list of coordinate sequences representing country boundaries.
-        border_color (str):
+        border_color:
             Color for the country borders.
     """
     boundary_collection = deepcopy(
@@ -821,21 +821,21 @@ def set_flux_limits(
     2. 'auto' - auto-calculate limits based on data percentiles.
 
     Args:
-        ds_all (dict[xr.Dataset]):
+        ds_all:
             A dictionary of Datasets containing the flux variables
-        var (str):
+        var:
             Variable use to define the flux limits
-        region_plot (tuple[float, float, float, float]):
+        region_plot:
             Coordinates [lon_min, lon_max, lat_min, lat_max].
-        option ('auto', [lower_lim, upper_lim]):
+        option:
             The option for setting limits.
                 - A list or tuple with two elements (lower_lim, upper_lim) for specified limits.
                 - 'auto' for auto-calculated values using the 99th percentile (if custom_percentile is None).
-        custom_percentile (float, optional):
+        custom_percentile:
             The percentile to use as the upper limit if option is 'auto'.
 
     Returns:
-        flux_lim (tuple):
+        flux_lim:
             A tuple containing the flux limits (lower_lim, upper_lim).
     """
 
@@ -890,16 +890,16 @@ def set_min_decimal_points(value: float, sig_fig: int = 2, dec_points: int = 2) 
     decimal points.
 
     Args:
-        value (float):
+        value:
             Floating point number to be converted to string.
-        sig_fig (int):
+        sig_fig:
             Number of significant figures to specify in the output if 'value'
             is lowet than 1.
-        dec_points (int):
+        dec_points:
             Number of decimal points to specify in the output if 'value'
             is greater or equal than 1.
     Returns:
-        formatted_str (str):
+        formatted_str:
             Floating point 'value' converted to string.
             E.g. if value=0.00123 and sig_fig=2 -> formatted_str=0.0012
                  if value=10.456 and dec_points=2 -> formatted_str=10.45

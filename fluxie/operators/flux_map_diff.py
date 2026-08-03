@@ -15,15 +15,15 @@ def define_var_plot(
     or directly returns a variable from the dataset.
 
     Args:
-        ds (xarray.Dataset):
+        ds:
             The input dataset containing various flux variables.
-        var (str | list[str]):
+        var:
             The variable name or difference type to be plotted. Options for difference include:
                    'posterior_prior_diff', 'posterior_mean_diff',
                    'posterior_prior_diff_inversion_grid', 'posterior_mean_diff_inversion_grid'.
 
     Returns:
-        var_plot (xarray.Dataset):
+        var_plot:
             The variable or computed difference to be plotted.
     """
     if not isinstance(var, list):

@@ -19,9 +19,9 @@ def get_flux_mean(
     Calculate the mean flux along the 'time' dimension from a dataset, optionally for a specific season.
 
     Args:
-        data (xr.DataArray):
+        data:
             The input data containing a 'time' dimension to calculate the mean.
-        season (str, optional):
+        season:
             The season for which to calculate the mean (e.g., 'DJF', 'MAM', 'JJA', 'SON').
             If None, the mean is calculated over the entire 'time' dimension.
 
@@ -49,9 +49,9 @@ def calculate_resampled_flux(
     Calculate the average of a flux variable over grouped time intervals.
 
     Args:
-        flux (xr.DataArray):
+        flux:
             DataArray with 'time' dimension to average.
-        groups (xr.DataArray):
+        groups:
             DataArray grouping each time step.
 
     Returns:
@@ -74,13 +74,13 @@ def calculate_resampled_uncertainties(
     using the assumption that all periods in the resampled flux average are uncorrelated.
 
     Args:
-        unc (xr.DataArray):
+        unc:
             DataArray with 'percentile' and 'time' dims representing flux uncertainties.
-        groups (xr.DataArray):
+        groups:
             DataArray grouping each time step.
-        flux (xr.DataArray):
+        flux:
             Flux DataArray corresponding to the flux uncertainties.
-        resample_uncert_correlation (bool):
+        resample_uncert_correlation:
             If True, uncertainties are averaged directly over groups.
             If False, uncertainties are calculated as RMSE-like aggregation.
 
@@ -117,9 +117,9 @@ def group_sites(
     Resample the 'sites' variable by checking for presence (1) in any time step within a group.
 
     Args:
-        sites (xr.DataArray):
+        sites:
             Binary indicator (e.g. 0 or 1) with dims ('time', 'platform').
-        groups (xr.DataArray):
+        groups:
             DataArray grouping each time step.
 
     Returns:
@@ -144,11 +144,11 @@ def calculate_resampled_dataset(
     - Other variables are averaged over time.
 
     Args:
-        ds (xr.Dataset):
+        ds:
             Input dataset with time-dependent variables.
         groups:
             Grouping labels corresponding to each time step.
-        resample_uncert_correlation (bool):
+        resample_uncert_correlation:
             If True, uncertainties are averaged directly over groups.
             If False, uncertainties are calculated as RMSE-like aggregation.
 
@@ -193,15 +193,15 @@ def average_over_dates_list(
     averaged period are also generated.
 
     Args:
-        ds (xarray.Dataset):
+        ds:
             Dataset with a "time" dimension.
-        dates_list (list of datetime-like):
+        dates_list:
             Boundaries for averaging periods (e.g., ['2018-01-01', '2020-01-01']).
 
     Returns:
-        ds_avg (xarray.Dataset):
+        ds_avg:
             Dataset averaged over the defined time intervals.
-        time_labels (list of str):
+        time_labels:
             Labels for each averaged period (format: "YYYY/MM—YYYY/MM").
     """
     warnings.warn(
@@ -224,18 +224,18 @@ def resample_over_dates_list(
     Time labels indicating the date range of each resampled period are also generated.
 
     Args:
-        ds (xarray.Dataset):
+        ds:
             Dataset with a "time" dimension.
-        dates_list (list of datetime-like):
+        dates_list:
             Boundaries for resampling periods (e.g., ['2018-01-01', '2020-01-01']).
-        resample_uncert_correlation (bool):
+        resample_uncert_correlation:
             If True, uncertainties are averaged directly over groups.
             If False, uncertainties are calculated as RMSE-like aggregation.
 
     Returns:
-        ds_resampled (xarray.Dataset):
+        ds_resampled:
             Dataset resampled over the defined time intervals.
-        time_labels (list of str):
+        time_labels:
             Labels for each resampled period (format: "YYYY/MM—YYYY/MM").
     """
 
@@ -287,19 +287,19 @@ def resample_over_periods_list(
     Resample a dataset over custom time intervals defined by start and end date lists.
     Time labels indicating the date range of each resampled period are also generated.
     Args:
-        ds (xarray.Dataset):
+        ds:
             Dataset with a "time" dimension.
-        start_dates_list (list of datetime-like):
+        start_dates_list:
             Start dates for each interval (e.g., ['2015-01-01', '2022-01-01']).
-        end_dates_list (list of datetime-like):
+        end_dates_list:
             End date for each interval (e.g., ['2018-01-01', '2025-01-01']).
-        resample_uncert_correlation (bool):
+        resample_uncert_correlation:
             If True, uncertainties are averaged directly over groups.
             If False, uncertainties are calculated as RMSE-like aggregation.
     Returns:
-        ds_resampled (xarray.Dataset):
+        ds_resampled:
             Dataset resampled over the defined time intervals.
-        time_labels (list of str):
+        time_labels:
             Labels for each resampled period (format: "YYYY/MM—YYYY/MM").
     """
 
@@ -373,15 +373,15 @@ def average_over_months_list(
     on the months included.
 
     Args:
-        ds (xarray.Dataset):
+        ds:
             Dataset with a "time" dimension.
-        months_list (list of lists or ints):
+        months_list:
             List of months (or month groups) to average (e.g., [[7,8]]).
 
     Returns:
-        ds_avg (xarray.Dataset):
+        ds_avg:
             Dataset averaged over the specified months.
-        time_labels (list of str):
+        time_labels:
             Labels for each averaged period (e.g., "Jan—Mar").
     """
     warnings.warn(
@@ -404,18 +404,18 @@ def resample_over_months_list(
     It also generates labels for each group based on the months included.
 
     Args:
-        ds (xarray.Dataset):
+        ds:
             Dataset with a "time" dimension.
-        months_list (list of lists or ints):
+        months_list:
             List of months (or month groups) to resample (e.g., [[7,8]]).
-        resample_uncert_correlation (bool):
+        resample_uncert_correlation:
             If True, uncertainties are averaged directly over groups.
             If False, uncertainties are calculated as RMSE-like aggregation.
 
     Returns:
-        ds_resampled (xarray.Dataset):
+        ds_resampled:
             Dataset resampled over the specified months.
-        time_labels (list of str):
+        time_labels:
             Labels for each resampled period (e.g., "Jan—Mar").
     """
     # Define groupings
@@ -456,13 +456,13 @@ def average_over_seasons(
     the mean for each season. It also generates labels for each season.
 
     Args:
-        ds (xarray.Dataset):
+        ds:
             Dataset with a "time" dimension.
 
     Returns:
-        ds_avg (xarray.Dataset):
+        ds_avg:
             Dataset averaged over seasons.
-        time_labels (list of str):
+        time_labels:
             Labels for each season (e.g., "DJF", "MAM").
     """
     warnings.warn(
@@ -485,19 +485,19 @@ def resample_over_seasons(
     It also generates labels for each season.
 
     Args:
-        ds (xarray.Dataset):
+        ds:
             Dataset with a "time" dimension.
-        season (str, optional):
+        season:
             The season to resample ds over.
-        resample_uncert_correlation (bool):
+        resample_uncert_correlation:
             If True, uncertainties are averaged directly over groups.
             If False, uncertainties are calculated as RMSE-like aggregation.
 
 
     Returns:
-        ds_resampled (xarray.Dataset):
+        ds_resampled:
             Dataset resampled over seasons or a given season.
-        time_labels (list of str):
+        time_labels:
             Labels for each season (e.g., "Dec - Feb").
     """
     # Define groupings
@@ -540,16 +540,16 @@ def resample_over_whole_period(
     It also generates a label for the period.
 
     Args:
-        ds (xarray.Dataset):
+        ds:
             Dataset with a "time" dimension.
-        resample_uncert_correlation (bool):
+        resample_uncert_correlation:
             If True, uncertainties are averaged.
             If False, uncertainties are calculated as RMSE-like aggregation.
 
     Returns:
-        ds_resampled (xarray.Dataset):
+        ds_resampled:
             Dataset resampled over the entire period.
-        time_labels (list of str):
+        time_labels:
             Label of the entire period (e.g., "2020", "2020—2022").
     """
 
@@ -585,15 +585,15 @@ def average_over_years(
     first and last years in each period.
 
     Args:
-        ds (xarray.Dataset):
+        ds:
             Dataset with a "time" dimension.
-        N (int):
+        N:
             Length of the custom period in years (default is 1, for yearly averages).
 
     Returns:
-        ds_avg (xarray.Dataset):
+        ds_avg:
             Dataset averaged over the specified periods.
-        time_labels (list of str):
+        time_labels:
             Labels for each period (e.g., "2020", "2020—2022").
     """
     warnings.warn(
@@ -616,18 +616,18 @@ def resample_over_years(
     It also generates labels for each group based on the first and last years in each period.
 
     Args:
-        ds (xarray.Dataset):
+        ds:
             Dataset with a "time" dimension.
-        N (int):
+        N:
             Length of the custom period in years (default is 1, for yearly resamples).
-        resample_uncert_correlation (bool):
+        resample_uncert_correlation:
             If True, uncertainties are averaged directly over groups.
             If False, uncertainties are calculated as RMSE-like aggregation.
 
     Returns:
-        ds_resampled (xarray.Dataset):
+        ds_resampled:
             Dataset resampled over the specified periods.
-        time_labels (list of str):
+        time_labels:
             Labels for each period (e.g., "2020", "2020—2022").
     """
 
@@ -668,14 +668,14 @@ def average_over_months(
     first and last months in each period.
 
     Args:
-        ds (xarray.Dataset):
+        ds:
             Dataset with a "time" dimension.
-        N (int):
+        N:
             Length of the custom period in months (default is 1, for monthly averages).
 
     Returns:
-        ds_avg (xarray.Dataset): Dataset averaged over the specified months.
-        time_labels (list of str): Labels for each period (e.g., "2020-01", "2020-03—2020-05").
+        ds_avg: Dataset averaged over the specified months.
+        time_labels: Labels for each period (e.g., "2020-01", "2020-03—2020-05").
     """
     warnings.warn(
         "'average_over_months' is deprecated and will be removed in a future release. "
@@ -699,18 +699,18 @@ def resample_over_months(
     It also generates labels for each group based on the first and last years in each period.
 
     Args:
-        ds (xarray.Dataset):
+        ds:
             Dataset with a "time" dimension.
-        N (int):
+        N:
             Length of the custom period in months (default is 1, for monthly resamples).
-        resample_uncert_correlation (bool):
+        resample_uncert_correlation:
             If True, uncertainties are averaged directly over groups.
             If False, uncertainties are calculated as RMSE-like aggregation.
 
     Returns:
-        ds_resampled (xarray.Dataset):
+        ds_resampled:
             Dataset resampled over the specified months.
-        time_labels (list of str):
+        time_labels:
             Labels for each period (e.g., "2020/01", "2020/03—2020/05").
     """
 
@@ -755,18 +755,18 @@ def average_over_period(
     It calls appropriate averaging functions based on the value of `chop_by`.
 
     Args:
-        ds (xarray.Dataset):
+        ds:
             Dataset with a "time" dimension.
-        N (int):
+        N:
             Interval length for custom periods (e.g., for months or years).
-        chop_by (str, list):
+        chop_by:
             Defines how the dataset should be chopped.
             Options are: 'year', 'month', 'season', or a list of dates or months.
 
     Returns:
-        ds_avg (xarray.Dataset):
+        ds_avg:
             Dataset averaged over the specified periods.
-        time_labels (list of str):
+        time_labels:
             Labels for each averaged period (e.g., "2020", "2020-03—2020-05").
     """
     warnings.warn(
@@ -802,22 +802,22 @@ def resample_over_period(
         - tuple of (start_dates_list, end_dates_list) for custom date ranges
 
     Args:
-        ds (xarray.Dataset):
+        ds:
             Dataset with a "time" dimension.
-        N (int):
+        N:
             Interval length for custom periods (e.g., for months or years).
-        chop_by (str, list):
+        chop_by:
             Defines how the dataset should be chopped.
             Options are: 'year', 'month', 'season', None, a list of dates or months,
                          a season, or a tuple of lists of dates.
-        resample_uncert_correlation (bool):
+        resample_uncert_correlation:
             If True, uncertainties are averaged directly over groups.
             If False, uncertainties are calculated as RMSE-like aggregation.
 
     Returns:
-        ds_avg (xarray.Dataset):
+        ds_avg:
             Dataset resampled over the specified periods.
-        time_labels (list of str):
+        time_labels:
             Labels for each resampled period (e.g., "2020", "2020/03—2020/05").
     """
 

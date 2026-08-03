@@ -57,66 +57,66 @@ def plot_flux_map(
     Plot posterior and prior fluxes and the difference between them for all models, time averaged.
 
     Args:
-        ds_all (dictionary of datasets):
+        ds_all:
             Dictionary of fluxes xarray datasets.
-        species (str):
+        species:
             Gas species, e.g. 'ch4'.
-        region (str or list):
+        region:
             Region to plot, e.g. 'FRANCE', 'EUROPE', [lon_min, lon_max, lat_min, lat_max].
-        config_data (dict of dict):
+        config_data:
             Dictionary of models and species information (read from json file).
-        model_labels (list):
+        model_labels:
             List of model_labels from fluxie.config.
-        cmap (str, optional):
+        cmap:
             Colour map for flux plots.
-        cmap_diff (str, optional):
+        cmap_diff:
             Colour map for flux difference plots.
-        c_border (str, optional):
+        c_border:
             Colour for flux plot country borders.
-        c_border_diff (str, optional):
+        c_border_diff:
             Colour for flux difference plot country borders.
-        add_sites (bool, optional):
+        add_sites:
             If True, scatters triangles with site locations.
-        add_markers (list of str or list of lat/lon, optional):
+        add_markers:
             List of names of points to plot over larger point sources or lat/lon locations.
             See point_markers_dict for a list of options.
             e.g. ['paris', 'london', [50.,5.]]
-        season (string, optional):
+        season:
             If specified, plot the seasonal mean (only valable for monthly data).
             Options are 'DJF', 'MAM', 'JJA', 'SON'.
-        set_fluxlim (str or list/tuple, optional):
+        set_fluxlim:
             If provided, set the colorbar limits based on the selected options.
             Options are 'auto', a list or tuple with two elements (min, max).
-        set_fluxlim_percentile (float, optional):
+        set_fluxlim_percentile:
             If provided, set the percentile to use when setting the colorbar limits with 'auto' option.
-        plot_inversion_grid_flux (bool, optional):
+        plot_inversion_grid_flux:
             If True, plots fluxes at the spatial resolution of the inversion (using the
             inversion_grid variable). If False, plots fluxes at the spatial resolution
             of the prior.
-        zoom_degree (float, optional):
+        zoom_degree:
             Value added to the latitude and longitude bounds of the plot.
             Positive values expand the plot area, while negative values zoom in by reducing the bounds.
             Example: `zoom_degree=1` adds 1 degree to the bounds, while `zoom_degree=-1` subtracts 1 degree.
-        only (str, optional):
+        only:
             Option to plot only "posterior" or "prior" or "diff"
-        fallback_sites (list[str] | None):
+        fallback_sites:
             A list of site names to use as a fallback if 'sites' is not found in the datasets.
             If None, the first available 'sites' in the datasets will be used as fallback.
-        resample_uncert_correlation (bool, optional):
+        resample_uncert_correlation:
             If True, uncertainties are averaged directly .
             If False, uncertainties are calculated as RMSE-like aggregation.
-        sector (str):
+        sector:
             Emissions sector to plot. Default 'total'.
-        include_title_and_labels (bool):
+        include_title_and_labels:
             If False, removes titles, axis labels and extra info from the colour bar.
-        site_marker (str):
+        site_marker:
             Marker for site locations.
-        city_marker (str):
+        city_marker:
             Marker for city locations.
-        marker_color (str):
+        marker_color:
             Marker color.
     Returns:
-        fig (figure):
+        fig:
             Three maps, for each model, of the flux prior, the flux posterior and the difference between both.
     """
 
@@ -313,66 +313,66 @@ def plot_flux_map_model_comparison(
     Plot a given flux variable for two models and the difference between them.
 
     Args:
-        ds_all (dictionary of datasets):
+        ds_all:
             Dictionary of fluxes xarray datasets.
-        var (str):
+        var:
             The name of the flux variable to be plotted and compared across models.
             Example: 'flux_total_posterior'.
-        models (list[str]):
+        models:
             The name of the 2 models to be compared. This should correspond to 2 keys in `ds_all`.
             Example: ['intem_name_edgar', 'elris_name_edgar']
-        species (str):
+        species:
             Gas species, e.g. 'ch4'.
-        region (str or list):
+        region:
             Lat/lon region to plot, options for 'UK', 'FRANCE', 'GERMANY',
             'NWEU','CWEU','EUROPE'.
             A list with [lon_min, lon_max, lat_min, lat_max] can also be provided.
-        config_data (dict of dict):
+        config_data:
             Dictionary of models and species information (read from json file).
-        model_labels (list):
+        model_labels:
             List of model_labels from fluxie.config.
-        cmap (str, optional):
+        cmap:
             Colour map for flux plots.
-        cmap_diff (str, optional):
+        cmap_diff:
             Colour map for flux difference plots.
-        c_border (str, optional):
+        c_border:
             Colour for flux plot country borders.
-        c_border_diff (str, optional):
+        c_border_diff:
             Colour for flux difference plot country borders.
-        add_sites (bool, optional):
+        add_sites:
             If True, scatters triangles with site locations.
-        add_markers (list of str or list of lat/lon, optional):
+        add_markers:
             List of names of points to plot over larger point sources or lat/lon locations.
             See point_markers_dict for a list of options.
             e.g. ['paris', 'london', [50.,5.]]
-        season (string, optional):
+        season:
             If specified, plot the seasonal mean (only valable for monthly data).
             Options are 'DJF', 'MAM', 'JJA', 'SON'.
-        set_fluxlim (str or list/tuple, optional):
+        set_fluxlim:
             If provided, set the colorbar limits based on the selected options.
             Options are 'auto', a list or tuple with two elements (min, max).
-        set_fluxlim_percentile (float, optional):
+        set_fluxlim_percentile:
             If provided, set the percentile to use when setting the colorbar limits with 'auto' option.
-        zoom_degree (float, optional):
+        zoom_degree:
             Value added to the latitude and longitude bounds of the plot.
             Positive values expand the plot area, while negative values zoom in by reducing the bounds.
             Example: `zoom_degree=1` adds 1 degree to the bounds, while `zoom_degree=-1` subtracts 1 degree.
-        fallback_sites (list[str] | None):
+        fallback_sites:
             A list of site names to use as a fallback if 'sites' is not found in the datasets.
             If None, the first available 'sites' in the datasets will be used as fallback.
-        resample_uncert_correlation (bool, optional):
+        resample_uncert_correlation:
             If True, uncertainties are averaged.
             If False, uncertainties are calculated as RMSE-like aggregation.
-        sector (str):
+        sector:
             Emissions sector to plot. Default 'total'.
-        site_marker (str):
+        site_marker:
             Marker for site locations.
-        city_marker (str):
+        city_marker:
             Marker for city locations.
-        marker_color (str):
+        marker_color:
             Marker color.
     Returns:
-        fig (figure):
+        fig:
             Three maps of a target flux variable of the first and second models and the diffence between both.
     """
 
@@ -550,65 +550,65 @@ def plot_flux_map_over_time(
     Plot a given flux variable averaged over specific time intervals, for all models or the model mean.
 
     Args:
-        ds_all (dictionary of datasets):
+        ds_all:
             Dictionary of fluxes xarray datasets.
-        var (str):
+        var:
             The name of the flux variable to be plotted and compared across models.
             Example: 'flux_total_posterior'.
-        species (str):
+        species:
             Gas species, e.g. 'ch4'.
-        region (str or list):
+        region:
             Region to plot, e.g. 'FRANCE', 'EUROPE', [lon_min, lon_max, lat_min, lat_max].
-        config_data (dict of dict):
+        config_data:
             Dictionary of models and species information (read from json file).
-        model_labels (list):
+        model_labels:
             List of model_labels from fluxie.config.
-        chop_by (str or list):
+        chop_by:
             Time units to perform the average, options for 'year', 'month' and 'season'.
             Alternatively, a list of starting dates or months number can be provided.
-        dt (int):
+        dt:
             If chop_by = 'year' or 'month': dt is the number of time steps (in chop_by units) to use in the averaging.
-        plot_combined (bool):
+        plot_combined:
             If True, plots the mean over all models at each time step.
-        cmap (str, optional):
+        cmap:
             Colour map for flux plots.
-        cmap_diff (str, optional):
+        cmap_diff:
             Colour map for flux difference plots.
-        c_border (str, optional):
+        c_border:
             Colour for flux plot country borders.
-        c_border_diff (str, optional):
+        c_border_diff:
             Colour for flux difference plot country borders.
-        add_sites (bool, optional):
+        add_sites:
             If True, scatters triangles with site locations.
-        add_markers (list of str or list of lat/lon, optional):
+        add_markers:
             List of names of points to plot over larger point sources or lat/lon locations.
             See point_markers_dict for a list of options.
             e.g. ['paris', 'london', [50.,5.]]
-        set_fluxlim (str or list/tuple, optional):
+        set_fluxlim:
             If provided, set the colorbar limits based on the selected options.
             Options are 'auto', a list or tuple with two elements (min, max).
-        set_fluxlim_percentile (float, optional):
+        set_fluxlim_percentile:
             If provided, set the percentile to use when setting the colorbar limits with 'auto' option.
-        zoom_degree (float, optional):
+        zoom_degree:
             Value added to the latitude and longitude bounds of the plot.
             Positive values expand the plot area, while negative values zoom in by reducing the bounds.
             Example: `zoom_degree=1` adds 1 degree to the bounds, while `zoom_degree=-1` subtracts 1 degree.
-        fallback_sites (list[str] | None):
+        fallback_sites:
             A list of site names to use as a fallback if 'sites' is not found in the datasets.
             If None, the first available 'sites' in the datasets will be used as fallback.
-        resample_uncert_correlation (bool, optional):
+        resample_uncert_correlation:
             If True, uncertainties are averaged directly.
             If False, uncertainties are calculated as RMSE-like aggregation.
-        sector (str):
+        sector:
             Emissions sector to plot. Default 'total'.
-        site_marker (str):
+        site_marker:
             Marker for site locations.
-        city_marker (str):
+        city_marker:
             Marker for city locations.
-        marker_color (str):
+        marker_color:
             Marker color.
     Returns:
-        fig (figure):
+        fig:
             A plot of spatial flux of the variable specified in var
             averaged over the number of time steps specified in dt.
     """
@@ -829,69 +829,69 @@ def plot_flux_map_combined_models_comparison(
     Plot a given flux variable for two groups of combined models and the difference between them.
 
     Args:
-        ds_all (dictionary of datasets):
+        ds_all:
             Dictionary of fluxes xarray datasets.
-        group_a_models (list[str]):
+        group_a_models:
             List of model names to be combined for the first group.
-        group_b_models (list[str]):
+        group_b_models:
             List of model names to be combined for the second group.
-        var (str):
+        var:
             The name of the flux variable to be plotted and compared across models.
             Example: 'flux_total_posterior'.
-        species (str):
+        species:
             Gas species, e.g. 'ch4'.
-        region (str or list):
+        region:
             Lat/lon region to plot, options for 'UK', 'FRANCE', 'GERMANY',
             'NWEU','CWEU','EUROPE'.
             A list with [lon_min, lon_max, lat_min, lat_max] can also be provided.
-        config_data (dict of dict):
+        config_data:
             Dictionary of models and species information (read from json file).
         group_a_label: str,
             Label for the first group of combined models.
         group_b_label: str,
             Label for the second group of combined models.
-        cmap (str, optional):
+        cmap:
             Colour map for flux plots.
-        cmap_diff (str, optional):
+        cmap_diff:
             Colour map for flux difference plots.
-        c_border (str, optional):
+        c_border:
             Colour for flux plot country borders.
-        c_border_diff (str, optional):
+        c_border_diff:
             Colour for flux difference plot country borders.
-        add_sites (bool, optional):
+        add_sites:
             If True, scatters triangles with site locations.
-        add_markers (list of str or list of lat/lon, optional):
+        add_markers:
             List of names of points to plot over larger point sources or lat/lon locations.
             See point_markers_dict for a list of options.
             e.g. ['paris', 'london', [50.,5.]]
-        season (string, optional):
+        season:
             If specified, plot the seasonal mean (only valable for monthly data).
             Options are 'DJF', 'MAM', 'JJA', 'SON'.
-        set_fluxlim (str or list/tuple, optional):
+        set_fluxlim:
             If provided, set the colorbar limits based on the selected options.
             Options are 'auto', a list or tuple with two elements (min, max).
-        set_fluxlim_percentile (float, optional):
+        set_fluxlim_percentile:
             If provided, set the percentile to use when setting the colorbar limits with 'auto' option.
-        zoom_degree (float, optional):
+        zoom_degree:
             Value added to the latitude and longitude bounds of the plot.
             Positive values expand the plot area, while negative values zoom in by reducing the bounds.
             Example: `zoom_degree=1` adds 1 degree to the bounds, while `zoom_degree=-1` subtracts 1 degree.
-        fallback_sites (list[str] | None):
+        fallback_sites:
             A list of site names to use as a fallback if 'sites' is not found in the datasets.
             If None, the first available 'sites' in the datasets will be used as fallback.
-        resample_uncert_correlation (bool, optional):
+        resample_uncert_correlation:
             If True, uncertainties are averaged.
             If False, uncertainties are calculated as RMSE-like aggregation.
-        sector (str):
+        sector:
             Emissions sector to plot. Default 'total'.
-        site_marker (str):
+        site_marker:
             Marker for site locations.
-        city_marker (str):
+        city_marker:
             Marker for city locations.
-        marker_color (str):
+        marker_color:
             Marker color.
     Returns:
-        fig (figure):
+        fig:
             Three maps of a target flux variable of the first and second groups of combined models and the diffence between both.
     """
 
@@ -1074,69 +1074,69 @@ def plot_flux_map_period_comparison(
     """
     Plot a given flux variable averaged over two time periods and the difference, for all models or the model mean.
     Args:
-        ds_all (dictionary of datasets):
+        ds_all:
             Dictionary of fluxes xarray datasets.
-        var (str):
+        var:
             The name of the flux variable to be plotted and compared across models.
             Example: 'flux_total_posterior'.
-        species (str):
+        species:
             Gas species, e.g. 'ch4'.
-        start_dates (list[str]):
+        start_dates:
             List of starting dates for the two periods to compare (format: 'YYYY-MM-DD').
-        end_dates (list[str]):
+        end_dates:
             List of ending dates for the two periods to compare (format: 'YYYY-MM-DD').
-        region (str or list):
+        region:
             Region to plot, e.g. 'FRANCE', 'EUROPE', [lon_min, lon_max, lat_min, lat_max].
-        config_data (dict of dict):
+        config_data:
             Dictionary of models and species information (read from json file).
-        model_labels (list):
+        model_labels:
             List of model_labels from fluxie.config.
-        chop_by (str or list):
+        chop_by:
             Time units to perform the average, options for 'year', 'month' and 'season'.
             Alternatively, a list of starting dates or months number can be provided.
-        dt (int):
+        dt:
             If chop_by = 'year' or 'month': dt is the number of time steps (in chop_by units) to use in the averaging.
-        plot_combined (bool):
+        plot_combined:
             If True, plots the mean over all models at each time step.
-        cmap (str, optional):
+        cmap:
             Colour map for flux plots.
-        cmap_diff (str, optional):
+        cmap_diff:
             Colour map for flux difference plots.
-        c_border (str, optional):
+        c_border:
             Colour for flux plot country borders.
-        c_border_diff (str, optional):
+        c_border_diff:
             Colour for flux difference plot country borders.
-        add_sites (bool, optional):
+        add_sites:
             If True, scatters triangles with site locations.
-        add_markers (list of str or list of lat/lon, optional):
+        add_markers:
             List of names of points to plot over larger point sources or lat/lon locations.
             See point_markers_dict for a list of options.
             e.g. ['paris', 'london', [50.,5.]]
-        set_fluxlim (str or list/tuple, optional):
+        set_fluxlim:
             If provided, set the colorbar limits based on the selected options.
             Options are 'auto', a list or tuple with two elements (min, max).
-        set_fluxlim_percentile (float, optional):
+        set_fluxlim_percentile:
             If provided, set the percentile to use when setting the colorbar limits with 'auto' option.
-        zoom_degree (float, optional):
+        zoom_degree:
             Value added to the latitude and longitude bounds of the plot.
             Positive values expand the plot area, while negative values zoom in by reducing the bounds.
             Example: `zoom_degree=1` adds 1 degree to the bounds, while `zoom_degree=-1` subtracts 1 degree.
-        fallback_sites (list[str] | None):
+        fallback_sites:
             A list of site names to use as a fallback if 'sites' is not found in the datasets.
             If None, the first available 'sites' in the datasets will be used as fallback.
-        resample_uncert_correlation (bool, optional):
+        resample_uncert_correlation:
             If True, uncertainties are averaged directly.
             If False, uncertainties are calculated as RMSE-like aggregation.
-        sector (str):
+        sector:
             Emissions sector to plot. Default 'total'.
-        site_marker (str):
+        site_marker:
             Marker used for site locations.
-        city_marker (str):
+        city_marker:
             Marker used for city locations.
-        marker_color (str):
+        marker_color:
             Marker color.
     Returns:
-        fig (figure):
+        fig:
             A plot of spatial flux of the variable specified in var
             averaged over the number of time steps specified in dt.
     """

@@ -116,7 +116,7 @@ def set_print_settings(presentation_mode: bool = False) -> dict[int, list]:
             If True, use bigger fonts (ideal for presentation slides)
 
     Returns:
-        annotate_coords (dict of lists):
+        annotate_coords:
             Coordinates to annotate histogram.
     """
 
@@ -154,13 +154,13 @@ def set_model_colors(models: list[str]) -> dict[str, list]:
     Sets plotting colors for each model.
 
     Args:
-        models (list of str):
+        models:
             Model name tags specifying model runs,
             i.e. '<inversionModel>_<optional_identifying_tags>', preceded by subdirectory if applicable,
             e.g. ['InTEM_NAME_EUROPE_EDGAR','ELRIS_NAME_EUROPE_EDGAR']
 
     Returns:
-        model_colors (dict of lists):
+        model_colors:
             List of colors to be used by each model.
     """
 
@@ -226,19 +226,19 @@ def set_model_labels(
     Sets the label of each model.
 
     Args:
-        models (list of str):
+        models:
             Model name tags specifying model runs,
             i.e. '<inversionModel>_<optional_identifying_tags>', preceded by subdirectory if applicable,
             e.g. ['InTEM_NAME_EUROPE_EDGAR','ELRIS_NAME_EUROPE_EDGAR']
-        config_data (dict of dict):
+        config_data:
             Dictionary with settings read from json file.
             Use json filenames as keys.
-        get_labels_from_file (bool):
+        get_labels_from_file:
             If True, tries to retrieve model labels from models_info.json.
             If False, buids labels automatically from model names.
 
     Returns:
-        model_labels (dict of str):
+        model_labels:
             Label to be used in plot, per model.
     """
 
@@ -265,7 +265,7 @@ def get_default_colors() -> list[str]:
     Returns the colors from the current matplotlib color cycle.
 
     Returns:
-        color (str):
+        color:
             Color to be used in plot.
     """
 
