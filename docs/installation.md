@@ -1,8 +1,33 @@
 # Installation 
 
+
+## On your local machine
+Clone the repository and install fluxie:
 ```
-pip install fluxie
+git clone https://github.com/openghg/fluxie.git
+cd fluxie
+pip install -e .
 ```
+
+## At ICOS Jupyter Hub
+Create and activate virtual environment:
+```
+python -m venv fluxie-env         
+source fluxie-env/bin/activate
+```
+Install IPython kernel package for Jupyter into the current environment and register the current environment as a new kernel:
+```
+pip install --upgrade pip
+pip install ipykernel
+python -m ipykernel install --user --name fluxie-env --display-name "fluxie-env"
+```
+And finally install fluxie:
+```
+git clone https://github.com/openghg/fluxie.git
+cd fluxie
+pip install -e .
+```
+
 
 
 
