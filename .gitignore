@@ -8,3 +8,6 @@ data/my_data/
 
 # Output of the test notebook
 data/tests/flux_country.png
+
+# Docs
+site/
