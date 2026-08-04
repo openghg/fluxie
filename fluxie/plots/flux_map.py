@@ -333,14 +333,27 @@ def plot_flux_map(
             # Add sites and markers if specified
             if add_sites and sites_info:
                 add_site_markers(ax_i, sites_info, marker_color, site_marker)
+
+            print(add_markers)
+            print(type(add_markers))
             if add_markers:
+
+                if isinstance(add_markers, dict):
+                    markers_to_plot = add_markers.get(
+                        species_name,
+                        []
+                    )
+                else:
+                    markers_to_plot = add_markers
+
                 add_custom_markers(
                     ax_i,
-                    add_markers,
+                    markers_to_plot,
                     marker_color,
                     config_data["regions_info"],
                     city_marker,
                 )
+
 
 
             if is_multispecies:
