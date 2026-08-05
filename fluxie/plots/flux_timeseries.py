@@ -888,6 +888,20 @@ def add_legend(
         inventory_years: used only if set_global_legend is False to avoid enhancing the width of the last objects, when plotting mulitple inventories.
     """
 
+    if type(inventory_years) == list:
+        n_inv = len(inventory_years)
+    elif type(inventory_years) == int:
+        n_inv = 1
+    else:
+        n_inv = 0
+        
+    handle_name = (
+                "legend_handles"
+                if int(mplt_version.split(".")[0]) >= 3
+                and int(mplt_version.split(".")[1]) >= 7
+                else "legendHandles"
+            )
+
     if set_global_leg:
 
         if isinstance(fig.axes[0], list):
@@ -895,12 +909,12 @@ def add_legend(
         else:
             legend_loc = (0.5, 1.1)
         handles, labels = fig.axes[0].get_legend_handles_labels()
-        fig.legend(
+        leg = fig.legend(
             handles,
             labels,
             loc="upper center",
             ncol=(
-                len(labels) if len(labels) <= 6 else len(labels) // 2 + len(labels) % 2
+                len(labels) if len(labels) <= 8 else len(labels) // 2 + len(labels) % 2
             ),
             borderpad=0.4,
             columnspacing=1.0,
@@ -908,27 +922,16 @@ def add_legend(
         )
 
     else:
-        if type(inventory_years) == list:
-            n_inv = len(inventory_years)
-        elif type(inventory_years) == int:
-            n_inv = 1
-        else:
-            n_inv = 0
+        
         for ax in fig.axes:
             _, labels = ax.get_legend_handles_labels()
             ncol = 3 if annex_mode else 2
             leg = ax.legend(ncol=ncol, borderpad=0.4, columnspacing=1.0)
 
-            handle_name = (
-                "legend_handles"
-                if int(mplt_version.split(".")[0]) >= 3
-                and int(mplt_version.split(".")[1]) >= 7
-                else "legendHandles"
-            )
-            for l in leg.__getattribute__(handle_name)[
-                : (-n_inv if plot_inventory else None)
-            ]:
-                l.set_linewidth(3.0)
+    for l in leg.__getattribute__(handle_name)[
+        : (-n_inv if plot_inventory else None)
+    ]:
+        l.set_linewidth(3.0)
 
 
 def add_title(ax: Axes, country: str, r_data: dict, country_codes_as_titles: bool):
@@ -1238,7 +1241,7 @@ def plot_country_flux(
             ax.grid(visible=True, which="major", alpha=0.4)
 
         # set ax title
-        #add_title(ax, country, r_data, country_codes_as_titles)
+        add_title(ax, country, r_data, country_codes_as_titles)
 
         # add secondary axis
         if secondary_units is not None:

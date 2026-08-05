@@ -107,6 +107,7 @@ def slice_mf(
     mf_units_print: str = None,
     keep_unassimilated: bool = False,
     intake_height: float | None = None,
+    months: list[int] | None = None
 ) -> dict[str, xr.Dataset]:
     """
     Slices down the mole fraction timeseries data, to within the
@@ -143,6 +144,12 @@ def slice_mf(
 
     start_date = pd.to_datetime(start_date)
     end_date = pd.to_datetime(end_date)
+    
+    if months is not None:
+        months = [int(m) for m in months]
+        invalid = [m for m in months if m < 1 or m > 12]
+        if invalid:
+            raise ValueError(f"Invalid month(s) {invalid}. Months must be in 1..12.")
 
     # Get logical array with baseline timestamps
     if baseline_site is not None:
@@ -193,6 +200,11 @@ def slice_mf(
 
         # Slice data according to time window
         mask = (ds_all[m]["time"] >= start_date) & (ds_all[m]["time"] <= end_date)
+        
+         # Optional month filter (e.g. DJF = [12, 1, 2])
+        if months is not None:
+            mask &= ds_all[m]["time"].dt.month.isin(months)
+        
         if not keep_unassimilated:
             # Mask assimilated data only
             mask &= ds_all[m]["assimilation_flag"] == 1

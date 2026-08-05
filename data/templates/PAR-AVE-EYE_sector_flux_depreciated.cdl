@@ -1,0 +1,38 @@
+netcdf EUROPE_EDGAR_ch4_yearly_flux_sectors {
+dimensions:
+	time = 43 ;
+	lat = 293 ;
+	lon = 391 ;
+variables:
+	float flux_total(time, lat, lon) ;
+		flux_total:_FillValue = NaNf ;
+		string flux_total:EDGAR_sectors = "SWD_LDF","SWD_INC","WWT","AGS","AWB","ENF","MNM","ENE","IND",
+                             "TRO","TNR_Other","TNR_Ship","RCO","PRO_FFF","REF_TRF","IRO","CHE" ;
+		flux_total:units = "g m-2 -s" ;
+		flux_total:long_name = "total flux from all sources" ;
+	double lat(lat) ;
+		lat:_FillValue = NaN ;
+	double lon(lon) ;
+		lon:_FillValue = NaN ;
+	int64 time(time) ;
+		time:units = "days since 1980-01-01 00:00:00" ;
+		time:calendar = "proleptic_gregorian" ;
+	float flux_waste(time, lat, lon) ;
+		flux_waste:_FillValue = NaNf ;
+		string flux_waste:EDGAR_sectors = "SWD_LDF","SWD_INC","WWT" ;
+	float flux_agriculture(time, lat, lon) ;
+		flux_agriculture:_FillValue = NaNf ;
+		string flux_agriculture:EDGAR_sectors = "AGS","AWB","ENF","MNM" ;
+	float flux_energy(time, lat, lon) ;
+		flux_energy:_FillValue = NaNf ;
+		string flux_energy:EDGAR_sectors = "ENE","IND","TRO","TNR_Other","TNR_Ship","RCO","PRO_FFF","REF_TRF" ;
+	float flux_industry(time, lat, lon) ;
+		flux_industry:_FillValue = NaNf ;
+		string flux_industry:EDGAR_sectors = "IRO", "CHE" ;
+
+// global attributes:
+		:units = "g m-2 s-1" ;
+		:Processed\ by = "alice.ramsden" ;
+		:Processed\ on = "2025-07-03 16:33:32.148530" ;
+		:title = "EDGAR sectors grouped into broad sectors, and regridded to EUROPE domain" ;
+}

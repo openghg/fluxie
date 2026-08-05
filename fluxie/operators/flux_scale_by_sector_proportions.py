@@ -161,6 +161,8 @@ def scale_by_sector_proportions(
                 region_codes.append(r_data[r])
                 if "-" in r_data[r]:
                     region_codes += r_data[r].split("-")
+                    
+    print(region_codes)
 
     #sector_prop_path = os.path.join(
     #    data_dir, "sector_flux", f"{sector_file}_{species}_yearly_flux_sectors.nc"
@@ -180,9 +182,26 @@ def scale_by_sector_proportions(
         if create_sectors[m]:
 
             ds_sectors = open_and_align_sector_dataset(sector_prop_path, ds)
+            if "flux_total_posterior" in list(ds_sectors.keys()) or "flux_energy_posterior" in list(ds_sectors.keys()):
+                var_search = "posterior"
+            elif "flux_total_prior" in list(ds_sectors.keys()) or "flux_energy_prior" in list(ds_sectors.keys()): 
+                var_search = "prior"
+                                
+            if f"flux_total_{var_search}" not in list(ds_sectors.keys()):
+                flux_vars = [v for v in list(ds_sectors.keys()) if v.startswith('flux') and v.endswith(var_search)]
+                logger.warning(f"No '_total_' variable available in sector scaling dataset, so creating this by summing sectors: {flux_vars}")
+                
+                for v,var in enumerate(flux_vars):
+                    if v == 0:
+                        ds_sectors[f"flux_total_{var_search}"] = ds_sectors[var]
+                    else:
+                        ds_sectors[f"flux_total_{var_search}"] += ds_sectors[var]                
             
+            ###TEMPORARY FIX FOR RHIME UN-ROUNDED LATITUDES AND LONGTIUDES
             for c in ['latitude','longitude']:
                 ds = ds.assign_coords({c:np.round(ds[c],3)})
+                ds_sectors = ds_sectors.assign_coords({c:np.round(ds[c],3)})
+            ###
                 
             if m == 0 and sectors == None:
                 sectors = [v.split("_")[-1] for v in ds_sectors if "total" not in v]
@@ -194,9 +213,9 @@ def scale_by_sector_proportions(
             # Convert prior and posterior flux for each sector
             for s in sectors:
                 print(f'Working on {s}...')
-                scaling_factor_all[s] = ds_sectors[f"flux_{s}_posterior"] / ds_sectors["flux_total_posterior"]
+                scaling_factor_all[s] = ds_sectors[f"flux_{s}_{var_search}"] / ds_sectors[f"flux_total_{var_search}"]
                 scaling_factor_all[s] = scaling_factor_all[s].where(
-                    ds_sectors["flux_total_posterior"] != 0, 0
+                    ds_sectors[f"flux_total_{var_search}"] != 0, 0
                 )
 
                 for suff in ["posterior", "prior"]:
@@ -218,7 +237,7 @@ def scale_by_sector_proportions(
                     config_data["species_info"][species],
                 )
 
-                # check for crountry_fraction
+                # check for country_fraction
                 if "country_fraction" not in ds:
                     raise ValueError(
                         f"country_fraction variable not present in dataset for {model} "
@@ -237,7 +256,8 @@ def scale_by_sector_proportions(
                     if regions:
                         ds_flux_country_list = list()
 
-                        for country in np.unique(region_codes):
+                        #for country in np.unique(region_codes):
+                        for country in regions:    
                             if country not in ds.country:
                                 continue
                             tmp_list = []
