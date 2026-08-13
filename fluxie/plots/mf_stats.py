@@ -284,7 +284,7 @@ def plot_stats_mf(
     else:
         nrows = 1
         ncolumns = nstats
-        plot_width = 3 * nstats
+        plot_width = 4 * nstats
         plot_height = 4
         leg_yloc = 0.875
     fig, ax = plt.subplots(
@@ -322,6 +322,7 @@ def plot_stats_mf(
             xlabel="",
             legend=False,
             zorder=3,
+            width=0.8,
         )
         ax[i].grid(zorder=0)
         if stats_ylim is not None:
