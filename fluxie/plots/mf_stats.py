@@ -208,10 +208,11 @@ def plot_stats_mf(
     model_labels: dict[str, str],
     config_data: dict[dict],
     mf_units_print: str,
-    stats_type: str,
+    stats_type: str | list[str],
     stats_ylim: dict[list] = None,
     start_date: str = None,
     end_date: str = None,
+    top_to_bottom_align: bool = True,
 ) -> Figure:
     """
     Plots statistics for all sites, for all models.
@@ -232,13 +233,16 @@ def plot_stats_mf(
             Use json filenames as keys.
         mf_units_print (str):
             Mole fraction units used in plots
-        stats_type (str):
+        stats_type (str or list of str):
             Type of statistics to be plotted. Should be the same as used in call to stats_mf().
         stats_ylim (dict of lists):
             Limits for y-axis of individual statistic plots. Can be given for selected
             statistics only or passed as None for automatic axis range.
         start_date (str) and end_date (str):
             Dates used to title the plot.
+        top_to_bottom_align (bool):
+            If True, subfigures are vertically displayed.
+            Otherwise, they are placed side by side.
     Returns:
         fig (figure):
             Plot showing each model's fit statistics, for each site.
@@ -246,24 +250,69 @@ def plot_stats_mf(
 
     models = np.unique(stats["model"].to_numpy())
     # make sure model_labels are in the correct order
-    model_str = [model_labels[k] for k in models]
-    # plot colors from model names
-    colors = [model_colors[k][0] for k in models]
+    plot_model_labels = [model_labels[k] for k in models]
 
-    # determine strings used for plot subtitle
-    stats_str = stats_type
+    if isinstance(stats_type, str):
+        stats_type = [stats_type]
+
+    # determine strings used for plot subtitle and labels
+    stats_str = ""
     mf_str = ""
-    if stats_type not in ["prior", "posterior"]:
-        mf_str = " above BC"
-        stats_str = stats_type.split("_")[0]
+    add_gap = False
+    if len(stats_type) == 1:
+        stats_str = " " + stats_type[0]
+        plot_label = plot_model_labels
+        if "above_BC" in stats_str:
+            mf_str = " above BC"
+            stats_str = stats_str.split("_")[0]
+    else:
+        add_gap = True
+        plot_label = [
+            model + " " + stat.replace("_", " ")
+            for model in plot_model_labels
+            for stat in stats_type
+        ]
 
-    long_stats = pd.melt(stats, id_vars=["model", "site"], value_vars=stats_to_plot)
-    nrows = len(stats_to_plot)
-    fig, ax = plt.subplots(nrows, 1, figsize=(10, 3 * nrows), tight_layout=True)
+    # create subplots
+    nstats = len(stats_to_plot)
+    if top_to_bottom_align:
+        nrows = nstats
+        ncolumns = 1
+        plot_width = 10
+        plot_height = 3 * nstats
+        leg_yloc = 0.94
+    else:
+        nrows = 1
+        ncolumns = nstats
+        plot_width = 3 * nstats
+        plot_height = 4
+        leg_yloc = 0.875
+    fig, ax = plt.subplots(
+        nrows, ncolumns, figsize=(plot_width, plot_height), tight_layout=True
+    )
+
+    long_stats = pd.melt(
+        stats, id_vars=["model", "stats_type", "site"], value_vars=stats_to_plot
+    )
     for i, stat in enumerate(stats_to_plot):
         df_this_stats = long_stats[long_stats["variable"] == stat].pivot(
-            index="site", columns="model", values="value"
+            index="site", columns=["model", "stats_type"], values="value"
         )
+
+        # Add dummy rows (used as space between model bars)
+        if add_gap:
+            for model in models:
+                df_this_stats[(model, "gap")] = 0
+
+        # Order rows per model (so that all stats from the same model are plotted first)
+        all_stats_type = df_this_stats.columns.get_level_values("stats_type").unique()
+        df_columns = [(model, stat) for model in models for stat in all_stats_type]
+        colors = [
+            model_colors[k][0] if "posterior" in stat else model_colors[k][1]
+            for k in models
+            for stat in all_stats_type
+        ]
+        df_this_stats = df_this_stats[df_columns]
 
         df_this_stats.plot(
             kind="bar",
@@ -284,20 +333,28 @@ def plot_stats_mf(
             ylabel = ylabel + " (" + mf_units_print + ")"
         ax[i].set_ylabel(ylabel)
 
-    leg = ax[0].legend(
+    # Remove dummy column from handles
+    handles, _ = ax[0].get_legend_handles_labels()
+    real_handles = [
+        handle for handle, col in zip(handles, df_columns) if col[1] != "gap"
+    ]
+
+    leg = fig.legend(
+        handles=real_handles,
         ncol=3,
         borderpad=0.2,
         columnspacing=1.0,
         loc="upper center",
-        bbox_to_anchor=(0.5, 1.25),
-        labels=model_str,
+        bbox_to_anchor=(0.5, leg_yloc),
+        labels=plot_label,
     )
 
     species_info = config_data["species_info"][species]
+    end_space = "\n" if len(plot_label) <= 3 else "\n\n"
     fig.suptitle(
         (
-            f'{species_info["species_print"]} {stats_str} model performance versus mole fraction observations{mf_str}'
-            f"\n{start_date} to {end_date}"
+            f'{species_info["species_print"]}{stats_str} model performance versus mole fraction observations{mf_str}'
+            f"\n{start_date} to {end_date}{end_space}"
         )
     )
 
