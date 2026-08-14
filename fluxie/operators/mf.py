@@ -3,11 +3,14 @@ import xarray as xr
 import pandas as pd
 import logging
 from fluxie.operators.convert import get_variables
-from typing import Literal
+from typing import Literal, get_args
 
 from fluxie.operators.stats import stats_observed_vs_simulated
 
 logger = logging.getLogger(__name__)
+
+
+StatsType = Literal["prior", "posterior", "prior_above_BC", "posterior_above_BC"]
 
 
 def compute_mf_difference(
@@ -124,9 +127,7 @@ def compute_mf_difference(
 
 def stats_mf(
     ds_all: dict[str, dict],
-    stats_type: Literal[
-        "prior", "posterior", "prior_above_BC", "posterior_above_BC"
-    ] = "prior",
+    stats_type: StatsType | list[StatsType] = "prior",
     sites: list = None,
 ) -> pd.DataFrame:
     """
@@ -136,58 +137,70 @@ def stats_mf(
     This calls :py:func:`fluxie.operators.stats.stats_observed_vs_simulated`
 
     Args:
-        ds_all (dictionary of datasets):
+        ds_all:
             xarray datasets from slice_mf(), sliced between chosen dates
             but still containing all sites.
-        stats_type :
-            type of statistics to be computed. One of 'prior', 'posterior' for
+        stats_type:
+            type of statistics to be computed. Options are 'prior', 'posterior' for
             statistics on the absolute mole fractions and 'prior_above_BC',
             'posterior_above_BC' for regional part of mole fraction, i.e. with
             BC contribution subtracted from both observation and simulation.
-        sites: sites for which to make the stats.
+        sites:
+            sites for which to make the stats.
     Returns:
         stats (pandas.DataFrame):
             Dataframe containing the statistical measures.
     """
 
-    # assure that stats_type in allowed options
-    type_options = ["prior", "posterior", "prior_above_BC", "posterior_above_BC"]
-    assert stats_type in type_options, f"'{stats_type}' is not in {type_options}"
+    if isinstance(stats_type, str):
+        stats_type = [stats_type]
 
-    # select what to compare
-    if stats_type == "prior":
-        obs = "mf_observed"
-        sim = "mf_prior"
-    elif stats_type == "posterior":
-        obs = "mf_observed"
-        sim = "mf_posterior"
-    elif stats_type == "prior_above_BC":
-        obs = "mf_observed_no_bc_prior"
-        sim = "mf_prior_no_bc_prior"
-        ds_all = {
-            model: ds.assign(
-                mf_observed_no_bc_prior=ds["mf_observed"] - ds["mf_bc_prior"],
-                mf_prior_no_bc_prior=ds["mf_prior"] - ds["mf_bc_prior"],
-            )
-            for model, ds in ds_all.items()
-        }
-    elif stats_type == "posterior_above_BC":
-        obs = "mf_observed_no_bc_posterior"
-        sim = "mf_posterior_no_bc_posterior"
-        ds_all = {
-            model: ds.assign(
-                mf_observed_no_bc_posterior=ds["mf_observed"] - ds["mf_bc_posterior"],
-                mf_posterior_no_bc_posterior=ds["mf_posterior"] - ds["mf_bc_posterior"],
-            )
-            for model, ds in ds_all.items()
-        }
-    else:
-        # Should not happen due to the assert above
-        raise ValueError()
+    dfs = []
+    for stat in stats_type:
+        # assure that stats_type in allowed options
+        assert stat in get_args(StatsType), f"'{stat}' is not in {get_args(StatsType)}"
 
-    return stats_observed_vs_simulated(
-        ds_all,
-        obs_var=obs,
-        sim_var=sim,
-        sites=sites,
-    )
+        # select what to compare
+        if stat == "prior":
+            obs = "mf_observed"
+            sim = "mf_prior"
+        elif stat == "posterior":
+            obs = "mf_observed"
+            sim = "mf_posterior"
+        elif stat == "prior_above_BC":
+            obs = "mf_observed_no_bc_prior"
+            sim = "mf_prior_no_bc_prior"
+            ds_all = {
+                model: ds.assign(
+                    mf_observed_no_bc_prior=ds["mf_observed"] - ds["mf_bc_prior"],
+                    mf_prior_no_bc_prior=ds["mf_prior"] - ds["mf_bc_prior"],
+                )
+                for model, ds in ds_all.items()
+            }
+        elif stat == "posterior_above_BC":
+            obs = "mf_observed_no_bc_posterior"
+            sim = "mf_posterior_no_bc_posterior"
+            ds_all = {
+                model: ds.assign(
+                    mf_observed_no_bc_posterior=ds["mf_observed"]
+                    - ds["mf_bc_posterior"],
+                    mf_posterior_no_bc_posterior=ds["mf_posterior"]
+                    - ds["mf_bc_posterior"],
+                )
+                for model, ds in ds_all.items()
+            }
+        else:
+            # Should not happen due to the assert above
+            raise ValueError()
+
+        df = stats_observed_vs_simulated(
+            ds_all,
+            obs_var=obs,
+            sim_var=sim,
+            stats_type=stat,
+            sites=sites,
+        )
+
+        dfs.append(df)
+
+    return pd.concat(dfs, ignore_index=True)
