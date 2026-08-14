@@ -3,7 +3,7 @@ import xarray as xr
 import pandas as pd
 import logging
 from fluxie.operators.convert import get_variables
-from typing import Literal
+from typing import Literal, get_args
 
 from fluxie.operators.stats import stats_observed_vs_simulated
 
@@ -158,8 +158,7 @@ def stats_mf(
     dfs = []
     for stat in stats_type:
         # assure that stats_type in allowed options
-        type_options = ["prior", "posterior", "prior_above_BC", "posterior_above_BC"]
-        assert stat in type_options, f"'{stat}' is not in {type_options}"
+        assert stat in get_args(StatsType), f"'{stat}' is not in {get_args(StatsType)}"
 
         # select what to compare
         if stat == "prior":
