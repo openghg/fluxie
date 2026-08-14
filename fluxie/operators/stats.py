@@ -9,8 +9,8 @@ def stats_observed_vs_simulated(
     ds_all: dict[str, dict],
     obs_var: str,
     sim_var: str,
-    sites: list = None,
-    stats_type: str = "Undefined",
+    sites: list[str] | None = None,
+    stats_type: str | None = None,
 ) -> pd.DataFrame:
     """
     Calculates multiple statistical measures of the fit between the observed
@@ -31,8 +31,10 @@ def stats_observed_vs_simulated(
             Name of the observed variable.
         sim_var (str):
             Name of the simulated variable.
-        sites (list):
+        sites (list of str):
             Sites for which to make the stats.
+        stats_type (str):
+            Type of data statistics being evaluated (see StatsType in fluxie.operators.mf).
 
     Returns:
         stats (pandas.DataFrame):
