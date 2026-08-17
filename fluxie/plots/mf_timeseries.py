@@ -1,3 +1,4 @@
+import itertools
 import logging
 from typing import Literal
 from enum import Enum
@@ -835,47 +836,51 @@ def plot_timeseries(
 def plot_sites_timeseries(
     ds_all: dict[str, xr.Dataset],
     var: str,
-    species: str,
-    start_date: str,
-    end_date: str,
-    model_colors: dict[str, str],
-    model_labels: dict[str, str],
-    config_data: dict[str, dict],
+    species: str | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    model_colors: dict[str, list[str]] | None = None,
+    model_labels: dict[str, str] | None = None,
+    config_data: dict[str, dict] | None = None,
     margin: float = 0.1,
     separate_by_height: bool = False,
-):
+) -> Figure:
     """
     Plot the timeseries of data available for each site and model.
 
     Args:
-        ds_all (dictionary xarray Datasets):
+        ds_all:
             Dictionnary of xarray returned by read_output_model.
-        var (str):
+        var:
             Var for which the timeseries should be plotted
-        species (str):
+        species:
             Gas species, e.g. 'ch4'.
-        start_date (str):
+        start_date:
             Date to plot data from, e.g. '2021-01-01'
-        end_date (str):
+        end_date:
             Date to plot data to, e.g. '2022-01-01' would include all
             data up to 2021-12-31.
-        model_colors (dict of str):
+        model_colors:
             Models and corresponding colours used to plot the model.
-        model_labels (dict of dict):
+        model_labels:
             Dictionary with model lables.
-        config_data (dict of dict):
+        config_data:
             Dictionary with settings read from json file.
             Use json filenames as keys.
-        margin (float):
+        margin:
             Horizontal space between datapoints from different models.
-        separate_by_height (bool):
+        separate_by_height:
             If True, separates obs by intake height and by site.
     """
 
     models = ds_all.keys()
-    dt_start_date = np.datetime64(start_date)
-    dt_end_date = np.datetime64(end_date)
-    model_labels_copy = model_labels.copy()
+    dt_start_date = np.datetime64(start_date) if start_date else None
+    dt_end_date = np.datetime64(end_date) if end_date else None
+    model_labels_copy = model_labels.copy() if model_labels else {m: m for m in models}
+    config_data = config_data or {}
+    if model_colors is None:
+        default_colors = itertools.cycle(config.get_default_colors())
+        model_colors = {m: [next(default_colors)] for m in models}
 
     # create list of grouped site-height pairs
     site_list = get_unique_site_height_pairs(ds_all, separate_by_height)
@@ -894,9 +899,8 @@ def plot_sites_timeseries(
     for site_iter, (site, height) in enumerate(site_list):
         if site_iter != 0:
             # Add grey vertical line between sites
-            ax.plot(
-                [site_iter - 0.5, site_iter - 0.5],
-                [dt_start_date, dt_end_date],
+            ax.axvline(
+                site_iter - 0.5,
                 c="gray",
                 ls="-",
                 lw=1,
@@ -928,6 +932,13 @@ def plot_sites_timeseries(
             model_labels_copy[m] = None
 
     # Define plot settings
+    if dt_start_date is None:
+        # Get start of plotted data
+        dt_start_date = np.min([ds_all[m]["time"].min().values for m in models])
+    if dt_end_date is None:
+        # Get end of plotted data
+        dt_end_date = np.max([ds_all[m]["time"].max().values for m in models])
+
     ax.set_ylim(
         dt_start_date - np.timedelta64(1, "D"), dt_end_date + np.timedelta64(1, "D")
     )
