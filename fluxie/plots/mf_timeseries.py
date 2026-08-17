@@ -879,9 +879,7 @@ def plot_sites_timeseries(
     model_labels_copy = model_labels.copy() if model_labels else {m: m for m in models}
     config_data = config_data or {}
     if model_colors is None:
-        default_colors = itertools.cycle(
-            plt.rcParams["axes.prop_cycle"].by_key()["color"]
-        )
+        default_colors = itertools.cycle(config.get_default_colors())
         model_colors = {m: [next(default_colors)] for m in models}
 
     # create list of grouped site-height pairs
