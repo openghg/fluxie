@@ -28,6 +28,16 @@ logger = logging.getLogger(__name__)
 legacy_names: dict[str, str] = {
     "country_flux_total_prior": "flux_total_prior_country",
     "country_flux_total_posterior": "flux_total_posterior_country",
+    "country_flux_waste_prior": "flux_waste_prior_country",
+    "country_flux_waste_posterior": "flux_waste_posterior_country",
+    "country_flux_agriculture_prior": "flux_agriculture_prior_country",
+    "country_flux_agriculture_posterior": "flux_agriculture_posterior_country",
+    "country_flux_energy_prior": "flux_energy_prior_country",
+    "country_flux_energy_posterior": "flux_energy_posterior_country",
+    "country_flux_land_prior": "flux_land_prior_country",
+    "country_flux_land_posterior": "flux_land_posterior_country",
+    "country_flux_industry_prior": "flux_industry_prior_country",
+    "country_flux_industry_posterior": "flux_industry_posterior_country",
     "percentile_country_flux_total_prior": "percentile_flux_total_prior_country",
     "percentile_country_flux_total_posterior": "percentile_flux_total_posterior_country",
     "covariance_country_flux_total_posterior": "covariance_flux_total_posterior_country",
@@ -1127,7 +1137,8 @@ def add_sites_var(
 
     if frequency == "yearly":
         flux_keys = flux_times.dt.year.values
-    elif frequency == "monthly":
+    #elif frequency == "monthly":
+    elif "monthly" in frequency:
         flux_keys = list(zip(flux_times.dt.year.values, flux_times.dt.month.values))
         flux_keys = np.array(flux_keys, dtype=[("year", "i4"), ("month", "i4")])
 
@@ -1141,7 +1152,8 @@ def add_sites_var(
 
         if frequency == "yearly":
             mf_keys = valid_times.dt.year.values
-        elif frequency == "monthly":
+        elif "monthly" in frequency:
+        #elif frequency == "monthly":
             years = valid_times.dt.year.values
             months = valid_times.dt.month.values
             # Mask NaN, otherwise conversion to int won't work

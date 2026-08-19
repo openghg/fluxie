@@ -136,6 +136,56 @@
         "species_print": "SO$_2$F$_2$",
         "molar_mass": 102.06
     },
+    "f11": {
+        "species_print":"CFC-11",
+        "gwp": 6410,
+        "molar_mass": 137.37
+    },
+    "f12": {
+        "species_print":"CFC-12",
+        "gwp": 12500,
+        "molar_mass": 120.91
+    },
+    "h22": {
+        "species_print":"HCFC-22",
+        "gwp": 1910,
+        "molar_mass": 86.47
+    },
+    "h141b": {
+        "species_print":"HCFC-141b",
+        "gwp": 808,
+        "molar_mass": 116.90
+    },
+    "h142b": {
+        "species_print":"HCFC-142b",
+        "gwp": 2190,
+        "molar_mass": 100.45
+    },
+    "ct": {
+        "species_print":"CCl$_4$",
+        "gwp": 2150,
+        "molar_mass": 153.8
+    },
+    "mc": {
+        "species_print":"CH$_3$CCl$_3$",
+        "gwp": 164,
+        "molar_mass": 133.35
+    },
+    "h1211": {
+        "species_print":"Halon-1211",
+        "gwp": 1990,
+        "molar_mass": 165.35
+    },
+    "h1301": {
+        "species_print":"Halon-1301",
+        "gwp": 7430,
+        "molar_mass": 148.9
+    },
+    "h2402": {
+        "species_print":"Halon-2402",
+        "gwp": 2260,
+        "molar_mass": 259.8
+    }, 
     "all_hfc": {
         "list_species": ["hfc125","hfc134a","hfc143a","hfc152a","hfc23","hfc227ea","hfc245fa","hfc32","hfc365mfc","hfc236fa","hfc4310mee"],
         "species_print": "Total HFC"
