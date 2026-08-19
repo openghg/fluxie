@@ -6,7 +6,7 @@ import os
 logger = logging.getLogger(__name__)
 
 color_palette = {
-    0: [["dodgerblue", "blue"], ["firebrick", "salmon"], ["deepskyblue", "cyan"]],
+    0: [["dodgerblue", "blue"], ["darkorange",'firebrick'], ["deepskyblue", "cyan"]],
     1: [["purple", "mediumpurple"], ["deeppink", "pink"], ["darkorange", "red"]],
     2: [["darkgreen", "green"], ["limegreen", "palegreen"], ["olive", "lightgreen"]],
     3: [["darkorange", "orange"], ["gold", "khaki"], ["yellow", "lightyellow"]],
@@ -58,8 +58,8 @@ mf_labels = {
 }
 
 mf_color_index = {
-    "mf_prior": 1,
-    "mf_posterior": 0,
+    "mf_prior": 0,
+    "mf_posterior": 1,
     "mf_bc_prior": 1,
     "mf_bc_posterior": 0,
     "mf_bias_prior": 1,
