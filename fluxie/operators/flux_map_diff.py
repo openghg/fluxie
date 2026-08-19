@@ -1,5 +1,6 @@
 import xarray as xr
 import logging
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -38,11 +39,11 @@ def define_var_plot(
                 ds[f"flux_{sector}_posterior"] - ds[f"flux_{sector}_prior"]
             )
 
-        elif var_p == "posterior_mean_diff":
+        elif var_p == f"posterior_{sector}_mean_diff":
             ds_output[var_p] = ds[f"flux_{sector}_posterior"] - ds[
                 f"flux_{sector}_posterior"
             ].mean(dim="time")
-
+            
         elif var_p == "posterior_prior_diff_inversion_grid":
             if (
                 f"flux_{sector}_prior_inversion_grid" in ds
@@ -65,7 +66,7 @@ def define_var_plot(
                 )
             ds_output[var_p] = ds[posterior] - ds[prior]
 
-        elif var_p == "posterior_mean_diff_inversion_grid":
+        elif var_p == f"posterior_{sector}_mean_diff_inversion_grid":
             ds_output[var_p] = ds[f"flux_{sector}_posterior_inversion_grid"] - ds[
                 f"flux_{sector}_posterior_inversion_grid"
             ].mean(dim="time")
