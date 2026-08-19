@@ -63,11 +63,11 @@ def slice_flux(
         end_date = [end_date] * len(ds_all.keys())
     if len(start_date) == 1 and len(ds_all.keys()) > 1:
         start_date = start_date * len(ds_all.keys())
-        logger.warning(f'Applying single start_date {start_date[0]} to all models')
+        logger.warning(f"Applying single start_date {start_date[0]} to all models")
     if len(end_date) == 1 and len(ds_all.keys()) > 1:
         end_date = end_date * len(ds_all.keys())
-        logger.warning(f'Applying single end_date {end_date[0]} to all models')
-    
+        logger.warning(f"Applying single end_date {end_date[0]} to all models")
+
     for im, m in enumerate(ds_all.keys()):
         logger.info(f"Masking data from {m}.")
 
@@ -107,7 +107,7 @@ def slice_mf(
     mf_units_print: str = None,
     keep_unassimilated: bool = False,
     intake_height: float | None = None,
-    months: list[int] | None = None
+    months: list[int] | None = None,
 ) -> dict[str, xr.Dataset]:
     """
     Slices down the mole fraction timeseries data, to within the
@@ -144,7 +144,7 @@ def slice_mf(
 
     start_date = pd.to_datetime(start_date)
     end_date = pd.to_datetime(end_date)
-    
+
     if months is not None:
         months = [int(m) for m in months]
         invalid = [m for m in months if m < 1 or m > 12]
@@ -200,11 +200,11 @@ def slice_mf(
 
         # Slice data according to time window
         mask = (ds_all[m]["time"] >= start_date) & (ds_all[m]["time"] <= end_date)
-        
-         # Optional month filter (e.g. DJF = [12, 1, 2])
+
+        # Optional month filter (e.g. DJF = [12, 1, 2])
         if months is not None:
             mask &= ds_all[m]["time"].dt.month.isin(months)
-        
+
         if not keep_unassimilated:
             # Mask assimilated data only
             mask &= ds_all[m]["assimilation_flag"] == 1

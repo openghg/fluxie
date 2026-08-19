@@ -3,7 +3,7 @@ import os
 import numpy as np
 import xarray as xr
 from pathlib import Path
-from fluxie.operators.convert import get_units_conversion_factor,convert_units_co2eq
+from fluxie.operators.convert import get_units_conversion_factor, convert_units_co2eq
 from fluxie.operators.flux_align_dataset import align_lat_lon
 
 logger = logging.getLogger(__name__)
@@ -112,7 +112,7 @@ def scale_by_sector_proportions(
         sector_file (str):
             Start of sector file name, e.g. 'EUROPE_EDGAR'
         create_sectors (bool):
-            If True, calculates sector spatial fluxes. Can be set as a 
+            If True, calculates sector spatial fluxes. Can be set as a
         create_region_sector_totals (bool):
             If True, sums spatial fluxes over country_fraction masks
             to create country/region totals.
@@ -128,14 +128,15 @@ def scale_by_sector_proportions(
     logger.warning(
         f"Scaling fluxes to create sector flux totals, this can be slow (>1 minute to run) if using lots of models and regions."
     )
-    
+
     if type(create_sectors) == bool:
         create_sectors = [create_sectors] * len(list(ds_all.keys()))
-        logger.warning('Creating sector-level emissions for all models.')
+        logger.warning("Creating sector-level emissions for all models.")
     if type(create_region_sector_totals) == bool:
-        create_region_sector_totals = [create_region_sector_totals] * len(list(ds_all.keys()))
-        logger.warning('Creating sector-level region emissions for all models.')
-        
+        create_region_sector_totals = [create_region_sector_totals] * len(
+            list(ds_all.keys())
+        )
+        logger.warning("Creating sector-level region emissions for all models.")
 
     r_data = config_data.get("regions_info", {})["country_codes"]
 
@@ -151,7 +152,7 @@ def scale_by_sector_proportions(
                     region_codes += r_data[r].split("-")
 
     sector_prop_path = sector_prop_path = os.path.join(
-        data_dir, "PRIOR",species, f"PRIOR_{sector_file}.nc"
+        data_dir, "PRIOR", species, f"PRIOR_{sector_file}.nc"
     )
 
     logger.info(f"Using {sector_prop_path} to scale total fluxes into sector fluxes.")
@@ -160,31 +161,41 @@ def scale_by_sector_proportions(
     scaling_factor_all = {}
 
     for m, (model, ds) in enumerate(ds_all.items()):
-        
+
         if create_sectors[m]:
 
             ds_sectors = open_and_align_sector_dataset(sector_prop_path, ds)
-            if "flux_total_posterior" in list(ds_sectors.keys()) or "flux_energy_posterior" in list(ds_sectors.keys()):
+            if "flux_total_posterior" in list(
+                ds_sectors.keys()
+            ) or "flux_energy_posterior" in list(ds_sectors.keys()):
                 var_search = "posterior"
-            elif "flux_total_prior" in list(ds_sectors.keys()) or "flux_energy_prior" in list(ds_sectors.keys()): 
+            elif "flux_total_prior" in list(
+                ds_sectors.keys()
+            ) or "flux_energy_prior" in list(ds_sectors.keys()):
                 var_search = "prior"
-                                
+
             if f"flux_total_{var_search}" not in list(ds_sectors.keys()):
-                flux_vars = [v for v in list(ds_sectors.keys()) if v.startswith('flux') and v.endswith(var_search)]
-                logger.warning(f"No '_total_' variable available in sector scaling dataset, so creating this by summing sectors: {flux_vars}")
-                
-                for v,var in enumerate(flux_vars):
+                flux_vars = [
+                    v
+                    for v in list(ds_sectors.keys())
+                    if v.startswith("flux") and v.endswith(var_search)
+                ]
+                logger.warning(
+                    f"No '_total_' variable available in sector scaling dataset, so creating this by summing sectors: {flux_vars}"
+                )
+
+                for v, var in enumerate(flux_vars):
                     if v == 0:
                         ds_sectors[f"flux_total_{var_search}"] = ds_sectors[var]
                     else:
-                        ds_sectors[f"flux_total_{var_search}"] += ds_sectors[var]                
-            
+                        ds_sectors[f"flux_total_{var_search}"] += ds_sectors[var]
+
             ###TEMPORARY FIX FOR RHIME UN-ROUNDED LATITUDES AND LONGTIUDES
-            for c in ['latitude','longitude']:
-                ds = ds.assign_coords({c:np.round(ds[c],3)})
-                ds_sectors = ds_sectors.assign_coords({c:np.round(ds[c],3)})
+            for c in ["latitude", "longitude"]:
+                ds = ds.assign_coords({c: np.round(ds[c], 3)})
+                ds_sectors = ds_sectors.assign_coords({c: np.round(ds[c], 3)})
             ###
-                
+
             if m == 0 and sectors == None:
                 sectors = [v.split("_")[-1] for v in ds_sectors if "total" not in v]
                 logger.warning(
@@ -194,8 +205,11 @@ def scale_by_sector_proportions(
 
             # Convert prior and posterior flux for each sector
             for s in sectors:
-                print(f'Working on {s}...')
-                scaling_factor_all[s] = ds_sectors[f"flux_{s}_{var_search}"] / ds_sectors[f"flux_total_{var_search}"]
+                print(f"Working on {s}...")
+                scaling_factor_all[s] = (
+                    ds_sectors[f"flux_{s}_{var_search}"]
+                    / ds_sectors[f"flux_total_{var_search}"]
+                )
                 scaling_factor_all[s] = scaling_factor_all[s].where(
                     ds_sectors[f"flux_total_{var_search}"] != 0, 0
                 )
@@ -228,7 +242,9 @@ def scale_by_sector_proportions(
 
                 # check for cell_area and create if needed
                 if "cell_area" not in ds:
-                    ds["cell_area"] = create_cell_area(ds, cell_area_test_file, sector_file)
+                    ds["cell_area"] = create_cell_area(
+                        ds, cell_area_test_file, sector_file
+                    )
                 logger.warning(
                     "cell_area should be in meter square and flux in something per m-2. No check is made on this for the moment."
                 )
@@ -238,8 +254,8 @@ def scale_by_sector_proportions(
                     if regions:
                         ds_flux_country_list = list()
 
-                        #for country in np.unique(region_codes):
-                        for country in regions:    
+                        # for country in np.unique(region_codes):
+                        for country in regions:
                             if country not in ds.country:
                                 continue
                             tmp_list = []
@@ -253,13 +269,15 @@ def scale_by_sector_proportions(
                                     * units_factor
                                 )
                                 tmp_list[-1].name = f"flux_{s}_{suff}_country"
-                                #print(tmp_list)
+                                # print(tmp_list)
                             ds_flux_country_list.append(
                                 xr.merge(tmp_list, compat="no_conflicts")
                             )
 
                         if len(regions) > 1:
-                            ds_flux_country = xr.concat(ds_flux_country_list, dim="country")
+                            ds_flux_country = xr.concat(
+                                ds_flux_country_list, dim="country"
+                            )
                         else:
                             ds_flux_country = ds_flux_country_list[0]
 

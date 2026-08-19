@@ -206,7 +206,8 @@ def prepare_data_to_plot(
     # Add original datasets to plot
     if not any(resample) or plot_resample_and_original:
         ds_original_flux = {
-            m: v for (i, (m, v)) in enumerate(ds_all_region.items()) #if plot_separate[i]
+            m: v
+            for (i, (m, v)) in enumerate(ds_all_region.items())  # if plot_separate[i]
         }
         ds_to_plot.update(ds_original_flux)
 
@@ -219,7 +220,7 @@ def prepare_data_to_plot(
             {
                 m: v
                 for (i, (m, v)) in enumerate(ds_resampled.items())
-                #if plot_separate[i]
+                # if plot_separate[i]
             }
         )
 
@@ -227,7 +228,7 @@ def prepare_data_to_plot(
     for m, rm, ps, rs in zip(
         ds_all_region.keys(), rolling_mean, plot_separate, resample
     ):
-        if rm: #& ps:  # if rolling_mean and plot_separate
+        if rm:  # & ps:  # if rolling_mean and plot_separate
             model = m + "_resample" if rs else m
             ds_to_plot[model] = calc_rolling_mean(ds_to_plot[model])
 
@@ -254,7 +255,6 @@ def prepare_data_to_plot(
                 )
             combined_models_dict = {
                 "Mean": [
-                    
                     m for (i, m) in enumerate(ds_to_plot.keys()) if plot_combined[i]
                 ]
             }
@@ -272,13 +272,13 @@ def prepare_data_to_plot(
             }
 
         ds_to_combine = {
-            m: ds #calc_rolling_mean(ds) if rm else ds
+            m: ds  # calc_rolling_mean(ds) if rm else ds
             for rm, (m, ds) in zip(
                 rolling_mean, (ds_resampled if use_resampled else ds_to_plot).items()
             )
         }
 
-        for i,(group_label, model_list) in enumerate(combined_models_dict.items()):
+        for i, (group_label, model_list) in enumerate(combined_models_dict.items()):
             combine_mask = [model in model_list for model in ds_to_combine.keys()]
             ds_combined = combine_dataset(ds_to_combine, combine_mask, only_overlapping)
             ds_combined["combined"].attrs["model_label"] = group_label
@@ -288,7 +288,7 @@ def prepare_data_to_plot(
             ds_combined = {
                 f"combined_{new_key}": ds_combined["combined"]
             }  # rename key to include group label
-            #ds_to_plot.update(ds_combined)
+            # ds_to_plot.update(ds_combined)
             if plot_separate[i] == False:
                 ds_to_plot = ds_combined.copy()
             else:
@@ -334,7 +334,7 @@ def add_line_plot(
     add_unc: bool = False,
     unit: str = None,
     plot_trends: bool = False,
-    use_err:bool=True
+    use_err: bool = True,
 ) -> dict[str, dict]:
     """
     Plot the posterior/prior data on the axis. The variable posterior/prior of the dataset ds is plotted as a line (color and label found in the dataset
@@ -379,27 +379,36 @@ def add_line_plot(
         **kwargs_plot,
     )
     if variable == "posterior" and plot_trends:
-       
+
         err = np.mean(
-            [ds[variable].values-ds[f"{variable}_lower"].values, ds[f"{variable}_upper"].values-ds[variable].values], axis=0
+            [
+                ds[variable].values - ds[f"{variable}_lower"].values,
+                ds[f"{variable}_upper"].values - ds[variable].values,
+            ],
+            axis=0,
         )
         if use_err:
             opt, cov = curve_fit(
-             linear, [i.year+i.month/12 for i in time_as_datetime], ds[variable], sigma=err
-         )
+                linear,
+                [i.year + i.month / 12 for i in time_as_datetime],
+                ds[variable],
+                sigma=err,
+            )
         else:
-               opt, cov = curve_fit(
-             linear, [i.year+i.month/12 for i in time_as_datetime], ds[variable]
-         )
+            opt, cov = curve_fit(
+                linear, [i.year + i.month / 12 for i in time_as_datetime], ds[variable]
+            )
         ax.plot(
             time_as_datetime,
-            linear(np.array([i.year+i.month/12 for i in time_as_datetime]), *opt),
+            linear(np.array([i.year + i.month / 12 for i in time_as_datetime]), *opt),
             color=ds.attrs["model_color"],
             linestyle=":",
             label=ds.attrs["model_label"] + " trend",
         )
 
-        print(f"\n{ds.model_label} trend for {ds.attrs['country']} is: {opt[0]:7.3f} {unit}\n")
+        print(
+            f"\n{ds.model_label} trend for {ds.attrs['country']} is: {opt[0]:7.3f} {unit}\n"
+        )
 
     res = pd.DataFrame(
         {
@@ -441,8 +450,8 @@ def add_inventory_barplot(
     sector: str | list[str],
     annex_mode: bool,
     plot_inventory_uncertainty: list[bool] | bool = False,
-    plot_trends:bool=False,
-    use_err:bool=True
+    plot_trends: bool = False,
+    use_err: bool = True,
 ) -> dict[str, dict]:
     """
     Retrieve and plot the inventories as bar plots. If multiple inventories are plotted, the older the inventory is, the smaller
@@ -529,15 +538,20 @@ def add_inventory_barplot(
         if plot_trends:
             if use_err:
                 opt, cov = curve_fit(
-                 linear, [i.year+i.month/12 for i in time_as_datetime], inventory, sigma=yerr
-             )
+                    linear,
+                    [i.year + i.month / 12 for i in time_as_datetime],
+                    inventory,
+                    sigma=yerr,
+                )
             else:
                 opt, cov = curve_fit(
-                 linear, [i.year+i.month/12 for i in time_as_datetime], inventory
-             )
+                    linear, [i.year + i.month / 12 for i in time_as_datetime], inventory
+                )
             ax.plot(
                 time_as_datetime,
-                linear(np.array([i.year+i.month/12 for i in time_as_datetime]), *opt),
+                linear(
+                    np.array([i.year + i.month / 12 for i in time_as_datetime]), *opt
+                ),
                 color="grey",
                 linestyle=":",
                 label="Inventory trend",
@@ -550,11 +564,11 @@ def add_inventory_barplot(
                 "mean_val": inventory.values,
             }
         )
-        
+
         if yerr is not None:
-            tmp["min_unc"] = inventory.values-yerr
-            tmp["max_unc"] = inventory.values+yerr
-        
+            tmp["min_unc"] = inventory.values - yerr
+            tmp["max_unc"] = inventory.values + yerr
+
         tmp["type"] = "inventory"
         tmp["model"] = f"inventory_{inventory.year}"
         tmp["sector"] = sector
@@ -566,8 +580,11 @@ def add_inventory_barplot(
 
 
 def add_sector_barplot(
-    ax: Axes, ds_sector: xr.Dataset, variable: str, bottom_values: np.ndarray | float,
-    gaps_between_bars: bool = False
+    ax: Axes,
+    ds_sector: xr.Dataset,
+    variable: str,
+    bottom_values: np.ndarray | float,
+    gaps_between_bars: bool = False,
 ) -> dict[str, dict]:
     """
     Add a layer to the stacked barplot. The layer correspond to a sector.
@@ -593,7 +610,7 @@ def add_sector_barplot(
             d = 365
         time_as_datetime = ds_sector.time.values.astype("datetime64[Y]").tolist()
         width = [
-            timedelta(days=d+1) if isleap(date.year) else timedelta(days=d)
+            timedelta(days=d + 1) if isleap(date.year) else timedelta(days=d)
             for date in time_as_datetime
         ]
         offset = timedelta(days=183)
@@ -613,8 +630,8 @@ def add_sector_barplot(
         width = [np.mean(width), *width, np.mean(width)]
         offset = timedelta(days=0)
 
-    if sector == 'land' or sector == 'lulucf':
-        bar_label = 'LULUCF'
+    if sector == "land" or sector == "lulucf":
+        bar_label = "LULUCF"
     else:
         bar_label = sector.title()
 
@@ -638,11 +655,19 @@ def add_sector_barplot(
 
     res["type"] = variable
     res["sector"] = sector
-    res["model"] = ds_sector.attrs["model_label"] if "model_label" in ds_sector.attrs else f"inventory"
-    res["country"] = ds_sector.attrs["country"] if "country" in ds_sector.attrs else None
-    res["species"] = ds_sector.attrs["species"] if "species" in ds_sector.attrs else None
+    res["model"] = (
+        ds_sector.attrs["model_label"]
+        if "model_label" in ds_sector.attrs
+        else f"inventory"
+    )
+    res["country"] = (
+        ds_sector.attrs["country"] if "country" in ds_sector.attrs else None
+    )
+    res["species"] = (
+        ds_sector.attrs["species"] if "species" in ds_sector.attrs else None
+    )
 
-    return res,width
+    return res, width
 
 
 def prepare_inventory_sector_barplot(
@@ -656,7 +681,7 @@ def prepare_inventory_sector_barplot(
     s_data: dict[str, dict],
     r_data: dict[str, dict],
     inventory_years: str | list[str] | None,
-    inventory_filename: str
+    inventory_filename: str,
 ) -> list[xr.Dataset]:
     """
     Prepare the inventory for the sector barplot.
@@ -788,28 +813,29 @@ def add_ylabel(
 
         print_country_species = f"{country_equivalent.get(kwargs['region'], kwargs['region'])} {s_data.get(species, {}).get('species_print', species)}"
         print_units = f"({unit.replace('2','$_{{2}}$').replace('-1','$^{{-1}}$')})"
-        
+
         if plot_type.split("-")[1] == "posterior":
             if annex_mode:
-                ax.set_ylabel(f"{print_country_species} {print_units}"
-            )
+                ax.set_ylabel(f"{print_country_species} {print_units}")
             else:
-             ax.set_ylabel(f"{kwargs['label']}\n{print_country_species} {print_units}"
-            )   
-            
+                ax.set_ylabel(
+                    f"{kwargs['label']}\n{print_country_species} {print_units}"
+                )
+
         elif plot_type.split("-")[1] == "prior":
             if annex_mode:
-                ax.set_ylabel(f"Prior\n {print_country_species} {print_units}"
-            )
+                ax.set_ylabel(f"Prior\n {print_country_species} {print_units}")
             else:
-                ax.set_ylabel(f"Prior\n {print_country_species} {print_units}"
-            )
+                ax.set_ylabel(f"Prior\n {print_country_species} {print_units}")
         elif plot_type.split("-")[1] == "inventory":
             if annex_mode:
                 ax.set_ylabel(f"{print_country_species} {print_units}")
             else:
-                ax.set_ylabel(f"{kwargs['inventory_filename'].replace('_',' ').replace('inventory','Inventory')} {print_country_species} {print_units}")
-                
+                ax.set_ylabel(
+                    f"{kwargs['inventory_filename'].replace('_',' ').replace('inventory','Inventory')} {print_country_species} {print_units}"
+                )
+
+
 def add_xlims_and_ticks(
     ax: Axes,
     yearly_freq: bool,
@@ -890,13 +916,12 @@ def add_legend(
         n_inv = 1
     else:
         n_inv = 0
-        
+
     handle_name = (
-                "legend_handles"
-                if int(mplt_version.split(".")[0]) >= 3
-                and int(mplt_version.split(".")[1]) >= 7
-                else "legendHandles"
-            )
+        "legend_handles"
+        if int(mplt_version.split(".")[0]) >= 3 and int(mplt_version.split(".")[1]) >= 7
+        else "legendHandles"
+    )
 
     if set_global_leg:
 
@@ -918,15 +943,13 @@ def add_legend(
         )
 
     else:
-        
+
         for ax in fig.axes:
             _, labels = ax.get_legend_handles_labels()
             ncol = 3 if annex_mode else 2
             leg = ax.legend(ncol=ncol, borderpad=0.4, columnspacing=1.0)
 
-    for l in leg.__getattribute__(handle_name)[
-        : (-n_inv if plot_inventory else None)
-    ]:
+    for l in leg.__getattribute__(handle_name)[: (-n_inv if plot_inventory else None)]:
         l.set_linewidth(3.0)
 
 
@@ -1057,7 +1080,7 @@ def plot_country_flux(
     secondary_units: str | None = None,
     only_overlapping: bool = True,
     plot_trends: bool = False,
-    use_err:bool=True
+    use_err: bool = True,
 ) -> Figure | tuple[Figure, dict[str, dict]]:
     """
     Timeseries plot of prior and posterior country fluxes, from list of
@@ -1109,7 +1132,7 @@ def plot_country_flux(
         add_vline: list of dates (str) where to add vertical lines on each plot. format 'YYYY-MM-DD'.
         secondary_units: If provided, add a secondary y-axis with these units.
         plot_trends: Whether to calculate and plot the linear trend over time.
-        use_err: Whether to use the uncertainty when calculating the trend. 
+        use_err: Whether to use the uncertainty when calculating the trend.
     Returns:
         fig: A plot per country/region.
         res_dict : If return_res, return also a dataframe containing the plotted results. The columns of this dataframe are "type" (possible values "prior"/"posterior"/"inventory"),
@@ -1141,10 +1164,15 @@ def plot_country_flux(
     )
 
     # Sel data
-    if type(start_date) != list: start_date = [start_date]
-    if type(end_date) != list: end_date = [end_date]
-    ds_all = {k: ds.sel(time=slice(min(start_date), max(end_date))) for k, ds in ds_all.items()}
-    
+    if type(start_date) != list:
+        start_date = [start_date]
+    if type(end_date) != list:
+        end_date = [end_date]
+    ds_all = {
+        k: ds.sel(time=slice(min(start_date), max(end_date)))
+        for k, ds in ds_all.items()
+    }
+
     # Create figure
     fig, axes = create_fig_and_axes(len(plot_regions))
 
@@ -1183,7 +1211,7 @@ def plot_country_flux(
                     add_unc=add_post_unc,
                     unit=unit,
                     plot_trends=plot_trends,
-                    use_err=use_err
+                    use_err=use_err,
                 )
                 plotted_data_df = pd.concat(
                     [plotted_data_df, posterior_df], ignore_index=True
@@ -1219,7 +1247,7 @@ def plot_country_flux(
                 annex_mode,
                 plot_inventory_uncertainty,
                 plot_trends=plot_trends,
-                use_err=use_err
+                use_err=use_err,
             )
             plotted_data_df = pd.concat(
                 [plotted_data_df, inventory_df], ignore_index=True
@@ -1257,7 +1285,7 @@ def plot_country_flux(
                 yearly_freq = True
             else:
                 yearly_freq = False
-        elif 'year' in resample:
+        elif "year" in resample:
             yearly_freq = True
         else:
             yearly_freq = False
@@ -1293,7 +1321,12 @@ def plot_country_sector_flux_bar(
     resample: str | list[str] | None = None,
     resample_uncert_correlation: bool = False,
     rolling_mean: bool = False,
-    sectors: dict[list[str]] | list[str] = ["agriculture", "waste", "energy", "industry"],
+    sectors: dict[list[str]] | list[str] = [
+        "agriculture",
+        "waste",
+        "energy",
+        "industry",
+    ],
     xticks_at_centre: bool = False,
     plot_grid: bool = True,
     gaps_between_bars: bool = False,
@@ -1301,7 +1334,7 @@ def plot_country_sector_flux_bar(
     plot_combined: bool = True,
     only_overlapping: bool = False,
     annex_mode: bool = True,
-    vertical_line: str | None = None
+    vertical_line: str | None = None,
 ) -> Figure | list:
     """
     Stacked bar plot of posterior fluxes, split by sector, for a single region, for a range of models.
@@ -1350,16 +1383,19 @@ def plot_country_sector_flux_bar(
         fig: A plot per country/region.
         res_dict : If return_res, return also a dictionnary containing the plotted results
     """
-    
+
     if type(sectors) == list:
-        sectors_dict = {"model":sectors,
-                        "inventory":sectors}
+        sectors_dict = {"model": sectors, "inventory": sectors}
     elif type(sectors) == dict:
         sectors_dict = sectors.copy()
         if "model" not in sectors_dict.keys():
-            raise ValueError("'model' key not included in sectors, either set sectors to a list which applies to all plots, or correct this.")
+            raise ValueError(
+                "'model' key not included in sectors, either set sectors to a list which applies to all plots, or correct this."
+            )
         elif plot_inventory_or_prior == "inventory" and "inventory" not in sectors:
-            raise ValueError("'inventory' key not included in sectors, either set sectors to a list which applies to all plots, or correct this.")
+            raise ValueError(
+                "'inventory' key not included in sectors, either set sectors to a list which applies to all plots, or correct this."
+            )
 
     plot_type = "sector_barplot"
     s_data = config_data.get("species_info", {})
@@ -1369,7 +1405,9 @@ def plot_country_sector_flux_bar(
     plotted_data_df = pd.DataFrame()
 
     # prepare data
-    ds_all_region = extract_region_flux(ds_all, plot_region, r_data, sectors=sectors_dict["model"])
+    ds_all_region = extract_region_flux(
+        ds_all, plot_region, r_data, sectors=sectors_dict["model"]
+    )
     ds_to_plot = prepare_data_to_plot(
         ds_all_region,
         model_labels,
@@ -1379,17 +1417,20 @@ def plot_country_sector_flux_bar(
         resample_uncert_correlation=resample_uncert_correlation,
         plot_separate=plot_separate,
         plot_combined=plot_combined,
-        only_overlapping=only_overlapping
+        only_overlapping=only_overlapping,
     )
 
-    freqs = [ds.attrs["frequency"]  if "frequency" in ds.attrs else "unknown" for ds in ds_to_plot.values()]
+    freqs = [
+        ds.attrs["frequency"] if "frequency" in ds.attrs else "unknown"
+        for ds in ds_to_plot.values()
+    ]
 
     if plot_inventory_or_prior == "inventory":
         start_date = str(min([ds.time.values.min() for ds in ds_to_plot.values()]))[:10]
         end_date = str(max([ds.time.values.max() for ds in ds_to_plot.values()]))[:10]
         inv_plot_data = prepare_inventory_sector_barplot(
             sectors_dict["inventory"],
-            np.datetime64(start_date,'Y'),
+            np.datetime64(start_date, "Y"),
             end_date,
             data_dir,
             plot_region,
@@ -1436,17 +1477,18 @@ def plot_country_sector_flux_bar(
                     if former_sector
                     else np.zeros(ds.time.values.shape[0])
                 )
-                res,width = add_sector_barplot(ax, ds.sel(sector=sector), var, 
-                                         bottom_values, gaps_between_bars)
+                res, width = add_sector_barplot(
+                    ax, ds.sel(sector=sector), var, bottom_values, gaps_between_bars
+                )
                 plotted_data_df = pd.concat([plotted_data_df, res], ignore_index=True)
 
             former_sector = sector
 
         # set y_label inventory_filename, year
-        
-        if ds.attrs["model_label"] == 'Mean':
-            ds.attrs["model_label"] = 'Combined model mean'
-        
+
+        if ds.attrs["model_label"] == "Mean":
+            ds.attrs["model_label"] = "Combined model mean"
+
         add_ylabel(
             ax_data,
             s_data,
@@ -1455,7 +1497,7 @@ def plot_country_sector_flux_bar(
             plot_type=f"{plot_type}-posterior",
             region=plot_region,
             label=ds.attrs["model_label"],
-            annex_mode=annex_mode
+            annex_mode=annex_mode,
         )
         if plot_inventory_or_prior == "prior":
             ax_comp.legend(ncol=1, borderpad=0.4, columnspacing=1.0)
@@ -1466,7 +1508,7 @@ def plot_country_sector_flux_bar(
                 unit,
                 plot_type=f"{plot_type}-prior",
                 region=plot_region,
-                annex_mode=annex_mode
+                annex_mode=annex_mode,
             )
 
     # plot inventory sector bar
@@ -1484,11 +1526,16 @@ def plot_country_sector_flux_bar(
                     if former_sector
                     else np.zeros(inv[0].time.values.shape[0])
                 )
-                res,width = add_sector_barplot(ax, inv[0].sel(sector=sector), 'inv_data', 
-                                         bottom_values, gaps_between_bars)
+                res, width = add_sector_barplot(
+                    ax,
+                    inv[0].sel(sector=sector),
+                    "inv_data",
+                    bottom_values,
+                    gaps_between_bars,
+                )
                 plotted_data_df = pd.concat([plotted_data_df, res], ignore_index=True)
                 former_sector = sector
-            ax.legend(ncol=1, borderpad=0.4, columnspacing=1.0,loc='upper right')
+            ax.legend(ncol=1, borderpad=0.4, columnspacing=1.0, loc="upper right")
             add_ylabel(
                 ax,
                 s_data,
@@ -1498,14 +1545,14 @@ def plot_country_sector_flux_bar(
                 region=plot_region,
                 inventory_filename=inventory_filename,
                 year=year,
-                annex_mode=annex_mode
+                annex_mode=annex_mode,
             )
 
     # plot grid and legend
     for ax in axes:
         if plot_grid:
             ax.grid(visible=True, which="major", alpha=0.4)
-        ax_data.legend(ncol=1, borderpad=0.4, columnspacing=1.0,loc='upper right')
+        ax_data.legend(ncol=1, borderpad=0.4, columnspacing=1.0, loc="upper right")
 
     # set y lim
     if not fix_y_axes:
@@ -1523,16 +1570,30 @@ def plot_country_sector_flux_bar(
 
     # add shading based on vertical line
     if vertical_line:
-        ax_data.fill_between(np.arange(np.datetime64(ds.time.values[0])-np.timedelta64(width[0]),
-                                       np.datetime64(vertical_line),np.timedelta64(10,'D')),
-                             0,ax_data.get_ylim()[1],
-                             color='dimgrey',alpha=0.2,zorder=0,label='2 sites')
+        ax_data.fill_between(
+            np.arange(
+                np.datetime64(ds.time.values[0]) - np.timedelta64(width[0]),
+                np.datetime64(vertical_line),
+                np.timedelta64(10, "D"),
+            ),
+            0,
+            ax_data.get_ylim()[1],
+            color="dimgrey",
+            alpha=0.2,
+            zorder=0,
+            label="2 sites",
+        )
 
     # set xlim and xticks
     yearly_freq = ("year" in freqs) or ("yearly" in freqs)
 
-    add_xlims_and_ticks(axes[-1], yearly_freq, plotted_data_df, aggreg_month=False,
-                        xticks_at_centre=xticks_at_centre)
+    add_xlims_and_ticks(
+        axes[-1],
+        yearly_freq,
+        plotted_data_df,
+        aggreg_month=False,
+        xticks_at_centre=xticks_at_centre,
+    )
 
     return fig, plotted_data_df
 
@@ -1674,7 +1735,7 @@ def plot_all_species_stacked_bar(
         if s == (len(all_species) - 1):
             uncert = uncert_combined / 2.0
             if plot_inventory_uncertainty:
-                inventories_uncert = inventories_uncert_combined #/ 2.0
+                inventories_uncert = inventories_uncert_combined  # / 2.0
             else:
                 inventories_uncert = None
         else:
@@ -1738,4 +1799,4 @@ def plot_all_species_stacked_bar(
         fontsize=12,
     )
 
-    return fig,flux_sum,uncert,inventory_sum,inventories_uncert,plot_times
+    return fig, flux_sum, uncert, inventory_sum, inventories_uncert, plot_times

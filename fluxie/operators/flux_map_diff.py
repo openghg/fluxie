@@ -43,7 +43,7 @@ def define_var_plot(
             ds_output[var_p] = ds[f"flux_{sector}_posterior"] - ds[
                 f"flux_{sector}_posterior"
             ].mean(dim="time")
-            
+
         elif var_p == "posterior_prior_diff_inversion_grid":
             if (
                 f"flux_{sector}_prior_inversion_grid" in ds

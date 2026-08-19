@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 
+
 def get_species_specific_settings(
     species: str, period: str, settings: list | dict
 ) -> list | dict:
@@ -86,9 +87,9 @@ def create_str_dataframe(
         ]
 
     res["time"] = pd.to_datetime(res["time"])
-    
+
     all_models = model + [f"inventory_{inventory_year}"]
-    
+
     data = res[
         (res.country == region)
         & (res.sector == sector)
@@ -97,9 +98,9 @@ def create_str_dataframe(
         & (res.type.isin(["posterior", "inventory"]))
         & (res.time >= table_start_date)
     ].reset_index(drop=True)
-    
+
     data["year"] = pd.to_datetime(data["time"]).dt.year.astype(str)
-    
+
     species_order = (
         data[data.model.isin(all_models)]
         .groupby("species")
@@ -134,7 +135,7 @@ def create_str_dataframe(
                 try:
                     data_per_species[var] *= 1e6
                 except:
-                    logger.warning(f'No {var} in dataset')
+                    logger.warning(f"No {var} in dataset")
             data_per_species["units"] = (
                 "\\footnotesize{$\\left (\\rm{MgCO}_{2}\\rm{\\text{-}eq} \\cdot \\rm{yr}^{-1} \\right )$}"
             )
@@ -151,11 +152,9 @@ def create_str_dataframe(
             lambda x: f"{x:.{n_digits}f}"
         )
         if include_inventory_uncert == True:
-            if 'max_unc' in data_per_species:
+            if "max_unc" in data_per_species:
                 data_per_species["unc"] = data_per_species.apply(
-                    lambda x: (
-                        f"{(x.max_unc-x.min_unc)/2:.{n_digits}f}"
-                    ),
+                    lambda x: (f"{(x.max_unc-x.min_unc)/2:.{n_digits}f}"),
                     axis=1,
                 )
             else:
@@ -172,13 +171,18 @@ def create_str_dataframe(
 
         rescaled_data.append(data_per_species)
     data = pd.concat(rescaled_data)
-    
+
     if include_inventory_uncert == True:
         data["val"] = data.apply(
-            lambda x: f"{x.mean_val} \\pm {x.unc}" if np.isfinite(float(x.unc)) else x.mean_val,
+            lambda x: (
+                f"{x.mean_val} \\pm {x.unc}"
+                if np.isfinite(float(x.unc))
+                else x.mean_val
+            ),
             axis=1,
         )
-    else:data["val"] = data.apply(
+    else:
+        data["val"] = data.apply(
             lambda x: x.mean_val if x.type == "inventory" else f"{x.mean_val}",
             axis=1,
         )
@@ -233,7 +237,7 @@ def make_table(
     hline_place: dict[str] = {"source": "PARIS mean"},
     species: str = None,
 ):
-    
+
     if not species:
         if "hfc" in str(output_path):
             species = "HFCs"

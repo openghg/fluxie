@@ -13,10 +13,10 @@ def calc_rolling_mean(ds: xr.Dataset, time_period: int = 3) -> xr.Dataset:
         dataset where rolling mean have been applied, attributes are conserved
     """
 
-    ds_middle = ds.rolling(time=time_period, center=True).mean(dim='time')
+    ds_middle = ds.rolling(time=time_period, center=True).mean(dim="time")
     ds_middle = ds_middle.dropna(dim="time", how="all")
 
-    ds_first = ds.isel(time=slice(0, 2)).mean(dim='time')
+    ds_first = ds.isel(time=slice(0, 2)).mean(dim="time")
     ds_first = ds_first.expand_dims(
         dim={
             "time": [
@@ -25,7 +25,7 @@ def calc_rolling_mean(ds: xr.Dataset, time_period: int = 3) -> xr.Dataset:
         }
     )
 
-    ds_last = ds.isel(time=slice(-2, None)).mean(dim='time')
+    ds_last = ds.isel(time=slice(-2, None)).mean(dim="time")
     ds_last = ds_last.expand_dims(
         dim={
             "time": [
