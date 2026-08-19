@@ -235,8 +235,7 @@ def prepare_data_to_plot(
     if any(plot_combined):
         if is_plot_combined_single_true:
             if combined_models_dict is None:
-                #combined_models_dict = {"Mean": list(ds_to_plot.keys())}
-                combined_models_dict = {"InTEM": list(ds_to_plot.keys())}
+                combined_models_dict = {"Mean": list(ds_to_plot.keys())}
             else:
                 combined_model_list = sum(combined_models_dict.values(), [])
                 check_missing_models = set(combined_model_list) - set(
@@ -254,8 +253,7 @@ def prepare_data_to_plot(
                     " To combine the models listed in `combined_models_dict`, please set `plot_combined = True`."
                 )
             combined_models_dict = {
-                #"Mean": [
-                "InTEM": [
+                "Mean": [
                     
                     m for (i, m) in enumerate(ds_to_plot.keys()) if plot_combined[i]
                 ]
