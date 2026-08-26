@@ -8,9 +8,9 @@ logger = logging.getLogger(__name__)
 
 
 def make_AR_table(
-    df: pd.DataFrame,
-    output_dir,
-    output_name,
+    df: dict[str:pd.DataFrame],
+    output_dir: str,
+    output_name: str,
     s_data: dict[str, dict],
     regions: list[str],
     start_date: str | list[str],
@@ -87,7 +87,7 @@ def make_AR_table(
                 table_start_date=min(start_date),
                 region=r,
                 include_inventory_uncert=include_inventory_uncert,
-                n_digits=2,
+                n_digits=n_digits,
                 sector=s,
             )
 
@@ -127,9 +127,11 @@ def make_AR_table(
             else:
                 sector_name = f" {s.capitalize()}"
                 sector_name_csv = f"_{s.capitalize()}"
+                
+            inv_model_latex = inv_model.replace("_",r"\_")
 
             if include_inventory:
-                type_title += f" & Inventory{sector_name} & {inv_model}{sector_name}"
+                type_title += f" & Inventory{sector_name} & {inv_model_latex}{sector_name}"
                 if include_inventory_uncert:
                     type_title_csv += f",Inventory{sector_name_csv},Inventory{sector_name_csv}_uncert,InTEM{sector_name_csv},InTEM{sector_name_csv}_uncert"
                 else:
@@ -140,7 +142,7 @@ def make_AR_table(
                 fill_line += " & &"
 
             else:
-                type_title += f" & {inv_model}{sector_name}"
+                type_title += f" & {inv_model_latex}{sector_name}"
                 if include_inventory_uncert:
                     type_title_csv += f",{inv_model}{sector_name_csv},{inv_model}{sector_name_csv}_uncert"
                 else:
