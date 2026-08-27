@@ -771,9 +771,14 @@ def add_ylim(
 
     for ax, val in zip(axes, values):
         df_country = plotted_data_df[plotted_data_df[dim] == val]
-        max_country = np.nanmax(
-            df_country[df_country.columns.intersection(["mean_val", "max_unc"])]
-        )
+        if "max_unc" in df_country:
+            max_country = np.nanmax(
+                df_country[df_country.columns.intersection(["mean_val", "max_unc"])]
+            )
+        else:
+            max_country = np.nanmax(
+                df_country["mean_val"]
+            )
 
         max_cf.append(max_country)
 
@@ -1486,8 +1491,8 @@ def plot_country_sector_flux_bar(
 
         # set y_label inventory_filename, year
 
-        if ds.attrs["model_label"] == "Mean":
-            ds.attrs["model_label"] = "Combined model mean"
+        #if ds.attrs["model_label"] == "Mean":
+        #    ds.attrs["model_label"] = "Combined model mean"
 
         add_ylabel(
             ax_data,
@@ -1560,6 +1565,7 @@ def plot_country_sector_flux_bar(
         logger.info(
             "Switching `fix_y_axes` as the the country are the same for every suplots iin a sector plots, and thus the ODG of the max values should be the same."
         )
+
     add_ylim(
         axes,
         "model",

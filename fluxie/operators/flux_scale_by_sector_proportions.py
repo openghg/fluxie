@@ -150,6 +150,8 @@ def scale_by_sector_proportions(
                 region_codes.append(r_data[r])
                 if "-" in r_data[r]:
                     region_codes += r_data[r].split("-")
+            else:
+                region_codes.append(r)
 
     sector_prop_path = sector_prop_path = os.path.join(
         data_dir, "PRIOR", species, f"PRIOR_{sector_file}.nc"
@@ -173,6 +175,8 @@ def scale_by_sector_proportions(
                 ds_sectors.keys()
             ) or "flux_energy_prior" in list(ds_sectors.keys()):
                 var_search = "prior"
+            else:
+                var_search = ""
 
             if f"flux_total_{var_search}" not in list(ds_sectors.keys()):
                 flux_vars = [
@@ -197,7 +201,7 @@ def scale_by_sector_proportions(
             ###
 
             if m == 0 and sectors == None:
-                sectors = [v.split("_")[-1] for v in ds_sectors if "total" not in v]
+                sectors = np.unique([v.split("_")[1] for v in ds_sectors if "total" not in v])
                 logger.warning(
                     "No sectors specified, so reading sector list from sector_flux file."
                     + f" Used sectors: {sectors}"
@@ -255,7 +259,7 @@ def scale_by_sector_proportions(
                         ds_flux_country_list = list()
 
                         # for country in np.unique(region_codes):
-                        for country in regions:
+                        for country in region_codes:
                             if country not in ds.country:
                                 continue
                             tmp_list = []
@@ -273,8 +277,7 @@ def scale_by_sector_proportions(
                             ds_flux_country_list.append(
                                 xr.merge(tmp_list, compat="no_conflicts")
                             )
-
-                        if len(regions) > 1:
+                        if len(region_codes) > 1:
                             ds_flux_country = xr.concat(
                                 ds_flux_country_list, dim="country"
                             )
