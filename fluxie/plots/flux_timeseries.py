@@ -1482,18 +1482,20 @@ def plot_all_species_stacked_bar(
         )
 
         try:
-            inventories_to_plot[species], inventories_uncert_to_plot = retrieve_inventories(
-                data_dir,
-                regions,
-                species,
-                start_date,
-                end_date,
-                country_flux_units_print,
-                s_data,
-                r_data,
-                inventory_years,
-                inventory_filename,
-                sectors=sector,
+            inventories_to_plot[species], inventories_uncert_to_plot = (
+                retrieve_inventories(
+                    data_dir,
+                    regions,
+                    species,
+                    start_date,
+                    end_date,
+                    country_flux_units_print,
+                    s_data,
+                    r_data,
+                    inventory_years,
+                    inventory_filename,
+                    sectors=sector,
+                )
             )
             this_uncert = inventories_uncert_to_plot[0]
         except KeyError:
@@ -1509,7 +1511,6 @@ def plot_all_species_stacked_bar(
                 f"Only the first model {list(ds_to_plot[species].keys())} will be plotted because this function is "
                 + "currently only set up to plot inventory data and model output from one model."
             )
-
 
         posterior_diff = (
             ds_to_plot[species][models[s]]["posterior_upper"].values
