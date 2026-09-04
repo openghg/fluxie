@@ -603,7 +603,13 @@ def add_sector_barplot(
 
     freq = ds_sector.attrs.get("frequency", "unknown")
 
-    if variable == "inv_data" or freq in ["year", "yearly", "unknown"]:
+    if np.issubdtype(ds_sector.time.values.dtype, np.integer):
+        # aggreg_month mode: time is month indices 1–12
+        time_as_datetime = ds_sector.time.values.tolist()
+        width = [0.8] * len(time_as_datetime)
+        offset = 0
+        align = "center"
+    elif variable == "inv_data" or freq in ["year", "yearly", "unknown"]:
         if gaps_between_bars:
             d = 300
         else:
@@ -614,6 +620,7 @@ def add_sector_barplot(
             for date in time_as_datetime
         ]
         offset = timedelta(days=183)
+        align = "edge"
     elif freq == "monthly":
         time_as_datetime = ds_sector.time.values.astype("datetime64[M]").tolist()
         width = [
@@ -621,6 +628,7 @@ def add_sector_barplot(
             for date in time_as_datetime
         ]
         offset = timedelta(days=15)
+        align = "edge"
     else:
         time_as_datetime = ds_sector.time.values.astype("datetime64[D]").tolist()
         width = [
@@ -629,6 +637,7 @@ def add_sector_barplot(
         ]
         width = [np.mean(width), *width, np.mean(width)]
         offset = timedelta(days=0)
+        align = "edge"
 
     if sector == "land" or sector == "lulucf":
         bar_label = "LULUCF"
@@ -643,7 +652,7 @@ def add_sector_barplot(
         bottom=bottom_values,
         alpha=0.7,
         width=width,
-        align="edge",
+        align=align,
     )
 
     res = pd.DataFrame(
@@ -1340,6 +1349,7 @@ def plot_country_sector_flux_bar(
     only_overlapping: bool = False,
     annex_mode: bool = True,
     vertical_line: str | None = None,
+    aggreg_month: bool = False,
 ) -> Figure | list:
     """
     Stacked bar plot of posterior fluxes, split by sector, for a single region, for a range of models.
@@ -1384,6 +1394,8 @@ def plot_country_sector_flux_bar(
         only_overlapping: If True, only calculates combinbed model mean for overlapping time periods.
         annex_mode: If True, simplifies some plot labels.
         vertical line: Area to the left of this line is shaded light grey.
+        aggreg_month: If True, plots the mean seasonal cycle instead of a time series,
+            averaging data over all years by calendar month.
     Returns:
         fig: A plot per country/region.
         res_dict : If return_res, return also a dictionnary containing the plotted results
@@ -1423,6 +1435,7 @@ def plot_country_sector_flux_bar(
         plot_separate=plot_separate,
         plot_combined=plot_combined,
         only_overlapping=only_overlapping,
+        aggreg_month=aggreg_month,
     )
 
     freqs = [
@@ -1597,7 +1610,7 @@ def plot_country_sector_flux_bar(
         axes[-1],
         yearly_freq,
         plotted_data_df,
-        aggreg_month=False,
+        aggreg_month=aggreg_month,
         xticks_at_centre=xticks_at_centre,
     )
 
