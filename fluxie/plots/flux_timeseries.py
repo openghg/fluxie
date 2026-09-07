@@ -1147,8 +1147,10 @@ def plot_country_flux(
                 plotted_data_df = pd.concat(
                     [plotted_data_df, inventory_df], ignore_index=True
                 )
-            except KeyError:
-                logger.warning(f"Missing inventory data for {species} in {country}")
+            except KeyError as ke:
+                logger.warning(
+                    f"Missing inventory data for {species} in {country}: {ke}"
+                )
 
         # add vertical lines
         if add_vline is not None:
@@ -1498,8 +1500,10 @@ def plot_all_species_stacked_bar(
                 )
             )
             this_uncert = inventories_uncert_to_plot[0]
-        except KeyError:
-            logger.warning(f"Failed to get inventory data for {species} in {regions}")
+        except KeyError as ke:
+            logger.warning(
+                f"Failed to get inventory data for {species} in {regions}: {ke}"
+            )
             this_uncert = 0
         if this_uncert is None:
             this_uncert = np.zeros_like(inventories_to_plot[species][0].values)
@@ -1585,10 +1589,11 @@ def plot_all_species_stacked_bar(
         )
 
         flux_sum += ds_to_plot[species][models[s]]["posterior"].values
-        try:
+        if species in inventories_to_plot:
             inventory_sum += inventories_to_plot[species][0].values
-        except KeyError:
+        else:
             # Missing inventory data: Avoid plotting wrong data by just plotting nothing
+            logger.warning(f"Missing inventory data for {species} in {regions}")
             inventory_sum += np.nan
 
     ax.set_xticks(plot_times + (width / 2))
