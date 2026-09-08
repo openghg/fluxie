@@ -1127,14 +1127,16 @@ def plot_country_flux(
 
         # plot inventory
         if plot_inventory:
+            get_dates = lambda dict_: [v for v in dict_.values() if v is not None]
+
             try:
                 inventory_df = add_inventory_barplot(
                     ax,
                     data_dir,
                     country,
                     species,
-                    min(start_date.values()),
-                    max(end_date.values()),
+                    min(min_dates) if (min_dates := get_dates(start_date)) else None,
+                    max(max_dates) if (max_dates := get_dates(end_date)) else None,
                     unit,
                     s_data,
                     r_data,
