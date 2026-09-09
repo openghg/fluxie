@@ -623,7 +623,7 @@ def prepare_inventory_sector_barplot(
 
     inventories = [inv.to_dataset(name="inv_data") for inv in inventories]
     inventories_stdev = [
-        inv_std.to_dataset(name="inv_data_stdev") if inv_std else None
+        inv_std.to_dataset(name="inv_data_stdev") if inv_std is not None else None
         for inv_std in inventories_stdev
     ]
 
@@ -1199,7 +1199,9 @@ def plot_country_flux(
     else:
         return fig
 
+
 PriorOrInventory = Literal["prior", "inventory"]
+
 
 def plot_country_sector_flux_bar(
     ds_all: dict[str, xr.Dataset],
@@ -1303,7 +1305,8 @@ def plot_country_sector_flux_bar(
 
     # create figure
     if plot_inventory_or_prior == "inventory":
-        n_plots = len(ds_to_plot.keys()) + len(inventory_years)
+        n_inventory_years = len(inventory_years) if inventory_years is not None else 1
+        n_plots = len(ds_to_plot.keys()) + n_inventory_years
         fig, axes = create_fig_and_axes(n_plots)
     elif plot_inventory_or_prior == "prior":
         n_plots = len(ds_to_plot.keys()) * 2
@@ -1314,18 +1317,17 @@ def plot_country_sector_flux_bar(
         if plot_inventory_or_prior == "prior":
             ax_data = axes[2 * i]
             ax_comp = axes[2 * i + 1]
+            vars_to_plot = ["posterior", "prior"]
+            axes_to_plot = [ax_data, ax_comp]
         else:
             ax_data = axes[i]
+            vars_to_plot = ["posterior"]
+            axes_to_plot = [ax_data]
 
         # plot posterior (and eventually prior)
         former_sector = None
         for sector in sectors:
-            vars_to_plot = (
-                ["posterior", "prior"]
-                if plot_inventory_or_prior == "prior"
-                else ["posterior"]
-            )
-            for var, ax in zip(vars_to_plot, [ax_data, ax_comp]):
+            for var, ax in zip(vars_to_plot, axes_to_plot):
                 bottom_values = (
                     plotted_data_df[
                         (plotted_data_df.sector == former_sector)
@@ -1363,6 +1365,8 @@ def plot_country_sector_flux_bar(
 
     # plot inventory sector bar
     if plot_inventory_or_prior == "inventory":
+        if inventory_years is None:
+            inventory_years = [None]
         for year, (i, inv) in zip(inventory_years, enumerate(inv_plot_data)):
             ax = axes[-i - 1]
             former_sector = None

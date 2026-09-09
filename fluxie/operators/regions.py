@@ -296,10 +296,11 @@ def extract_region_inventory_flux(
         filelist = sorted(inventory_dir.glob(f"{inventory_filename}_{species}_*.nc"))
         if not filelist:
             raise FileNotFoundError(
-                f"No inventory file found for {species} in {inventory_dir}."
+                f"No inventory file found for {species} in {inventory_dir}. "
+                f"Expected files like {inventory_filename}_{species}_<year>.nc"
             )
         filepath = filelist[-1]
-        inventory_year = int(str(filepath).split("_")[-1].split(".")[0])
+        inventory_year = int(filepath.stem.split("_")[-1])
 
     inv_ds_all = xr.open_dataset(filepath)
 
