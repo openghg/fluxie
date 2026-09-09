@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import matplotlib.pyplot as plt
-from typing import Literal, Tuple
+from typing import Literal, Tuple, get_args
 from pathlib import Path
 from datetime import date, datetime, timedelta
 from calendar import isleap, month_abbr, monthrange
@@ -1192,6 +1192,7 @@ def plot_country_flux(
     else:
         return fig
 
+PriorOrInventory = Literal["prior", "inventory"]
 
 def plot_country_sector_flux_bar(
     ds_all: dict[str, xr.Dataset],
@@ -1200,7 +1201,7 @@ def plot_country_sector_flux_bar(
     config_data: dict[str, dict] = {},
     model_colors: dict[str, str] = {},
     model_labels: dict[str, str] = {},
-    plot_inventory_or_prior: str = "inventory",
+    plot_inventory_or_prior: PriorOrInventory = "inventory",
     inventory_years: list[str] | None = None,
     inventory_filename: str = "UNFCCC_inventory",
     data_dir: str | None = None,
@@ -1249,6 +1250,13 @@ def plot_country_sector_flux_bar(
         fig: A plot per country/region.
         res_dict : If return_res, return also a dictionnary containing the plotted results
     """
+    allowed_str = get_args(PriorOrInventory)
+    if plot_inventory_or_prior not in allowed_str:
+        raise ValueError(
+            f"Invalid value for plot_inventory_or_prior: {plot_inventory_or_prior}. "
+            f"Must be one of {allowed_str}."
+        )
+
     plot_type = "sector_barplot"
     s_data = config_data.get("species_info", {})
     r_data = config_data.get("regions_info", {})
