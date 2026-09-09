@@ -297,12 +297,6 @@ def extract_region_inventory_flux(
         if filelist:
             filepath = filelist[-1]
             inventory_year = int(str(filepath).split("_")[-1].split(".")[0])
-        else:
-            filepath = (
-                inventory_dir
-                / f'{inventory_filename}_{s_data[species]["model_species"]["intem"]}.nc'
-            )
-            inventory_year = None
 
     inv_ds_all = xr.open_dataset(filepath)
 
