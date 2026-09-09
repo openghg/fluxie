@@ -585,7 +585,7 @@ def prepare_inventory_sector_barplot(
     r_data: dict[str, dict],
     inventory_years: str | list[str] | None,
     inventory_filename: str,
-) -> list[xr.Dataset]:
+) -> tuple[list[xr.Dataset], list[xr.Dataset]]:
     """
     Prepare the inventory for the sector barplot.
     Call fluxie.operators.flux_prepare_inventory.retrieve_inventories and change the outputed dataarrays in to dataset (with variable name "inv_data").
@@ -604,6 +604,7 @@ def prepare_inventory_sector_barplot(
         inventory_filename: Name of inventory file: {inventory_filename}_{species}_{inventory_year}
     Returns:
         inventories_list : list of inventory data to be plotted.
+        inventories_stdev_list : list of inventory standard deviation data to be plotted.
 
     """
 
@@ -1289,7 +1290,7 @@ def plot_country_sector_flux_bar(
     if plot_inventory_or_prior == "inventory":
         start_date = str(min([ds.time.values.min() for ds in ds_to_plot.values()]))[:10]
         end_date = str(max([ds.time.values.max() for ds in ds_to_plot.values()]))[:10]
-        inv_plot_data = prepare_inventory_sector_barplot(
+        invs, invs_stdev = prepare_inventory_sector_barplot(
             sectors,
             start_date,
             end_date,
@@ -1367,9 +1368,14 @@ def plot_country_sector_flux_bar(
     if plot_inventory_or_prior == "inventory":
         if inventory_years is None:
             inventory_years = [None]
-        for year, (i, inv) in zip(inventory_years, enumerate(inv_plot_data)):
+        for i, (year, inv, inv_stdev) in enumerate(
+            zip(inventory_years, invs, invs_stdev)
+        ):
             ax = axes[-i - 1]
             former_sector = None
+            inv.attrs["model_label"] = f"inventory_{year}"
+            inv.attrs["country"] = plot_region
+            inv.attrs["species"] = species
             for sector in sectors:
                 bottom_values = (
                     plotted_data_df[
@@ -1380,7 +1386,9 @@ def plot_country_sector_flux_bar(
                     if former_sector
                     else 0
                 )
-                res = add_sector_barplot(ax, ds.sel(sector=sector), var, bottom_values)
+                res = add_sector_barplot(
+                    ax, inv.sel(sector=sector), "inv_data", bottom_values
+                )
                 plotted_data_df = pd.concat([plotted_data_df, res], ignore_index=True)
                 former_sector = sector
             ax.legend(ncol=2, borderpad=0.4, columnspacing=1.0)
