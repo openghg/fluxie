@@ -276,7 +276,7 @@ def extract_region_inventory_flux(
 
     Args:
         data_dir: directory which contains the data (should have inside a directory named 'inventory').
-        specie: Gas species, e.g. 'ch4'.
+        species: Gas species, e.g. 'ch4'.
         unit: unit in which the inventory should be converted.
         s_data: Dictionary of species with information for plotting (read from json file).
         r_data: Dictionary with country and region names (read from json file).
@@ -294,15 +294,13 @@ def extract_region_inventory_flux(
         filepath = inventory_dir / f"{inventory_filename}_{species}_{inventory_year}.nc"
     else:
         filelist = sorted(inventory_dir.glob(f"{inventory_filename}_{species}_*.nc"))
-        if filelist:
-            filepath = filelist[-1]
-            inventory_year = int(str(filepath).split("_")[-1].split(".")[0])
-        else:
-            filepath = (
-                inventory_dir
-                / f'{inventory_filename}_{s_data[species]["model_species"]["intem"]}.nc'
+        if not filelist:
+            raise FileNotFoundError(
+                f"No inventory file found for {species} in {inventory_dir}. "
+                f"Expected files like {inventory_filename}_{species}_<year>.nc"
             )
-            inventory_year = None
+        filepath = filelist[-1]
+        inventory_year = int(filepath.stem.split("_")[-1])
 
     inv_ds_all = xr.open_dataset(filepath)
 
@@ -316,7 +314,7 @@ def extract_region_inventory_flux(
             f"No missing_data variable available in inventory files, assuming all data present."
         )
 
-    # first option left for compatability with older inventory netcdfs, can be removed later
+    # first option left for compatibility with older inventory netcdfs, can be removed later
     inv_ds = (
         inv_ds_all["inventory"]
         if "inventory" in inv_ds_all.keys()
@@ -359,6 +357,8 @@ def extract_region_inventory_flux(
             inv_stdev_ds = inv_stdev_ds.sel(country=country_search)
         elif country in inv_ds["country"]:
             inv_stdev_ds = inv_stdev_ds.sel(country=country)
+        else:
+            inv_stdev_ds = None
 
     if country_search in inv_ds["country"]:
         return inv_ds.sel(country=country_search), inv_stdev_ds  # new format
@@ -372,7 +372,9 @@ def extract_region_inventory_flux(
     available_countries = inv_ds["country"].values.astype(str)
     dict_regions: dict[str, str] = r_data.get("regions", {})
 
-    if country_search not in available_countries and country in dict_regions.keys():
+    if country_search in available_countries:
+        inv_ds = inv_ds.sel({"country": country_search})
+    elif country in dict_regions:
         region_search = dict_regions[country]
         country_list = region_search.split("-")
         inv_ds = inv_ds.sel({"country": country_list})
@@ -380,8 +382,8 @@ def extract_region_inventory_flux(
         logger.info(
             f"No inventory data available for {country}. Considering sum of individual countries: {region_search}"
         )
-    elif country_search in available_countries:
-        inv_ds = inv_ds.sel({"country": country_search})
+    else:
+        raise KeyError(f"Country not found in inventory: {country}")
 
     logger.info(
         "There is currently no option to plot inventory uncertainty for grouped countries. This functionality will be added later"

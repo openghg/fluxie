@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import matplotlib.pyplot as plt
-from typing import Literal, Tuple
+from typing import Literal, Tuple, get_args
 from pathlib import Path
 from datetime import date, datetime, timedelta
 from calendar import isleap, month_abbr, monthrange
@@ -585,7 +585,7 @@ def prepare_inventory_sector_barplot(
     r_data: dict[str, dict],
     inventory_years: str | list[str] | None,
     inventory_filename: str,
-) -> list[xr.Dataset]:
+) -> tuple[list[xr.Dataset], list[xr.Dataset]]:
     """
     Prepare the inventory for the sector barplot.
     Call fluxie.operators.flux_prepare_inventory.retrieve_inventories and change the outputed dataarrays in to dataset (with variable name "inv_data").
@@ -604,6 +604,7 @@ def prepare_inventory_sector_barplot(
         inventory_filename: Name of inventory file: {inventory_filename}_{species}_{inventory_year}
     Returns:
         inventories_list : list of inventory data to be plotted.
+        inventories_stdev_list : list of inventory standard deviation data to be plotted.
 
     """
 
@@ -623,7 +624,7 @@ def prepare_inventory_sector_barplot(
 
     inventories = [inv.to_dataset(name="inv_data") for inv in inventories]
     inventories_stdev = [
-        inv_std.to_dataset(name="inv_data_stdev") if inv_std else None
+        inv_std.to_dataset(name="inv_data_stdev") if inv_std is not None else None
         for inv_std in inventories_stdev
     ]
 
@@ -1127,25 +1128,32 @@ def plot_country_flux(
 
         # plot inventory
         if plot_inventory:
-            inventory_df = add_inventory_barplot(
-                ax,
-                data_dir,
-                country,
-                species,
-                min(start_date.values()),
-                max(end_date.values()),
-                unit,
-                s_data,
-                r_data,
-                inventory_years,
-                inventory_filename,
-                sector,
-                annex_mode,
-                plot_inventory_uncertainty,
-            )
-            plotted_data_df = pd.concat(
-                [plotted_data_df, inventory_df], ignore_index=True
-            )
+            get_dates = lambda dict_: [v for v in dict_.values() if v is not None]
+
+            try:
+                inventory_df = add_inventory_barplot(
+                    ax,
+                    data_dir,
+                    country,
+                    species,
+                    min(min_dates) if (min_dates := get_dates(start_date)) else None,
+                    max(max_dates) if (max_dates := get_dates(end_date)) else None,
+                    unit,
+                    s_data,
+                    r_data,
+                    inventory_years,
+                    inventory_filename,
+                    sector,
+                    annex_mode,
+                    plot_inventory_uncertainty,
+                )
+                plotted_data_df = pd.concat(
+                    [plotted_data_df, inventory_df], ignore_index=True
+                )
+            except KeyError as ke:
+                logger.warning(
+                    f"Missing inventory data for {species} in {country}: {ke}"
+                )
 
         # add vertical lines
         if add_vline is not None:
@@ -1193,6 +1201,9 @@ def plot_country_flux(
         return fig
 
 
+PriorOrInventory = Literal["prior", "inventory"]
+
+
 def plot_country_sector_flux_bar(
     ds_all: dict[str, xr.Dataset],
     species: str,
@@ -1200,7 +1211,7 @@ def plot_country_sector_flux_bar(
     config_data: dict[str, dict] = {},
     model_colors: dict[str, str] = {},
     model_labels: dict[str, str] = {},
-    plot_inventory_or_prior: str = "inventory",
+    plot_inventory_or_prior: PriorOrInventory = "inventory",
     inventory_years: list[str] | None = None,
     inventory_filename: str = "UNFCCC_inventory",
     data_dir: str | None = None,
@@ -1249,6 +1260,13 @@ def plot_country_sector_flux_bar(
         fig: A plot per country/region.
         res_dict : If return_res, return also a dictionnary containing the plotted results
     """
+    allowed_str = get_args(PriorOrInventory)
+    if plot_inventory_or_prior not in allowed_str:
+        raise ValueError(
+            f"Invalid value for plot_inventory_or_prior: {plot_inventory_or_prior}. "
+            f"Must be one of {allowed_str}."
+        )
+
     plot_type = "sector_barplot"
     s_data = config_data.get("species_info", {})
     r_data = config_data.get("regions_info", {})
@@ -1272,7 +1290,7 @@ def plot_country_sector_flux_bar(
     if plot_inventory_or_prior == "inventory":
         start_date = str(min([ds.time.values.min() for ds in ds_to_plot.values()]))[:10]
         end_date = str(max([ds.time.values.max() for ds in ds_to_plot.values()]))[:10]
-        inv_plot_data = prepare_inventory_sector_barplot(
+        invs, invs_stdev = prepare_inventory_sector_barplot(
             sectors,
             start_date,
             end_date,
@@ -1288,7 +1306,8 @@ def plot_country_sector_flux_bar(
 
     # create figure
     if plot_inventory_or_prior == "inventory":
-        n_plots = len(ds_to_plot.keys()) + len(inventory_years)
+        n_inventory_years = len(inventory_years) if inventory_years is not None else 1
+        n_plots = len(ds_to_plot.keys()) + n_inventory_years
         fig, axes = create_fig_and_axes(n_plots)
     elif plot_inventory_or_prior == "prior":
         n_plots = len(ds_to_plot.keys()) * 2
@@ -1299,18 +1318,17 @@ def plot_country_sector_flux_bar(
         if plot_inventory_or_prior == "prior":
             ax_data = axes[2 * i]
             ax_comp = axes[2 * i + 1]
+            vars_to_plot = ["posterior", "prior"]
+            axes_to_plot = [ax_data, ax_comp]
         else:
             ax_data = axes[i]
+            vars_to_plot = ["posterior"]
+            axes_to_plot = [ax_data]
 
         # plot posterior (and eventually prior)
         former_sector = None
         for sector in sectors:
-            vars_to_plot = (
-                ["posterior", "prior"]
-                if plot_inventory_or_prior == "prior"
-                else ["posterior"]
-            )
-            for var, ax in zip(vars_to_plot, [ax_data, ax_comp]):
+            for var, ax in zip(vars_to_plot, axes_to_plot):
                 bottom_values = (
                     plotted_data_df[
                         (plotted_data_df.sector == former_sector)
@@ -1348,9 +1366,16 @@ def plot_country_sector_flux_bar(
 
     # plot inventory sector bar
     if plot_inventory_or_prior == "inventory":
-        for year, (i, inv) in zip(inventory_years, enumerate(inv_plot_data)):
+        if inventory_years is None:
+            inventory_years = [None]
+        for i, (year, inv, inv_stdev) in enumerate(
+            zip(inventory_years, invs, invs_stdev)
+        ):
             ax = axes[-i - 1]
             former_sector = None
+            inv.attrs["model_label"] = f"inventory_{year}"
+            inv.attrs["country"] = plot_region
+            inv.attrs["species"] = species
             for sector in sectors:
                 bottom_values = (
                     plotted_data_df[
@@ -1361,7 +1386,9 @@ def plot_country_sector_flux_bar(
                     if former_sector
                     else 0
                 )
-                res = add_sector_barplot(ax, ds.sel(sector=sector), var, bottom_values)
+                res = add_sector_barplot(
+                    ax, inv.sel(sector=sector), "inv_data", bottom_values
+                )
                 plotted_data_df = pd.concat([plotted_data_df, res], ignore_index=True)
                 former_sector = sector
             ax.legend(ncol=2, borderpad=0.4, columnspacing=1.0)
@@ -1458,6 +1485,7 @@ def plot_all_species_stacked_bar(
     models = []
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+    inv_plot_times = None
 
     for s, species in enumerate(all_species):
 
@@ -1477,19 +1505,30 @@ def plot_all_species_stacked_bar(
             aggreg_month=False,
         )
 
-        inventories_to_plot[species], inventories_uncert_to_plot = retrieve_inventories(
-            data_dir,
-            regions,
-            species,
-            start_date,
-            end_date,
-            country_flux_units_print,
-            s_data,
-            r_data,
-            inventory_years,
-            inventory_filename,
-            sectors=sector,
-        )
+        try:
+            inventories_to_plot[species], inventories_uncert_to_plot = (
+                retrieve_inventories(
+                    data_dir,
+                    regions,
+                    species,
+                    start_date,
+                    end_date,
+                    country_flux_units_print,
+                    s_data,
+                    r_data,
+                    inventory_years,
+                    inventory_filename,
+                    sectors=sector,
+                )
+            )
+            this_uncert = inventories_uncert_to_plot[0]
+        except KeyError as ke:
+            logger.warning(
+                f"Failed to get inventory data for {species} in {regions}: {ke}"
+            )
+            this_uncert = 0
+        if this_uncert is None:
+            this_uncert = np.zeros_like(inventories_to_plot[species][0].values)
 
         models.append(list(ds_to_plot[species].keys())[0])
 
@@ -1499,18 +1538,14 @@ def plot_all_species_stacked_bar(
                 + "currently only set up to plot inventory data and model output from one model."
             )
 
-        this_uncert = inventories_uncert_to_plot[0]
-
         posterior_diff = (
             ds_to_plot[species][models[s]]["posterior_upper"].values
             - ds_to_plot[species][models[s]]["posterior_lower"].values
         )
 
-        if this_uncert is None:
-            this_uncert = np.zeros_like(inventories_to_plot[species][0].values)
-
-        if s == 0:
+        if inv_plot_times is None and species in inventories_to_plot:
             inv_plot_times = inventories_to_plot[species][0].time.values
+        if s == 0:
             plot_times = ds_to_plot[species][models[s]].time.values.astype(
                 "datetime64[Y]"
             )
@@ -1523,8 +1558,12 @@ def plot_all_species_stacked_bar(
                 inventories_uncert_combined = np.sqrt(
                     inventories_uncert_combined**2 + this_uncert**2
                 )
+    if inv_plot_times is None:
+        raise KeyError(f"No inventory data found for {regions}")
 
     width = np.timedelta64(150, "D")
+    flux_sum = 0
+    inventory_sum = 0
 
     for s, species in enumerate(all_species):
 
@@ -1571,12 +1610,13 @@ def plot_all_species_stacked_bar(
             alpha=0.8,
         )
 
-        if s == 0:
-            flux_sum = ds_to_plot[species][models[s]]["posterior"].values
-            inventory_sum = inventories_to_plot[species][0].values
-        else:
-            flux_sum += ds_to_plot[species][models[s]]["posterior"].values
+        flux_sum += ds_to_plot[species][models[s]]["posterior"].values
+        if species in inventories_to_plot:
             inventory_sum += inventories_to_plot[species][0].values
+        else:
+            # Missing inventory data: Avoid plotting wrong data by just plotting nothing
+            logger.warning(f"Missing inventory data for {species} in {regions}")
+            inventory_sum += np.nan
 
     ax.set_xticks(plot_times + (width / 2))
     ax.set_xticklabels((plot_times + (width / 2)).astype("datetime64[Y]"))

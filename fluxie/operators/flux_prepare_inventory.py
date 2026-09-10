@@ -18,7 +18,7 @@ def retrieve_inventories(
     inventory_years: str | list[str] | None,
     inventory_filename: str,
     sectors: str | list[str] = "total",
-) -> list[xr.Dataset]:
+) -> tuple[list[xr.Dataset], list[xr.Dataset | None]]:
     """
     Load (in a list) inventories data to be plotted.
     If multiple sectors are asked for, each dataset of the list will have a sector dimension.
