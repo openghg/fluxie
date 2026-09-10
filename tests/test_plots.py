@@ -186,7 +186,7 @@ def test_country_flux_with_inventory():
     plot_country_flux(
         ds_all_flux_scaled,
         species,
-        data_dir=data_dir / "sector_flux",
+        data_dir=data_dir,
         plot_inventory=True,
         inventory_years=None,
     )
