@@ -792,6 +792,8 @@ def compute_boundary_geometry(map_bounds):
     gdf = load_countries_shape(map_bounds)
     lines = []
     for geom in gdf.boundary.geometry:
+        #  uncomment the line below if you want just land boundary instead of country
+    # for geom in gdf.geometry.union_all().boundary.geoms:
         if geom.geom_type == "LineString":
             lines.append(list(geom.coords))  # Extract coordinates
         elif geom.geom_type == "MultiLineString":
