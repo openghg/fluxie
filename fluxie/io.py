@@ -907,6 +907,16 @@ def edit_vars_and_attributes(
 
                 ds = xr.merge([ds, ds_bellux], join="outer", compat="no_conflicts")
                 ds = ds.drop_vars("country_merge")
+                
+            if 'SCO' in ds.country and "SCT" not in ds.country:
+                country_fix = ds["country"].astype(str).values
+                country_fix = np.where(country_fix == "SCO", "SCT", country_fix)
+                ds = ds.assign_coords(country=country_fix)
+                
+            if 'WAL' in ds.country and "WLS" not in ds.country:
+                country_fix = ds["country"].astype(str).values
+                country_fix = np.where(country_fix == "WAL", "WLS", country_fix)
+                ds = ds.assign_coords(country=country_fix)
 
         elif m0 == "rhime":
             ds["country"] = [
