@@ -9,7 +9,8 @@ def stats_observed_vs_simulated(
     ds_all: dict[str, dict],
     obs_var: str,
     sim_var: str,
-    sites: list = None,
+    sites: list[str] | None = None,
+    stats_type: str | None = None,
 ) -> pd.DataFrame:
     """
     Calculates multiple statistical measures of the fit between the observed
@@ -30,14 +31,17 @@ def stats_observed_vs_simulated(
             Name of the observed variable.
         sim_var (str):
             Name of the simulated variable.
-        sites (list):
+        sites (list of str):
             Sites for which to make the stats.
+        stats_type (str):
+            Type of data statistics being evaluated (see StatsType in fluxie.operators.mf).
 
     Returns:
         stats (pandas.DataFrame):
             Statistical measures, for each site and for each model between observations and
             simulations. Columns:
                 * 'model': model string
+                * 'stats_type' : data being evaluated (see StatsType in fluxie.operators.mf)
                 * 'site': observation platform ID
                 * 'pearson': Pearson correlation coefficient
                 * 'mae': mean absolute error
@@ -111,6 +115,7 @@ def stats_observed_vs_simulated(
             # calculate stats
             stats_site = {
                 "model": model,
+                "stats_type": stats_type,
                 "site": site,
                 "pearson": np.corrcoef(obs, sim)[0, 1],
                 "rmse": np.sqrt(np.mean((sim - obs) ** 2)),

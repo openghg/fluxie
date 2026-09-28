@@ -143,8 +143,19 @@ def _extract_region_flux_sector(
             for v in target_flux_vars:
                 variable = flux_var_names[v]
                 if variable not in ds_region.variables:
-                    continue
-                ds_region[v] = ds_region[variable].sum(dim="country", keep_attrs=True)
+                    logger.warning(
+                        f"{variable} not present in {m} this may cause errors later in the code."
+                    )
+                    ds_region[v] = xr.full_like(
+                        ds_region[variable.replace(sector, "total")].astype(float),
+                        np.nan,
+                    )
+                    ds_region[v] = ds_region[v].sum(dim="country", keep_attrs=True)
+                    # continue
+                else:
+                    ds_region[v] = ds_region[variable].sum(
+                        dim="country", keep_attrs=True
+                    )
 
             if f"percentile_flux_{sector}_prior_country" in ds_region.variables:
                 ds_region["sigma_prior"] = np.sqrt(
@@ -164,9 +175,13 @@ def _extract_region_flux_sector(
                         dim="country"
                     )
                 )
-            else:
+            elif [f"flux_{sector}_prior_country"] in ds_region:
                 ds_region["sigma_prior"] = xr.zeros_like(
                     ds_region[f"flux_{sector}_prior_country"]
+                ).sum(dim="country")
+            else:
+                ds_region["sigma_prior"] = xr.zeros_like(
+                    ds_region[f"flux_total_prior_country"]
                 ).sum(dim="country")
 
             if f"covariance_flux_{sector}_posterior_country" in ds_region.variables:
@@ -194,8 +209,16 @@ def _extract_region_flux_sector(
             for v in target_flux_vars:
                 variable = flux_var_names[v]
                 if variable not in ds_region.variables:
+                    logger.warning(
+                        f"{variable} not present in {m} this may cause errors later in the code."
+                    )
+                    ds_region[v] = xr.full_like(
+                        ds_region[variable.replace(sector, "total")].astype("float"),
+                        np.nan,
+                    )
                     continue
-                ds_region[v] = ds_region[variable]
+                else:
+                    ds_region[v] = ds_region[variable]
                 var_percentile = f"percentile_flux_{sector}_{v}_country"
                 var_stdev = f"stdev_flux_{sector}_{v}_country"
 
@@ -222,10 +245,19 @@ def _extract_region_flux_sector(
                     logger.info(
                         f"Using {var_stdev} to plot {m} {v} country flux 68.2% confidence interval."
                     )
-                else:
+                elif variable in ds_region:
                     da = ds_region[variable]
                     ds_region[f"{v}_lower"] = da
                     ds_region[f"{v}_upper"] = da
+                else:
+                    ds_region[f"{v}_lower"] = xr.full_like(
+                        ds_region[variable.replace(sector, "total")].astype("float"),
+                        np.nan,
+                    )
+                    ds_region[f"{v}_upper"] = xr.full_like(
+                        ds_region[variable.replace(sector, "total")].astype("float"),
+                        np.nan,
+                    )
 
         else:
             raise ValueError(f"{country_search} ({country}) is not available for {m}")
@@ -317,11 +349,19 @@ def extract_region_inventory_flux(
         )
 
     # first option left for compatability with older inventory netcdfs, can be removed later
-    inv_ds = (
-        inv_ds_all["inventory"]
-        if "inventory" in inv_ds_all.keys()
-        else inv_ds_all[f"flux_{sector}_inventory_country"]
-    )
+    try:
+        inv_ds = (
+            inv_ds_all["inventory"]
+            if "inventory" in inv_ds_all.keys()
+            else inv_ds_all[f"flux_{sector}_inventory_country"]
+        )
+    except:
+        inv_ds = (
+            inv_ds_all["inventory"]
+            if "inventory" in inv_ds_all.keys()
+            else inv_ds_all[f"flux_total_inventory_country"]
+        )
+        inv_ds = xr.full_like(inv_ds.astype(float), np.nan)
 
     if f"stdev_flux_{sector}_inventory_country" in inv_ds_all.keys():
         inv_stdev_ds = inv_ds_all[f"stdev_flux_{sector}_inventory_country"]
@@ -371,6 +411,7 @@ def extract_region_inventory_flux(
     # if grouped countries:
     available_countries = inv_ds["country"].values.astype(str)
     dict_regions: dict[str, str] = r_data.get("regions", {})
+    inv_stdev_ds = None
 
     if country_search not in available_countries and country in dict_regions.keys():
         region_search = dict_regions[country]
@@ -380,12 +421,19 @@ def extract_region_inventory_flux(
         logger.info(
             f"No inventory data available for {country}. Considering sum of individual countries: {region_search}"
         )
+        logger.info(
+            "There is currently no option to plot inventory uncertainty for grouped countries. This functionality will be added later"
+        )
     elif country_search in available_countries:
         inv_ds = inv_ds.sel({"country": country_search})
-
-    logger.info(
-        "There is currently no option to plot inventory uncertainty for grouped countries. This functionality will be added later"
-    )
+        logger.info(
+            "There is currently no option to plot inventory uncertainty for grouped countries. This functionality will be added later"
+        )
+    else:
+        logger.warning(
+            f"No inventory data available for {country}. Including inventory as all-nan."
+        )
+        inv_ds = xr.full_like(inv_ds.astype(float), np.nan)
 
     return inv_ds.sum(dim="country", keep_attrs=True), inv_stdev_ds
 

@@ -41,6 +41,8 @@ def create_str_dataframe(
     sector: str = "total",
     model: str = "PARIS mean",
     table_start_date: str | None = None,
+    include_inventory_uncert: bool = False,
+    n_digits: int | None = None,
 ) -> pd.DataFrame:
     """
     Create a dataframe with results for a specific country, region and model. The columns are "species", "units", "source" (which values are "<model>" and "NID <inventory_year>") and the years present.
@@ -55,6 +57,7 @@ def create_str_dataframe(
         sector: sector to restrict the results to
         model: model to restrict the results to
         table_start_date: start_date for the outputted results
+        include_inventory_uncert: If True, includes inventory uncertainty in output.
     Return:
         output: pandas Dataframe contianing the string values that will be put in the .tex files for the annexes tables.
     """
@@ -84,18 +87,22 @@ def create_str_dataframe(
         ]
 
     res["time"] = pd.to_datetime(res["time"])
+
+    all_models = model + [f"inventory_{inventory_year}"]
+
     data = res[
         (res.country == region)
         & (res.sector == sector)
-        & (res.model.isin([model, f"inventory_{inventory_year}"]))
+        & (res.model.isin(all_models))
         & res.species.isin(species)
         & (res.type.isin(["posterior", "inventory"]))
         & (res.time >= table_start_date)
     ].reset_index(drop=True)
 
     data["year"] = pd.to_datetime(data["time"]).dt.year.astype(str)
+
     species_order = (
-        data[data.model == model]
+        data[data.model.isin(all_models)]
         .groupby("species")
         .mean_val.mean()
         .sort_values(ascending=False)
@@ -125,7 +132,10 @@ def create_str_dataframe(
             max_exp += 3
         elif max_exp < -4:
             for var in ["mean_val", "min_unc", "max_unc"]:
-                data_per_species[var] *= 1e6
+                try:
+                    data_per_species[var] *= 1e6
+                except:
+                    logger.warning(f"No {var} in dataset")
             data_per_species["units"] = (
                 "\\footnotesize{$\\left (\\rm{MgCO}_{2}\\rm{\\text{-}eq} \\cdot \\rm{yr}^{-1} \\right )$}"
             )
@@ -135,29 +145,47 @@ def create_str_dataframe(
                 "\\footnotesize{$\\left (\\rm{TgCO}_{2}\\rm{\\text{-}eq} \\cdot \\rm{yr}^{-1} \\right )$}"
             )
 
-        n_figure = 3 if species in ["ch4", "n2o"] else 2
-        n_digits = int(n_figure - max_exp - 1)
+        if not n_digits:
+            n_figure = 3 if species in ["ch4", "n2o"] else 2
+            n_digits = int(n_figure - max_exp - 1)
         data_per_species["mean_val"] = data_per_species.mean_val.apply(
             lambda x: f"{x:.{n_digits}f}"
         )
-        data_per_species["unc"] = data_per_species.apply(
-            lambda x: (
-                f"{(x.max_unc-x.min_unc)/2:.{n_digits}f}"
-                if x.type != "inventory"
-                else ""
-            ),
-            axis=1,
-        )
+        if include_inventory_uncert == True:
+            if "max_unc" in data_per_species:
+                data_per_species["unc"] = data_per_species.apply(
+                    lambda x: (f"{(x.max_unc-x.min_unc)/2:.{n_digits}f}"),
+                    axis=1,
+                )
+            else:
+                data_per_species["unc"] = data_per_species.apply(
+                    lambda x: (
+                        f"{(x.max_unc-x.min_unc)/2:.{n_digits}f}"
+                        if x.type != "inventory"
+                        else ""
+                    ),
+                    axis=1,
+                )
 
         data_per_species = pd.concat([data_per_species])
 
         rescaled_data.append(data_per_species)
     data = pd.concat(rescaled_data)
 
-    data["val"] = data.apply(
-        lambda x: x.mean_val if x.type == "inventory" else f"{x.mean_val} \\pm {x.unc}",
-        axis=1,
-    )
+    if include_inventory_uncert == True:
+        data["val"] = data.apply(
+            lambda x: (
+                f"{x.mean_val} \\pm {x.unc}"
+                if np.isfinite(float(x.unc))
+                else x.mean_val
+            ),
+            axis=1,
+        )
+    else:
+        data["val"] = data.apply(
+            lambda x: x.mean_val if x.type == "inventory" else f"{x.mean_val}",
+            axis=1,
+        )
 
     output = data.pivot(
         index=["model", "species", "units"], columns="year", values="val"
@@ -207,13 +235,16 @@ def make_table(
     inventory_years: str | int,
     descriptive_cols: list[str] = ["species", "units", "source"],
     hline_place: dict[str] = {"source": "PARIS mean"},
+    species: str = None,
 ):
-    if "hfc" in str(output_path):
-        species = "HFCs"
-    elif "pfc" in str(output_path):
-        species = "PFCs"
-    if "main_gases" in str(output_path):
-        species = "the main greenhouse gases of focus"
+
+    if not species:
+        if "hfc" in str(output_path):
+            species = "HFCs"
+        elif "pfc" in str(output_path):
+            species = "PFCs"
+        elif "main_gases" in str(output_path):
+            species = "the main greenhouse gases of focus"
     # Set latex Table env and number of cols
     tmp = str(output_path).split("/")[-1].split(".")[0]
     label = "\n \\label{" + tmp + "}"
