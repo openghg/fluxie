@@ -1127,25 +1127,32 @@ def plot_country_flux(
 
         # plot inventory
         if plot_inventory:
-            inventory_df = add_inventory_barplot(
-                ax,
-                data_dir,
-                country,
-                species,
-                min(start_date.values()),
-                max(end_date.values()),
-                unit,
-                s_data,
-                r_data,
-                inventory_years,
-                inventory_filename,
-                sector,
-                annex_mode,
-                plot_inventory_uncertainty,
-            )
-            plotted_data_df = pd.concat(
-                [plotted_data_df, inventory_df], ignore_index=True
-            )
+            get_dates = lambda dict_: [v for v in dict_.values() if v is not None]
+
+            try:
+                inventory_df = add_inventory_barplot(
+                    ax,
+                    data_dir,
+                    country,
+                    species,
+                    min(min_dates) if (min_dates := get_dates(start_date)) else None,
+                    max(max_dates) if (max_dates := get_dates(end_date)) else None,
+                    unit,
+                    s_data,
+                    r_data,
+                    inventory_years,
+                    inventory_filename,
+                    sector,
+                    annex_mode,
+                    plot_inventory_uncertainty,
+                )
+                plotted_data_df = pd.concat(
+                    [plotted_data_df, inventory_df], ignore_index=True
+                )
+            except KeyError as ke:
+                logger.warning(
+                    f"Missing inventory data for {species} in {country}: {ke}"
+                )
 
         # add vertical lines
         if add_vline is not None:
@@ -1458,6 +1465,7 @@ def plot_all_species_stacked_bar(
     models = []
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+    inv_plot_times = None
 
     for s, species in enumerate(all_species):
 
@@ -1477,19 +1485,30 @@ def plot_all_species_stacked_bar(
             aggreg_month=False,
         )
 
-        inventories_to_plot[species], inventories_uncert_to_plot = retrieve_inventories(
-            data_dir,
-            regions,
-            species,
-            start_date,
-            end_date,
-            country_flux_units_print,
-            s_data,
-            r_data,
-            inventory_years,
-            inventory_filename,
-            sectors=sector,
-        )
+        try:
+            inventories_to_plot[species], inventories_uncert_to_plot = (
+                retrieve_inventories(
+                    data_dir,
+                    regions,
+                    species,
+                    start_date,
+                    end_date,
+                    country_flux_units_print,
+                    s_data,
+                    r_data,
+                    inventory_years,
+                    inventory_filename,
+                    sectors=sector,
+                )
+            )
+            this_uncert = inventories_uncert_to_plot[0]
+        except KeyError as ke:
+            logger.warning(
+                f"Failed to get inventory data for {species} in {regions}: {ke}"
+            )
+            this_uncert = 0
+        if this_uncert is None:
+            this_uncert = np.zeros_like(inventories_to_plot[species][0].values)
 
         models.append(list(ds_to_plot[species].keys())[0])
 
@@ -1499,18 +1518,14 @@ def plot_all_species_stacked_bar(
                 + "currently only set up to plot inventory data and model output from one model."
             )
 
-        this_uncert = inventories_uncert_to_plot[0]
-
         posterior_diff = (
             ds_to_plot[species][models[s]]["posterior_upper"].values
             - ds_to_plot[species][models[s]]["posterior_lower"].values
         )
 
-        if this_uncert is None:
-            this_uncert = np.zeros_like(inventories_to_plot[species][0].values)
-
-        if s == 0:
+        if inv_plot_times is None and species in inventories_to_plot:
             inv_plot_times = inventories_to_plot[species][0].time.values
+        if s == 0:
             plot_times = ds_to_plot[species][models[s]].time.values.astype(
                 "datetime64[Y]"
             )
@@ -1523,8 +1538,12 @@ def plot_all_species_stacked_bar(
                 inventories_uncert_combined = np.sqrt(
                     inventories_uncert_combined**2 + this_uncert**2
                 )
+    if inv_plot_times is None:
+        raise KeyError(f"No inventory data found for {regions}")
 
     width = np.timedelta64(150, "D")
+    flux_sum = 0
+    inventory_sum = 0
 
     for s, species in enumerate(all_species):
 
@@ -1571,12 +1590,13 @@ def plot_all_species_stacked_bar(
             alpha=0.8,
         )
 
-        if s == 0:
-            flux_sum = ds_to_plot[species][models[s]]["posterior"].values
-            inventory_sum = inventories_to_plot[species][0].values
-        else:
-            flux_sum += ds_to_plot[species][models[s]]["posterior"].values
+        flux_sum += ds_to_plot[species][models[s]]["posterior"].values
+        if species in inventories_to_plot:
             inventory_sum += inventories_to_plot[species][0].values
+        else:
+            # Missing inventory data: Avoid plotting wrong data by just plotting nothing
+            logger.warning(f"Missing inventory data for {species} in {regions}")
+            inventory_sum += np.nan
 
     ax.set_xticks(plot_times + (width / 2))
     ax.set_xticklabels((plot_times + (width / 2)).astype("datetime64[Y]"))
