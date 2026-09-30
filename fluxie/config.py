@@ -17,6 +17,8 @@ sector_color_palette = {
     "waste": "purple",
     "industry": "darkblue",
     "energy": "dodgerblue",
+    "natural": "green",
+    "otherAnth": "darkorange",
 }
 
 species_color_palette = {

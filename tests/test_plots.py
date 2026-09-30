@@ -567,7 +567,7 @@ def test_plot_country_sector_flux_bar():
     start_date = "2022-01-01"  # inclusive. Option to set as list of dates, e.g. ['2018-01-01','2019-01-01'] which is required for total fgases if one model is missing obs for a year
     end_date = "2024-01-01"  # not inclusive. Option to set as list of dates, e.g. ['2023-01-01','2022-01-01'] which is required for total fgases if one model is missing obs for a year
     get_labels_from_file = False
-    sector_file = "EUROPE_EDGAR"
+    sector_file = "EUROPE_EDGAR_v2025_ch4_monthly"
     create_region_sector_totals = True  # if True, uses country_fraction variable to sum spatial sector fluxes to region sector fluxes
 
     ds_all_flux_scaled = {}

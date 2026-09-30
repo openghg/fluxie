@@ -7,6 +7,13 @@
     },
 
     "model_labels":{
+        "InTEM_NAME_EUROPE_flatlandsea_MH":"InTEM flat MH",
+        "InTEM_NAME_EUROPE_flatlandsea_popouterregions_MH":"InTEM flat popouter MH",
+        "InTEM_NAME_EUROPE_flatlandsea_manualouter_MHWB":"InTEM flat manualouter MHWB",
+        "InTEM_NAME_EUROPE_flatlandsea_manualouter_100uncertUK_MHWB":"InTEM flat manualouter 100%UK MHWB",
+        "InTEM_NAME_EUROPE_flatlandsea_manualouter3_100uncertUK_MHWB":"InTEM flat manualouter low_bias_pr 100%UK MHWB",
+        "InTEM_NAME_EUROPE_flatlandsea_manualouter4_100uncertUK_MHWBJB":"InTEM H run MHWBJB",
+        "InTEM_NAME_EUROPE_flatlandsea_manualouter4_100uncertUK_moregrids_MHWBJB":"InTEM I run MHWBJB",
         "ELRIS_NAME_paris" : "ELRIS",
         "InTEM_NAME_paris" : "InTEM",
         "RHIME_NAME_paris" : "RHIME",
@@ -17,7 +24,13 @@
         "ELRIS_NAME_EUROPE_UNIFORM" : "ELRIS uniform",
         "InTEM_NAME_EUROPE_uniform_prior_20250118_obs" : "InTEM uniform",
         "RHIME_NAME_EUROPE_UNIFORM" : "RHIME uniform",
-        "Flexinvert_Flexpart_EUROPE_uniform" : "Flexinvert uniform"
+        "Flexinvert_Flexpart_EUROPE_uniform" : "Flexinvert uniform",
+        "InTEM_NAME_EUROPE_flatlandsea_manualouter4_100uncertUK_basicsoilsink_MHWBJB":"InTEM basic 3.5x soil sink",
+        "InTEM_NAME_EUROPE_flatlandsea_manualouter4_100uncertUK_nosoilsink_MHWBJB":"InTEM no soil sink",
+        "InTEM_NAME_EUROPE_flatlandsea_manualouter4_100uncertUK_halfamericaatlantic_MHWBJB":"InTEM 1/2 America and Atlantic prior",
+        "InTEM_NAME_EUROPE_flatlandsea_manualouter4_100uncertUK_025matrixsoilsink_MHWBJB":"InTEM 0p25 matrix soil sink"
+
+
     },
 
     "species_name":{

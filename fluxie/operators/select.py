@@ -61,6 +61,12 @@ def slice_flux(
         start_date = [start_date] * len(ds_all.keys())
     if type(end_date) is str:
         end_date = [end_date] * len(ds_all.keys())
+    if len(start_date) == 1 and len(ds_all.keys()) > 1:
+        start_date = start_date * len(ds_all.keys())
+        logger.warning(f"Applying single start_date {start_date[0]} to all models")
+    if len(end_date) == 1 and len(ds_all.keys()) > 1:
+        end_date = end_date * len(ds_all.keys())
+        logger.warning(f"Applying single end_date {end_date[0]} to all models")
 
     for im, m in enumerate(ds_all.keys()):
         logger.info(f"Masking data from {m}.")
@@ -101,6 +107,7 @@ def slice_mf(
     mf_units_print: str = None,
     keep_unassimilated: bool = False,
     intake_height: float | None = None,
+    months: list[int] | None = None,
 ) -> dict[str, xr.Dataset]:
     """
     Slices down the mole fraction timeseries data, to within the
@@ -137,6 +144,12 @@ def slice_mf(
 
     start_date = pd.to_datetime(start_date)
     end_date = pd.to_datetime(end_date)
+
+    if months is not None:
+        months = [int(m) for m in months]
+        invalid = [m for m in months if m < 1 or m > 12]
+        if invalid:
+            raise ValueError(f"Invalid month(s) {invalid}. Months must be in 1..12.")
 
     # Get logical array with baseline timestamps
     if baseline_site is not None:
@@ -187,10 +200,15 @@ def slice_mf(
 
         # Slice data according to time window
         mask = (ds_all[m]["time"] >= start_date) & (ds_all[m]["time"] <= end_date)
+
+        # Optional month filter (e.g. DJF = [12, 1, 2])
+        if months is not None:
+            mask &= ds_all[m]["time"].dt.month.isin(months)
+
         if not keep_unassimilated:
             # Mask assimilated data only
             mask &= ds_all[m]["assimilation_flag"] == 1
-        ds_all[m] = ds_all[m].isel(index=mask)
+        ds_all[m] = ds_all[m].where(mask, drop=True)
 
         # Slice according to intake height
         if intake_height is not None:
@@ -279,7 +297,7 @@ def slice_site(
 
     mask = ds["number_of_identifier"].isin(site_indices)
     if mask.any():
-        ds = ds.isel(index=mask)
+        ds = ds.where(mask, drop=True)
         return ds
 
     msg = f"No data for any sites {sites} with indices {site_indices} in model {ds.attrs['exp_name']}."

@@ -861,11 +861,15 @@ def set_flux_limits(
         models_var = xr.concat(models_var, dim="time")
 
         # Calculate upper limit based on custom_percentile or default to 99th percentile
-        upper_lim = models_var.quantile(
-            custom_percentile if custom_percentile else 0.99
-        ).item()
+        q = models_var.to_array() if isinstance(models_var, xr.Dataset) else models_var
+        upper_lim = q.quantile(custom_percentile if custom_percentile else 0.99).max().item()
 
-        if "diff" in models_var.name:
+        if isinstance(models_var, xr.Dataset):
+            is_diff = any("diff" in v for v in models_var.data_vars)
+        else:
+            is_diff = "diff" in models_var.name
+    
+        if is_diff:
             flux_lim = (-upper_lim, upper_lim)
         else:
             flux_lim = (0, upper_lim)

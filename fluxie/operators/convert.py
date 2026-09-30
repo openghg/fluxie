@@ -315,7 +315,9 @@ def convert_units_co2eq(from_unit: str, to_unit: str, species_info: dict) -> flo
 
     # Base physical conversion
     conversion_factor = get_units_conversion_factor(
-        from_unit=from_base, to_unit=to_base
+        from_unit=from_base,
+        to_unit=to_base,
+        molar_mass=species_info.get("molar_mass", None),
     )
 
     # Get GWP if needed

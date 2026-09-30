@@ -1,7 +1,7 @@
 import numpy as np
 import xarray as xr
 
-from matplotlib.pyplot import get_cmap
+import matplotlib.pyplot as plt
 
 from fluxie.operators.regions import extract_region_inventory_flux
 
@@ -85,9 +85,14 @@ def retrieve_inventories(
             else:
                 ds_uncert_sectors[y].append(None)
 
-    return [xr.concat(ds_sectors[y], dim="sector") for y in inventory_years], [
-        xr.concat(ds_uncert_sectors[y], dim="sector") for y in inventory_years
+    ds_sectors_all = [xr.concat(ds_sectors[y], dim="sector") for y in inventory_years]
+    ds_uncert_sectors_all = [
+        xr.concat(ds_uncert_sectors[y], dim=sector)
+        for y in inventory_years
+        if all(a is None for a in ds_uncert_sectors[y]) == False
     ]
+
+    return ds_sectors_all, ds_uncert_sectors_all
 
 
 def _retrieve_inventories_sector(
@@ -127,7 +132,7 @@ def _retrieve_inventories_sector(
     inventories_list = list()
     inventories_uncert_list = list()
 
-    inv_cmap = get_cmap("Greys")
+    inv_cmap = plt.get_cmap("Greys")
     inv_colors = [inv_cmap(i) for i in np.linspace(0.5, 0.9, len(inventory_years))]
 
     for year, inv_color in zip(inventory_years, inv_colors):
