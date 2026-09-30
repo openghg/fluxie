@@ -386,6 +386,8 @@ def extract_region_inventory_flux(
     logger.info(
         "There is currently no option to plot inventory uncertainty for grouped countries. This functionality will be added later"
     )
+    
+    inv_stdev_ds = None
 
     return inv_ds.sum(dim="country", keep_attrs=True), inv_stdev_ds
 
