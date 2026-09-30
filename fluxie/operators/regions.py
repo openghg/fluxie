@@ -434,6 +434,8 @@ def extract_region_inventory_flux(
             f"No inventory data available for {country}. Including inventory as all-nan."
         )
         inv_ds = xr.full_like(inv_ds.astype(float), np.nan)
+        
+    inv_stdev_ds = None
 
     return inv_ds.sum(dim="country", keep_attrs=True), inv_stdev_ds
 
