@@ -7,7 +7,7 @@ import logging
 
 from fluxie.operators.flux_align_dataset import align_map_data
 from fluxie.operators.flux_combine import combine_map_dataset
-from fluxie.operators.flux_map_diff import define_var_plot, make_model_diff_ds
+from fluxie.operators.flux_map_diff import define_var_plot, define_var_plot_by_sector, make_model_diff_ds
 from fluxie.operators.flux_map_resample import resample_over_period
 from fluxie.plots.utils import (
     Region,
@@ -282,6 +282,344 @@ def plot_flux_map(
                     colorbar_type="row",
                 )
     return fig
+
+
+def plot_flux_map_by_sector(
+    ds_all: dict[xr.Dataset],
+    species: str,
+    region: Region = None,
+    config_data: dict[str, any] = {},
+    model_labels: dict[str, str] = {},
+    cmap: str = "viridis",
+    cmap_diff: str = "coolwarm",
+    c_border: str = "floralwhite",
+    c_border_diff: str = "dimgrey",
+    add_sites: bool = False,
+    add_markers: list[str] | list[list[float]] = None,
+    season: str = None,
+    set_fluxlim: str | tuple = "auto",
+    set_fluxlim_percentile: float = None,
+    plot_inversion_grid_flux: bool = False,
+    zoom_degree: float = 1,
+    only: Literal["posterior", "prior", "diff"] | None = None,
+    fallback_sites: list[str] | None = None,
+    resample_uncert_correlation: bool = False,
+    sectors: dict[list[str]] | list[str] = [
+            "agriculture",
+            "waste",
+            "energy",
+            "industry",
+        ],
+    columns: str = "model",
+    mean_over_models: bool = False,
+    include_title_and_labels: bool = True,
+    site_marker: str = "o",
+    city_marker: str = "^",
+    marker_color: str | None = None,
+) -> plt.Figure:
+    """
+    Plot prior, posterior and prior-posterior difference for multiple emission sectors.
+
+    Returns a list of figures. The layout depends on the `columns` argument:
+    - columns='model': one figure per sector, columns are models, colour scale
+      is computed independently per sector.
+    - columns='sector': one figure per model, columns are sectors, colour scale
+      is shared across all sectors within a figure.
+
+    Args:
+        ds_all (dict of xarray.Dataset):
+            Dictionary of flux datasets, keyed by model name.
+        species (str):
+            Gas species, e.g. 'ch4'.
+        region (str or list):
+            Region to plot, e.g. 'FRANCE', 'EUROPE', [lon_min, lon_max, lat_min, lat_max].
+        config_data (dict of dict):
+            Dictionary of models and species information (read from json file).
+        model_labels (dict):
+            Display labels for model names, from fluxie.config.
+        cmap (str, optional):
+            Colour map for flux plots.
+        cmap_diff (str, optional):
+            Colour map for flux difference plots.
+        c_border (str, optional):
+            Colour for flux plot country borders.
+        c_border_diff (str, optional):
+            Colour for flux difference plot country borders.
+        add_sites (bool, optional):
+            If True, scatters site location markers on each panel.
+        add_markers (list of str or list of lat/lon, optional):
+            Named point sources or [lat, lon] locations to mark.
+        season (str, optional):
+            If specified, plot the seasonal mean ('DJF', 'MAM', 'JJA', 'SON').
+        set_fluxlim (str or tuple, optional):
+            Colorbar limit strategy: 'auto' or a (min, max) tuple.
+        set_fluxlim_percentile (float, optional):
+            Percentile used for the 'auto' limit strategy.
+        plot_inversion_grid_flux (bool, optional):
+            If True, plot fluxes at inversion grid resolution.
+        zoom_degree (float, optional):
+            Degrees added to the map bounds (negative values zoom in).
+        only (str, optional):
+            Restrict to 'posterior', 'prior', or 'diff' only.
+        fallback_sites (list[str] | None):
+            Fallback site names if 'sites' is not in the dataset.
+        resample_uncert_correlation (bool, optional):
+            If True, uncertainties are averaged directly; otherwise aggregated as RMSE.
+        sectors (list[str] or dict, optional):
+            Emission sectors to plot, e.g. ['agriculture', 'waste', 'energy'].
+            A dict with a 'model' key can be used to specify different sectors
+            per data source.
+        columns (str, optional):
+            Layout of columns in each figure. Options:
+            - 'model' (default): columns are models, one figure per sector.
+              Colour scale is computed independently per sector.
+            - 'sector': columns are sectors, one figure per model.
+              Colour scale is shared across sectors within a figure.
+        mean_over_models (bool, optional):
+            Only used when columns='sector'. If True, averages across all models
+            and returns a single figure instead of one per model. Default False.
+        include_title_and_labels (bool, optional):
+            If False, removes titles, axis labels and colorbar annotations.
+        site_marker (str, optional):
+            Marker style for site locations.
+        city_marker (str, optional):
+            Marker style for city locations.
+        marker_color (str, optional):
+            Marker colour.
+
+    Returns:
+        figs (list of Figure):
+            List of matplotlib figures, one per sector (columns='model') or
+            one per model (columns='sector').
+    """
+
+    # Determine geographical boundaries
+    map_bounds = get_map_bounds(
+        region,
+        ds_all.values(),
+        config_data,
+        zoom_degree=zoom_degree,
+    )
+
+    # Define variables
+    var_prior = [f"flux_{sector}_prior" for sector in sectors]
+    var_posterior = [f"flux_{sector}_posterior" for sector in sectors]
+    var_diff = "posterior_prior_diff"
+
+    if plot_inversion_grid_flux:
+        var_prior = [v + "_inversion_grid" for v in var_prior]
+        var_posterior = [v + "_inversion_grid" for v in var_posterior]
+        var_diff += "_inversion_grid"
+
+    if only == "posterior":
+        vars_list = var_posterior
+        var_fluxlim = var_posterior
+    elif only == "prior":
+        vars_list = var_prior
+        var_fluxlim = var_prior
+    elif only == "diff":
+        vars_list = [var_diff]
+        var_fluxlim = var_diff
+    else:
+        vars_list = [var_prior, var_posterior, var_diff]
+        var_fluxlim = var_posterior  # TODO Flux limits based on posterior, is this the right way to do?
+
+    # Prepare datasets and resample over the whole time period (season=None) or a given season
+    ds_dict = {
+        m: resample_over_period(
+            define_var_plot_by_sector(ds, vars_list, sectors),
+            chop_by=season,
+            resample_uncert_correlation=resample_uncert_correlation,
+        )[0]
+        for m, ds in ds_all.items()
+    }
+
+    # Load country lines and species information
+    country_lines = compute_boundary_geometry(map_bounds)
+    species_info = config_data.get("species_info", {}).get(species, {})
+
+    vars_list = [v for item in vars_list for v in (item if isinstance(item, list) else [item])]
+
+    multi_sector = len(sectors) > 1
+
+    if columns == "sector":
+        n_cols = len(sectors)
+        if mean_over_models:
+            ds_mean = xr.concat(list(ds_dict.values()), dim="model").mean(dim="model")
+            ds_mean.attrs = next(iter(ds_dict.values())).attrs
+            n_figs = 1
+        else:
+            n_figs = len(ds_dict)
+    elif columns == "model":
+        n_cols = len(ds_dict)
+        n_figs = len(sectors)
+
+    figs = []
+    for ifig in range(n_figs):
+
+        if columns == "model":
+            sec_fig = sectors[ifig]
+            vars_for_fig = [
+                v for v in vars_list
+                if sec_fig in v or not any(s in v for s in sectors)
+            ]
+            ref_sector = None
+            var_fluxlim_fig = f"flux_{sec_fig}_posterior"
+
+        elif columns == "sector":
+            sec_fig = None
+            # Use first sector as row template; actual_var swaps it per column
+            ref_sector = sectors[0]
+            vars_for_fig = [
+                v for v in vars_list
+                if ref_sector in v or not any(s in v for s in sectors)
+            ]
+            if mean_over_models:
+                model = "Model mean"
+                ds = ds_mean
+            else:
+                model, ds = list(ds_dict.items())[ifig]
+            lon, lat = ds.longitude, ds.latitude
+            sites_info = get_active_sites_coordinates(ds, config_data, fallback_sites) if add_sites else ""
+            var_fluxlim_fig = f"flux_{ref_sector}_posterior"
+
+        n_rows = len(vars_for_fig)
+        figsize = define_map_figsize(
+            map_bounds, n_rows, n_cols, fixed_value=3 * n_rows, fixed_dimension="height"
+        )
+        fluxlim = set_flux_limits(
+            ds_dict,
+            var_fluxlim_fig,
+            map_bounds,
+            option=set_fluxlim,
+            custom_percentile=set_fluxlim_percentile,
+        )
+        fig, ax = plt.subplots(n_rows, n_cols, figsize=figsize, layout="compressed")
+
+        if columns == "sector" and include_title_and_labels:
+            fig.suptitle(model_labels.get(model, model))
+
+        col_specs = []
+        if columns == "model":
+            for model, ds in ds_dict.items():
+                col_specs.append({
+                    "label": model,
+                    "ds": ds,
+                    "lon": ds.longitude,
+                    "lat": ds.latitude,
+                    "sector": sec_fig,  # ← Sektor dieser Figure
+                    "sites_info": get_active_sites_coordinates(ds, config_data, fallback_sites) if add_sites else "",
+                })
+        elif columns == "sector":
+            for sector in sectors:
+                col_specs.append({
+                    "label": sector,
+                    "ds": ds,
+                    "lon": ds.longitude,
+                    "lat": ds.latitude,
+                    "sector": sector if multi_sector else None,
+                     "ref_sector": ref_sector,
+                    "sites_info": get_active_sites_coordinates(ds, config_data, fallback_sites) if add_sites else "",
+                })
+
+        for col, spec in enumerate(col_specs):
+            ds_col = spec["ds"]
+            lon, lat = spec["lon"], spec["lat"]
+            sites_info = spec["sites_info"]
+
+            model_axes = ax if n_cols == 1 else (ax[:, col] if n_rows > 1 else ax[col])
+
+            for row, var in enumerate(vars_for_fig):  # ← vars_for_fig statt vars_list
+                ax_i = model_axes if n_rows == 1 else model_axes[row]
+
+                
+                sec = spec["sector"]
+                ref_sec = spec.get("ref_sector")
+
+                if ref_sec and ref_sec in var:
+                    actual_var = var.replace(ref_sec, sec)
+                elif sec and sec not in var:
+                    actual_var = f"{sec}_{var}"
+                else:
+                    actual_var = var
+
+                is_diff = "diff" in var
+                cmap_i = cmap_diff if is_diff else cmap
+                border_color = c_border_diff if is_diff else c_border
+                vlim_i = (-fluxlim[1], fluxlim[1]) if is_diff else fluxlim
+                if marker_color is None:
+                    marker_color = "black" if is_diff else "red"
+                extend_i = "both" if is_diff else "max"
+
+                im = ax_i.pcolormesh(
+                    lon, lat, ds_col[actual_var],
+                    cmap=cmap_i, vmin=vlim_i[0], vmax=vlim_i[1], shading="nearest",
+                )
+                
+                
+                plot_country_borders(
+                    ax=ax_i, lines=country_lines, border_color=border_color
+                )
+                ax_i.set_xlim(map_bounds[:2])  # Longitude limits
+                ax_i.set_ylim(map_bounds[2:])  # Latitude limits
+                ax_i.set_aspect(1)
+
+                # Adjust ticks layout
+                if row < n_rows - 1:
+                    ax_i.set_xticklabels([])
+                if col > 0:
+                    ax_i.set_yticklabels([])
+
+                if not include_title_and_labels:
+                    ax_i.set_xticks([])
+                    ax_i.set_yticks([])
+
+                # Add titles
+                if row == 0 and include_title_and_labels:
+                    if columns == "sector":
+                        ax_i.set_title(spec["label"].capitalize())  # Sektorname als Spaltentitel
+                    else:
+                        ax_i.set_title(model_labels.get(model, model))  # Modellname als Spaltentitel
+
+                # Add sites and markers if specified
+                if add_sites and sites_info:
+                    add_site_markers(ax_i, sites_info, marker_color, site_marker)
+                if add_markers:
+                    add_custom_markers(
+                        ax_i,
+                        add_markers,
+                        marker_color,
+                        config_data["regions_info"],
+                        city_marker,
+                    )
+
+                if include_title_and_labels:
+                    cbar_label_format = ["variable", "species", "units", "time"]
+                else:
+                    cbar_label_format = ["species", "units", "time"]
+
+                # Add colorbar (only for the last column)
+                if col == n_cols - 1:
+                    cbar_label = print_cbar_label(
+                        ds_col,       # ← war: ds
+                        species_info,
+                        actual_var,   # ← war: var
+                        format=cbar_label_format,
+                    )
+                    add_colorbar(
+                        fig,
+                        ax_i,
+                        im,
+                        extend_i,
+                        label=cbar_label,
+                        n_cbar=n_rows,
+                        idx_cbar=row,
+                        colorbar_type="row",
+                    )
+                    
+        figs.append(fig)
+    return figs
+
 
 
 def plot_flux_map_model_comparison(
