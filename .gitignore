@@ -2,6 +2,7 @@
 **/.ipynb_checkpoints
 __pycache__/
 **/__pycache__
+scripts/**.ipynb
 
 data/ne_data/
 data/my_data/
