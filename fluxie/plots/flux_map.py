@@ -438,21 +438,6 @@ def plot_flux_map(
                 )
 
 
-
-            if is_multispecies:
-
-                if include_title_and_labels:
-                    cbar_label_format = ["variable", "units", "time"]
-                else:
-                    cbar_label_format = ["units", "time"]
-
-            else:
-
-                if include_title_and_labels:
-                    cbar_label_format = ["variable", "species", "units", "time"]
-                else:
-                    cbar_label_format = ["species", "units", "time"]
-
     if only is not None and ncols is not None:
 
         for panel in range(len(ds_dict), n_rows * n_cols):
