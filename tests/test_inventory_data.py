@@ -39,7 +39,7 @@ def test_retrieve_inventories_multiple_sectors():
     assert uncertainties[0].sizes["sector"] == 2
 
 
-def test_retrive_non_existing_country():
+def test_retrieve_non_existing_country():
 
     with pytest.raises(KeyError, match="Country not found in inventory: XX"):
         inventories, uncertainties = retrieve_inventories(**kwargs | {"country": "XX"})
