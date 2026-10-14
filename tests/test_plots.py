@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 import pytest
 import fluxie
@@ -163,6 +164,34 @@ def test_country_flux_with_inventory_raises_no_datadir():
         )
 
 
+def test_country_flux_with_inventory_but_no_data_present(caplog):
+    """Test country flux plotting with inventory data."""
+
+    with caplog.at_level(logging.WARNING):
+
+        plot_country_flux(
+            ds_all_flux_scaled,
+            species,
+            data_dir=data_dir,
+            plot_inventory=True,
+            inventory_years=None,
+        )
+
+    assert "Missing inventory data for" in caplog.text
+
+
+def test_country_flux_with_inventory():
+    """Test country flux plotting with inventory data."""
+
+    plot_country_flux(
+        ds_all_flux_scaled,
+        species,
+        data_dir=data_dir / "sector_flux",
+        plot_inventory=True,
+        inventory_years=None,
+    )
+
+
 def test_flux_timeseries():
     kwargs = dict(
         data_dir=data_dir,
@@ -281,6 +310,11 @@ def test_mf_timeseries():
         model_labels,
         config_data,
     )
+
+
+def test_sites_timeseries_minimal_args():
+
+    fig = plot_sites_timeseries(ds_all_mf, "mf_posterior")
 
 
 def test_obs_modelled_separate():
