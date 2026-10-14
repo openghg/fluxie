@@ -1480,6 +1480,7 @@ def plot_all_species_stacked_bar(
     s_data = config_data.get("species_info", {})
     r_data = config_data.get("regions_info", {})
     species_colors = config.species_color_palette
+    default_colors = config.get_default_colors()
 
     unit = []
 
@@ -1613,7 +1614,8 @@ def plot_all_species_stacked_bar(
             ds_to_plot[species][models[s]]["posterior"].values,
             width=width,
             bottom=bottom,
-            color=species_colors[species],
+            # Species without a color in the palette use the default color cycle
+            color=species_colors.get(species, default_colors[s % len(default_colors)]),
             label=s_data.get(species, {}).get("species_print", species),
             yerr=uncert,
             error_kw={"capsize": 2},

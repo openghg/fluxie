@@ -24,6 +24,7 @@ from fluxie.plots.flux_map import (
     plot_flux_map_period_comparison,
 )
 from fluxie.plots.flux_timeseries import (
+    plot_all_species_stacked_bar,
     plot_country_flux,
     plot_country_sector_flux_bar,
 )
@@ -34,6 +35,7 @@ from fluxie.plots.mf_timeseries import (
     plot_timeseries,
 )
 from fluxie.plots.stats import plot_stats
+from fluxie.test_utils import data_dir
 from fluxie.test_utils.examples import (
     load_ecflux,
     load_flux,
@@ -136,6 +138,34 @@ def _() -> PlotResult:
         model_colors=data.model_colors,
         model_labels=data.model_labels,
         plot_inventory_or_prior="prior",
+    )
+
+
+@example("Fluxes of all species, stacked", plot_all_species_stacked_bar)
+def _() -> PlotResult:
+    species_periods = {"ch4": "monthly", "hfc134a": "yearly"}
+    ds_all_species = {}
+    for species, period in species_periods.items():
+        data = load_flux(
+            species=species,
+            period=period,
+            start_date="2022-01-01",
+            models=["InTEM_NAME_EUROPE_EDGAR_old_format"],
+            country_flux_units_print="Gg CO2-eq yr-1",
+        )
+        ds_all_species[species] = data.ds_all
+    return plot_all_species_stacked_bar(
+        list(species_periods),
+        ds_all_species,
+        "UK",
+        config_data=data.config_data,
+        model_colors=data.model_colors,
+        model_labels=data.model_labels,
+        start_date=data.start_date,
+        end_date=data.end_date,
+        inventory_years=["2024"],
+        inventory_filename="TEST_inventory",
+        data_dir=data_dir,
     )
 
 

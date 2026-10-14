@@ -15,7 +15,11 @@ from fluxie.plots.flux_map import (
     plot_flux_map_combined_models_comparison,
     plot_flux_map_period_comparison,
 )
-from fluxie.plots.flux_timeseries import plot_country_flux, plot_country_sector_flux_bar
+from fluxie.plots.flux_timeseries import (
+    plot_all_species_stacked_bar,
+    plot_country_flux,
+    plot_country_sector_flux_bar,
+)
 from fluxie.plots.mf_timeseries import (
     plot_mf_timeseries,
     plot_sites_timeseries,
@@ -689,4 +693,44 @@ def test_plot_flux_map_period_comparison():
         add_markers=add_markers,
         set_fluxlim=set_fluxlim,
         set_fluxlim_percentile=set_fluxlim_percentile,
+    )
+
+
+def test_plot_all_species_stacked_bar():
+    """Stack ch4 and hfc134a (no color in the species palette) for the UK."""
+    stacked_models = ["InTEM_NAME_EUROPE_EDGAR_old_format"]
+    units = "Gg CO2-eq yr-1"
+    stacked_start, stacked_end = "2022-01-01", "2024-01-01"
+
+    ds_all_species = {}
+    for stacked_species, stacked_period in [("ch4", "monthly"), ("hfc134a", "yearly")]:
+        ds = read_model_output(
+            data_dir,
+            "flux",
+            stacked_species,
+            stacked_models,
+            config_data,
+            period=stacked_period,
+        )
+        ds_all_species[stacked_species] = slice_flux(
+            ds,
+            config_data,
+            stacked_start,
+            stacked_end,
+            species=stacked_species,
+            country_flux_units_print=units,
+        )
+
+    fig = plot_all_species_stacked_bar(
+        ["ch4", "hfc134a"],
+        ds_all_species,
+        "UK",
+        config_data=config_data,
+        model_colors=set_model_colors(stacked_models),
+        model_labels=set_model_labels(stacked_models, config_data, False),
+        start_date=stacked_start,
+        end_date=stacked_end,
+        inventory_years=["2024"],
+        inventory_filename="TEST_inventory",
+        data_dir=data_dir,
     )
