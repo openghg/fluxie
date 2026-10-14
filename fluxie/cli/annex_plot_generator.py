@@ -23,10 +23,11 @@ logger = logging.getLogger(__name__)
 def produce_plots(
     region: str,
     output_path: str | Path,
-    inventory_years: list | str,
+    inventory_years: str | list[str],
 ) -> pd.DataFrame:
     """
-    Create plots, table amd tex files to be used in annex reports.
+    Create plots, table and tex files to be used in annex reports.
+
     Info such as data directory, species to use,.. are read in adjacent config_annex_plot.py file.
     For monthly species, 5 plots are made :
         - country flux annual average covering the max possible time range,
@@ -39,18 +40,17 @@ def produce_plots(
         - average flux map over the PARIS window (2018-202x).
 
     Args:
-        region :
+        region:
             Region/Country of focus.
-        output_path :
+        output_path:
             Path where to store the figures/tables/tex files.
-        inventory_years :
+        inventory_years:
             Inventory year to use in the plots. If a list is given, only the last item will be used in the tables.
 
     Returns:
-        annual_res :
-            Aggregated annual results (outputs from dict_to_str_dataframe) containing all species.
+        annual_res:
+            Aggregated annual results (outputs from plot_country_flux) containing all species.
     """
-
     ### Initialization
     logger.warning(
         "Make sure standard filenames are correctly set in models_info.json."

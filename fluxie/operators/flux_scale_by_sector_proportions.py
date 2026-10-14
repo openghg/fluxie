@@ -22,7 +22,6 @@ def open_and_align_sector_dataset(
     Returns:
         ds_sectors: dataset with prior sector fluxes align on reference dataset
     """
-
     with xr.open_dataset(sector_prop_path) as f:
         # timely align sector dataset on main dataset
         freq_ds = ds_ref.attrs["frequency"]
@@ -87,15 +86,16 @@ def scale_by_sector_proportions(
     species: str,
     country_flux_units_print: str,
     regions: list[str] | None = None,
-    config_data: dict[str, dict] = None,
+    config_data: dict[str, dict] | None = None,
     sector_file: str = "EUROPE_EDGAR",
     create_region_sector_totals: bool = True,
     sectors: list[str] | None = None,
     cell_area_test_file: bool = False,
-) -> xr.Dataset:
+) -> dict[str, xr.Dataset]:
     """
-    Produces sector level fluxes by scaling prior and posterior fluxes by the
-    proportional contribution of each sector to the total flux in each grid cell
+    Produce sector level fluxes by scaling fluxes by the sector proportions.
+
+    Prior and posterior fluxes are scaled by the proportional contribution of each sector to the total flux in each grid cell
     (at transport model resolution). Fluxes are then summed over region/country areas
     to produce region/country sector totals.
 
@@ -103,19 +103,15 @@ def scale_by_sector_proportions(
         data_dir:
             Path to top data directory.
         ds_all:
-            xarray dataset with model data.
+            Dictionary of xarray datasets with model data.
         species:
             Gas species, e.g. 'ch4'.
-        sectors:
-            Emissions sectors to include, options for 'agriculture', 'waste',
-            'energy' and 'industry'.
         country_flux_units_print:
             Units for country flux, e.g. 'Gg yr-1'
         regions:
             List of regions to include, e.g. ['BEL', 'FRA', 'DEU', 'NLD', 'LUX'] or ['BEL-LUX-NLD'].
             If None, all regions are included.
         config_data:
-            config_data:
             Dictionary with settings read from json file.
             Use json filenames as keys.
         sector_file:
@@ -123,15 +119,18 @@ def scale_by_sector_proportions(
         create_region_sector_totals:
             If True, sums spatial fluxes over country_fraction masks
             to create country/region totals.
+        sectors:
+            Emissions sectors to include, options for 'agriculture', 'waste',
+            'energy' and 'industry'.
         cell_area_test_file:
             Only used in tests. If True, extracts cell_area from a smaller test file
             with restricted lat/lons.
+
     Returns:
-        ds:
-            Input ds, with added flux_sector_prior and flux_sector_posterior variables.
+        ds_all_out:
+            Dictionary of the input datasets, with added flux_sector_prior and flux_sector_posterior variables.
             If regions is not None, also contains region/country sector total variables.
     """
-
     logger.warning(
         f"Scaling fluxes to create sector flux totals, this can be slow (>1 minute to run) if using lots of models and regions."
     )

@@ -33,39 +33,53 @@ def plot_correlation(
     figsize: tuple[float, float] = (10, 10),
     cmap: str = "YlOrRd",
 ) -> plt.Figure:
-    """Plot correlation between two timeseries.
+    """
+    Plot correlation between two timeseries.
 
     Args:
-        ds_all: Dictionary of xarray datasets for each model.
+        ds_all:
+            Dictionary of xarray datasets for each model.
         variable:
             Variable(s) to plot. If `oppose='variables'`,
             2 variables must be provided as a tuple.
-        species: Species to plot. Defaults to None.
-        site: Site to plot. Defaults to None.
-        models_to_plot: Models to plot. Defaults to None.
+        species:
+            Species to plot. Defaults to None.
+        site:
+            Site to plot. Defaults to None.
+        models_to_plot:
+            Models to plot. Defaults to None.
             If not given, will plot all models.
-        oppose: Whether to oppose variables or models. Defaults to 'models'.
-        style: Plotting style.
+        oppose:
+            Whether to oppose variables or models. Defaults to 'models'.
+        style:
+            Plotting style.
             If 'scatter', a scatter (points) plot is created.
             If 'density', a density (colorscale) plot is created.
-        model_colors: Dictionary of model colors. Defaults to None.
-        model_labels: Dictionary of model labels. Defaults to {}.
-        config_data: Configuration data. Defaults to {}.
-        presentation_mode: Whether to use presentation mode. Defaults to False.
-        linear_fit: Whether to plot a linear fit line. Defaults to True.
-        scatter_size: Size of scatter points. Defaults to 1.5.
+        model_colors:
+            Dictionary of model colors. Defaults to None.
+        linear_fit:
+            Whether to plot a linear fit line. Defaults to True.
+        model_labels:
+            Dictionary of model labels. Defaults to {}.
+        config_data:
+            Configuration data. Defaults to {}.
+        presentation_mode:
+            Whether to use presentation mode. Defaults to False.
+        scatter_size:
+            Size of scatter points. Defaults to 1.5.
         lims:
             Limits for the x and y axes. If None, defaults to matplotlib limits.
             If a single tuple is provided, it is used for both axes.
             If two tuples are provided, they are used for x and y axes respectively.
         figsize:
             Size of the figure. Defaults to (10, 10).
-        cmap: Colormap to use for the density plot. Defaults to "YlOrRd".
+        cmap:
+            Colormap to use for the density plot. Defaults to "YlOrRd".
 
     Returns:
-        matplotlib.figure.Figure: The figure object containing the plot.
+        fig:
+            The figure object containing the plot.
     """
-
     models = models_to_plot or list(ds_all.keys())
 
     # Checking consistency of input data

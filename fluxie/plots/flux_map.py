@@ -115,11 +115,11 @@ def plot_flux_map(
             Marker for city locations.
         marker_color:
             Marker color.
+
     Returns:
         fig:
             Three maps, for each model, of the flux prior, the flux posterior and the difference between both.
     """
-
     # Check for inversion_grid and sector option
     if plot_inversion_grid_flux == True and sector != "total":
         raise ValueError(
@@ -371,11 +371,11 @@ def plot_flux_map_model_comparison(
             Marker for city locations.
         marker_color:
             Marker color.
+
     Returns:
         fig:
             Three maps of a target flux variable of the first and second models and the diffence between both.
     """
-
     # Check for inversion_grid and sector option
     if "inversion_grid" in var and sector != "total":
         raise ValueError(
@@ -601,18 +601,22 @@ def plot_flux_map_over_time(
             If False, uncertainties are calculated as RMSE-like aggregation.
         sector:
             Emissions sector to plot. Default 'total'.
+        include_title_and_labels:
+            If False, removes titles, axis labels and extra info from the colour bar.
+        add_gridlines:
+            If True, adds major gridlines to each map.
         site_marker:
             Marker for site locations.
         city_marker:
             Marker for city locations.
         marker_color:
             Marker color.
+
     Returns:
         fig:
             A plot of spatial flux of the variable specified in var
             averaged over the number of time steps specified in dt.
     """
-
     # Check for inversion_grid and sector option
     if "inversion_grid" in var and sector != "total":
         raise ValueError(
@@ -890,11 +894,11 @@ def plot_flux_map_combined_models_comparison(
             Marker for city locations.
         marker_color:
             Marker color.
+
     Returns:
         fig:
             Three maps of a target flux variable of the first and second groups of combined models and the diffence between both.
     """
-
     # Check for inversion_grid and sector option
     if "inversion_grid" in var and sector != "total":
         raise ValueError(
@@ -1073,6 +1077,7 @@ def plot_flux_map_period_comparison(
 ) -> plt.Figure:
     """
     Plot a given flux variable averaged over two time periods and the difference, for all models or the model mean.
+
     Args:
         ds_all:
             Dictionary of fluxes xarray datasets.
@@ -1091,11 +1096,6 @@ def plot_flux_map_period_comparison(
             Dictionary of models and species information (read from json file).
         model_labels:
             List of model_labels from fluxie.config.
-        chop_by:
-            Time units to perform the average, options for 'year', 'month' and 'season'.
-            Alternatively, a list of starting dates or months number can be provided.
-        dt:
-            If chop_by = 'year' or 'month': dt is the number of time steps (in chop_by units) to use in the averaging.
         plot_combined:
             If True, plots the mean over all models at each time step.
         cmap:
@@ -1135,12 +1135,12 @@ def plot_flux_map_period_comparison(
             Marker used for city locations.
         marker_color:
             Marker color.
+
     Returns:
         fig:
             A plot of spatial flux of the variable specified in var
             averaged over the number of time steps specified in dt.
     """
-
     # Check for inversion_grid and sector option
     if "inversion_grid" in var and sector != "total":
         raise ValueError(

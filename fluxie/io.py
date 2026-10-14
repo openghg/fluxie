@@ -62,11 +62,11 @@ def read_json(filepath: os.PathLike) -> dict[str, dict]:
     Args:
         filepath:
             Path to json file including filename.
+
     Returns:
         json_data:
             Dictionary with data read from filepath.
     """
-
     filepath = Path(filepath)
 
     if not filepath.is_file():
@@ -85,11 +85,11 @@ def read_yaml(filepath: os.PathLike) -> dict[str, dict]:
     Args:
         filepath:
             Path to yaml file including filename.
+
     Returns:
         yaml_data:
             Dictionary with data read from filepath.
     """
-
     filepath = Path(filepath)
 
     if not filepath.is_file():
@@ -107,12 +107,16 @@ def read_config_files(
     """
     Reads all configuration files.
 
+    Args:
+        configs_dir:
+            Directory containing the configuration files (json/yaml).
+            If None, the `configs` directory at the root of the repository is used.
+
     Returns:
         data_dict:
             Dictionary with keys equal to files basename (without extension).
             Each key points to a dictionary with the data from each config file.
     """
-
     if configs_dir is None:
         # Get location of config files
         parent_dir = Path(__file__).parent.parent
@@ -151,11 +155,12 @@ def read_config_files(
 def make_template(*args: str | tuple[str], suffix: str | None = None) -> str:
     """
     Build filename template based on input arguments.
+
     Single arguments are expected to indicate directories and are joined with "/".
     Tuple elements are expected to indicate filename parts and are joined with "_".
 
     Args:
-        args:
+        *args:
             Tuple with all input arguments (folder directories and filename parts).
         suffix:
             If provided, a suffix is added to the filename template.
@@ -164,7 +169,6 @@ def make_template(*args: str | tuple[str], suffix: str | None = None) -> str:
         template:
             String composed of template elements (e.g. "{arg1}/{arg2}{suffix}")
     """
-
     parts = []
     for x in args:
         if isinstance(x, str):
@@ -191,14 +195,13 @@ def fill_template(template: str, **kwargs: str) -> str:
     Args:
         template:
             Filename template. Output from make_template.
-        kwargs:
+        **kwargs:
             Elements to fill the template.
 
     Returns:
         filepath:
             Full path to file given by template with elements replaced by kwargs.
     """
-
     # add place holders for missing args
     template_fields = [x[1] for x in string.Formatter().parse(template)]
     for field in template_fields:
@@ -262,7 +265,6 @@ def get_filename(
         filepath:
             Complete path to output file.
     """
-
     models_info = config_data.get("models_info", {})
 
     # Get base model name (first keyword of model)
@@ -501,6 +503,8 @@ def read_flux_total_fgases(
     only_overlapping: bool = True,
 ) -> dict[str, xr.Dataset]:
     """
+    Read fluxes from a list of gases and sum totals and uncertainties.
+
     Reads in fluxes from a list of gases and sums/averages totals and uncertainties,
     to produce one dataset which can be used with plotting functions in the rest
     of the notebook.
@@ -515,11 +519,11 @@ def read_flux_total_fgases(
             i.e. models[i] = '<inversionModel>_<run_key>', preceded by subdirectory if applicable, e.g. ['InTEM','ELRIS'].
             The model name tag for each species is taken from standard_run[models[i]] in models_info.json, preceded by <inversionModel>.
             If standard_run[models[i]] does not exist in models_info.json, standard_run["default"] is used.
-        regions:
-            Region names used to extract fluxes. Only these regions can then be plotted.
         config_data:
             Dictionary with settings read from config file.
             Use config filenames as keys.
+        regions:
+            Region names used to extract fluxes. Only these regions can then be plotted.
         start_date:
             Date to slice data from, e.g. '2021-01-01'
         end_date:
@@ -533,11 +537,11 @@ def read_flux_total_fgases(
             unit in which to put the dataset. Must be in CO2-eq
         only_overlapping:
             If True, only includes time periods where all models have data. Otherwise, uses all available data.
+
     Returns:
         ds_all:
             xarray dataset read directly from each model's flux netCDF.
     """
-
     all_species = (
         config_data["species_info"]
         .get(species, {"list_species": None})
@@ -657,14 +661,15 @@ def create_flux_total_fgases(
             First keys are the regions, second the model, the list contains all the data for the species to be summed.
         species:
             'all_hfc' or 'all_pfc'
+        regions:
+            Region names used to extract fluxes. Only these regions can then be plotted.
         models:
             Model name tags specifying model runs,
             i.e. '<inversionModel>_<optional_identifying_tags>', preceded by subdirectory if applicable,
             e.g. ['InTEM_NAME_EUROPE_EDGAR','ELRIS_NAME_EUROPE_EDGAR']
-        regions:
-            Region names used to extract fluxes. Only these regions can then be plotted.
         only_overlapping:
             If True, only includes time periods where all models have data. Otherwise, uses all available data.
+
     Returns:
         ds_output:
             dictionnary of xarray datasets ready to be used with fluxie plot methods.
@@ -713,7 +718,6 @@ def load_countries_shape(region_bounds: tuple = ()) -> gpd.geodataframe:
         gdf:
             A GeoDataFrame containing the country boundaries for the specified region.
     """
-
     # Scale of the map (1:50m)
     res = "50m"  # Can be 10m, 50m, 110m
 
@@ -761,6 +765,7 @@ def edit_vars_and_attributes(
 ) -> xr.Dataset:
     """
     Edit dataset variables and attributes.
+
     This function would not be needed if all files complied with the data format.
 
     Args:
@@ -777,6 +782,9 @@ def edit_vars_and_attributes(
             See :py:class:`fluxie.types.DataType` for options.
         regions_info:
             Dictionary with country and region names (read from config file).
+        site_info:
+            Dictionary with site information (read from config file).
+            Currently not used by this function.
         species:
             Gas species, e.g. 'ch4'. If None, no species attribute is added.
 
@@ -784,7 +792,6 @@ def edit_vars_and_attributes(
         ds:
             xarray dataset with updated variables and attributes.
     """
-
     # Add inversion frequency and exp name to global attributes
     if "frequency" not in ds.attrs:
         ds.attrs["frequency"] = frequency
@@ -1065,7 +1072,9 @@ def add_sites_var(
     config_data: dict[str, dict],
 ) -> xr.Dataset:
     """
-    Add a 'sites' variable to a flux dataset indicating which sites are used for each flux timestamp,
+    Add a 'sites' variable to a flux dataset.
+
+    The variable indicates which sites are used for each flux timestamp,
     using the corresponding concentration dataset.
 
     Args:
@@ -1085,7 +1094,6 @@ def add_sites_var(
             xarray dataset with a new 'sites' variable added if the concentration
             file exists. If not, returns the original ds_flux unchanged.
     """
-
     # Derive the path for the concentration file
     if re.match(r".*_flux.nc$", str(filepath_flux)):
         filepath_conc = filepath_flux.with_stem(

@@ -17,28 +17,27 @@ FrequencyType = timedelta | str | None
 
 def slice_flux(
     ds_all: dict[str, xr.Dataset],
-    config_data: dict[str, str | float] = {},
-    start_date: str | list[str] = None,
-    end_date: str | list[str] = None,
-    species: str = None,
-    flux_units_print: str = None,
-    country_flux_units_print: str = None,
+    config_data: dict[str, dict] = {},
+    start_date: str | list[str] | None = None,
+    end_date: str | list[str] | None = None,
+    species: str | None = None,
+    flux_units_print: str | None = None,
+    country_flux_units_print: str | None = None,
 ) -> dict[str, xr.Dataset]:
     """
-    Slices the flux datasets to within given time limits and
-    calls scaling functions.
+    Slice the flux datasets to within given time limits and call scaling functions.
 
     Args:
         ds_all:
             xarray datasets read directly from each model's flux netCDF.
+        config_data:
+            Dictionary with settings read from json file.
+            Use json filename as keys.
         start_date:
             Date to slice data from, e.g. '2021-01-01'
         end_date:
             Date to slice data to, e.g. '2022-01-01' would include all
             data up to 2021-12-31.
-        config_data:
-            Dictionary with settings read from json file.
-            Use json filename as keys.
         species:
             Gas species, used to choose scaling units, e.g. 'ch4'.
             Set to None to prevent scaling.
@@ -49,8 +48,9 @@ def slice_flux(
             Units to which country fluxes should be converted to.
             Expected format: "<letters><(-)integer>" separated by spaces (e.g. "Tg yr-1").
             Conversion to CO2 equivalent can be specified with tag "CO2-eq" (e.g. "Tg CO2-eq yr-1").
+
     Returns:
-        ds_all:
+        ds_all_sliced:
             xarray datasets, scaled, converted, and sliced between chosen dates.
 
     """
@@ -92,19 +92,18 @@ def slice_flux(
 
 def slice_mf(
     ds_all: dict[str, xr.Dataset],
-    start_date: str = None,
-    end_date: str = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
     site: str | list[str] | None = None,
-    baseline_site: str = None,
+    baseline_site: str | None = None,
     baseline_filename: str = "InTEM_baseline_timestamps",
     data_dir: os.PathLike | None = None,
-    mf_units_print: str = None,
+    mf_units_print: str | None = None,
     keep_unassimilated: bool = False,
     intake_height: float | None = None,
 ) -> dict[str, xr.Dataset]:
     """
-    Slices down the mole fraction timeseries data, to within the
-    given time limits, and/or for the chosen site.
+    Slice the mole fraction timeseries data within the time limits and/or for the chosen site.
 
     Args:
         ds_all:
@@ -119,6 +118,9 @@ def slice_mf(
         baseline_site:
             Site used to define baseline at, options for 'MHD', 'JFJ', or 'CMN'.
             If None, does not mask timeseries by baseline times.
+        baseline_filename:
+            Name of the baseline timestamps file, read from
+            '{data_dir}/baseline_timestamps/{baseline_site}_{baseline_filename}.nc'.
         data_dir:
             Path to top data directory, used to read baseline info files.
         mf_units_print:
@@ -127,12 +129,14 @@ def slice_mf(
         keep_unassimilated:
             If True, keeps unassimilated data (assimilation_flag != 1).
             If False, only keeps assimilated data (assimilation_flag == 1).
+        intake_height:
+            Intake height to select data from. If None, keeps all intake heights.
+
     Returns:
         ds_all:
             xarray datasets, scaled and sliced between chosen dates and for
             chosen site.
     """
-
     models = list(ds_all.keys())
 
     start_date = pd.to_datetime(start_date)
@@ -242,11 +246,11 @@ def slice_site(
             Site(s) of interest.
         raise_error:
             if True, raise an error if the site is not found in the dataset.
+
     Returns:
         ds:
             Dataset with mf data of a given model, sliced to only include data for the given site(s).
     """
-
     if isinstance(ds, dict):
         ds_all_site = dict()
         for m, ds_this in ds.items():
@@ -299,11 +303,11 @@ def slice_height(ds: xr.Dataset, intake_height: float) -> xr.Dataset:
             Dataset with mf data of a given model.
         intake_height:
             intake_height of interest.
+
     Returns:
         ds:
             Dataset with mf data of a given model, sliced to only include data for the given intake_height.
     """
-
     if "intake_height" in ds.keys():
 
         mask = ds["intake_height"] == float(intake_height)
@@ -328,12 +332,12 @@ def get_site_index(ds: xr.Dataset, site: str) -> int | None:
             Dataset with mf data of a given model.
         site:
             Site of interest.
+
     Returns:
         index:
             Index of site of interest in the dataset.
             Returns None if site does not exist.
     """
-
     if site in ds["platform"]:
         index = np.where(ds["platform"] == site)[0][0]
         return index
@@ -348,11 +352,11 @@ def get_unique_sites(ds_all: dict[str, xr.Dataset]) -> list[str]:
     Args:
         ds_all:
             Dictionary of datasets with mf data from all models.
+
     Returns:
         sites:
             List of unique and sorted sites from all datasets.
     """
-
     sites = []
     for ds in ds_all.values():
         sites = np.concatenate([sites, ds["platform"].values])
@@ -365,6 +369,7 @@ def get_unique_sites(ds_all: dict[str, xr.Dataset]) -> list[str]:
 def get_intake_height(site: str, site_info: dict[str, dict]) -> int | None:
     """
     Extract the inlet height from site_info.json.
+
     This function is used to insert the 'inlet' variable if this is missing.
     This assumes use of the heighest height from all available at the specified site.
 
@@ -373,11 +378,11 @@ def get_intake_height(site: str, site_info: dict[str, dict]) -> int | None:
             3-letter site code.
         site_info:
             Data extracted from site_info.json.
+
     Returns:
         max_height:
             Maximum height from all networks and inlets available at the site.
     """
-
     if site not in site_info:
         logger.warning(
             f"No height info available for {site} in site_info.json so using 0m."
@@ -412,8 +417,9 @@ def get_unique_site_height_pairs(
     separate_by_height: bool = False,
 ) -> list[tuple]:
     """
-    Finds all unique pairs of site-height from all datasets.
-    e.g. if one dataset has MHD-10, TAC-185, RGL-90 and one dataset has
+    Find all unique pairs of site-height from all datasets.
+
+    E.g. if one dataset has MHD-10, TAC-185, RGL-90 and one dataset has
     MHD-10, TAC-100, this function will return MHD-10, TAC-100, TAC-185 and RGL-90.
 
     Args:
@@ -423,11 +429,11 @@ def get_unique_site_height_pairs(
             If True, includes a tuple per site height, if False, returns a tuple per
             site, with the second index set to None for all sites,
             e.g. [('MHD',None),('TAC',None)]
+
     Returns:
         site_list:
             Pairs of sites and heights, e.g. [('MHD',10),(TAC,100),(TAC,185)]
     """
-
     site_list = get_unique_sites(ds_all)
 
     if separate_by_height:
@@ -463,7 +469,8 @@ def clean_timeseries_missing_data(
     min_freq: FrequencyType = None,
     variables_nans: list[str] = [],
 ) -> xr.Dataset:
-    """Reorganise nan values in dataset based on time.
+    """
+    Reorganise nan values in dataset based on time.
 
     Removes or add NaN from dataset (originated from data gaps and the process of reshaping).
     Adds back in NaN related to data gaps.
@@ -477,11 +484,14 @@ def clean_timeseries_missing_data(
             If None, a default frequency will be used based on the median time difference.
             This can be given either as a string compatible with pandas frequency strings
             or as a timedelta object.
+        variables_nans:
+            Variables used to find the NaN values to drop: an index is dropped if
+            any of these variables is NaN. If empty, no index is dropped.
+
     Returns:
         ds:
             Modified dataset with NaN in data gaps.
     """
-
     #  Ensure that the dataset is sorted by time
     ds = ds.sortby("time")
     # Remove all NaN from dataset
@@ -541,9 +551,11 @@ def check_site_list(
 ) -> list[str]:
     """
     Check that every site in the list exists. If None, set it to all the sites available.
+
     Args:
         site_list: list of sites to check
         ds_all: datasets into which check for the sites
+
     Returns:
         site_list: list of sites
     """

@@ -1,3 +1,5 @@
+"""Plots of statistics comparing observed and simulated values."""
+
 from enum import Enum
 import logging
 import numpy as np
@@ -7,6 +9,8 @@ import pandas as pd
 
 
 class StatsPlotTypes(Enum):
+    """Types of plot available in :py:func:`plot_stats`."""
+
     MEAN_AND_STD = "mean_and_std"
     BOX_PLOT = "box_plot"
 
@@ -19,26 +23,38 @@ def plot_stats(
     species: str = "",
     variable: str = "",
     site_span: float = 0.7,
-    plot_type: StatsPlotTypes = StatsPlotTypes.MEAN_AND_STD,
+    plot_type: StatsPlotTypes | str = StatsPlotTypes.MEAN_AND_STD,
     config_data: dict[str, dict] = {},
-):
-    """Plot statistics for each site and model.
+) -> tuple[plt.Figure, plt.Axes]:
+    """
+    Plot statistics for each site and model.
 
     The xaxis is the site name, but in each site there are multiple models.
 
     Args:
-        df_stats: DataFrame containing the statistics to plot.
+        df_stats:
+            DataFrame containing the statistics to plot.
             Can be calculated with the functions
             :py:func:`fluxie.operators.stats.stats_observed_vs_simulated`
-        species: Name of the species, used in the plot title.
-        variable: Name of the variable, used in the y-axis label.
-        site_span: The width of the site span in the plot.
+        species:
+            Name of the species, used in the plot title.
+        variable:
+            Name of the variable, used in the y-axis label.
+        site_span:
+            The width of the site span in the plot.
             Should be between 0.1 and 1.0.
-        plot_type: Type of the plot to create.
-            One of :py:class:`fluxie.operators.stats.StatsPlotTypes`.
-        config_data: Configuration data, used to get species information.
-    """
+        plot_type:
+            Type of the plot to create.
+            One of :py:class:`fluxie.plots.stats.StatsPlotTypes` (or its string value).
+        config_data:
+            Configuration data, used to get species information.
 
+    Returns:
+        fig:
+            The matplotlib figure.
+        ax:
+            The axes with the statistics plot.
+    """
     fig, ax = plt.subplots(figsize=(10, 6))
 
     if site_span < 0.1 or site_span > 1:

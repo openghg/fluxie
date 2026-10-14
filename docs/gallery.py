@@ -6,6 +6,12 @@ Each function decorated with `@example` returns a figure, which is rendered by
 grouped by the current `section`.
 """
 
+from collections.abc import Callable
+from typing import Any
+
+from matplotlib.figure import Figure
+
+from fluxie.test_utils.examples import ExampleData
 from fluxie.operators.mf import compute_mf_difference, stats_mf
 from fluxie.operators.stats import stats_observed_vs_simulated
 from fluxie.plots.correlation import plot_correlation
@@ -35,30 +41,39 @@ from fluxie.test_utils.examples import (
     load_sector_flux,
 )
 
+# Plot functions return a figure, or a tuple starting with the figure
+PlotResult = Figure | tuple[Figure, Any]
+ExampleFunction = Callable[[], PlotResult]
+
 # List of (section, title, plot function, example function)
-EXAMPLES = []
-section = None
+EXAMPLES: list[tuple[str | None, str, Callable, ExampleFunction]] = []
+section: str | None = None
 
 
-def example(title, plot_function):
+def example(
+    title: str, plot_function: Callable
+) -> Callable[[ExampleFunction], ExampleFunction]:
     """Register an example producing a plot with `plot_function`."""
 
-    def register(func):
+    def register(func: ExampleFunction) -> ExampleFunction:
         EXAMPLES.append((section, title, plot_function, func))
         return func
 
     return register
 
 
-def load_country_flux():
+def load_country_flux() -> ExampleData:
+    """Load the flux test data with country fluxes in Gg yr-1."""
     return load_flux(country_flux_units_print="Gg yr-1")
 
 
-def load_flux_map():
+def load_flux_map() -> ExampleData:
+    """Load the flux test data with sites, with fluxes in kg km-2 yr-1."""
     return load_flux(add_sites_to_flux=True, flux_units_print="kg km-2 yr-1")
 
 
-def mf_timeseries_kwargs(data):
+def mf_timeseries_kwargs(data: ExampleData) -> dict[str, Any]:
+    """Arguments of `plot_timeseries` common to the mole fraction examples."""
     return dict(
         species=data.species,
         site="MHD",
@@ -73,7 +88,7 @@ section = "Flux timeseries"
 
 
 @example("Country fluxes", plot_country_flux)
-def _():
+def _() -> PlotResult:
     data = load_country_flux()
     return plot_country_flux(
         data.ds_all,
@@ -88,7 +103,7 @@ def _():
 
 
 @example("Country fluxes, combined models", plot_country_flux)
-def _():
+def _() -> PlotResult:
     data = load_country_flux()
     return plot_country_flux(
         data.ds_all,
@@ -111,7 +126,7 @@ def _():
 
 
 @example("Sectoral country fluxes", plot_country_sector_flux_bar)
-def _():
+def _() -> PlotResult:
     data = load_sector_flux(regions=["UK"])
     return plot_country_sector_flux_bar(
         data.ds_all,
@@ -128,7 +143,7 @@ section = "Flux maps"
 
 
 @example("Prior, posterior and difference", plot_flux_map)
-def _():
+def _() -> PlotResult:
     data = load_flux_map()
     return plot_flux_map(
         data.ds_all,
@@ -142,7 +157,7 @@ def _():
 
 
 @example("Posterior flux at the inversion resolution", plot_flux_map)
-def _():
+def _() -> PlotResult:
     data = load_flux_map()
     return plot_flux_map(
         data.ds_all,
@@ -156,7 +171,7 @@ def _():
 
 
 @example("Model comparison", plot_flux_map_model_comparison)
-def _():
+def _() -> PlotResult:
     data = load_flux_map()
     return plot_flux_map_model_comparison(
         data.ds_all,
@@ -171,7 +186,7 @@ def _():
 
 
 @example("Flux maps over time", plot_flux_map_over_time)
-def _():
+def _() -> PlotResult:
     data = load_flux_map()
     return plot_flux_map_over_time(
         data.ds_all,
@@ -188,7 +203,7 @@ def _():
 
 
 @example("Comparison of two groups of models", plot_flux_map_combined_models_comparison)
-def _():
+def _() -> PlotResult:
     data = load_flux_map()
     return plot_flux_map_combined_models_comparison(
         data.ds_all,
@@ -205,7 +220,7 @@ def _():
 
 
 @example("Comparison of two periods", plot_flux_map_period_comparison)
-def _():
+def _() -> PlotResult:
     data = load_flux_map()
     return plot_flux_map_period_comparison(
         data.ds_all,
@@ -224,7 +239,7 @@ section = "Mole fraction timeseries"
 
 
 @example("Mole fractions at a site", plot_timeseries)
-def _():
+def _() -> PlotResult:
     data = load_mf()
     return plot_timeseries(
         data.ds_all,
@@ -236,7 +251,7 @@ def _():
 
 
 @example("Mole fractions at a site, all models together", plot_timeseries)
-def _():
+def _() -> PlotResult:
     data = load_mf()
     return plot_timeseries(
         data.ds_all,
@@ -249,7 +264,7 @@ def _():
 
 
 @example("Monthly mean mole fractions", plot_timeseries)
-def _():
+def _() -> PlotResult:
     data = load_mf()
     return plot_timeseries(
         data.ds_all,
@@ -260,7 +275,7 @@ def _():
 
 
 @example("Mole fraction difference between two models", plot_timeseries)
-def _():
+def _() -> PlotResult:
     data = load_mf()
     ds_diff = compute_mf_difference(data.ds_all, data.models[:2])
     return plot_timeseries(
@@ -272,7 +287,7 @@ def _():
 
 
 @example("Mole fractions at all sites", plot_sites_timeseries)
-def _():
+def _() -> PlotResult:
     data = load_mf(select=False)
     return plot_sites_timeseries(
         data.ds_all,
@@ -288,7 +303,7 @@ def _():
 
 
 @example("Sites used by each model", plot_sites_list_mf)
-def _():
+def _() -> PlotResult:
     return plot_sites_list_mf(load_mf(select=False).ds_all)
 
 
@@ -296,7 +311,7 @@ section = "Statistics"
 
 
 @example("Statistics per site", plot_stats_mf)
-def _():
+def _() -> PlotResult:
     data = load_mf(site=None)
     return plot_stats_mf(
         stats=stats_mf(data.ds_all, stats_type="posterior_above_BC"),
@@ -313,7 +328,7 @@ def _():
 
 
 @example("Taylor diagram", plot_taylor_diagram)
-def _():
+def _() -> PlotResult:
     data = load_mf(site=None)
     include = ["prior", "posterior"]
     return plot_taylor_diagram(
@@ -330,7 +345,7 @@ section = "Eddy covariance fluxes"
 
 
 @example("Eddy covariance flux timeseries", plot_timeseries)
-def _():
+def _() -> PlotResult:
     data = load_ecflux()
     return plot_timeseries(
         data.ds_all,
@@ -345,7 +360,7 @@ def _():
 
 
 @example("Sectoral fluxes, diurnal cycle", plot_stacked)
-def _():
+def _() -> PlotResult:
     data = load_ecflux(sectors=True)
     return plot_stacked(
         data.ds_all["EDDY_HARDAU"], sectors_config=data.config_data["sectors"]
@@ -353,7 +368,7 @@ def _():
 
 
 @example("Sectoral fluxes, diurnal cycle in summer", plot_stacked)
-def _():
+def _() -> PlotResult:
     data = load_ecflux(sectors=True)
     return plot_stacked(
         data.ds_all["EDDY_HARDAU"],
@@ -364,7 +379,7 @@ def _():
 
 
 @example("Sectoral fluxes by wind direction", plot_stacked)
-def _():
+def _() -> PlotResult:
     data = load_ecflux(sectors=True)
     return plot_stacked(
         data.ds_all["EDDY_HARDAU"],
@@ -376,7 +391,7 @@ def _():
 
 
 @example("Correlation between two datasets", plot_correlation)
-def _():
+def _() -> PlotResult:
     data = load_ecflux()
     return plot_correlation(
         data.ds_all, variable="ecflux_observed_storage", style="density"
@@ -384,7 +399,7 @@ def _():
 
 
 @example("Statistics of simulated versus observed fluxes", plot_stats)
-def _():
+def _() -> PlotResult:
     data = load_ecflux(sectors=True)
     df_stats = stats_observed_vs_simulated(
         data.ds_all, sim_var="ecflux_prior", obs_var="ecflux_observed"

@@ -4,16 +4,18 @@ import pandas as pd
 
 
 def calculate_resampled_flux(
-    ds_all: dict[str, xr.Dataset], rtime: list[str]
+    ds_all: dict[str, xr.Dataset], rtime: list[str | None]
 ) -> dict[str, xr.Dataset]:
     """
     Resample the datasets.
 
-     Args:
+    Args:
         ds_all: xarray datasets of fluxes, scaled and sliced between chosen dates.
         rtime: list of time period used for resampling, e.g. 'YS' or 'QS-DEC'.
+             If None for a model, its dataset is not resampled.
              See http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
-     Returns:
+
+    Returns:
         ds_all_output: resampled datasets
     """
     ds_all_output = dict()
@@ -29,20 +31,22 @@ def calculate_resampled_flux(
 def calculate_resampled_uncertainty(
     ds_all_original: dict[str, xr.Dataset],
     ds_all_resampled: dict[str, xr.Dataset],
-    rtime: list[str],
+    rtime: list[str | None],
 ) -> dict[str, xr.Dataset]:
     """
-    Recalculates resampled flux uncertainty, using the assumption
-    that all periods in the resampled flux average are uncorrelated.
+    Recalculate resampled flux uncertainty.
+
+    This uses the assumption that all periods in the resampled flux average are uncorrelated.
+
     Args:
         ds_all_original: Extracted flux datasets from flux-format netcdfs.
         ds_all_resampled: Same datasets than above that have been resampled with calculate_resampled_flux.
         rtime: list of time period used for resampling, e.g. 'YS' or 'QS-DEC'.
             See http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
+
     Returns:
         ds_all_resampled: Same dataset as above, but with updated '..._upper'/'..._lower' terms.
     """
-
     for i, m in enumerate(ds_all_original.keys()):
         if rtime[i] is None:
             continue
@@ -89,10 +93,10 @@ def resample_flux(
             See http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
         resample_uncert_correlation: If True, calculates the resampled uncertainty as the mean from all averaged periods.
             If False, recalculates uncertainty assuming no correlation between all averaged periods, by taking the square root of the summed variances, divided by the number of averaging periods.
+
     Returns:
         ds_all_resampled: resampled datasets
     """
-
     rtime = []
 
     for resample_val in resample:

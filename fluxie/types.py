@@ -17,6 +17,7 @@ class DataTypes(Enum):
 def file_pattern(file_type: DataTypes, alternative: bool = False) -> str:
     """
     Returns the ending pattern for the given file type.
+
     Args:
         file_type:
             Type of file (flux or concentration as defined in class DataTypes)
@@ -24,8 +25,8 @@ def file_pattern(file_type: DataTypes, alternative: bool = False) -> str:
             If true an alternative file ending is used for flux files.
 
     Returns:
-        ds_all:
-           filename ending depending on data type.
+        pattern:
+            Filename ending depending on data type.
     """
     if file_type == DataTypes.FLUX:
 

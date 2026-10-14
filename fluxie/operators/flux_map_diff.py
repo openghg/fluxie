@@ -21,6 +21,9 @@ def define_var_plot(
             The variable name or difference type to be plotted. Options for difference include:
                    'posterior_prior_diff', 'posterior_mean_diff',
                    'posterior_prior_diff_inversion_grid', 'posterior_mean_diff_inversion_grid'.
+        sector:
+            Sector of the flux variables to use (variables named `flux_{sector}_...`),
+            by default 'total'.
 
     Returns:
         var_plot:
@@ -114,7 +117,6 @@ def make_model_diff_ds(
     Returns:
         A new dataset containing the computed differences or combinations for the supported variables.
     """
-
     diff = {}
 
     for var in ds1.data_vars:

@@ -107,19 +107,18 @@ units_scale = {
 }
 
 
-def set_print_settings(presentation_mode: bool = False) -> dict[int, list]:
+def set_print_settings(presentation_mode: bool = False) -> dict[str, float]:
     """
     Sets font size and annotation coordinates.
 
     Args:
-        presentation_mode (logical) (optional):
-            If True, use bigger fonts (ideal for presentation slides)
+        presentation_mode:
+            If True, use bigger fonts (ideal for presentation slides).
 
     Returns:
         annotate_coords:
             Coordinates to annotate histogram.
     """
-
     if presentation_mode:
         # Set big font size (ideal for presentation slides)
         plt.rc("font", size=15)
@@ -163,7 +162,6 @@ def set_model_colors(models: list[str]) -> dict[str, list]:
         model_colors:
             List of colors to be used by each model.
     """
-
     model_colors = dict()
     max_color_groups = len(color_palette)
 
@@ -241,7 +239,6 @@ def set_model_labels(
         model_labels:
             Label to be used in plot, per model.
     """
-
     model_labels = {}
 
     for m in models:
@@ -268,13 +265,15 @@ def get_default_colors() -> list[str]:
         color:
             Color to be used in plot.
     """
-
     return plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
 
 def get_default_sector_colors() -> list[str]:
     """
     Returns colors to be used for sector bar chart plots.
-    """
 
+    Returns:
+        sector_color_palette:
+            Colors to be used for sector bar chart plots.
+    """
     return sector_color_palette

@@ -34,9 +34,9 @@ class ExampleData:
     end_date: str | None = None
     model_colors: dict[str, str] = field(init=False)
     model_labels: dict[str, str] = field(init=False)
-    annotate_coords: dict[int, list] = field(init=False)
+    annotate_coords: dict[str, float] = field(init=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.model_colors = set_model_colors(self.models)
         self.model_labels = set_model_labels(self.models, self.config_data, False)
         self.annotate_coords = set_print_settings()
@@ -49,7 +49,7 @@ def load_flux(
     end_date: str = "2024-01-01",
     add_sites_to_flux: bool = False,
     models: list[str] = MODELS,
-    **slice_kwargs,
+    **slice_kwargs: str | None,
 ) -> ExampleData:
     """
     Read and slice the flux test data.
@@ -67,8 +67,12 @@ def load_flux(
             If True, add the sites of the concentration files to the flux datasets.
         models:
             Model runs to read.
-        slice_kwargs:
+        **slice_kwargs:
             Passed to `fluxie.operators.select.slice_flux`, e.g. the units.
+
+    Returns:
+        data:
+            The sliced flux datasets with their settings.
     """
     config_data = read_config_files()
     ds_all = read_model_output(
@@ -93,6 +97,10 @@ def load_sector_flux(regions: list[str]) -> ExampleData:
     Args:
         regions:
             Regions for which the sector totals are computed.
+
+    Returns:
+        data:
+            The flux datasets with the sector fluxes added, with their settings.
     """
     units = "Gg yr-1"
     data = load_flux(
@@ -133,6 +141,10 @@ def load_mf(
             End of the selected period (exclusive).
         select:
             If False, return the data as read, without selecting site and period.
+
+    Returns:
+        data:
+            The mole fraction datasets with their settings.
     """
     species = "hfc134a"
     config_data = read_config_files()
@@ -153,6 +165,10 @@ def load_ecflux(sectors: bool = False) -> ExampleData:
     Args:
         sectors:
             If True, group the inventory sectors as defined in the sectors config.
+
+    Returns:
+        data:
+            The eddy covariance flux datasets with their settings.
     """
     species = "co2"
     config_data = read_config_files()

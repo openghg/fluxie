@@ -10,10 +10,14 @@ from fluxie import config
 import pandas as pd
 from typing import Literal
 
+from matplotlib.collections import PathCollection
+from matplotlib.contour import QuadContourSet
+
 
 class TaylorDiagram:
     """
     Taylor Diagram class for visualizing model performance.
+
     It compares standard deviation, correlation coefficient, and RMSE between observations and model predictions.
     """
 
@@ -21,12 +25,12 @@ class TaylorDiagram:
         self,
         std_range: tuple[float, float],
         std_unit: str,
-        std_obs: float = None,
-        fig: Figure = None,
+        std_obs: float | None = None,
+        fig: Figure | None = None,
         position: tuple[int, int, int] = (1, 1, 1),
         markersize: int = 100,
         normalized: bool = True,
-    ):
+    ) -> None:
         """
         Initialize the axis for the Taylor Diagram.
 
@@ -50,7 +54,6 @@ class TaylorDiagram:
                 If True, the standard deviation is normalized to the observed standard deviation.
                 If False, the standard deviation is plotted in absolute units.
         """
-
         self.std_obs = std_obs  # Standard deviation of the reference
         self.markersize = markersize
         self.smin = std_range[0]  # Minimum standard deviation
@@ -156,8 +159,13 @@ class TaylorDiagram:
             self.ax.clabel(contours, inline=1, fontsize=10)
 
     def add_samples(
-        self, stds: list[float], pearsons: list[float], label: str, *args, **kwargs
-    ):
+        self,
+        stds: list[float],
+        pearsons: list[float],
+        label: str,
+        *args: object,
+        **kwargs: object,
+    ) -> PathCollection:
         """
         Add markers representing sample points to the Taylor diagram.
 
@@ -168,9 +176,16 @@ class TaylorDiagram:
                 Pearson's correlation coefficiens of the sample points
             label:
                 Label for the sample points, used in the legend.
-            *args, **kwargs: Additional plotting parameters (e.g., color, marker).
-        """
+            *args:
+                Additional positional arguments passed to `matplotlib.axes.Axes.scatter`.
+            **kwargs:
+                Additional plotting parameters passed to `matplotlib.axes.Axes.scatter`
+                (e.g., color, marker). `markersize` overrides the diagram marker size.
 
+        Returns:
+            lines:
+                The scatter plot artist of the sample points.
+        """
         ms = kwargs.pop("markersize") if "markersize" in kwargs else self.markersize
 
         lines = self.ax.scatter(
@@ -179,16 +194,20 @@ class TaylorDiagram:
 
         return lines
 
-    def add_contours(self, levels: int = 10, **kwargs):
+    def add_contours(self, levels: int = 10, **kwargs: object) -> QuadContourSet:
         """
         Add centered RMSE contours to the Taylor diagram.
 
         Args:
             levels:
                 Number of contour levels
-            **kwargs: Additional contour parameters.
-        """
+            **kwargs:
+                Additional contour parameters passed to `matplotlib.axes.Axes.contour`.
 
+        Returns:
+            contours:
+                The contour set of the centered RMSE.
+        """
         rs, ts = np.meshgrid(
             np.linspace(self.smin, self.smax),
             np.linspace(0, np.pi / 2),
@@ -206,12 +225,12 @@ def plot_stats_mf(
     species: str,
     model_colors: dict[str, str],
     model_labels: dict[str, str],
-    config_data: dict[dict],
+    config_data: dict[str, dict],
     mf_units_print: str,
     stats_type: str | list[str],
-    stats_ylim: dict[list] = None,
-    start_date: str = None,
-    end_date: str = None,
+    stats_ylim: dict[str, list] | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
     top_to_bottom_align: bool = True,
 ) -> Figure:
     """
@@ -238,16 +257,18 @@ def plot_stats_mf(
         stats_ylim:
             Limits for y-axis of individual statistic plots. Can be given for selected
             statistics only or passed as None for automatic axis range.
-        start_date (str) and end_date (str):
-            Dates used to title the plot.
-        top_to_bottom_align (bool):
+        start_date:
+            Start date used in the plot title.
+        end_date:
+            End date used in the plot title.
+        top_to_bottom_align:
             If True, subfigures are vertically displayed.
             Otherwise, they are placed side by side.
+
     Returns:
         fig:
             Plot showing each model's fit statistics, for each site.
     """
-
     models = np.unique(stats["model"].to_numpy())
     # make sure model_labels are in the correct order
     plot_model_labels = [model_labels[k] for k in models]
@@ -412,11 +433,11 @@ def plot_taylor_diagram(
             Unit for the standard deviation axis label.
         check_sites:
             If True, color different sites with different colors.
+
     Returns:
         fig:
             Plot showing each model's fit statistics, for each site.
     """
-
     # Check that include is a subset of stats keys
     if not set(include).issubset(stats.keys()):
         raise ValueError(

@@ -2,7 +2,6 @@ import xarray as xr
 import logging
 import re
 from collections import Counter
-from typing import Literal
 from fluxie import config
 
 logger = logging.getLogger(__name__)
@@ -11,8 +10,8 @@ logger = logging.getLogger(__name__)
 def scale_variables(
     model: str,
     ds_model: xr.Dataset,
-    species_info: dict[str, str | float] = None,
-    **print_units: dict[Literal["mf_unit", "country_flux_unit", "flux_unit"], str],
+    species_info: dict[str, str | float] | None = None,
+    **print_units: str | None,
 ) -> xr.Dataset:
     """
     Scales mole fractions, country fluxes and fluxes according to print units.
@@ -25,15 +24,15 @@ def scale_variables(
             Sliced dataset with mf data from model.
         species_info:
             Dictionary with species-specific settings.
-        print_units:
+        **print_units:
             Option for keys are: 'mf_unit', 'country_flux_unit', 'flux_unit'
             Keys point to units to which mole fractions/country fluxes/fluxes should be converted to.
             If None, no scaling is applied.
+
     Returns:
-        ds_model:
+        ds_scaled:
             Sliced and scaled dataset.
     """
-
     # Dictionaries with scaling settings (variable and unit type)
     var_type_name = {
         "mf_unit": "mole fraction",
@@ -129,6 +128,7 @@ def get_variables(ds_model: xr.Dataset, unit_type: str) -> tuple[list[str], str 
             Dataset with data from a model.
         unit_type:
             Unit type of interest (e.g. "mf", "mass1 length-2 time-1")
+
     Returns:
         var_names:
             Names of variables in the dataset with unit_type units.
@@ -136,7 +136,6 @@ def get_variables(ds_model: xr.Dataset, unit_type: str) -> tuple[list[str], str 
             unit_type explicit units used in the dataset (e.g. "mol mol-1", "kg m-2 s-1")
             Set to None if different units are present.
     """
-
     var_names = []
     var_units = []
 
@@ -172,20 +171,21 @@ def get_variables(ds_model: xr.Dataset, unit_type: str) -> tuple[list[str], str 
 
 def get_unit_type_and_conversion_to_base(input_unit: str) -> tuple[float, list[str]]:
     """
-    Computes conversion factor to base unit.
+    Compute conversion factor to base unit.
+
     Units are expected to have the following format:
         "<letters><(-)integer>" separated by spaces (e.g. "kg m-2 s-1")
 
     Args:
         input_unit:
             Units of a given variable.
+
     Returns:
         conversion_factor:
             Scaling factor to base unit.
         unit_dim_type:
             Unit type of input_unit (e.g. ["mass1", "length-2", "time-1"])
     """
-
     # Get individual units
     units_list = input_unit.split()
 
@@ -224,7 +224,8 @@ def get_units_conversion_factor(
     from_unit: str, to_unit: str, molar_mass: float | None = None
 ) -> float:
     """
-    Computes conversion factor between two units.
+    Compute conversion factor between two units.
+
     Units are expected to have the following format:
         "<letters><(-)integer>" separated by spaces (e.g. "kg m-2 s-1")
 
@@ -242,11 +243,11 @@ def get_units_conversion_factor(
             Target units.
         molar_mass:
             Molar mass (g mol-1) to be used in g<->mol conversion.
+
     Returns:
         conversion_factor:
             Scaling factor that guarantees the requested units conversion.
     """
-
     # Deal with particular case of mol mol-1
     if from_unit == "mol mol-1" or to_unit == "mol mol-1":
 
@@ -301,13 +302,27 @@ def get_units_conversion_factor(
 def convert_units_co2eq(from_unit: str, to_unit: str, species_info: dict) -> float:
     """
     Convert between units that may include 'CO2-eq'.
+
     Wraps get_units_conversion_factor and applies species GWP when needed.
 
     Units are expected to have the following format:
         "<letters><(-)integer>" separated by spaces (e.g. "Tg CO2-eq yr-1")
+
+    Args:
+        from_unit:
+            Units of the variable to be converted.
+        to_unit:
+            Target units.
+        species_info:
+            Dictionary with species-specific settings. The 'gwp' key is used
+            when converting to or from CO2-eq.
+
+    Returns:
+        conversion_factor:
+            Scaling factor that guarantees the requested units conversion.
     """
 
-    def strip_co2eq(unit):
+    def strip_co2eq(unit: str) -> str:
         return unit.replace(" CO2-eq", "") if "CO2-eq" in unit else unit
 
     from_base = strip_co2eq(from_unit)

@@ -70,8 +70,9 @@ def calculate_resampled_uncertainties(
     resample_uncert_correlation: bool = False,
 ) -> xr.DataArray:
     """
-    Compute resampled flux uncertainties using RMSE-like aggregation,
-    using the assumption that all periods in the resampled flux average are uncorrelated.
+    Compute resampled flux uncertainties using RMSE-like aggregation.
+
+    This uses the assumption that all periods in the resampled flux average are uncorrelated.
 
     Args:
         unc:
@@ -155,7 +156,6 @@ def calculate_resampled_dataset(
     Returns:
         xr.Dataset: Dataset with resampled variables.
     """
-
     output_vars = {}
     for var in ds.data_vars:
         da = ds[var]
@@ -221,6 +221,7 @@ def resample_over_dates_list(
 ) -> Tuple[xr.Dataset, List[str]]:
     """
     Resample a dataset over custom time intervals defined in `dates_list`.
+
     Time labels indicating the date range of each resampled period are also generated.
 
     Args:
@@ -238,7 +239,6 @@ def resample_over_dates_list(
         time_labels:
             Labels for each resampled period (format: "YYYY/MM—YYYY/MM").
     """
-
     # Initialize the groups array to store which group each time value belongs to
     groups = np.full(ds.time.shape, np.nan)
 
@@ -285,7 +285,9 @@ def resample_over_periods_list(
 ) -> Tuple[xr.Dataset, List[str]]:
     """
     Resample a dataset over custom time intervals defined by start and end date lists.
+
     Time labels indicating the date range of each resampled period are also generated.
+
     Args:
         ds:
             Dataset with a "time" dimension.
@@ -296,13 +298,13 @@ def resample_over_periods_list(
         resample_uncert_correlation:
             If True, uncertainties are averaged directly over groups.
             If False, uncertainties are calculated as RMSE-like aggregation.
+
     Returns:
         ds_resampled:
             Dataset resampled over the defined time intervals.
         time_labels:
             Labels for each resampled period (format: "YYYY/MM—YYYY/MM").
     """
-
     # --- basic consistency check ---
     if len(start_dates_list) != len(end_dates_list):
         raise ValueError(
@@ -366,6 +368,7 @@ def average_over_months_list(
 ) -> Tuple[xr.Dataset, List[str]]:
     """
     DEPRECATED: Use `resample_over_months_list` instead.
+
     Average a dataset over specified months in `months_list`.
 
     This function groups time values in `ds` by the months defined in `months_list`
@@ -401,6 +404,7 @@ def resample_over_months_list(
 ) -> Tuple[xr.Dataset, List[str]]:
     """
     Resample a dataset over specified months in `months_list`.
+
     It also generates labels for each group based on the months included.
 
     Args:
@@ -450,6 +454,7 @@ def average_over_seasons(
 ) -> Tuple[xr.Dataset, List[str]]:
     """
     DEPRECATED: Use `resample_over_seasons` instead.
+
     Average a dataset over seasons.
 
     This function groups time values in `ds` by their respective seasons and computes
@@ -482,6 +487,7 @@ def resample_over_seasons(
 ) -> Tuple[xr.Dataset, List[str]]:
     """
     Resample a dataset over seasons.
+
     It also generates labels for each season.
 
     Args:
@@ -537,6 +543,7 @@ def resample_over_whole_period(
 ) -> Tuple[xr.Dataset, List[str]]:
     """
     Resample a dataset over time for the entire period.
+
     It also generates a label for the period.
 
     Args:
@@ -552,7 +559,6 @@ def resample_over_whole_period(
         time_labels:
             Label of the entire period (e.g., "2020", "2020—2022").
     """
-
     # Define groupings
     groups = xr.DataArray(np.zeros(len(ds.time), dtype=int), dims="time")
 
@@ -578,6 +584,7 @@ def average_over_years(
 ) -> Tuple[xr.Dataset, List[str]]:
     """
     DEPRECATED: Use `resample_over_years` instead.
+
     Average a dataset over years or custom yearly intervals defined by N.
 
     This function groups time values in `ds` by year (or custom yearly intervals) and computes
@@ -613,6 +620,7 @@ def resample_over_years(
 ) -> Tuple[xr.Dataset, List[str]]:
     """
     Resample a dataset over years or custom yearly intervals defined by N.
+
     It also generates labels for each group based on the first and last years in each period.
 
     Args:
@@ -630,7 +638,6 @@ def resample_over_years(
         time_labels:
             Labels for each period (e.g., "2020", "2020—2022").
     """
-
     # Define groupings
     groups = (ds.time.dt.year - ds.time.dt.year.min()) // N
     group_labels = np.unique(groups)
@@ -661,6 +668,7 @@ def average_over_months(
 ) -> Tuple[xr.Dataset, List[str]]:
     """
     DEPRECATED: Use `resample_over_months` instead.
+
     Average a dataset over custom monthly intervals defined by N.
 
     This function groups time values in `ds` by custom monthly intervals (e.g., every N months)
@@ -713,7 +721,6 @@ def resample_over_months(
         time_labels:
             Labels for each period (e.g., "2020/01", "2020/03—2020/05").
     """
-
     # Define groupings
     ref_month_index = (
         ds.time.dt.year.min() * 12 + ds.time.dt.month[ds.time.dt.year.argmin()] - 1
@@ -748,6 +755,7 @@ def average_over_period(
 ) -> Tuple[xr.Dataset, List[str]]:
     """
     DEPRECATED: Use `resample_over_period` instead.
+
     Average a dataset over a specified time period or custom intervals.
 
     This function allows averaging over different time periods such as years,
@@ -820,7 +828,6 @@ def resample_over_period(
         time_labels:
             Labels for each resampled period (e.g., "2020", "2020/03—2020/05").
     """
-
     # ------------------------------------------------------------------
     # Specific periods (start_dates_list, end_dates_list)
     # ------------------------------------------------------------------

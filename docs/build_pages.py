@@ -16,6 +16,7 @@ import logging
 import re
 import shutil
 import unicodedata
+from collections.abc import Callable
 from pathlib import Path
 
 import matplotlib
@@ -42,7 +43,7 @@ def _slug(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", text.lower()).strip("_")
 
 
-def _save_figure(example_func, path: Path) -> None:
+def _save_figure(example_func: Callable, path: Path) -> None:
     plt.close("all")
     result = example_func()
     fig = result[0] if isinstance(result, (tuple, list)) else result
@@ -53,6 +54,7 @@ def _save_figure(example_func, path: Path) -> None:
 
 
 def build_gallery() -> None:
+    """Run the gallery examples and write the figures and the gallery markdown."""
     shutil.rmtree(GALLERY_IMAGES_DIR, ignore_errors=True)
     GALLERY_IMAGES_DIR.mkdir(parents=True)
 
@@ -184,6 +186,10 @@ def parse_bibtex(text: str) -> list[dict[str, str]]:
     """
     Parse the entries of a BibTeX file.
 
+    Args:
+        text:
+            Content of the BibTeX file.
+
     Returns:
         entries:
             One dictionary per entry, with the lowercase field names as keys,
@@ -249,6 +255,7 @@ def _format_publication(entry: dict[str, str]) -> str:
 
 
 def build_hall_of_fame() -> None:
+    """Write the markdown list of the publications of the hall of fame."""
     entries = parse_bibtex(BIB_FILE.read_text(encoding="utf-8"))
     # Most recent first, keeping the order of the file within a year
     entries.sort(key=lambda e: -int(e.get("year", "0")[:4] or 0))
