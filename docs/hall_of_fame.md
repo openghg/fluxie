@@ -1,51 +1,62 @@
-# Hall of Fame 
+# Hall of fame
 
+Publications where fluxie has been used.
+Has fluxie been useful for your work? [Add your publication](#add-your-publication)!
 
-## Related Projects
+## Related projects
 
-fluxie was born (as fluxy) during the PARIS project. See [PARIS: fluxy](https://horizoneurope-paris.eu/fluxy-a-new-tool-for-comparing-greenhouse-gas-fluxes-from-inversion-models/)
+fluxie was born (as fluxy) during the [PARIS project](https://horizoneurope-paris.eu/).
+See [fluxy: a new tool for comparing greenhouse gas fluxes from inversion models](https://horizoneurope-paris.eu/fluxy-a-new-tool-for-comparing-greenhouse-gas-fluxes-from-inversion-models/).
 
+## Publications
 
-## Publications 
-This is a list of publications where fluxie has been mentioned or used. If you have a publication to add, please submit a pull request.
+All the publications are also available as a [BibTeX file](hall_of_fame.bib).
 
+--8<-- "docs/generated/publications.md"
 
+## Add your publication
 
-@Article{acp-26-7647-2026,
-AUTHOR = {De Longueville, H. and Melo, D. B. and Redington, A. L. and Ramsden, A. and Danjou, A. and Andrews, P. and Pitt, J. and Murphy, B. and Constantin, L. and Stanley, K. M. and O'Doherty, S. and Wenger, A. and Young, D. and Engel, A. and Schuck, T. and Meixner, K. and Wagenhaeuser, T. and Gad, F. and Vollmer, M. K. and Reimann, S. and Maoine, M. and Arduini, J. and Lunder, C. and Schmidtbauer, N. and Haszpra, L. and Moln\'ar, M. and Frumau, A. and Couret, C. and Rigby, M. and Henne, S. and Manning, A. and Ganesan, A. L.},
-TITLE = {European HFC emissions evaluated with multiple atmospheric inverse models and UNFCCC national inventories},
-JOURNAL = {Atmospheric Chemistry and Physics},
-VOLUME = {26},
+You can add your publication directly from your web browser, without installing
+anything. You only need a free [GitHub account](https://github.com/signup).
+
+!!! tip "Not comfortable with GitHub?"
+    [Open an issue](https://github.com/openghg/fluxie/issues/new?title=Hall%20of%20fame%3A%20add%20publication)
+    with the DOI of your publication, and the maintainers will add it for you.
+
+### 1. Get the BibTeX of your publication
+
+Most journal websites have a *Cite* or *Export citation* button giving the
+BibTeX entry of the article. It looks like this:
+
+```bibtex
+@Article{author-2026,
+AUTHOR = {Author, A. and Coauthor, B.},
+TITLE = {Title of your publication},
+JOURNAL = {Journal name},
 YEAR = {2026},
-NUMBER = {10},
-PAGES = {7647--7675},
-URL = {https://acp.copernicus.org/articles/26/7647/2026/},
-DOI = {10.5194/acp-26-7647-2026}
+DOI = {10.xxxx/xxxxx}
 }
+```
 
+Make sure it contains at least the authors, title, journal, year and DOI.
 
-@Article{acp-26-6993-2026,
-AUTHOR = {Vollmer, M. K. and Pitt, J. R. and Young, D. and Henne, S. and Mitrevski, B. and M\"uhle, J. and Ganesan, A. and Arduini, J. and Manning, A. J. and Wagenh\"auser, T. and Redington, A. L. and Melo, D. B. and Murphy, B. and Gluckmann, R. and Stanley, K. M. and Krummel, P. B. and Lunder, C. R. and Yun, J. and Rust, D. and Wenger, A. and Guillevic, M. and Kim, J. and Wang, R. H. J. and Rhee, T. S. and Constantin, L. and Frumau, A. and Harth, C. M. and Salameh, P. K. and Hermansen, O. and Rigby, M. and Western, L. M. and Engel, A. and O'Doherty, S. and Park, S. and Maione, M. and Fraser, P. J. and Prinn, R. G. and Weiss, R. F. and Reimann, S.},
-TITLE = {Global Observations and European emissions of the halogenated olefins HFO-1234yf, HFO-1234ze(E), and HCFO-1233zd(E) from the AGAGE (Advanced Global Atmospheric Gases Experiment) network},
-JOURNAL = {Atmospheric Chemistry and Physics},
-VOLUME = {26},
-YEAR = {2026},
-NUMBER = {10},
-PAGES = {6993--7012},
-URL = {https://acp.copernicus.org/articles/26/6993/2026/},
-DOI = {10.5194/acp-26-6993-2026}
-}
+### 2. Paste it in the publications file
 
+Open [`docs/hall_of_fame.bib` in the GitHub editor](https://github.com/openghg/fluxie/edit/devel/docs/hall_of_fame.bib) and sign in.
 
+If you are not a member of the fluxie project, GitHub asks you to
+**fork the repository** (make your own copy of it). Click **Fork this repository**:
+your change will be proposed to the fluxie maintainers in the next step.
 
-@Article{acp-26-10167-2026,
-AUTHOR = {Pitt, J. R. and Rust, D. and Ganesan, A. and Western, L. M. and Vollmer, M. K. and M\"uhle, J. and B\"uhlmann, T. and Harth, C. M. and Montzka, S. A. and Hall, B. D. and Vimont, I. J. and Manning, A. J. and Redington, A. L. and Henne, S. and Melo, D. B. and Annadate, S. and Constantin, L. and Murphy, B. M. and Rigby, M. and Young, D. and O'Doherty, S. and Wenger, A. and Lunder, C. R. and Hermansen, O. and Wagenh\"auser, T. and Engel, A. and Arduini, J. and Maione, M. and Yun, J. and Mitrevski, B. and Krummel, P. B. and Fraser, P. J. and Kim, J. and Wang, R. H. J. and Rhee, T. S. and Salameh, P. K. and Spain, T. G. and Reimann, S. and Prinn, R. G. and Weiss, R. F. and Stanley, K. M.},
-TITLE = {Observations of 1,2-dichloroethane from the AGAGE and NOAA networks and derived global and regional emissions},
-JOURNAL = {Atmospheric Chemistry and Physics},
-VOLUME = {26},
-YEAR = {2026},
-NUMBER = {14},
-PAGES = {10167--10195},
-URL = {https://acp.copernicus.org/articles/26/10167/2026/},
-DOI = {10.5194/acp-26-10167-2026}
-}
+Paste the BibTeX entry at the end of the file, after an empty line.
+The order does not matter: publications are sorted by year on this page.
+
+### 3. Propose your change
+
+1. Click **Commit changes...** (top right).
+2. Write a short message, e.g. *Add publication of Author et al. (2026)*.
+3. Click **Propose changes**, then **Create pull request** on the next page.
+
+The maintainers will review your pull request and merge it. A preview of the
+documentation with your publication is built automatically: it is linked in the
+checks at the bottom of the pull request.

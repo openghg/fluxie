@@ -1,55 +1,52 @@
-# Installation 
+# Installation
 
+fluxie requires Python 3.10 or later.
 
-## On your local machine
-Clone the repository and install fluxie:
-```
+## From source
+
+Clone the repository and install fluxie in editable mode:
+
+```bash
 git clone https://github.com/openghg/fluxie.git
 cd fluxie
 pip install -e .
 ```
 
-## At ICOS Jupyter Hub
-Create and activate virtual environment:
+This also gives you the default configuration files (`configs/`), the example
+[notebooks](user_guide/notebooks.md) (`scripts/`) and the test data (`data/tests`)
+used in the notebooks and in the [gallery](gallery.md).
+
+## From PyPI
+
+```bash
+pip install fluxie
 ```
-python -m venv fluxie-env         
+
+## On the ICOS Jupyter Hub
+
+Create and activate a virtual environment:
+
+```bash
+python -m venv fluxie-env
 source fluxie-env/bin/activate
 ```
-Install IPython kernel package for Jupyter into the current environment and register the current environment as a new kernel:
-```
+
+Install the IPython kernel package into the environment and register the
+environment as a new Jupyter kernel:
+
+```bash
 pip install --upgrade pip
 pip install ipykernel
 python -m ipykernel install --user --name fluxie-env --display-name "fluxie-env"
 ```
-And finally install fluxie:
-```
-git clone https://github.com/openghg/fluxie.git
-cd fluxie
-pip install -e .
-```
 
+Then install fluxie from source as described above.
 
+When opening a notebook, make sure that the newly created environment
+(`fluxie-env`) is selected as kernel in the drop-down list in the upper right
+corner. If it does not show up, restart your Jupyter instance following
+[these instructions](https://icos-carbon-portal.github.io/jupyter/how_to/#restart-your-jupyter-instance).
 
+## Installing the documentation dependencies
 
-## Installing the docs
-
-The doc of fluxie is built using [mkdocs](https://www.mkdocs.org/). You can install it using pip:
-
-```
-pip install mkdocs mkdocs-material mkdocstrings[python]
-```
-
-For full documentation visit [mkdocs.org](https://www.mkdocs.org).
-
-### Commands
-
-* `mkdocs serve` - Start the live-reloading docs server.
-* `mkdocs build` - Build the documentation site.
-* `mkdocs -h` - Print help message and exit.
-
-### Project layout
-
-    mkdocs.yml    # The configuration file.
-    docs/
-        index.md  # The documentation homepage.
-        ...       # Other markdown pages, images and other files.
+See [Documentation](developer/docs.md) in the developer guide.
