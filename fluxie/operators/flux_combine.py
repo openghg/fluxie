@@ -12,10 +12,15 @@ def combine_dataset(
     only_overlapping: bool = True,
 ) -> dict[str, xr.Dataset]:
     """
+    Combine the flux datasets of several models into a mean dataset with min/max ranges.
+
     Args:
         ds_all: xarray datasets of fluxes.
         plot_combined: If True, the model is included in combined average result to be plotted.
              List must be of same size as models, e.g. [False, True, True].
+        only_overlapping: If True, only the time steps common to all the combined
+            models are kept. Passed to `align_time`.
+
     Returns:
         A dictionnary with 'combined' as key and the combined dataset as value.
     """
@@ -47,6 +52,7 @@ def combine_dataset(
 def combine_map_dataset(ds_all: dict[str, xr.Dataset]) -> dict[str, xr.Dataset]:
     """
     Combine multiple xarray datasets along the 'model' dimension and return the mean dataset.
+
     - Variables with "percentile" dimension will be collapsed into min (p0) and max (p1).
     - Variable "sites" with dims (time, platform) will be set to 1 if any entry in models is 1.
     - Other variables with dims (time, ...) will be averaged.
@@ -57,7 +63,6 @@ def combine_map_dataset(ds_all: dict[str, xr.Dataset]) -> dict[str, xr.Dataset]:
     Returns:
         A dictionary with a single key 'combined', containing the mean/min-max of all datasets along the 'model' dimension.
     """
-
     models = list(ds_all.keys())
     ds_list = list(ds_all.values())
 

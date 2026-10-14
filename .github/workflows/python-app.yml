@@ -25,17 +25,17 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: "3.12"
-    - name: Install dependencies
+    - name: Install the package with the development tools
       run: |
         python -m pip install --upgrade pip
-        pip install black 
+        pip install -e ".[dev]"
     - name: Check code formatting with black
       run: |
-        black --check ./tests ./fluxie
-    - name: Install the package
+        black --check ./tests ./fluxie ./docs
+    - name: Check docstrings and type hints
       run: |
-        pip install pytest jupyter nbconvert
-        pip install -e .
+        ruff check ./fluxie ./docs
+        pydoclint ./fluxie ./docs
     - name: Test with pytest
       run: |
         pytest

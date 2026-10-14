@@ -37,12 +37,13 @@ country_equivalent = {
 def get_unit(ds_all: dict[str, xr.Dataset]) -> str:
     """
     Determine unit of posterior estimations from datasets. If incoherencies between datasets, an error is raised.
+
     Args:
         ds_all: dictionnary of datasets from which read the units.
+
     Returns:
         unit: unit of posterior variables in dataset.
     """
-
     variables_to_check = [
         "flux_total_posterior_country",
         "posterior",
@@ -69,8 +70,10 @@ def get_unit(ds_all: dict[str, xr.Dataset]) -> str:
 def determine_subplots_arrangement(subplot_number: int) -> tuple[int, int]:
     """
     Determine number of columns and rows for the figure given the number of subplots to make.
+
     Args:
         subplot_number: number of subplots to make.
+
     Returns:
         n_cols,n_rows: number of columns and rows for the figure.
     """
@@ -94,12 +97,14 @@ def create_fig_and_axes(
 ) -> Tuple[Figure, Axes]:
     """
     Create matplotib figure and axes object based on the number of subplots asked for.
+
     Args:
         nb_subplots: number of subplot wanted (should be the number of subregion to plot when used in plot_country_flux)
+        transpose: if True, swap the number of rows and columns of the subplot arrangement.
+
     Returns:
         fig, axes: fig and flattened axes
     """
-
     n_cols_rows = determine_subplots_arrangement(nb_subplots)
     if transpose:
         n_rows, n_cols = n_cols_rows
@@ -153,7 +158,7 @@ def prepare_data_to_plot(
         resample: Option to be passed to resample built-in function of xarray Dataset. For yearly average, 'YS' option should be used;
             'QS-DEC' for seasonaly average.
             See http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
-        rolling_mean : If True, calculates a rolling mean (xx years) for each of the data to plot.
+        rolling_mean: If True, calculates a rolling mean (xx years) for each of the data to plot.
         resample_uncert_correlation: If True, calculates the resampled uncertainty as the mean from all averaged periods.
             If False, recalculates uncertainty assuming no correlation between all averaged periods, by taking the square root of the summed
             variances, divided by the number of averaging periods.
@@ -162,10 +167,10 @@ def prepare_data_to_plot(
         aggreg_month: if True, plot the data aggregated by month. Used to study seasonnal cycle.
         only_overlapping: if True, only includes data from years when all models/species available. If False,
             includes all available data.
+
     Returns:
         ds_to_plot : dictionnary of datasets to plot
     """
-
     if isinstance(plot_combined, bool) and plot_combined:
         is_plot_combined_single_true = True
     else:
@@ -321,16 +326,20 @@ def add_line_plot(
     variable: Literal["posterior", "prior"],
     highlighted_line: bool = False,
     add_unc: bool = False,
-) -> dict[str, dict]:
+) -> pd.DataFrame:
     """
-    Plot the posterior/prior data on the axis. The variable posterior/prior of the dataset ds is plotted as a line (color and label found in the dataset
+    Plot the posterior/prior data on the axis.
+
+    The variable posterior/prior of the dataset ds is plotted as a line (color and label found in the dataset
     attributes) and the uncertainty (variables lower_posterior/prior, upper_posterior/prior in the dataset) is plotted as a semi-transparent filled space.
+
     Args:
         ax: axes on which to plot
         ds: dataset containing posterior/prior data
         variable: whether the posterior or prior should be plotted
         highlighted_line: for posterior/prior, if True, the linewidth is made bigger (3.0/1.5) than when False (1.5/1.0). Typicaly used for the annexes to highlight the PARIS mean.
         add_unc: if True, plots model uncertainty.
+
     Returns:
         res: dataframe with one line per timestamp and 9 columns ("type", "model", "sector", "country", "species",
             "time", "mean_val", "min_unc", "max_unc")
@@ -405,11 +414,14 @@ def add_inventory_barplot(
     sector: str | list[str],
     annex_mode: bool,
     plot_inventory_uncertainty: list[bool] | bool = False,
-) -> dict[str, dict]:
+) -> pd.DataFrame:
     """
-    Retrieve and plot the inventories as bar plots. If multiple inventories are plotted, the older the inventory is, the smaller
+    Retrieve and plot the inventories as bar plots.
+
+    If multiple inventories are plotted, the older the inventory is, the smaller
     the used width of the bar is and the whiter is the grey of the bar.
     The inventory data will be looked for using {dat_dor}/inventory/{inventory_filename}_{species}_{inventory_year[x]}
+
     Args:
         ax: axis on which plot the inventory.
         data_dir: path to the inventory. Should contain a subdirectory named 'inventory'.
@@ -425,11 +437,11 @@ def add_inventory_barplot(
         sector: sector we want to plot.
         annex_mode: If True, replace Inventory label with a more concise version for National Inventory Report Annexes.
         plot_inventory_uncertainty: If True and uncertainty available, plots inventory error bars. If a list is provided, should be of same size as inventory_years.
+
     Returns:
         res: dataframe with one line per timestamp and 7 columns ("type", "model", "sector", "country", "species",
             "time", "mean_val")
     """
-
     data_dir = Path(data_dir)
 
     if isinstance(start_date, list):
@@ -505,19 +517,22 @@ def add_inventory_barplot(
 
 def add_sector_barplot(
     ax: Axes, ds_sector: xr.Dataset, variable: str, bottom_values: np.ndarray | float
-) -> dict[str, dict]:
+) -> pd.DataFrame:
     """
-    Add a layer to the stacked barplot. The layer correspond to a sector.
-    Axes:
+    Add a layer to the stacked barplot.
+
+    The layer correspond to a sector.
+
+    Args:
         ax: axes on which to plot
         ds_sector: dataset for the sector of interest
-        variable: variable to plot (either "posterior" or "prior")
-        bottom_values: bottom values passed as argument toax.bar. Correspond to the previous heights of the stacks.
+        variable: variable to plot (either "posterior", "prior" or "inv_data")
+        bottom_values: bottom values passed as argument to ax.bar. Correspond to the previous heights of the stacks.
+
     Returns:
         res: dataframe with one line per timestamp and 7 columns ("type", "model", "sector", "country", "species",
             "time", "mean_val")
     """
-
     sector_colors = config.get_default_sector_colors()
     sector = str(ds_sector.sector.values)
 
@@ -585,9 +600,10 @@ def prepare_inventory_sector_barplot(
     r_data: dict[str, dict],
     inventory_years: str | list[str] | None,
     inventory_filename: str,
-) -> list[xr.Dataset]:
+) -> tuple[list[xr.Dataset], list[xr.Dataset | None]]:
     """
     Prepare the inventory for the sector barplot.
+
     Call fluxie.operators.flux_prepare_inventory.retrieve_inventories and change the outputed dataarrays in to dataset (with variable name "inv_data").
 
     Args:
@@ -602,11 +618,12 @@ def prepare_inventory_sector_barplot(
         r_data: Dictionary with country and region names (read from json file).
         inventory_years: List of inventory data from different years to include. If None, only plots the most recent inventory data.
         inventory_filename: Name of inventory file: {inventory_filename}_{species}_{inventory_year}
+
     Returns:
-        inventories_list : list of inventory data to be plotted.
-
+        inventories_list: list of inventory data to be plotted (datasets with variable "inv_data").
+        inventories_stdev_list: list of inventory standard deviations (datasets with variable "inv_data_stdev"),
+            None where not available.
     """
-
     inventories, inventories_stdev = retrieve_inventories(
         data_dir,
         plot_region,
@@ -637,21 +654,20 @@ def add_ylim(
     plotted_data_df: pd.DataFrame,
     fix_y_axes: bool | list[float] | None,
     set_global_leg: bool = False,
-):
+) -> None:
     """
-    Add limits to y axes based on results in res_dict, or the values given in fig_y_axes if it's a list.
+    Add limits to y axes based on the plotted data, or the values given in fix_y_axes if it's a list.
 
     Args:
         axes: list of axes to add the ylim to.
         dim: dimension following which the list of axes is made.
         values: list of values taken by the dimension and corresponding to the axes (should be the same length and order).
-        res_dict: dictionnary containing the data plotted. Should have one key per regions plotted, the values being dictionnaries with 3 keys: "inventory", "posterior" and "prior";
-            whose values are the output of add_inventory_barplot, add_line_plot). The data stored in them is used to infer the ylims.
-        fix_y_axes: if list, use it as params to ax.set_ylim; if bool and True, all subplots have the same y lim (the max value that can be found in res_dict); else the max of the data
+        plotted_data_df: dataframe containing the data plotted (concatenated outputs of add_inventory_barplot, add_line_plot, add_sector_barplot).
+            Its "mean_val" and "max_unc" columns are used to infer the ylims.
+        fix_y_axes: if list, use it as params to ax.set_ylim; if bool and True, all subplots have the same y lim (the max value that can be found in plotted_data_df); else the max of the data
             plotted in each subplots is used.
         set_global_leg: if True (and thus one common legend is plotted for all subplots in add_legend), a zoom of only 1.1 is made on the ymax, else it is 1.2 to make space for the legend.
     """
-
     if isinstance(fix_y_axes, list):
         if isinstance(fix_y_axes[0], list):
             if len(fix_y_axes) != len(values):
@@ -694,15 +710,18 @@ def add_ylabel(
     unit: str,
     plot_type: str,
     **kwargs: str | int,
-):
+) -> None:
     """
     Add label to y axis.
+
     Args:
         ax: axis to add the y label to.
         s_data: dictionnary containing info for each species (like name to use for label). See configs/species_infos.json.
         species: name of the species.
-        sector: name of sector plotted.
         unit: unit of data plotted.
+        plot_type: type of plot. Either "country_plot", or "sector_barplot-<variable>" with <variable> one of "posterior", "prior" or "inventory".
+        **kwargs: extra information used in the label, depending on plot_type: "sector" (name of sector plotted) for "country_plot";
+            "region" for sector barplots, plus "label" (model label) for "posterior", and "inventory_filename" and "year" for "inventory".
     """
     if plot_type == "country_plot":
         sector = kwargs["sector"]
@@ -735,17 +754,18 @@ def add_ylabel(
 def add_xlims_and_ticks(
     ax: Axes,
     yearly_freq: bool,
-    plotted_data_df: dict[str, dict],
+    plotted_data_df: pd.DataFrame,
     aggreg_month: bool,
     xticks_at_centre: bool = False,
-):
+) -> None:
     """
     Add x limits, ticks and ticks labels to matplotlib axes. Optimize them by looking at if they are monthly, yearly, or monthly aggregated, and covered time range.
+
     Args:
         ax: axis to add xlim and xticks to.
         yearly_freq: set to True if the data plotted have a yearly frequency.
-        res_dict: dictionnary containing the data plotted. Should have one key per regions plotted, the values being dictionnaries with 3 keys: "inventory", "posterior" and "prior";
-            whose values are the output of add_inventory_barplot, add_line_plot). The time data stored in them is used to infer the xlims.
+        plotted_data_df: dataframe containing the data plotted (concatenated outputs of add_inventory_barplot, add_line_plot, add_sector_barplot).
+            Its "time" column is used to infer the xlims.
         aggreg_month: if True, the data plotted are supposed to be a monthly aggregated so 12 stciks are created, whose labels are the 3 first letters of each month.
         xticks_at_centre: if True, set the x ticks at the centre of each time period rather than at the beginning.
     """
@@ -794,18 +814,18 @@ def add_legend(
     annex_mode: bool,
     plot_inventory: bool,
     inventory_years: int | list[int] | None = None,
-):
+) -> None:
     """
     Add legend.
+
     Args:
         fig: figure object for which we want to make the legend
-        set_global_legend: if True, set one legend object for all subplots, else plot one legend per subplot
-        annex_mode: if in annex_mode,
-        plot_inventory: used only if set_global_legend is False. When True, avoid enhancing the width of the last object. Not sure that if it is really
+        set_global_leg: if True, set one legend object for all subplots, else plot one legend per subplot
+        annex_mode: if True (annex mode), the per-subplot legends use 3 columns instead of 2.
+        plot_inventory: used only if set_global_leg is False. When True, avoid enhancing the width of the last object. Not sure that if it is really
             used and if we shouldn't suppress this.
-        inventory_years: used only if set_global_legend is False to avoid enhancing the width of the last objects, when plotting mulitple inventories.
+        inventory_years: used only if set_global_leg is False to avoid enhancing the width of the last objects, when plotting mulitple inventories.
     """
-
     if set_global_leg:
 
         if isinstance(fig.axes[0], list):
@@ -849,16 +869,18 @@ def add_legend(
                 l.set_linewidth(3.0)
 
 
-def add_title(ax: Axes, country: str, r_data: dict, country_codes_as_titles: bool):
+def add_title(
+    ax: Axes, country: str, r_data: dict, country_codes_as_titles: bool
+) -> None:
     """
     Add title to matplotlib axes either as the region code or as the full region name whose flux are plotted.
+
     Args:
         ax: axis to add title to.
         country: country name, should correspond to the data plotted on the axes.
         r_data: dictionnary containing infos on regions (like decomposition of "super-region2 -like BENELUX- or full name). See configs/regions_info.json.
         country_codes_as_titles: If True, write the list of country code in the title, under the region name.
     """
-
     # set title
     print_country = country_equivalent.get(country, country)
 
@@ -868,14 +890,14 @@ def add_title(ax: Axes, country: str, r_data: dict, country_codes_as_titles: boo
         ax.set_title(f"{print_country}")
 
 
-def add_vlines(ax: Axes, vline_dates: list[str]):
+def add_vlines(ax: Axes, vline_dates: list[str]) -> None:
     """
     Add vertical lines to matplotlib axes at specified dates.
+
     Args:
         ax: axis to add vertical lines to.
         vline_dates: list of dates (str) at which to add vertical lines.
     """
-
     for vline_date in vline_dates:
         ax.axvline(
             x=np.datetime64(vline_date),
@@ -892,10 +914,11 @@ def add_secondary_yaxis(
     sector: str,
     unit: str,
     secondary_unit: str,
-):
+) -> None:
     """
-    Add a secondary y-axis to the plot, converting from `unit`
-    to `secondary_unit`, including CO2-eq aware conversions.
+    Add a secondary y-axis to the plot, converting from `unit` to `secondary_unit`.
+
+    The conversion includes CO2-eq aware conversions.
 
     Args:
         ax: axis to add secondary y-axis to.
@@ -905,17 +928,16 @@ def add_secondary_yaxis(
         unit: original unit of data plotted.
         secondary_unit: unit of the secondary y-axis.
     """
-
     # Get conversion factor between the two units
     conversion_factor = convert_units_co2eq(
         from_unit=unit, to_unit=secondary_unit, species_info=s_data.get(species, {})
     )
 
     # Define foward and backward conversion functions
-    def unit_to_secondary_unit(y):
+    def unit_to_secondary_unit(y: np.ndarray) -> np.ndarray:
         return y * conversion_factor
 
-    def secondary_unit_to_unit(y):
+    def secondary_unit_to_unit(y: np.ndarray) -> np.ndarray:
         return y / conversion_factor
 
     # Create secondary y-axis
@@ -938,7 +960,20 @@ def add_secondary_yaxis(
     secax.yaxis.labelpad = 20
 
 
-def parse_date(date, list_length):
+def parse_date(
+    date: str | list[str] | None, list_length: int
+) -> list[str] | list[None]:
+    """
+    Broadcast a single date to a list of dates.
+
+    Args:
+        date: a single date (or None), or a list of dates.
+        list_length: length of the list to create if date is a single date or None.
+
+    Returns:
+        date:
+            The list of dates. If a list was given, it is returned unchanged.
+    """
     if isinstance(date, (str, type(None))):
         date = [date] * list_length
     return date
@@ -981,10 +1016,9 @@ def plot_country_flux(
     add_vline: list[str] | None = None,
     secondary_units: str | None = None,
     only_overlapping: bool = True,
-) -> Figure | tuple[Figure, dict[str, dict]]:
+) -> Figure | tuple[Figure, pd.DataFrame]:
     """
-    Timeseries plot of prior and posterior country fluxes, from list of
-    areas in plot_regions.
+    Timeseries plot of prior and posterior country fluxes, from list of areas in plot_regions.
 
     Args:
         ds_all: xarray datasets of fluxes, scaled and sliced between
@@ -993,10 +1027,10 @@ def plot_country_flux(
         plot_regions: Country or regions to plot, e.g. ['UNITED KINGDOM','SWITZERLAND']
         config_data: Dictionary with settings read from json file. Use json filenames as keys.
         model_colors: Models and corresponding colours used to plot the model.
+        model_labels: Models and corresponding labels used in the legend. Models not in the dictionary are labelled with their key.
         start_date: Start dates of the data to plot (used to slice inventory data). Can be a single date or a list of dates of equal length to model_colors.
         end_date: End dates of the data to plot (used to slice inventory data). Can be a single date or a list of dates of equal length to model_colors.
         annex_mode: If True, replace the labels with more concise versions for National Inventory Report Annexes.
-        scale_co2eq: If True, adapt y-axis label to CO2-eq.
         plot_inventory: If True, plots inventory flux estimates as bars in each plot.
         plot_inventory_uncertainty: If True and uncertainty available, plots inventory error bars. If a list is provided, should be of same size as inventory_years.
         inventory_years: List of inventory data from different years to include. If None, only plots the most recent inventory data.
@@ -1024,16 +1058,19 @@ def plot_country_flux(
             If False, recalculates uncertainty assuming no correlation between all averaged periods, by taking the square root of the summed variances, divided by the number of averaging periods.
         plot_resample_and_original: If True, plots both the resampled data and the data as its original frequency. If False, only plots the resampled data.
         return_res: Wheter or not including a dictionnary with the results as output
-        rolling_mean : If True, calculates a rolling mean (xx years) for each of the data to plot.
+        rolling_mean: If True, calculates a rolling mean (xx years) for each of the data to plot.
         aggreg_month: if True, plot the data aggregated by month. Used to study seasonnal cycle.
         sector: Sector to plot. Can be 'total' or any of the sectors defined in the datasets.
         xticks_at_centre: if True, set the x ticks at the centre of each time period (year or month) rather than at the beginning.
         plot_grid: if True, add a faint grid to each subplot.
         add_vline: list of dates (str) where to add vertical lines on each plot. format 'YYYY-MM-DD'.
         secondary_units: If provided, add a secondary y-axis with these units.
+        only_overlapping: if True, only includes data from years when all models are available. If False,
+            includes all available data.
+
     Returns:
         fig: A plot per country/region.
-        res_dict : If return_res, return also a dataframe containing the plotted results. The columns of this dataframe are "type" (possible values "prior"/"posterior"/"inventory"),
+        plotted_data_df: If return_res, return also a dataframe containing the plotted results. The columns of this dataframe are "type" (possible values "prior"/"posterior"/"inventory"),
             "model", "sector", "country", "species", "time", "mean_val", "min_unc", "max_unc".
     """
     if aggreg_month and plot_inventory:
@@ -1216,9 +1253,10 @@ def plot_country_sector_flux_bar(
     resample_uncert_correlation: bool = False,
     rolling_mean: bool = False,
     sectors: list[str] = ["agriculture", "waste", "energy", "industry"],
-) -> Figure | list:
+) -> tuple[Figure, pd.DataFrame]:
     """
     Stacked bar plot of posterior fluxes, split by sector, for a single region, for a range of models.
+
     Option to plot either the prior fluxes, split by sector, as a separate plot.
     Or plot the inventory fluxes, split by sector (when this data becomes available for all countries).
 
@@ -1226,35 +1264,25 @@ def plot_country_sector_flux_bar(
         ds_all: xarray datasets of fluxes, scaled and sliced between
             chosen dates.
         species: Gas species, e.g. 'ch4'.
-        plot_regions: Country or regions to plot, e.g. ['UNITED KINGDOM','SWITZERLAND']
+        plot_region: Country or regions to plot, e.g. ['UNITED KINGDOM','SWITZERLAND']
         config_data: Dictionary with settings read from json file. Use json filenames as keys.
         model_colors: Models and corresponding colours used to plot the model.
-        start_date: Start dates of the data to plot (used to slice inventory data).
-        end_date: Start dates of the data to plot (used to slice inventory data).
-        annex_mode: If True, replace the labels with more concise versions for National Inventory Report Annexes.
-        scale_co2eq: If True, adapt y-axis label to CO2-eq.
-        plot_inventory: If True, plots inventory flux estimates as bars in each plot.
+        model_labels: Models and corresponding labels used in the plots. Models not in the dictionary are labelled with their key.
+        plot_inventory_or_prior: Whether to add the inventory or prior data.
         inventory_years: List of inventory data from different years to include. If None, only plots the most recent inventory data.
         inventory_filename: Name of inventory file: {inventory_filename}_{species}_{inventory_year}
         data_dir: Path to top data directory, used to read inventory data files.
         fix_y_axes: If True, uses a consistent y axis for all plots.
-        set_global_leg: If True, plots one single legend instead of one legend per subplot.
-        country_codes_as_titles: If True, uses list of country codes as titles, instead of the region names.
-        plot_separate: If True, plots model result as separate line. List must be of same size as models, e.g. [True, False, False].
-            If a single boolean is provided, the same flag is assumed for all models.
-        plot_combined: If True, the model is included in combined average result to be plotted. List must be of same size as models, e.g. [False, True, True].
-            If a single boolean is provided, the same flag is assumed for all models.
         resample: Option to be passed to resample built-in function of xarray Dataset. For yearly average, 'YS' option should be used; 'QS-DEC' for seasonaly average.
             See http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
         resample_uncert_correlation: If True, calculates the resampled uncertainty as the mean from all averaged periods.
             If False, recalculates uncertainty assuming no correlation between all averaged periods, by taking the square root of the summed variances, divided by the number of averaging periods.
-        plot_resample_and_original: If True, plots both the resampled data and the data as its original frequency. If False, only plots the resampled data.
-        return_res: Wheter or not including a dictionnary with the results as output
-        rolling_mean : If True, calculates a rolling mean (xx years) for each of the data to plot.
+        rolling_mean: If True, calculates a rolling mean (xx years) for each of the data to plot.
         sectors: List of emissions sectors to plot.
+
     Returns:
         fig: A plot per country/region.
-        res_dict : If return_res, return also a dictionnary containing the plotted results
+        plotted_data_df: Dataframe containing the plotted results.
     """
     plot_type = "sector_barplot"
     s_data = config_data.get("species_info", {})
@@ -1428,6 +1456,7 @@ def plot_all_species_stacked_bar(
 ) -> Figure:
     """
     Stacked bar plot of posterior fluxes, summed over all species, for a single region, for a range of models.
+
     Args:
         all_species: List of gas species, e.g. ['ch4','n2o'].
         ds_all_flux_scaled: xarray datasets of fluxes, scaled and sliced between
@@ -1435,21 +1464,23 @@ def plot_all_species_stacked_bar(
         regions: Country or regions to plot, e.g. ['GBR']
         config_data: Dictionary with settings read from json file. Use json filenames as keys.
         model_colors: Models and corresponding colours used to plot the model.
+        model_labels: Models and corresponding labels used in the plot. Models not in the dictionary are labelled with their key.
         start_date: Start dates of the data to plot (used to slice inventory data).
-        end_date: Start dates of the data to plot (used to slice inventory data).
+        end_date: End dates of the data to plot (used to slice inventory data).
         inventory_years: List of inventory data from different years to include. If None, only plots the most recent inventory data.
         inventory_filename: Name of inventory file: {inventory_filename}_{species}_{inventory_year}
+        plot_inventory_uncertainty: If True and uncertainty available, plots inventory error bars.
         data_dir: Path to top data directory, used to read inventory data files.
         sector: Sector to plot.
-        country_flux_units_print: Units for fluxes to be printed on inventory bars.
         y_lim: Y-axis limits for the plot.
+
     Returns:
         fig: A stacked bar plot of all species for the region.
     """
-
     s_data = config_data.get("species_info", {})
     r_data = config_data.get("regions_info", {})
     species_colors = config.species_color_palette
+    default_colors = config.get_default_colors()
 
     unit = []
 
@@ -1583,7 +1614,8 @@ def plot_all_species_stacked_bar(
             ds_to_plot[species][models[s]]["posterior"].values,
             width=width,
             bottom=bottom,
-            color=species_colors[species],
+            # Species without a color in the palette use the default color cycle
+            color=species_colors.get(species, default_colors[s % len(default_colors)]),
             label=s_data.get(species, {}).get("species_print", species),
             yerr=uncert,
             error_kw={"capsize": 2},

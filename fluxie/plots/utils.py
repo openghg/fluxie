@@ -10,6 +10,7 @@ import warnings
 from typing import Literal
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib.collections import LineCollection
+from matplotlib.cm import ScalarMappable
 import matplotlib.pyplot as plt
 from copy import deepcopy
 
@@ -23,13 +24,22 @@ def update_list_params(
     params_to_check: list, params_to_check_names: list, expected_size: int
 ) -> list:
     """
-    Check if parameters are list of the expected lenght. If they are not list, convert them to list (except if it is None).
-    Raise an error if it is a list but not of the expected size.
+    Check that parameters are lists of the expected length.
+
+    Parameters that are not lists are converted to lists of the expected size
+    (None is converted to a list of False). An error is raised if a parameter
+    is a list but not of the expected size.
 
     Args:
-        params_to_check : parameters to be checked
-        expected_size : expected size for the list (should be the number of models used in the plots)
-    Returns
+        params_to_check:
+            Parameters to be checked.
+        params_to_check_names:
+            Names of the parameters to be checked (same order as `params_to_check`),
+            used in the error message.
+        expected_size:
+            Expected size for the lists (should be the number of models used in the plots).
+
+    Returns:
         updated_params: the updated list of lists
     """
     updated_params = list()
@@ -60,9 +70,40 @@ def update_list_params(
     return updated_params
 
 
-def add_colorbar(fig, ax, im, extend, label, n_cbar, idx_cbar, colorbar_type="row"):
-    """Add a colorbar to the plot."""
+def add_colorbar(
+    fig: plt.Figure,
+    ax: plt.Axes | np.ndarray,
+    im: ScalarMappable,
+    extend: Literal["neither", "both", "min", "max"],
+    label: str,
+    n_cbar: int,
+    idx_cbar: int,
+    colorbar_type: Literal["row", "column", "figure"] = "row",
+) -> None:
+    """
+    Add a colorbar to the plot.
 
+    Args:
+        fig:
+            The matplotlib figure.
+        ax:
+            The axis next to which the colorbar is added. For `colorbar_type="figure"`,
+            the array of axes of the figure.
+        im:
+            The mappable (e.g. the output of `pcolormesh`) described by the colorbar.
+        extend:
+            Which ends of the colorbar get an extension arrow ('neither', 'both', 'min' or 'max').
+        label:
+            Label of the colorbar.
+        n_cbar:
+            Number of colorbars in the figure (currently unused).
+        idx_cbar:
+            Index of the colorbar in the figure (currently unused).
+        colorbar_type:
+            Where to place the colorbar: 'row' (vertical colorbar on the right of `ax`),
+            'column' (horizontal colorbar below `ax`) or 'figure' (single vertical
+            colorbar for the last column of the figure).
+    """
     if colorbar_type == "row":
         cax = inset_axes(
             ax,
@@ -114,14 +155,17 @@ def add_colorbar(fig, ax, im, extend, label, n_cbar, idx_cbar, colorbar_type="ro
 
 def define_flux_label(var: str) -> str:
     """
-    Define flux label following config.special_flux_labels or by analyzing
-    the var name if the var is not a key of config.special_flux_labels.
+    Define the flux label of a variable.
+
+    The label is taken from config.special_flux_labels, or built from the
+    variable name if the variable is not a key of config.special_flux_labels.
 
     Args:
-        var (str):
+        var:
             The variable name in the dataset.
+
     Returns:
-        label(str):
+        label:
             Flux label.
     """
     if var in config.special_flux_labels:
@@ -143,22 +187,23 @@ def print_cbar_label(
     Generate a colorbar label for a dataset variable.
 
     Args:
-        ds (xr.DataArray):
+        ds:
             The DataArray containing the variable. The DataArray should be named with the name of the variable
             (e.g. "posterior_prior_diff", "flux_total_prior", ...)
-        species_info (dict):
+        species_info:
             A dictionary with metadata for species, including display names.
-        var (str, optional):
+        var:
             The variable name in the dataset.
-        format (list[str], optional):
+        sector:
+            Sector name included in the label if 'sector' is in `format`.
+        format:
             Specifies the components to include in the label.
-            Options: ['variable', 'species', 'units', 'time']. Default includes all.
+            Options: ['variable', 'sector', 'species', 'units', 'time']. Default includes all.
 
     Returns:
-        cbar_label(str):
+        cbar_label:
             A formatted colorbar label including variable, species, units, and period.
     """
-
     var_label = f"{define_flux_label(var)}" if "variable" in format else ""
 
     species_label = (
@@ -188,11 +233,11 @@ def get_units(
     Retrieve and format the units of an xarray DataArray.
 
     Args:
-        data (xr.DataArray):
+        data:
             The xarray DataArray from which to retrieve the units.
 
     Returns:
-        period (str):
+        period:
             A formatted string representing the units.
     """
     if not isinstance(data, xr.DataArray):
@@ -213,11 +258,11 @@ def format_units(units: str) -> str:
     Format units string to replace negative exponents with LaTeX-compatible superscripts.
 
     Args:
-        units (str):
+        units:
             The units string to format.
 
     Returns:
-        formatted_units (str):
+        formatted_units:
             The formatted units string with LaTeX-compatible superscripts.
     """
     if not isinstance(units, str):
@@ -234,14 +279,13 @@ def get_frequency(
     Determine the temporal frequency of a dataset for a given species ('Y' for yearly, 'M' for monthly).
 
     Args:
-        ds (xr.Dataset):
+        ds:
             The dataset containing metadata attributes related to frequency.
 
     Returns:
         Literal['Y', 'M']:
             A shorthand representation of the temporal frequency ('Y' for yearly, 'M' for monthly).
     """
-
     frequency_map = {
         "yearly": "Y",
         "monthly": "M",
@@ -269,18 +313,17 @@ def print_period(
     Generate a formatted string representing the time period covered by a dataset.
 
     Args:
-        ds (xr.Dataset):
+        ds:
             The dataset containing a `time` dimension to determine the start and end dates.
-        freq (str):
+        freq:
             The temporal frequency (e.g., 'Y' for yearly, 'M' for monthly) to format the dates.
-        season (str, optional):
+        season:
             A seasonal label (e.g., 'DJF', 'MAM') to include in the output. Default is None.
 
     Returns:
-        period (str):
+        period:
             A formatted string representing the dataset's time period, optionally including a season.
     """
-
     datetime_format = f"datetime64[{freq}]" if season is None else "datetime64[Y]"
 
     if "time" in ds.dims:
@@ -305,8 +348,29 @@ def print_period(
     return period
 
 
-def add_custom_markers(ax, markers, color, regions_info, city_marker="^"):
-    """Add custom markers to the plot."""
+def add_custom_markers(
+    ax: plt.Axes,
+    markers: list[str | tuple[float, float]],
+    color: str,
+    regions_info: dict,
+    city_marker: str = "^",
+) -> None:
+    """
+    Add custom markers to the plot.
+
+    Args:
+        ax:
+            The axis to add the markers to.
+        markers:
+            List of locations to mark, either names of point sources in `regions_info`
+            or (lon, lat) tuples.
+        color:
+            Edge color of the markers.
+        regions_info:
+            Dictionary with country and region names (read from json file).
+        city_marker:
+            Matplotlib marker style.
+    """
     for marker in markers:
         lon, lat = get_marker_coordinates(marker, regions_info)
         ax.scatter(
@@ -328,18 +392,17 @@ def get_marker_coordinates(
     Retrieve latitude and longitude coordinates for a specified marker.
 
     Args:
-        marker (str | tuple):
+        marker:
             The location identifier.
             - If a string, it must match a key in `point_source` in regions_info.json.
             - If a tuple, it must contain exactly two numeric values representing (latitude, longitude).
-        regions_info (dict of str):
+        regions_info:
             Dictionary with country and region names (read from json file).
 
     Returns:
         tuple:
             A tuple containing the latitude and longitude as `(lat_marker, lon_marker)`.
     """
-
     if isinstance(marker, str):
         if marker in regions_info["point_source"]:
             lon_marker, lat_marker = regions_info["point_source"][marker]
@@ -359,8 +422,25 @@ def get_marker_coordinates(
     return lon_marker, lat_marker
 
 
-def add_site_markers(ax, site_info, color, site_marker="o"):
-    """Add site markers to the plot."""
+def add_site_markers(
+    ax: plt.Axes,
+    site_info: dict[str, dict[str, float]],
+    color: str,
+    site_marker: str = "o",
+) -> None:
+    """
+    Add site markers to the plot.
+
+    Args:
+        ax:
+            The axis to add the markers to.
+        site_info:
+            Dictionary mapping site names to a dictionary with 'latitude' and 'longitude'.
+        color:
+            Edge color of the markers.
+        site_marker:
+            Matplotlib marker style.
+    """
     for site, site_data in site_info.items():
         ax.scatter(
             site_data["longitude"],
@@ -382,11 +462,11 @@ def get_active_sites_coordinates(
     Retrieve coordinates for active platforms/sites from an xarray Dataset.
 
     Args:
-        ds (xr.Dataset):
+        ds:
            xarray flux dataset.
-        config_data (dict):
+        config_data:
             Dictionary of sites with information for plotting (read from json file).
-        fallback_sites (list[str] | None):
+        fallback_sites:
             A list of site/platform names to use if no active sites are found in `ds`.
 
     Returns:
@@ -394,7 +474,6 @@ def get_active_sites_coordinates(
             A dictionary of site coordinates for either the active sites or the fallback sites.
             Returns an empty dict if no sites are found and no fallback_sites are provided.
     """
-
     sites = ds["sites"] if "sites" in ds else None
 
     if sites is None:
@@ -422,16 +501,17 @@ def get_sites_coordinates(
     fallback_sites: list[str] | None = None,
 ) -> dict:
     """
-    DEPRECATED: Use `get_active_sites_coordinates` instead.
     Collect the 'sites' attribute from a dictionary of xarray datasets.
+
+    DEPRECATED: Use `get_active_sites_coordinates` instead.
     If 'sites' is missing, use it from another dataset where it's available.
 
     Args:
-        ds_all (dict):
+        ds_all:
             Dictionary of xarray datasets.
-        config_data (dict):
+        config_data:
             Dictionary of sites with information for plotting (read from json file).
-        fallback_sites (list[str] | None):
+        fallback_sites:
             A list of site names to use as a fallback if 'sites' is not found in the datasets.
             If None, the first available 'sites' in the datasets will be used as fallback.
 
@@ -459,14 +539,13 @@ def extract_site_info(
     Extract latitude and longitude for each site from site_info in the config data.
 
     Args:
-        sites (list[str]): A list of site names to extract information for.
-        config_data (dict[str, dict]): A dictionary containing configuration data,
+        sites: A list of site names to extract information for.
+        config_data: A dictionary containing configuration data,
                                        where 'site_info' holds the latitude and longitude info.
 
     Returns:
-        sites_coordinates (dict[str, dict]): A dictionary mapping site names to their respective latitude and longitude.
+        sites_coordinates: A dictionary mapping site names to their respective latitude and longitude.
     """
-
     site_info = config_data.get("site_info", {})
     sites_coordinates = {}
 
@@ -526,20 +605,21 @@ def get_map_bounds(
     3. None, in which case the bounds are read from the datasets.
 
     Args:
-        ds_all (list[xr.Dataset]):
-            A list of xarray datasets to get the bounds from.
-        region (str | list[float] | None):
+        region:
             The region name or bounding box coordinates. See above for details.
-        config_data (dict[str, any]):
+        ds_all:
+            A list of xarray datasets to get the bounds from.
+        config_data:
             Configuration data containing regions information.
+        zoom_degree:
+            Number of degrees added on each side of the bounds when `region` is a name.
 
     Returns:
-        map_bounds (tuple[float, float, float, float]):
+        map_bounds:
             The bounding coordinates of the region or dataset (lon_min, lon_max, lat_min, lat_max).
 
 
     """
-
     if isinstance(region, str):
         clip_region, map_bounds = None, None
 
@@ -593,15 +673,15 @@ def get_bounds_from_country_fraction(
     Get the bounding coordinates of a region based on the "country_fracion" of the regions in the inoput datasets.
 
     Args:
-        ds_all (list[xr.Dataset]):
+        ds_all:
             A list of xarray datasets to get the bounds from.
-        region (str | list[float] | None):
-            The region name .
-        config_data (dict[str, any]):
-            Configuration data containing regions information.
+        region:
+            The region name.
+        regions_info:
+            Dictionary with country and region names (read from json file).
 
     Returns:
-        map_bounds (tuple[float, float, float, float]):
+        map_bounds:
             The bounding coordinates of the region or dataset (lon_min, lon_max, lat_min, lat_max).
     """
     clip_regions = list()
@@ -657,21 +737,23 @@ def get_bounds_from_country_fraction(
 
 
 def get_bounds_from_gpd_regions(
-    region_list: list[str], **kwargs
+    region_list: list[str], **kwargs: dict | list[float] | tuple[float, ...] | None
 ) -> tuple[float, float, float, float]:
     """
-    Get the bounding coordinates of a list of regions using geopandas library by recursively calling _get_bounds_from_gpd_region.
+    Get the bounding coordinates of a list of regions using geopandas.
+
+    Calls _get_bounds_from_gpd_region for each region and combines the bounds.
 
     Args:
-        region_name (list):
+        region_list:
             List of country/region/continent names to get the coordinates for.
-        **kwargs: parameters to pass to _get_bounds_from_gpd_region
+        **kwargs:
+            Parameters to pass to _get_bounds_from_gpd_region.
 
     Returns:
-        region_coordinates (tuple):
+        region_coordinates:
             The bounding coordinates of the region (lon_min, lon_max, lat_min, lat_max).
     """
-
     region_coordinates_list = [
         _get_bounds_from_gpd_region(region, **kwargs) for region in region_list
     ]
@@ -693,19 +775,17 @@ def _get_bounds_from_gpd_region(
     Get the bounding coordinates of a specified country/region/continent using geopandas library.
 
     Args:
-        region_name (str):
+        region_name:
             The name of the country or continent or region to get the coordinates for.
-        regions_info (dict of str):
+        regions_info:
             Dictionary with country and region names (read from json file).
-        zoom_degree (float):
-            The number of degrees to zoom in/out from the bounding box. Default is 1.
-        clip_region (list[float]):
+        clip_region:
             Coordinates ([min_lon, min_lat, max_lon, max_lat]) use to restrict the boundaries of the region.
             For example, if the focus is on France and clip_region is the extent of continental Europe, overseas territory
             (Reunion, Mayotte,...) won't be included; if no clip region is provided, they will be included.
 
     Returns:
-        region_coordinates (tuple):
+        region_coordinates:
             The bounding coordinates of the region (lon_min, lon_max, lat_min, lat_max).
     """
     world = load_countries_shape()
@@ -764,7 +844,9 @@ def _get_bounds_from_gpd_region(
     )
 
 
-def compute_boundary_geometry(map_bounds):
+def compute_boundary_geometry(
+    map_bounds: tuple[float, float, float, float],
+) -> list[list[tuple[float, float]]]:
     """
     Compute the boundary geometry (lines) from a shapefile based on the given map bounds.
 
@@ -772,11 +854,12 @@ def compute_boundary_geometry(map_bounds):
     compared to directly plotting the boundaries inside the loop in flux_map.py.
 
     Args:
-        map_bounds (tuple):
-            Bounding box (minx, miny, maxx, maxy) to filter countries.
+        map_bounds:
+            Bounding box (lon_min, lon_max, lat_min, lat_max) to filter countries.
 
     Returns:
-        list: A list of coordinate sequences representing country boundaries.
+        lines:
+            A list of coordinate sequences representing country boundaries.
     """
     gdf = load_countries_shape(map_bounds)
     lines = []
@@ -789,16 +872,18 @@ def compute_boundary_geometry(map_bounds):
     return lines
 
 
-def plot_country_borders(ax, lines, border_color):
+def plot_country_borders(
+    ax: plt.Axes, lines: list[list[tuple[float, float]]], border_color: str
+) -> None:
     """
     Plot country borders on a given matplotlib axis.
 
     Args:
-        ax (matplotlib.axes.Axes):
+        ax:
             The axis to add the country borders to.
-        lines (list):
+        lines:
             A list of coordinate sequences representing country boundaries.
-        border_color (str):
+        border_color:
             Color for the country borders.
     """
     boundary_collection = deepcopy(
@@ -815,30 +900,29 @@ def set_flux_limits(
     custom_percentile: float = None,
 ) -> tuple[float, float]:
     """
-    Set flux limits based on the option provided:
+    Set flux limits based on the option provided.
 
     1. List or tuple with two values (e.g., [0, 1]) - use specified limits.
     2. 'auto' - auto-calculate limits based on data percentiles.
 
     Args:
-        ds_all (dict[xr.Dataset]):
+        ds_all:
             A dictionary of Datasets containing the flux variables
-        var (str):
+        var:
             Variable use to define the flux limits
-        region_plot (tuple[float, float, float, float]):
+        region_plot:
             Coordinates [lon_min, lon_max, lat_min, lat_max].
-        option ('auto', [lower_lim, upper_lim]):
+        option:
             The option for setting limits.
                 - A list or tuple with two elements (lower_lim, upper_lim) for specified limits.
                 - 'auto' for auto-calculated values using the 99th percentile (if custom_percentile is None).
-        custom_percentile (float, optional):
+        custom_percentile:
             The percentile to use as the upper limit if option is 'auto'.
 
     Returns:
-        flux_lim (tuple):
+        flux_lim:
             A tuple containing the flux limits (lower_lim, upper_lim).
     """
-
     # Case 1: Use specified values [lower_lim, upper_lim]
     if isinstance(option, (list, tuple)) and len(option) == 2:
         flux_lim = tuple(option)
@@ -886,25 +970,24 @@ def set_flux_limits(
 
 def set_min_decimal_points(value: float, sig_fig: int = 2, dec_points: int = 2) -> str:
     """
-    Converts float to string with a specified number of significant digits and
-    decimal points.
+    Convert a float to string with a specified number of significant digits or decimal points.
 
     Args:
-        value (float):
+        value:
             Floating point number to be converted to string.
-        sig_fig (int):
+        sig_fig:
             Number of significant figures to specify in the output if 'value'
             is lowet than 1.
-        dec_points (int):
+        dec_points:
             Number of decimal points to specify in the output if 'value'
             is greater or equal than 1.
+
     Returns:
-        formatted_str (str):
+        formatted_str:
             Floating point 'value' converted to string.
             E.g. if value=0.00123 and sig_fig=2 -> formatted_str=0.0012
                  if value=10.456 and dec_points=2 -> formatted_str=10.45
     """
-
     formatted_str = f"{value:.{dec_points}f}" if value >= 1 else f"{value:.{sig_fig}g}"
 
     return formatted_str
@@ -915,21 +998,28 @@ def define_map_figsize(
     n_rows: int,
     n_cols: int,
     fixed_value: float = 5,
-    fixed_dimension: str = "width",
+    fixed_dimension: Literal["height", "width"] | None = "width",
 ) -> tuple[float, float]:
     """
     Dynamically computes figsize for map subplots, allowing to fix either 'height' or 'width'.
 
     Args:
-    - map_bounds: (lon_min, lon_max, lat_min, lat_max)
-    - n_rows: Number of subplot rows
-    - n_cols: Number of subplot columns
-    - fixed_value: Fixed height (if fixed_dimension="height") or fixed width (if fixed_dimension="width")
-    - fixed_dimension: "height" to fix height and adjust width, or "width" to fix width and adjust height,
-    or None to adjust height and width.
+        map_bounds:
+            Map bounds (lon_min, lon_max, lat_min, lat_max).
+        n_rows:
+            Number of subplot rows.
+        n_cols:
+            Number of subplot columns.
+        fixed_value:
+            Fixed height (if fixed_dimension="height") or fixed width (if fixed_dimension="width").
+            If fixed_dimension is None, height of a single subplot.
+        fixed_dimension:
+            "height" to fix height and adjust width, "width" to fix width and adjust height,
+            or None to adjust height and width.
 
     Returns:
-    - figsize tuple (width, height)
+        figsize:
+            Figure size (width, height).
     """
     if fixed_dimension not in ["height", "width", None]:
         raise ValueError("fixed_dimension must be either 'height' or 'width' or None")
@@ -964,17 +1054,28 @@ def stack_plot(
     area: bool = False,
     colors_of_category: dict[str, str] = {},
     width: float = 0.8,
-):
-    """Function to plot stacked bar plots for the emissions data.
+) -> plt.Axes:
+    """
+    Plot stacked bar plots for the emissions data.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        DataFrame containing the emissions data.
-    ax : matplotlib.axes.Axes, optional
-        Axes object to plot on, by default None
-    area : bool, optional
-        If True, use area plot instead of bar plot, by default False
+    Positive and negative values are stacked separately.
+
+    Args:
+        df:
+            DataFrame containing the emissions data, with one column per category.
+        ax:
+            Axes object to plot on. If None, a new figure is created.
+        area:
+            If True, use area plot instead of bar plot.
+        colors_of_category:
+            Mapping of category names to colors. Categories not listed use the
+            default matplotlib color cycle.
+        width:
+            Width of the bars (ignored if `area` is True).
+
+    Returns:
+        ax:
+            The axes with the stacked plot.
     """
     if ax is None:
         fig, ax = plt.subplots(figsize=(10, 6))
