@@ -18,7 +18,7 @@ def retrieve_inventories(
     inventory_years: str | list[str] | None,
     inventory_filename: str,
     sectors: str | list[str] = "total",
-) -> list[xr.Dataset]:
+) -> tuple[list[xr.DataArray], list[xr.DataArray | None]]:
     """
     Load (in a list) inventories data to be plotted.
     If multiple sectors are asked for, each dataset of the list will have a sector dimension.
@@ -59,8 +59,8 @@ def retrieve_inventories(
             sectors,
         )
 
-    ds_sectors = {y: list() for y in inventory_years}
-    ds_uncert_sectors = {y: list() for y in inventory_years}
+    das_sectors = {y: list() for y in inventory_years}
+    das_uncert_sectors = {y: list() for y in inventory_years}
 
     for sector in sectors:
         tmp, tmp_stdev = _retrieve_inventories_sector(
@@ -77,16 +77,16 @@ def retrieve_inventories(
             sector,
         )
         for i, y in enumerate(inventory_years):
-            ds_sectors[y].append(tmp[i].expand_dims(dim={"sector": [sector]}))
+            das_sectors[y].append(tmp[i].expand_dims(dim={"sector": [sector]}))
             if tmp_stdev[i] is not None:
-                ds_uncert_sectors[y].append(
+                das_uncert_sectors[y].append(
                     tmp_stdev[i].expand_dims(dim={"sector": [sector]})
                 )
             else:
-                ds_uncert_sectors[y].append(None)
+                das_uncert_sectors[y].append(None)
 
-    return [xr.concat(ds_sectors[y], dim="sector") for y in inventory_years], [
-        xr.concat(ds_uncert_sectors[y], dim="sector") for y in inventory_years
+    return [xr.concat(das_sectors[y], dim="sector") for y in inventory_years], [
+        xr.concat(das_uncert_sectors[y], dim="sector") for y in inventory_years
     ]
 
 

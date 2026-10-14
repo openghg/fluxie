@@ -17,6 +17,7 @@ sector_color_palette = {
     "waste": "purple",
     "industry": "darkblue",
     "energy": "dodgerblue",
+    "total": "grey",
 }
 
 species_color_palette = {
@@ -272,7 +273,7 @@ def get_default_colors() -> list[str]:
     return plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
 
-def get_default_sector_colors() -> list[str]:
+def get_default_sector_colors() -> dict[str, str]:
     """
     Returns colors to be used for sector bar chart plots.
     """
