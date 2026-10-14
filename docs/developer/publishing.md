@@ -28,6 +28,8 @@ The publish job runs only when **all** of these conditions are true:
 2. Run local checks before tagging:
     ```bash
     black --check ./tests ./fluxie ./docs
+    ruff check ./fluxie ./docs
+    pydoclint ./fluxie ./docs
     pytest
     ```
 3. Ensure all release changes are committed and pushed to the remote repository.

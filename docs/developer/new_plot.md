@@ -53,6 +53,26 @@ def plot_something(
     """
 ```
 
+These rules are checked automatically, locally with the commands below and in
+the [continuous integration](contributing.md#continuous-integration):
+
+```bash
+ruff check ./fluxie ./docs   # docstring format and type hints in the signature
+pydoclint ./fluxie ./docs    # docstring arguments match the signature, no types in the docstring
+```
+
+| Check | Tool |
+|:--|:--|
+| Google style docstrings, summary on the line after the opening quotes | ruff (`D` rules) |
+| Type hints for all arguments and return values | ruff (`ANN` rules) |
+| All arguments documented, with the names of the signature | pydoclint |
+| No types in the docstring | pydoclint |
+| A `Returns:` section when the function returns something | pydoclint |
+
+Small helper functions can have a docstring with only a one-line summary; the
+arguments are then not checked. `ruff check --fix` corrects most formatting
+issues automatically. The configuration of both tools is in `pyproject.toml`.
+
 ## Checklist
 
 - [ ] The function is in the appropriate module of `fluxie/plots`.

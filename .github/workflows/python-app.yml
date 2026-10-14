@@ -32,6 +32,10 @@ jobs:
     - name: Check code formatting with black
       run: |
         black --check ./tests ./fluxie ./docs
+    - name: Check docstrings and type hints
+      run: |
+        ruff check ./fluxie ./docs
+        pydoclint ./fluxie ./docs
     - name: Test with pytest
       run: |
         pytest
