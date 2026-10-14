@@ -20,6 +20,7 @@ Small test datasets are stored in the `data/tests` folder of the repository:
 |:--|:--|
 | `InTEM`, `ELRIS`, `RHIME` | Flux and concentration outputs of three inversion models, for `hfc134a` (yearly) and `ch4` (monthly) |
 | `sector_flux` | Prior sector fluxes for `ch4` |
+| `inventory` | Bottom-up inventory country fluxes. `TEST_inventory_*` are synthetic, derived from the InTEM test prior for `ch4` and `hfc134a` (2018–2023) by `scripts/preprocessing/make_test_inventory.py` |
 | `ecflux` | Eddy covariance fluxes |
 | `configs` | Small cell area file for the tests |
 
