@@ -585,7 +585,7 @@ def prepare_inventory_sector_barplot(
     r_data: dict[str, dict],
     inventory_years: str | list[str] | None,
     inventory_filename: str,
-) -> tuple[list[xr.Dataset], list[xr.Dataset]]:
+) -> tuple[list[xr.Dataset], list[xr.Dataset | None]]:
     """
     Prepare the inventory for the sector barplot.
     Call fluxie.operators.flux_prepare_inventory.retrieve_inventories and change the outputed dataarrays in to dataset (with variable name "inv_data").
@@ -1373,7 +1373,8 @@ def plot_country_sector_flux_bar(
         ):
             ax = axes[-i - 1]
             former_sector = None
-            inv.attrs["model_label"] = f"inventory_{year}"
+            model_label = f"inventory_{year}" if year is not None else "inventory"
+            inv.attrs["model_label"] = model_label
             inv.attrs["country"] = plot_region
             inv.attrs["species"] = species
             for sector in sectors:
@@ -1381,7 +1382,7 @@ def plot_country_sector_flux_bar(
                     plotted_data_df[
                         (plotted_data_df.sector == former_sector)
                         & (plotted_data_df.type == "inventory")
-                        & (plotted_data_df.model == f"inventory_{year}")
+                        & (plotted_data_df.model == model_label)
                     ].mean_val
                     if former_sector
                     else 0
@@ -1389,6 +1390,7 @@ def plot_country_sector_flux_bar(
                 res = add_sector_barplot(
                     ax, inv.sel(sector=sector), "inv_data", bottom_values
                 )
+                res["type"] = "inventory"
                 plotted_data_df = pd.concat([plotted_data_df, res], ignore_index=True)
                 former_sector = sector
             ax.legend(ncol=2, borderpad=0.4, columnspacing=1.0)
