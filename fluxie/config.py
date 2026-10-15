@@ -6,7 +6,7 @@ import os
 logger = logging.getLogger(__name__)
 
 color_palette = {
-    0: [["blue", "dodgerblue"], ["dodgerblue", "skyblue"], ["deepskyblue", "cyan"]],
+    0: [["blue", "dodgerblue"], ["dodgerblue", "skyblue"], ["darkorange", "cyan"]],
     1: [["purple", "mediumpurple"], ["deeppink", "pink"], ["darkorange", "red"]],
     2: [["darkgreen", "green"], ["limegreen", "palegreen"], ["olive", "lightgreen"]],
     3: [["darkorange", "orange"], ["gold", "khaki"], ["yellow", "lightyellow"]],
@@ -31,8 +31,10 @@ species_color_palette = {
 }
 
 mean_color_palette = [
-    "black",
-    "saddlebrown",
+    'darkorange',
+    'blue',
+    #"black",
+    #"saddlebrown",
     "dimgray",
     "peru",
     "darkgray",

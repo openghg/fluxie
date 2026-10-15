@@ -34,7 +34,7 @@
     },
 
     "species_name":{
-        "ELRIS": {"ch4": "CH4",
+        "ELRIS": {"ch4": "ch4",
                   "n2o": "N2O",
                   "sf6": "SF6",
                   "hfc134a": "HFC_134a",
