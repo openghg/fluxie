@@ -356,10 +356,8 @@ def add_line_plot(
             "Available options for 'variable' parameter are 'prior' and 'posterior'."
         )
 
-    time_as_datetime = ds.time.values.astype("datetime64[D]").tolist()
-
     ax.plot(
-        time_as_datetime,
+        ds.time.values,
         ds[variable],
         color=ds.attrs["model_color"],
         **kwargs_plot,
@@ -367,7 +365,7 @@ def add_line_plot(
 
     res = pd.DataFrame(
         {
-            "time": time_as_datetime,
+            "time": ds.time.values,
             "mean_val": ds[variable].values,
         }
     )
@@ -378,7 +376,7 @@ def add_line_plot(
 
     if add_unc:
         ax.fill_between(
-            time_as_datetime,
+            ds.time.values,
             ds[f"{variable}_lower"],
             ds[f"{variable}_upper"],
             alpha=alpha_unc,
@@ -462,7 +460,6 @@ def add_inventory_barplot(
 
     res = pd.DataFrame()
     for i_inv, inventory in enumerate(inventories_to_plot):
-        time_as_datetime = inventory.time.values.astype("datetime64[D]").tolist()
 
         this_uncert_to_plot = inventories_uncert_to_plot[i_inv]
 
@@ -475,9 +472,10 @@ def add_inventory_barplot(
             yerr = this_uncert_to_plot.values
 
         ax.bar(
-            time_as_datetime,
+            inventory.time.values,
             inventory,
-            timedelta(days=340 - i_inv * 20),
+            # timedelta(days=340 - i_inv * 20),
+            np.timedelta64(340 - i_inv * 20, "D"),
             edgecolor=inventory.plot_color,
             align="edge",
             fill=False,
@@ -489,7 +487,7 @@ def add_inventory_barplot(
 
         tmp = pd.DataFrame(
             {
-                "time": time_as_datetime,
+                "time": inventory.time.values,
                 "mean_val": inventory.values,
             }
         )
@@ -754,8 +752,8 @@ def add_xlims_and_ticks(
         ax.set_xticklabels(list(month_abbr)[1:])
         return
 
-    min_x = np.nanmin(plotted_data_df["time"])
-    max_x = np.nanmax(plotted_data_df["time"])
+    min_x = pd.to_datetime(plotted_data_df["time"]).min()
+    max_x = pd.to_datetime(plotted_data_df["time"]).max()
 
     # set xticks
     year_range = date(max_x.year, 1, 1) - date(min_x.year, 1, 1)
