@@ -474,8 +474,8 @@ def add_inventory_barplot(
         ax.bar(
             inventory.time.values,
             inventory,
-            #timedelta(days=340 - i_inv * 20),
-            np.timedelta64(340 - i_inv * 20,'D'),
+            # timedelta(days=340 - i_inv * 20),
+            np.timedelta64(340 - i_inv * 20, "D"),
             edgecolor=inventory.plot_color,
             align="edge",
             fill=False,
@@ -545,7 +545,7 @@ def add_sector_barplot(
         offset = timedelta(days=0)
 
     ax.bar(
-        ds_sector.time.values,
+        time_as_datetime,
         ds_sector[variable].values,
         label=sector.title(),
         color=sector_colors[sector],
@@ -557,7 +557,7 @@ def add_sector_barplot(
 
     res = pd.DataFrame(
         {
-            "time": np.array(ds_sector.time.values) + offset,
+            "time": np.array(time_as_datetime) + offset,
             "mean_val": ds_sector[variable].values + bottom_values,
         }
     )

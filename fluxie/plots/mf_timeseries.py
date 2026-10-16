@@ -475,13 +475,11 @@ def _add_xlims_and_ticks(
 
     # set xticks
     year_range = max_x - min_x
-    
-    
+
     if yearly_freq:
         min_x = date(min_x.year, 1, 1)
         max_x = date(max_x.year + 1, 1, 1)
     xlim = [min_x - (max_x - min_x) / 50, max_x + (max_x - min_x) / 50]
-    
 
     if year_range > timedelta(days=3 * 365.25) or yearly_freq:
         min_x = date(min_x.year, 1, 1)
@@ -496,25 +494,25 @@ def _add_xlims_and_ticks(
         ax.set_xticklabels(xticks.astype("datetime64[Y]"))
         ax.xaxis.set_minor_locator(MonthLocator())
         ax.xaxis.set_major_locator(YearLocator())
-        
+
     elif year_range > timedelta(days=30):
         ax.xaxis.set_minor_locator(MonthLocator())
         ax.xaxis.set_major_locator(YearLocator())
-        
-        fmt_minor = DateFormatter('%b')
-        fmt_major = DateFormatter('%b\n%Y')
+
+        fmt_minor = DateFormatter("%b")
+        fmt_major = DateFormatter("%b\n%Y")
         ax.xaxis.set_minor_formatter(fmt_minor)
         ax.xaxis.set_major_formatter(fmt_major)
-        
+
     else:
         ax.xaxis.set_minor_locator(DayLocator())
         ax.xaxis.set_major_locator(MonthLocator())
-        
-        fmt_minor = DateFormatter('%d')
-        fmt_major = DateFormatter('%d\n%b\n%Y')
+
+        fmt_minor = DateFormatter("%d")
+        fmt_major = DateFormatter("%d\n%b\n%Y")
         ax.xaxis.set_minor_formatter(fmt_minor)
         ax.xaxis.set_major_formatter(fmt_major)
-        
+
     if rotate_xticks:
         ax.tick_params(axis="x", rotation=70)
 
@@ -614,8 +612,8 @@ def add_line_scatter_plot(
         res: dataframe with data plotted
     """
 
-    plot_type = PlotTypes(plot_type)            
-    
+    plot_type = PlotTypes(plot_type)
+
     kwargs = {
         "alpha": 0.8,
         "color": da.attrs["plot_color"],
@@ -634,7 +632,7 @@ def add_line_scatter_plot(
         plot_func = ax.plot
         kwargs.update({"linewidth": 2.0, "marker": "o", "markersize": 1.5})
 
-    plot_func(da.time.values, da.sel(percentile="mean"), **kwargs)    
+    plot_func(da.time.values, da.sel(percentile="mean"), **kwargs)
 
     res = pd.DataFrame(
         {
