@@ -494,14 +494,21 @@ def _add_xlims_and_ticks(
         ax.set_xticklabels(xticks.astype("datetime64[Y]"))
         ax.xaxis.set_minor_locator(MonthLocator())
         ax.xaxis.set_major_locator(YearLocator())
-
-    elif year_range > timedelta(days=30):
+        
+    elif year_range > timedelta(days=365.25):
         ax.xaxis.set_minor_locator(MonthLocator())
         ax.xaxis.set_major_locator(YearLocator())
-
+        
         fmt_minor = DateFormatter("%b")
         fmt_major = DateFormatter("%b\n%Y")
         ax.xaxis.set_minor_formatter(fmt_minor)
+        ax.xaxis.set_major_formatter(fmt_major)
+
+    elif year_range > timedelta(days=30):
+        ax.xaxis.set_minor_locator(DayLocator())
+        ax.xaxis.set_major_locator(MonthLocator())
+
+        fmt_major = DateFormatter("%b\n%Y")
         ax.xaxis.set_major_formatter(fmt_major)
 
     else:

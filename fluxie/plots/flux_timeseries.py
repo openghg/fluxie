@@ -474,7 +474,6 @@ def add_inventory_barplot(
         ax.bar(
             inventory.time.values,
             inventory,
-            # timedelta(days=340 - i_inv * 20),
             np.timedelta64(340 - i_inv * 20, "D"),
             edgecolor=inventory.plot_color,
             align="edge",
