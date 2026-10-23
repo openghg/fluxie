@@ -101,19 +101,24 @@ def align_time(
             if ds_p.sizes["time"] == target_time.size:
                 ds_p["time"] = target_time
             else:
-                time_diff = np.abs(target_time.values[:, None] - ds_p.time.values[None, :]).min(axis=1)
-                missing_times = [str(t)[:10] for t in target_time.values[time_diff > tolerance]]
+                time_diff = np.abs(
+                    target_time.values[:, None] - ds_p.time.values[None, :]
+                ).min(axis=1)
+                missing_times = [
+                    str(t)[:10] for t in target_time.values[time_diff > tolerance]
+                ]
                 logger.warning(
                     f"{ds_p.attrs.get('inversion_system', 'undefined model')} {ds_p.attrs.get('species', '')}: "
                     f"{len(missing_times)} missing time step(s) at {missing_times}. "
                     f"Filled with NaN, i.e. excluded from the combined mean at these time steps."
                 )
-                ds_p = ds_p.reindex(time=target_time, method="nearest", tolerance=tolerance)
+                ds_p = ds_p.reindex(
+                    time=target_time, method="nearest", tolerance=tolerance
+                )
             aligned_ds_list.append(ds_p)
 
         return aligned_ds_list
 
-    
     # Define new timestamps based on min/max timestamps of all datasets
     min_date = min([x.time.min() for x in ds_list])
     max_date = max([x.time.max() for x in ds_list]) + period / 2
