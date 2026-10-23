@@ -301,11 +301,14 @@ class AnnexConfig:
         kwargs_country_flux_monthly_species (dict): parameters for country flux plots of monthly species on extended time windows
         kwargs_country_flux_monthly_species_special (dict): parameters for country flux plots of monthly species on PARIS time windows
         kwargs_country_flux_yearly_species (dict): parameters for country flux plots of yeary species
+        kwargs_country_flux_seasonal_cycle (dict): parameters for the mean seasonal cycle plots of monthly species on PARIS time windows
         models_spatial_maps (list): models used for flux map plots
         flux_units_print (str): units for the flux map plots
         kwargs_maps_general (dict): parameters for all flux map plots
         kwargs_maps_mean (dict): parameters for flux map of total posterior
         kwargs_maps_seasonnal (dict): parameters for flux map of posterior seasonal diff to mean
+        network_comparisons (list): comparisons of two inversion runs (e.g. different site networks) shown as flux maps
+        kwargs_maps_network (dict): parameters for the network comparison flux maps
         fluxlim_percentile (dict): flux limits to use in flux map plots for every species of the selected region
         start_date_fgases (dict): start date to use for every species of the selected region
     """
@@ -427,6 +430,20 @@ class AnnexConfig:
         )
     }
 
+    # for mean seasonal cycle of monthly species on PARIS time window (each calendar month averaged over all years)
+    # NOTE: the inventory (annual values) is not plotted, and resample/rolling_mean cannot be combined with aggreg_month.
+    #       Set to None to skip this plot.
+    kwargs_country_flux_seasonal_cycle = {
+        "monthly": dict(
+            plot_separate=[True, False, False, False, False, False, False],
+            plot_combined=[False, True, True, True, True, True, True],
+            resample=None,
+            rolling_mean=False,
+            aggreg_month=True,
+            plot_inventory=False,
+        )
+    }
+
     ### Settings for spatial maps
     ## Model definitions (list or dict["<period>": list(), "<species>": list()] if different between species)
     # NOTE: in produce_plots, it is assumed that models_spatial_maps exist in models_country_flux
@@ -478,6 +495,53 @@ class AnnexConfig:
         c_border="dimgrey",
         chop_by="season",
         set_fluxlim="auto",
+    )
+
+    ### Settings for network comparison maps
+    # Comparison of two inversion runs, e.g. expanded network vs. PARIS network.
+    # For every entry, maps of model 1, model 2 and model 1 - model 2 are made over the spatial maps time window.
+    #   name: short name used in the output filename.
+    #   species: list of species to compare.
+    #   models: dictionary {<model>: <label>} with exactly two entries.
+    #           As for the other plots, the run of each model is defined in models_info.json ("standard_run"),
+    #           e.g. "InTEM_NAME-expanded": {"hfc134a": "NAME_EUROPE_EDGAR_PARISNID2027_nonPARISsites"}.
+    #           The model must have an explicit "standard_run" entry for the species (no fallback to "default").
+    # e.g. network_comparisons = [
+    #     dict(
+    #         name="nonPARISsites",
+    #         species=["hfc134a"],
+    #         models={
+    #             "InTEM_NAME-expanded": "Expanded Network",
+    #             "InTEM_NAME": "PARIS Network",
+    #         },
+    #     ),
+    # ]
+    # network_comparisons = []
+    network_comparisons = [
+        dict(
+            name="nonPARISsites_InTEM",
+            species=["hfc134a"],
+            models={
+                "InTEM_NAME-expanded": "Expanded Network",
+                "InTEM_NAME": "PARIS Network",
+            },
+        ),
+        dict(
+            name="nonPARISsites_ELRIS",
+            species=["hfc134a"],
+            models={
+                "ELRIS_NAME-expanded": "Expanded Network",
+                "ELRIS_NAME": "PARIS Network",
+            },
+        ),
+    ]
+
+    # kwargs for plot_flux_map_model_comparison
+    kwargs_maps_network = dict(
+        var="flux_total_posterior_inversion_grid",
+        cmap="viridis",
+        c_border="floralwhite",
+        add_sites=True,
     )
 
     def __init__(self, region, inventory_years):
