@@ -173,24 +173,24 @@ class AnnexConfig:
     Class containing all the parameters necessary to make the plots and tables for the annex report.
 
     Attributes:
-        data_dir (str): directory where the data are stored
-        monthly_species (list): species with monthly inversions (see documentation of annex_plot_generator.produce_plots to know which plots will be made)
-        yearly_species (list): species with yearly inversions (see documentation of annex_plot_generator.produce_plots to know which plots will be made)
-        combined_species (list): combined species (e.g. ["all_hfc", "all_pfc"])
-        models_monthly_species (list): models used for country flux plots of the monthly species
-        models_yearly_species (list): models used for country flux plots of the yearly species
-        country_flux_units_print (str): units for the country flux plots
-        kwargs_country_flux_general (dict): parameters for all country flux plots
-        kwargs_country_flux_monthly_species (dict): parameters for country flux plots of monthly species on extended time windows
-        kwargs_country_flux_monthly_species_special (dict): parameters for country flux plots of monthly species on PARIS time windows
-        kwargs_country_flux_yearly_species (dict): parameters for country flux plots of yeary species
-        models_spatial_maps (list): models used for flux map plots
-        flux_units_print (str): units for the flux map plots
-        kwargs_maps_general (dict): parameters for all flux map plots
-        kwargs_maps_mean (dict): parameters for flux map of total posterior
-        kwargs_maps_seasonnal (dict): parameters for flux map of posterior seasonal diff to mean
-        fluxlim_percentile (dict): flux limits to use in flux map plots for every species of the selected region
-        start_date_fgases (dict): start date to use for every species of the selected region
+        data_dir: directory where the data are stored
+        monthly_species: species with monthly inversions (see documentation of annex_plot_generator.produce_plots to know which plots will be made)
+        yearly_species: species with yearly inversions (see documentation of annex_plot_generator.produce_plots to know which plots will be made)
+        combined_species: combined species (e.g. ["all_hfc", "all_pfc"])
+        models_monthly_species: models used for country flux plots of the monthly species
+        models_yearly_species: models used for country flux plots of the yearly species
+        country_flux_units_print: units for the country flux plots
+        kwargs_country_flux_general: parameters for all country flux plots
+        kwargs_country_flux_monthly_species: parameters for country flux plots of monthly species on extended time windows
+        kwargs_country_flux_monthly_species_special: parameters for country flux plots of monthly species on PARIS time windows
+        kwargs_country_flux_yearly_species: parameters for country flux plots of yeary species
+        models_spatial_maps: models used for flux map plots
+        flux_units_print: units for the flux map plots
+        kwargs_maps_general: parameters for all flux map plots
+        kwargs_maps_mean: parameters for flux map of total posterior
+        kwargs_maps_seasonnal: parameters for flux map of posterior seasonal diff to mean
+        fluxlim_percentile: flux limits to use in flux map plots for every species of the selected region
+        start_date_fgases: start date to use for every species of the selected region
     """
 
     ### Path to results directory
@@ -355,9 +355,15 @@ class AnnexConfig:
         chop_by="season",
     )
 
-    def __init__(self, region, inventory_years):
+    def __init__(self, region: str, inventory_years: str | list[str]) -> None:
         """
-        Initialize instance and update attributes that depend of region and inventory years.
+        Initialize instance and update attributes that depend on region and inventory years.
+
+        Args:
+            region:
+                Region/Country of focus, e.g. 'UK'.
+            inventory_years:
+                Inventory year(s) to use in the country flux plots.
         """
         ### Settings for country fluxes
         self.kwargs_country_flux_general["plot_regions"] = region

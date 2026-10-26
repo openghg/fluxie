@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pandas as pd
 import numpy as np
 
@@ -7,6 +9,7 @@ def get_species_specific_settings(
 ) -> list | dict:
     """
     Get species-specific setting from dictionary.
+
     Returns the input settings if it is already a list.
 
     Args:
@@ -22,7 +25,6 @@ def get_species_specific_settings(
         settings_species:
             List or dictionary with species-specific settings.
     """
-
     if isinstance(settings, list):
         return settings
 
@@ -34,7 +36,7 @@ def get_species_specific_settings(
 
 
 def create_str_dataframe(
-    res: dict,
+    res: pd.DataFrame,
     inventory_year: str | int,
     species: str | list[str],
     region: str | None = None,
@@ -42,10 +44,13 @@ def create_str_dataframe(
     model: str = "PARIS mean",
     table_start_date: str | None = None,
 ) -> pd.DataFrame:
-    """
-    Create a dataframe with results for a specific country, region and model. The columns are "species", "units", "source" (which values are "<model>" and "NID <inventory_year>") and the years present.
-    The values are string of the form "<mean> \\pm <uncertainty>", made to be usable directly to make the tex output for the annexes tables. Set the units and right number of digits.
+    r"""
+    Create a dataframe with results for a specific country, region and model.
+
+    The columns are "species", "units", "source" (which values are "<model>" and "NID <inventory_year>") and the years present.
+    The values are string of the form "<mean> \pm <uncertainty>", made to be usable directly to make the tex output for the annexes tables. Set the units and right number of digits.
     NOTE: Assume that the units in res is Tg CO2-eq yr-1
+
     Args:
         res: pandas dataframe containing the results. It should be the output (or concatenation of outputs) of `plot_country_flux` from fluxie/plots/flux_timeseries.py
             The columns of this dataframe are "type", "model", "sector", "country", "species", "time", "mean_val", "min_unc", "max_unc".
@@ -55,10 +60,10 @@ def create_str_dataframe(
         sector: sector to restrict the results to
         model: model to restrict the results to
         table_start_date: start_date for the outputted results
-    Return:
+
+    Returns:
         output: pandas Dataframe contianing the string values that will be put in the .tex files for the annexes tables.
     """
-
     if not table_start_date:
         table_start_date = np.datetime64("1900-01-01")
     elif isinstance(table_start_date, str):
@@ -203,11 +208,31 @@ def create_str_dataframe(
 
 def make_table(
     df: pd.DataFrame,
-    output_path,
+    output_path: str | Path,
     inventory_years: str | int,
     descriptive_cols: list[str] = ["species", "units", "source"],
-    hline_place: dict[str] = {"source": "PARIS mean"},
-):
+    hline_place: dict[str, str] = {"source": "PARIS mean"},
+) -> None:
+    """
+    Write a LaTeX table with the results to a .tex file.
+
+    The table caption is chosen from the output file name (containing 'hfc', 'pfc'
+    or 'main_gases').
+
+    Args:
+        df:
+            Dataframe with the string values to put in the table, as produced by
+            `create_str_dataframe`.
+        output_path:
+            Path of the .tex file to write.
+        inventory_years:
+            Inventory year, mentioned in the table caption.
+        descriptive_cols:
+            Names of the descriptive columns (the other columns are the years).
+        hline_place:
+            Column name and value: a horizontal line is added after the rows whose
+            value in this column matches.
+    """
     if "hfc" in str(output_path):
         species = "HFCs"
     elif "pfc" in str(output_path):

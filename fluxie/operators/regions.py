@@ -19,8 +19,11 @@ def extract_region_flux(
     sectors: str | list = "total",
 ) -> dict[str, xr.Dataset]:
     """
-    Create flux datasets for region of interest. Do it by calling _extract_region_flux_sector for every sector of interest
+    Create flux datasets for region of interest.
+
+    Do it by calling _extract_region_flux_sector for every sector of interest
     and concatenating the results.
+
     Args:
         ds_all: xarray datasets of fluxes, scaled and sliced between
             chosen dates.
@@ -38,7 +41,6 @@ def extract_region_flux(
             - 'prior_lower',
             - 'prior_upper'
     """
-
     if isinstance(sectors, str):
         return _extract_region_flux_sector(
             ds_all, country, regions_info, keep_country_dim, sectors
@@ -63,8 +65,8 @@ def _extract_region_flux_sector(
     sector: str = "total",
 ) -> dict[str, xr.Dataset]:
     """
-    Finds the index of a chosen region name and extracts the country flux
-    variables for this region.
+    Find the index of a chosen region name and extract its country flux variables.
+
     Either extracts values directly from the dataset (if this region definition
     exists in the file) or calculates values by taking the sum of smaller regions
     (if this region definition does not exist in the file).
@@ -265,27 +267,34 @@ def extract_region_inventory_flux(
     species: str,
     unit: str,
     s_data: dict[str, dict],
-    r_data: dict[str, str],
+    r_data: dict[str, dict],
     inventory_year: int | str | None,
     inventory_filename: str,
     sector: str = "total",
-) -> xr.Dataset:
+) -> tuple[xr.DataArray, xr.DataArray | None]:
     """
-    Extracts inventory flux values for regions that exists,
+    Extract inventory flux values for a region.
+
+    Extracts inventory flux values for regions that exist,
     or calculates total inventory flux values for aggregated regions.
 
     Args:
         data_dir: directory which contains the data (should have inside a directory named 'inventory').
+        country: Region of interest (country code or aggregated region, e.g. 'BEL-LUX-NLD').
         species: Gas species, e.g. 'ch4'.
         unit: unit in which the inventory should be converted.
         s_data: Dictionary of species with information for plotting (read from json file).
         r_data: Dictionary with country and region names (read from json file).
         inventory_year: year of inventory to get.
         inventory_filename: Name of inventory file: {inventory_filename}_{species}_{inventory_year}
-    Returns:
-        dataset (and uncertainty dataset, if this is available) with country selected.
-    """
+        sector: Emissions sector, default 'total'.
 
+    Returns:
+        inv_ds:
+            Inventory data with country selected.
+        inv_stdev_ds:
+            Inventory uncertainty data with country selected, None if not available.
+    """
     data_dir = Path(data_dir)
     inventory_dir = data_dir / "inventory"
 
@@ -400,13 +409,14 @@ def format_plot_regions(
 ) -> list[str]:
     """
     Format plot_regions into a list of regions. If plot_regions originally None, read the country names from ds_all.
+
     Args:
         plot_regions: (list of) regions
         ds_all: dictionnary containing dataset form which the regions will be determine if plot_regions=None.
-    Returns
+
+    Returns:
         plot_regions: list of regions
     """
-
     if not plot_regions:
         if ds_all is None:
             raise ValueError("ds_all must be provided if plot_regions is None.")

@@ -9,16 +9,18 @@ logger = logging.getLogger(__name__)
 
 def check_times_within_tolerance(
     ds: xr.Dataset, target_time: np.ndarray, tolerance: np.timedelta64
-):
+) -> None:
     """
-    Check if timestamps of a dataset are within a given tolerance of at least one time value in a target time array.
+    Check that the dataset timestamps are all within a tolerance of the target times.
+
+    Each timestamp of the dataset must be within the given tolerance of at least one
+    time value in the target time array, otherwise a ValueError is raised.
 
     Args:
         ds: xarray dataset with time dimension
         target_time: target time array
         tolerance: maximum time difference allowed between timestamps.
     """
-
     # Convert to datetime
     ds_time = ds.time.values.astype("datetime64[ns]")
     target_ds_time = target_time.astype("datetime64[ns]")
@@ -38,8 +40,9 @@ def align_time(
     ds_list: list[xr.Dataset], only_overlapping: bool = True
 ) -> list[xr.Dataset]:
     """
-    Check the time coordinate of a list of datasets, then aligns them,
-    either only between overlapping time periods, or across all available
+    Check the time coordinate of a list of datasets, then align them.
+
+    The datasets are aligned either only between overlapping time periods, or across all available
     times (if only_overlapping is False).
 
     Args:
@@ -48,7 +51,6 @@ def align_time(
     Returns:
         aligned_ds_list: list of xarray datasets time-aligned
     """
-
     # Check if all timestamps are equal
     time_dim_equal = [ds_list[0].time.equals(x.time) for x in ds_list[1:]]
 
@@ -151,10 +153,10 @@ def align_lat_lon(
         coord: coordinate name (latitude or longitude)
         rel_tolerance: float, tolerance coordinates relative to grid spacing
         min_rel_overlap: float, minimum relative overlap of coordinates.
+
     Returns:
         aligned_ds_list: list of xarray datasets latitude/longitude-aligned
     """
-
     # Check if coordinates agree exactly.
     dim_equal = all(ds_list[0][coord].equals(x[coord]) for x in ds_list[1:])
     if dim_equal:
@@ -209,27 +211,29 @@ def align_lat_lon(
 
 
 def align_map_data(
-    ds_all: dict[xr.Dataset | xr.DataArray],
+    ds_all: dict[str, xr.Dataset | xr.DataArray],
     only_overlapping: bool = True,
-) -> dict[xr.Dataset | xr.DataArray]:
+) -> dict[str, xr.Dataset | xr.DataArray]:
     """
-    Prepare flux datasets for flux maps by:
+    Prepare flux datasets for flux maps.
+
+    The preparation consists of:
       - filtering variables to only those with expected spatial or platform dimensions,
       - keeping only variables common to all datasets,
       - removing unused dimensions,
       - aligning time and spatial coordinates.
 
     Args:
-        ds_all (dict[xr.Dataset | xr.DataArray]):
+        ds_all:
             Dictionary of model names and corresponding xarray Datasets/DataArrays.
-        only_overlapping (bool):
+        only_overlapping:
             If True, reduces datasets to their overlapping time range before aligning.
             If False, includes all data and fills in missing time steps with NaNs.
+
     Returns:
-        dict[xr.Dataset | xr.DataArray]:
+        ds_all_aligned:
             Aligned Datasets/DataArrays, with consistent variables and coordinates.
     """
-
     # Step 1: Filter variables based on dimension criteria
     for key, ds in ds_all.items():
         if isinstance(ds, xr.DataArray):

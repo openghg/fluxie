@@ -19,9 +19,18 @@ def get_loaded_models(
     file_type: DataType,
 ) -> dict[str, xr.Dataset]:
     """
-    Returns a list of loaded models.
-    """
+    Read the hfc134a test data of the given models.
 
+    Args:
+        test_models:
+            Names of the models to read.
+        file_type:
+            Type of the files to read, e.g. 'flux' or 'concentration'.
+
+    Returns:
+        ds_all_mf:
+            Dictionary of the loaded datasets, with model names as keys.
+    """
     config_data = read_config_files()
 
     ds_all_mf = read_model_output(

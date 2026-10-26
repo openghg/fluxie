@@ -15,15 +15,18 @@ def define_var_plot(
     or directly returns a variable from the dataset.
 
     Args:
-        ds (xarray.Dataset):
+        ds:
             The input dataset containing various flux variables.
-        var (str | list[str]):
+        var:
             The variable name or difference type to be plotted. Options for difference include:
                    'posterior_prior_diff', 'posterior_mean_diff',
                    'posterior_prior_diff_inversion_grid', 'posterior_mean_diff_inversion_grid'.
+        sector:
+            Sector of the flux variables to use (variables named `flux_{sector}_...`),
+            by default 'total'.
 
     Returns:
-        var_plot (xarray.Dataset):
+        var_plot:
             The variable or computed difference to be plotted.
     """
     if not isinstance(var, list):
@@ -101,20 +104,19 @@ def define_var_plot(
 def make_model_diff_ds(
     ds1: xr.Dataset,
     ds2: xr.Dataset,
-):
+) -> xr.Dataset:
     """
-    Create a difference xarray.Dataset between two model datasets.
+    Create a difference between two model datasets.
 
     Args:
-        ds1 (xr.Dataset):
+        ds1:
             First model dataset.
-        ds2 (xr.Dataset):
+        ds2:
             Second model dataset.
 
     Returns:
-        xr.Dataset: A new xarray.Dataset containing the computed differences or combinations for the supported variables.
+        A new dataset containing the computed differences or combinations for the supported variables.
     """
-
     diff = {}
 
     for var in ds1.data_vars:
