@@ -17,7 +17,7 @@ from fluxie.config import set_model_colors, set_model_labels
 from fluxie.plots.flux_timeseries import plot_country_flux
 from fluxie.plots.flux_map import (
     plot_flux_map_over_time,
-    plot_flux_map_model_comparison,
+    plot_flux_map_combined_models_comparison,
 )
 
 logger = logging.getLogger(__name__)
@@ -41,8 +41,8 @@ def produce_plots(
     For annual and combined species, 2 plots are made:
         - country flux annual results covering the PARIS window (2018-202x),
         - average flux map over the PARIS window (2018-202x).
-    For every entry in `network_comparisons` (config), maps of two inversion runs and their
-    difference are made (e.g. expanded network vs. base network).
+    For every entry in `network_comparisons` (config), maps of the mean of two groups of models
+    and their difference are made (e.g. PARIS network vs. reduced network).
 
     Args:
         region :
@@ -348,20 +348,26 @@ def plot_network_comparison_maps(
     output_path: Path,
 ) -> None:
     """
-    Plot flux maps of two inversion runs (e.g. different site networks) and their difference,
-    averaged over the spatial maps time window, and save one figure per species.
+    Plot flux maps of the mean of two groups of models (e.g. all models with the PARIS network
+    and all models with a reduced network) and their difference, averaged over the spatial maps
+    time window, and save one figure per species.
+    The models of both groups are compared pairwise: for each species, a pair is only used if
+    both models have a "standard_run" entry for this species and both files exist, so that both
+    means are computed from the same inversion systems.
 
     Args:
         annex_config_data: annex settings (see config_annex_plot.py).
         config_data: settings read from the json config files.
-        comparison: dictionary with keys "name", "species" and "models" (see `network_comparisons` in config_annex_plot.py).
+        comparison: dictionary with keys "name", "species" and "groups" (see `network_comparisons` in config_annex_plot.py).
         region: region/country of focus.
         output_path: directory where to store the figures.
     """
-    models = list(comparison["models"].keys())
-    if len(models) != 2:
+    labels = list(comparison["groups"].keys())
+    groups = list(comparison["groups"].values())
+    if len(groups) != 2 or len(groups[0]) != len(groups[1]):
         raise ValueError(
-            f"Network comparison '{comparison['name']}' must contain exactly two models, got {models}."
+            f"Network comparison '{comparison['name']}' must contain exactly two groups "
+            f"with the same number of models, got {comparison['groups']}."
         )
 
     start_date = annex_config_data.start_date_spatial_maps
@@ -372,18 +378,21 @@ def plot_network_comparison_maps(
         print(f"- {species.upper()} network comparison map {start_date} - {end_date}")
         period = "monthly" if species in annex_config_data.monthly_species else "yearly"
 
-        # Each model needs its own standard run, otherwise both models could fall back
-        # to the same "default" run and the comparison would be meaningless
-        models_without_run = [
-            m for m in models if species not in standard_run.get(m, {})
+        # Each model needs its own standard run, otherwise both models of a pair could fall
+        # back to the same "default" run and the comparison would be meaningless
+        pairs = [
+            (a, b)
+            for a, b in zip(*groups)
+            if species in standard_run.get(a, {}) and species in standard_run.get(b, {})
         ]
-        if models_without_run:
+        unused_pairs = [p for p in zip(*groups) if p not in pairs]
+        if unused_pairs:
             logger.warning(
-                f"Network comparison '{comparison['name']}': no standard_run entry for {models_without_run} ({species}) "
-                "in models_info.json. Skipping this species."
+                f"Network comparison '{comparison['name']}': no standard_run entry in models_info.json "
+                f"for {unused_pairs} ({species}). These pairs are not used."
             )
-            continue
 
+        models = [m for pair in pairs for m in pair]
         ds_all_flux = read_model_output(
             annex_config_data.data_dir,
             "flux",
@@ -394,16 +403,30 @@ def plot_network_comparison_maps(
             add_sites_to_flux=True,
             read_standard_run=True,
         )
-        missing_models = [m for m in models if m not in ds_all_flux]
-        if missing_models:
+        pairs_missing_file = [
+            (a, b) for a, b in pairs if a not in ds_all_flux or b not in ds_all_flux
+        ]
+        if pairs_missing_file:
             logger.warning(
-                f"Network comparison '{comparison['name']}': no {period} flux file found for {missing_models} ({species}). "
+                f"Network comparison '{comparison['name']}': no {period} flux file found for "
+                f"{pairs_missing_file} ({species}). These pairs are not used."
+            )
+        pairs = [p for p in pairs if p not in pairs_missing_file]
+
+        if not pairs:
+            logger.warning(
+                f"Network comparison '{comparison['name']}': no model pair available for {species}. "
                 "Skipping this species."
             )
             continue
 
+        group_a_models = [a for a, _ in pairs]
+        group_b_models = [b for _, b in pairs]
+        print(f"  {labels[0]}: {group_a_models}")
+        print(f"  {labels[1]}: {group_b_models}")
+
         ds_all_flux_scaled = slice_flux(
-            ds_all_flux,
+            {m: ds_all_flux[m] for m in group_a_models + group_b_models},
             config_data,
             start_date,
             end_date,
@@ -412,13 +435,15 @@ def plot_network_comparison_maps(
             flux_units_print=annex_config_data.flux_units_print,
         )
 
-        fig = plot_flux_map_model_comparison(
+        fig = plot_flux_map_combined_models_comparison(
             ds_all_flux_scaled,
-            models=models,
+            group_a_models=group_a_models,
+            group_b_models=group_b_models,
             species=species,
             region=annex_config_data.kwargs_maps_general["region"],
             config_data=config_data,
-            model_labels=comparison["models"],
+            group_a_label=labels[0],
+            group_b_label=labels[1],
             add_markers=annex_config_data.kwargs_maps_general["add_markers"],
             set_fluxlim=annex_config_data.fluxlim.get(species, "auto"),
             set_fluxlim_percentile=annex_config_data.fluxlim_percentile.get(

@@ -346,7 +346,7 @@ class AnnexConfig:
     start_date_paris_window = "2018-01-01"
     start_date_spatial_maps = "2020-01-01"
     start_date_table = start_date_spatial_maps
-    end_date = "2025-01-01"
+    end_date = "2026-01-01"
 
     ### Settings for country fluxes
     ## Model definitions (list or dict["<period>": list(), "<species>": list()] if different between species)
@@ -498,45 +498,61 @@ class AnnexConfig:
     )
 
     ### Settings for network comparison maps
-    # Comparison of two inversion runs, e.g. expanded network vs. PARIS network.
-    # For every entry, maps of model 1, model 2 and model 1 - model 2 are made over the spatial maps time window.
+    # Comparison of the mean of two groups of models, e.g. all models with the PARIS network
+    # vs. all models with a reduced network.
+    # For every entry and species, maps of the mean of group 1, the mean of group 2 and their
+    # difference (group 1 - group 2) are made over the spatial maps time window.
     #   name: short name used in the output filename.
     #   species: list of species to compare.
-    #   models: dictionary {<model>: <label>} with exactly two entries.
+    #   groups: dictionary {<label>: <list of models>} with exactly two entries.
+    #           Both lists must have the same length: the models are compared pairwise (1st with 1st, ...).
     #           As for the other plots, the run of each model is defined in models_info.json ("standard_run"),
-    #           e.g. "InTEM_NAME-expanded": {"hfc134a": "NAME_EUROPE_EDGAR_PARISNID2027_nonPARISsites"}.
-    #           The model must have an explicit "standard_run" entry for the species (no fallback to "default").
-    # e.g. network_comparisons = [
-    #     dict(
-    #         name="nonPARISsites",
-    #         species=["hfc134a"],
-    #         models={
-    #             "InTEM_NAME-expanded": "Expanded Network",
-    #             "InTEM_NAME": "PARIS Network",
-    #         },
-    #     ),
-    # ]
-    # network_comparisons = []
+    #           e.g. "InTEM_NAME-reduced": {"hfc134a": "NAME_EUROPE_EDGAR_PARISNID2027_nonPARISsites"}.
+    #           For each species, a pair is only used if both models have an explicit "standard_run"
+    #           entry for this species (no fallback to "default") and both files exist.
     network_comparisons = [
         dict(
-            name="nonPARISsites_InTEM",
-            species=["hfc134a"],
-            models={
-                "InTEM_NAME-expanded": "Expanded Network",
-                "InTEM_NAME": "PARIS Network",
-            },
-        ),
-        dict(
-            name="nonPARISsites_ELRIS",
-            species=["hfc134a"],
-            models={
-                "ELRIS_NAME-expanded": "Expanded Network",
-                "ELRIS_NAME": "PARIS Network",
+            name="reduced",
+            species=[
+                "hfc23",
+                "hfc32",
+                "hfc125",
+                "hfc134a",
+                "hfc143a",
+                "hfc152a",
+                "hfc227ea",
+                "hfc236fa",
+                "hfc245fa",
+                "hfc365mfc",
+                "hfc4310mee",
+                "cf4",
+                "pfc116",
+                "pfc218",
+                "pfc318",
+                "nf3",
+            ],
+            groups={
+                "PARIS Network": [
+                    "InTEM_NAME",
+                    "InTEM_FLEXPART",
+                    "ELRIS_NAME",
+                    "ELRIS_FLEXPART",
+                    "RHIME_NAME",
+                    "RHIME_FLEXPART",
+                ],
+                "Reduced Network": [
+                    "InTEM_NAME-reduced",
+                    "InTEM_FLEXPART-reduced",
+                    "ELRIS_NAME-reduced",
+                    "ELRIS_FLEXPART-reduced",
+                    "RHIME_NAME-reduced",
+                    "RHIME_FLEXPART-reduced",
+                ],
             },
         ),
     ]
 
-    # kwargs for plot_flux_map_model_comparison
+    # kwargs for plot_flux_map_combined_models_comparison
     kwargs_maps_network = dict(
         var="flux_total_posterior_inversion_grid",
         cmap="viridis",
