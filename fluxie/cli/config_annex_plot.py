@@ -14,8 +14,16 @@ point_markers = {
     "HUNGARY": ["budapest", "debrecen", "miskolc", "szeged", "pecs"],
     "NORWAY": ["oslo", "bergen", "sandnes", "stavanger", "drammen"],
     "BELGIUM": ["brussels", "antwerp", "ghent", "charleroi", "liege"],
-    "POLAND": [(21.0122, 52.2297), (19.9450, 50.0647), (19.4560, 51.7592)],  # Warschau, Krakau, Łódź
-    "CZECHIA": ["prague", (16.6068, 49.1951), (18.2625, 49.8209)],           # Prag, Brno, Ostrava
+    "POLAND": [
+        (21.0122, 52.2297),
+        (19.9450, 50.0647),
+        (19.4560, 51.7592),
+    ],  # Warschau, Krakau, Łódź
+    "CZECHIA": [
+        "prague",
+        (16.6068, 49.1951),
+        (18.2625, 49.8209),
+    ],  # Prag, Brno, Ostrava
 }
 
 point_markers["BENELUX"] = (
@@ -407,7 +415,14 @@ class AnnexConfig:
     ## Combined means shown in the country flux plots (key = legend label)
     # NOTE: keep "Mean" as label for the PARIS mean (renamed to "PARIS mean" in the tables)
     combined_models_country_flux = {
-        "PARIS mean": ["InTEM_NAME", "InTEM_FLEXPART", "ELRIS_NAME", "ELRIS_FLEXPART", "RHIME_NAME", "RHIME_FLEXPART"],
+        "PARIS mean": [
+            "InTEM_NAME",
+            "InTEM_FLEXPART",
+            "ELRIS_NAME",
+            "ELRIS_FLEXPART",
+            "RHIME_NAME",
+            "RHIME_FLEXPART",
+        ],
         "NAME mean": ["InTEM_NAME", "ELRIS_NAME", "RHIME_NAME"],
     }
     combined_models_country_flux_sf6 = {
@@ -435,8 +450,6 @@ class AnnexConfig:
         plot_resample_and_original=False,
         return_res=True,
     )
-
-
 
     # for monthly/yearly species on extended time window
     # add entries for specific species if different from monthly/yearly default
@@ -634,7 +647,6 @@ class AnnexConfig:
         self.fluxlim_percentile = fluxlim_percentiles.get(region, dict())
         self.difflim_percentile = difflim_percentiles.get(region, dict())
 
-
         ### Add separate models (e.g. ITMS-D) for this region
         # deepcopy: class attributes must not be changed for the next region
         kwargs_names = [
@@ -646,7 +658,9 @@ class AnnexConfig:
         for name in kwargs_names:
             setattr(self, name, copy.deepcopy(getattr(self, name)))
 
-        for species, extra_models in separate_models_country_flux.get(region, {}).items():
+        for species, extra_models in separate_models_country_flux.get(
+            region, {}
+        ).items():
             period = "monthly" if species in self.monthly_species else "yearly"
             base_models = self.models_country_flux.get(
                 species, self.models_country_flux[period]
