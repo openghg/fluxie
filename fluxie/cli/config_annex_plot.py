@@ -1,4 +1,5 @@
 import logging
+import copy
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +14,8 @@ point_markers = {
     "HUNGARY": ["budapest", "debrecen", "miskolc", "szeged", "pecs"],
     "NORWAY": ["oslo", "bergen", "sandnes", "stavanger", "drammen"],
     "BELGIUM": ["brussels", "antwerp", "ghent", "charleroi", "liege"],
+    "POLAND": [(21.0122, 52.2297), (19.9450, 50.0647), (19.4560, 51.7592)],  # Warschau, Krakau, Łódź
+    "CZECHIA": ["prague", (16.6068, 49.1951), (18.2625, 49.8209)],           # Prag, Brno, Ostrava
 }
 
 point_markers["BENELUX"] = (
@@ -31,6 +34,25 @@ start_date_fgases = {
     "IRELAND": "2008-01-01",
     "HUNGARY": "2018-01-01",
     "NORWAY": "2018-01-01",
+    "POLAND": "2018-01-01",
+    "CZECHIA": "2018-01-01",
+}
+
+# Models plotted as separate lines in the country flux plots (not included in the means),
+# only for the listed regions and species (model domain must cover the region)
+separate_models_country_flux = {
+    "GERMANY": {"ch4": ["ITMS-D"]},
+    "NETHERLANDS": {"ch4": ["ITMS-D"]},
+}
+
+# Species-specific start dates (the later one of this and the region start date is used)
+start_date_species = {
+    "nf3": "2012-01-01",
+}
+
+# Start date of the HFC and PFC tables, if different from start_date_table
+start_date_table_fgases = {
+    "NORWAY": "2024-01-01",
 }
 
 # Lat/Lon limits in spatial maps
@@ -46,6 +68,8 @@ map_limits = {
     "IRELAND": [-12, -2, 50, 58],
     "HUNGARY": [14, 25, 44.5, 50.5],
     "NORWAY": [3, 33, 55, 79],
+    "POLAND": [13.5, 24.5, 48.5, 55.5],
+    "CZECHIA": [11.5, 19.5, 48, 51.5],
 }
 
 # Limits in posterior spatial map color scale (in units flux_units_print)
@@ -342,9 +366,11 @@ class AnnexConfig:
     combined_species = ["all_hfc", "all_pfc"]
 
     ### Start/end date
-    start_date_monthly_species = "2008-01-01"
+    # start_date_monthly_species = "2008-01-01"
+    start_date_monthly_species = "2012-01-01"
     start_date_paris_window = "2018-01-01"
     start_date_spatial_maps = "2020-01-01"
+    start_date_network_maps = "2024-01-01"  # not all sites measured before 2024
     start_date_table = start_date_spatial_maps
     end_date = "2026-01-01"
 
@@ -378,6 +404,20 @@ class AnnexConfig:
         ],
     }
 
+    ## Combined means shown in the country flux plots (key = legend label)
+    # NOTE: keep "Mean" as label for the PARIS mean (renamed to "PARIS mean" in the tables)
+    combined_models_country_flux = {
+        "PARIS mean": ["InTEM_NAME", "InTEM_FLEXPART", "ELRIS_NAME", "ELRIS_FLEXPART", "RHIME_NAME", "RHIME_FLEXPART"],
+        "NAME mean": ["InTEM_NAME", "ELRIS_NAME", "RHIME_NAME"],
+    }
+    combined_models_country_flux_sf6 = {
+        "PARIS mean": ["InTEM_NAME", "InTEM_FLEXPART", "ELRIS_NAME", "ELRIS_FLEXPART"],
+        "NAME mean": ["InTEM_NAME", "ELRIS_NAME"],
+    }
+
+    # Colors of the combined means, in the order of combined_models_country_flux
+    combined_colors_country_flux = ["black", "dodgerblue"]
+
     ## Units for plot
     country_flux_units_print = "Tg CO2-eq yr-1"
 
@@ -396,35 +436,40 @@ class AnnexConfig:
         return_res=True,
     )
 
+
+
     # for monthly/yearly species on extended time window
     # add entries for specific species if different from monthly/yearly default
     kwargs_country_flux_species_specific = {
         "monthly": dict(
-            plot_separate=[True, False, False, False, False, False, False],
-            plot_combined=[False, True, True, True, True, True, True],
+            plot_separate=False,
+            plot_combined=True,
+            combined_models_dict=combined_models_country_flux,
             resample="year",
             resample_uncert_correlation=False,
-            rolling_mean=[True, False, False, False, False, False, False],
+            rolling_mean=False,
         ),
         "yearly": dict(
-            plot_separate=[True, False, False, False, False, False],
+            plot_separate=False,
             plot_combined=True,
+            combined_models_dict=combined_models_country_flux,
             resample=None,
             rolling_mean=True,
         ),
         "sf6": dict(
-            plot_separate=[True, False, False, False],
+            plot_separate=False,
             plot_combined=True,
+            combined_models_dict=combined_models_country_flux_sf6,
             resample=None,
             rolling_mean=True,
         ),
     }
 
-    # for monthly species on PARIS time window
     kwargs_country_flux_monthly_species_special = {
         "monthly": dict(
-            plot_separate=[True, False, False, False, False, False, False],
-            plot_combined=[False, True, True, True, True, True, True],
+            plot_separate=False,
+            plot_combined=True,
+            combined_models_dict=combined_models_country_flux,
             resample=None,
             rolling_mean=False,
         )
@@ -435,8 +480,9 @@ class AnnexConfig:
     #       Set to None to skip this plot.
     kwargs_country_flux_seasonal_cycle = {
         "monthly": dict(
-            plot_separate=[True, False, False, False, False, False, False],
-            plot_combined=[False, True, True, True, True, True, True],
+            plot_separate=False,
+            plot_combined=True,
+            combined_models_dict=combined_models_country_flux,
             resample=None,
             rolling_mean=False,
             aggreg_month=True,
@@ -483,9 +529,10 @@ class AnnexConfig:
     # for flux total posterior (all species)
     kwargs_maps_mean = dict(
         var="flux_total_posterior_inversion_grid",
-        cmap="viridis",
+        cmap="cividis",
         c_border="floralwhite",
         chop_by="year",
+        marker_color="red",
     )
 
     # for posterior seasonal diff to mean (monthly species)
@@ -558,6 +605,7 @@ class AnnexConfig:
         cmap="viridis",
         c_border="floralwhite",
         add_sites=True,
+        marker_color="red",
     )
 
     def __init__(self, region, inventory_years):
@@ -573,6 +621,11 @@ class AnnexConfig:
             "monthly": self.start_date_monthly_species,
             "yearly": start_date_fgases[region],
         }
+        self.start_date_table_fgases = start_date_table_fgases.get(
+            region, self.start_date_table
+        )
+        for species, date in start_date_species.items():
+            self.start_date[species] = max(date, start_date_fgases[region])
 
         ### Settings for spatial maps
         self.kwargs_maps_general["region"] = map_limits[region]
@@ -580,3 +633,35 @@ class AnnexConfig:
         self.fluxlim = fluxlim.get(region, dict())
         self.fluxlim_percentile = fluxlim_percentiles.get(region, dict())
         self.difflim_percentile = difflim_percentiles.get(region, dict())
+
+
+        ### Add separate models (e.g. ITMS-D) for this region
+        # deepcopy: class attributes must not be changed for the next region
+        kwargs_names = [
+            "kwargs_country_flux_species_specific",
+            "kwargs_country_flux_monthly_species_special",
+            "kwargs_country_flux_seasonal_cycle",
+        ]
+        self.models_country_flux = copy.deepcopy(self.models_country_flux)
+        for name in kwargs_names:
+            setattr(self, name, copy.deepcopy(getattr(self, name)))
+
+        for species, extra_models in separate_models_country_flux.get(region, {}).items():
+            period = "monthly" if species in self.monthly_species else "yearly"
+            base_models = self.models_country_flux.get(
+                species, self.models_country_flux[period]
+            )
+            self.models_country_flux[species] = base_models + extra_models
+            n_base, n_extra = len(base_models), len(extra_models)
+
+            for name in kwargs_names:
+                settings = getattr(self, name)
+                if not settings:
+                    continue
+                kwargs = dict(settings.get(species, settings[period]))
+                rolling_mean = kwargs.get("rolling_mean", False)
+                if not isinstance(rolling_mean, list):
+                    rolling_mean = [rolling_mean] * n_base
+                kwargs["plot_separate"] = [False] * n_base + [True] * n_extra
+                kwargs["rolling_mean"] = rolling_mean + [False] * n_extra
+                settings[species] = kwargs

@@ -19,6 +19,7 @@ from fluxie.plots.flux_map import (
     plot_flux_map_over_time,
     plot_flux_map_combined_models_comparison,
 )
+import fluxie.config as fluxie_config
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +64,7 @@ def produce_plots(
     )
     config_data = read_config_files()
     annex_config_data = AnnexConfig(region, inventory_years)
+    fluxie_config.mean_color_palette = annex_config_data.combined_colors_country_flux
     annual_res_list = list()
 
     # Converting output_path into pathlib.Path object
@@ -87,7 +89,10 @@ def produce_plots(
 
         ### Get settings
         period = "monthly" if species in annex_config_data.monthly_species else "yearly"
-        start_date = annex_config_data.start_date[period]
+        # start_date = annex_config_data.start_date[period]
+        start_date = get_species_specific_settings(
+            species, period, annex_config_data.start_date
+        )
         models_country_flux = get_species_specific_settings(
             species, period, annex_config_data.models_country_flux
         )
@@ -331,7 +336,11 @@ def produce_plots(
             annual_res,
             inventory_years,
             species_list,
-            table_start_date=annex_config_data.start_date_table,
+            table_start_date=(
+                annex_config_data.start_date_table_fgases
+                if name in ["hfc", "pfc"]
+                else annex_config_data.start_date_table
+            ),
         )
         make_table(sp_res, output_path / f"{name}_res_{region}.tex", inventory_years)
         sp_res.to_csv(output_path / f"{name}_res_{region}.csv", index=False)
@@ -349,8 +358,8 @@ def plot_network_comparison_maps(
 ) -> None:
     """
     Plot flux maps of the mean of two groups of models (e.g. all models with the PARIS network
-    and all models with a reduced network) and their difference, averaged over the spatial maps
-    time window, and save one figure per species.
+    and all models with a reduced network) and their difference, averaged from
+    `start_date_network_maps` to `end_date`, and save one figure per species.
     The models of both groups are compared pairwise: for each species, a pair is only used if
     both models have a "standard_run" entry for this species and both files exist, so that both
     means are computed from the same inversion systems.
@@ -370,7 +379,7 @@ def plot_network_comparison_maps(
             f"with the same number of models, got {comparison['groups']}."
         )
 
-    start_date = annex_config_data.start_date_spatial_maps
+    start_date = annex_config_data.start_date_network_maps
     end_date = annex_config_data.end_date
     standard_run = config_data.get("models_info", {}).get("standard_run", {})
 
