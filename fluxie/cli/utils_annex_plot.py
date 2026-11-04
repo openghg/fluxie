@@ -1,5 +1,8 @@
 import pandas as pd
 import numpy as np
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def get_species_specific_settings(
@@ -116,6 +119,12 @@ def create_str_dataframe(
             ).values
         ).T
         max_exp = np.nanmax(exp)
+        if np.isnan(max_exp):
+            logger.warning(
+                f"No valid values for {species} (model '{model}' / inventory_{inventory_year}, "
+                f"from {table_start_date}) - skipped in table.\n{data_per_species}"
+            )
+            continue
         if max_exp < -1 and max_exp >= -4:
             for var in ["mean_val", "min_unc", "max_unc"]:
                 data_per_species[var] *= 1e3

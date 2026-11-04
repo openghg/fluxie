@@ -272,6 +272,7 @@ def produce_plots(
 
     print("\n\n--- GENERATING TABLES ---")
     annual_res = pd.concat(annual_res_list, ignore_index=True)
+    annual_res["model"] = annual_res["model"].replace({"Mean": "PARIS mean"})
 
     hfcs_list = [s for s in annual_res.species.unique() if s[:3].lower() == "hfc"]
     pfcs_list = [

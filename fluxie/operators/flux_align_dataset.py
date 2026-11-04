@@ -86,17 +86,35 @@ def align_time(
         sliced_ds_list = [ds.sel(time=slice(min_date, max_date)) for ds in ds_list]
 
         # Redefine timestamps according to first dataset
-        target_time = sliced_ds_list[0].time
-        aligned_ds_list = [sliced_ds_list[0]]
+        # Use the most complete dataset as reference, so that single models
+        # with missing time steps (gaps) are reindexed instead of failing
+        target_time = max(sliced_ds_list, key=lambda d: d.sizes["time"]).time
+        aligned_ds_list = []
 
-        for ds_p in sliced_ds_list[1:]:
+        for ds_p in sliced_ds_list:
             if ds_p.time.equals(target_time):
                 aligned_ds_list.append(ds_p)
                 continue
 
             # Check if time difference is within reasonal bounds before rewriting timestamps
             check_times_within_tolerance(ds_p, target_time.values, tolerance)
-            ds_p["time"] = target_time
+            if ds_p.sizes["time"] == target_time.size:
+                ds_p["time"] = target_time
+            else:
+                time_diff = np.abs(
+                    target_time.values[:, None] - ds_p.time.values[None, :]
+                ).min(axis=1)
+                missing_times = [
+                    str(t)[:10] for t in target_time.values[time_diff > tolerance]
+                ]
+                logger.warning(
+                    f"{ds_p.attrs.get('inversion_system', 'undefined model')} {ds_p.attrs.get('species', '')}: "
+                    f"{len(missing_times)} missing time step(s) at {missing_times}. "
+                    f"Filled with NaN, i.e. excluded from the combined mean at these time steps."
+                )
+                ds_p = ds_p.reindex(
+                    time=target_time, method="nearest", tolerance=tolerance
+                )
             aligned_ds_list.append(ds_p)
 
         return aligned_ds_list

@@ -66,9 +66,14 @@ def define_var_plot(
             ds_output[var_p] = ds[posterior] - ds[prior]
 
         elif var_p == "posterior_mean_diff_inversion_grid":
-            ds_output[var_p] = ds[f"flux_{sector}_posterior_inversion_grid"] - ds[
-                f"flux_{sector}_posterior_inversion_grid"
-            ].mean(dim="time")
+            posterior = f"flux_{sector}_posterior_inversion_grid"
+            if posterior not in ds:
+                posterior = f"flux_{sector}_posterior"
+                logger.warning(
+                    f"'flux_{sector}_posterior_inversion_grid' not found in dataset(s) (inversion system = {ds.attrs['inversion_system']}), "
+                    f"seasonal difference is computed on prior grid for this model."
+                )
+            ds_output[var_p] = ds[posterior] - ds[posterior].mean(dim="time")
 
         else:
 
