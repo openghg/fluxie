@@ -49,8 +49,10 @@ start_date_fgases = {
 # Models plotted as separate lines in the country flux plots (not included in the means),
 # only for the listed regions and species (model domain must cover the region)
 separate_models_country_flux = {
-    "GERMANY": {"ch4": ["ITMS-D"]},
-    "NETHERLANDS": {"ch4": ["ITMS-D"]},
+    "GERMANY": {"ch4": ["ITMS-D"],
+                "sf6": ["ITMS-D"]},
+    "NETHERLANDS": {"ch4": ["ITMS-D"],
+                    "sf6": ["ITMS-D"]},
 }
 
 # Species-specific start dates (the later one of this and the region start date is used)
@@ -433,6 +435,13 @@ class AnnexConfig:
     # Colors of the combined means, in the order of combined_models_country_flux
     combined_colors_country_flux = ["black", "dodgerblue"]
 
+    # Fixed colors of models in the country flux plots (otherwise assigned by order of the inversion systems)
+    # NOTE: a list of colors is needed (first color used for the line)
+    model_colors_country_flux = {"ITMS-D": ["darkorange", "orange"]}
+
+    # Combined means plotted with a thin line (same width as the separate lines, e.g. ITMS-D)
+    thin_lines_country_flux = ["NAME mean"]
+
     ## Units for plot
     country_flux_units_print = "Tg CO2-eq yr-1"
 
@@ -557,6 +566,15 @@ class AnnexConfig:
         set_fluxlim="auto",
     )
 
+    # kwargs for plot_flux_map_combined_models_comparison
+    kwargs_maps_network = dict(
+        var="flux_total_posterior_inversion_grid",
+        cmap="cividis",
+        c_border="floralwhite",
+        add_sites=True,
+        marker_color="red",
+    )
+
     ### Settings for network comparison maps
     # Comparison of the mean of two groups of models, e.g. all models with the PARIS network
     # vs. all models with a reduced network.
@@ -612,15 +630,6 @@ class AnnexConfig:
         ),
     ]
 
-    # kwargs for plot_flux_map_combined_models_comparison
-    kwargs_maps_network = dict(
-        var="flux_total_posterior_inversion_grid",
-        cmap="viridis",
-        c_border="floralwhite",
-        add_sites=True,
-        marker_color="red",
-    )
-
     def __init__(self, region, inventory_years):
         """
         Initialize instance and update attributes that depend of region and inventory years.
@@ -672,7 +681,10 @@ class AnnexConfig:
                 settings = getattr(self, name)
                 if not settings:
                     continue
-                kwargs = dict(settings.get(species, settings[period]))
+                base_kwargs = settings.get(species, settings.get(period))
+                if base_kwargs is None:  # plot type not made for this species (e.g. seasonal cycle for yearly species)
+                    continue
+                kwargs = dict(base_kwargs)
                 rolling_mean = kwargs.get("rolling_mean", False)
                 if not isinstance(rolling_mean, list):
                     rolling_mean = [rolling_mean] * n_base

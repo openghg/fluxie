@@ -138,6 +138,13 @@ def produce_plots(
 
         # Define plotting colors and labels
         model_colors = set_model_colors(models_country_flux)
+        model_colors.update(
+            {
+                m: c
+                for m, c in annex_config_data.model_colors_country_flux.items()
+                if m in model_colors
+            }
+        )
         model_labels = set_model_labels(
             models_country_flux, config_data, get_labels_from_file=True
         )
@@ -155,6 +162,7 @@ def produce_plots(
             **annex_config_data.kwargs_country_flux_general,
             **kwargs_country_flux_species_specific,
         )
+        set_thin_lines(fig, annex_config_data.thin_lines_country_flux)
         full_path = output_path / f"{species}_country_flux_annual_longrun_{region}.png"
         fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
         plt.close()
@@ -194,6 +202,7 @@ def produce_plots(
                 **annex_config_data.kwargs_country_flux_general,
                 **kwargs_country_flux_species_specific,
             )
+            set_thin_lines(fig, annex_config_data.thin_lines_country_flux)
             full_path = (
                 output_path / f"{species}_country_flux_annual_parisonly_{region}.png"
             )
@@ -216,6 +225,7 @@ def produce_plots(
                 **annex_config_data.kwargs_country_flux_general,
                 **kwargs_country_flux_monthly_species_special,
             )
+            set_thin_lines(fig, annex_config_data.thin_lines_country_flux)
             full_path = (
                 output_path / f"{species}_country_flux_monthly_parisonly_{region}.png"
             )
@@ -245,6 +255,7 @@ def produce_plots(
                         **kwargs_country_flux_seasonal_cycle,
                     },
                 )
+                set_thin_lines(fig, annex_config_data.thin_lines_country_flux)
                 full_path = (
                     output_path
                     / f"{species}_country_flux_seasonal_cycle_parisonly_{region}.png"
@@ -348,6 +359,17 @@ def produce_plots(
     print("\n--- TABLES GENERATED SUCCESSFULLY! ---")
     return annual_res
 
+
+def set_thin_lines(fig, labels: list[str], linewidth: float = 1.5):
+    """
+    Set the line width of the posterior lines with the given labels (e.g. combined means that
+    should not be highlighted). plot_country_flux highlights all combined means in annex_mode.
+    """
+    for ax in fig.axes:
+        for line in ax.get_lines():
+            if line.get_label() in labels:
+                line.set_linewidth(linewidth)
+                
 
 def plot_network_comparison_maps(
     annex_config_data: AnnexConfig,
@@ -460,6 +482,7 @@ def plot_network_comparison_maps(
             ),
             **annex_config_data.kwargs_maps_network,
         )
+        set_thin_lines(fig, annex_config_data.thin_lines_country_flux)
         full_path = (
             output_path
             / f"{species}_network_comparison_{comparison['name']}_{region}.png"
