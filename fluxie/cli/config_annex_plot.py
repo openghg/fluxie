@@ -55,6 +55,13 @@ separate_models_country_flux = {
                     "sf6": ["ITMS-D"]},
 }
 
+# Models plotted as separate spatial maps (same colour scale as the PARIS mean map).
+# The key is the file name suffix, e.g. ch4_posterior_map_GERMANY_ITMS.png
+separate_models_spatial_maps = {
+    "GERMANY": {"ch4": {"ITMS": ["ITMS-D"]}, "sf6": {"ITMS": ["ITMS-D"]}},
+    "NETHERLANDS": {"ch4": {"ITMS": ["ITMS-D"]}, "sf6": {"ITMS": ["ITMS-D"]}},
+}
+
 # Species-specific start dates (the later one of this and the region start date is used)
 start_date_species = {
     "nf3": "2012-01-01",
@@ -691,3 +698,6 @@ class AnnexConfig:
                 kwargs["plot_separate"] = [False] * n_base + [True] * n_extra
                 kwargs["rolling_mean"] = rolling_mean + [False] * n_extra
                 settings[species] = kwargs
+
+        ### Add separate models for the spatial maps (e.g. ITMS-D) for this region
+        self.separate_models_spatial_maps = separate_models_spatial_maps.get(region, {})
