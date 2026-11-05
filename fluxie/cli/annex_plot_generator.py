@@ -20,6 +20,7 @@ from fluxie.plots.flux_map import (
     plot_flux_map_over_time,
     plot_flux_map_combined_models_comparison,
 )
+from fluxie.plots.utils import get_map_bounds
 import fluxie.config as fluxie_config
 
 logger = logging.getLogger(__name__)
@@ -394,6 +395,15 @@ def plot_maps_shared_scale(ds_maps, file_stem, output_path, **kwargs):
     all with the same colour scale, covering the limits of every group.
     """
     if len(ds_maps) > 1:
+        # Use the map bounds of the first group (PARIS mean) for all groups,
+        # so that all maps show the same area and have the same size
+        first_group = next(iter(ds_maps.values()))
+        kwargs["region"] = get_map_bounds(
+            kwargs["region"],
+            list(first_group.values()),
+            kwargs["config_data"],
+            zoom_degree=kwargs.get("zoom_degree", 1),
+        )
         lims = []
         for ds_group in ds_maps.values():
             fig = plot_flux_map_over_time(ds_group, **kwargs)
