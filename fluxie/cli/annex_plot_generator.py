@@ -2,6 +2,7 @@ import logging
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.collections import QuadMesh
 from pathlib import Path
 
 from config_annex_plot import AnnexConfig
@@ -15,7 +16,12 @@ from fluxie.io import read_config_files, read_model_output, read_flux_total_fgas
 from fluxie.operators.select import slice_flux
 from fluxie.config import set_model_colors, set_model_labels
 from fluxie.plots.flux_timeseries import plot_country_flux
-from fluxie.plots.flux_map import plot_flux_map_over_time
+from fluxie.plots.flux_map import (
+    plot_flux_map_over_time,
+    plot_flux_map_combined_models_comparison,
+)
+from fluxie.plots.utils import get_map_bounds
+import fluxie.config as fluxie_config
 
 logger = logging.getLogger(__name__)
 
@@ -28,15 +34,18 @@ def produce_plots(
     """
     Create plots, table amd tex files to be used in annex reports.
     Info such as data directory, species to use,.. are read in adjacent config_annex_plot.py file.
-    For monthly species, 5 plots are made :
+    For monthly species, 6 plots are made :
         - country flux annual average covering the max possible time range,
         - country flux annual average covering the PARIS window (2018-202x),
         - country flux monthly results covering the PARIS window (2018-202x),
+        - country flux mean seasonal cycle covering the PARIS window (2018-202x),
         - average flux map over the PARIS window (2018-202x),
         - seasonal flux map over the PARIS window (2018-202x).
     For annual and combined species, 2 plots are made:
         - country flux annual results covering the PARIS window (2018-202x),
         - average flux map over the PARIS window (2018-202x).
+    For every entry in `network_comparisons` (config), maps of the mean of two groups of models
+    and their difference are made (e.g. PARIS network vs. reduced network).
 
     Args:
         region :
@@ -57,6 +66,7 @@ def produce_plots(
     )
     config_data = read_config_files()
     annex_config_data = AnnexConfig(region, inventory_years)
+    fluxie_config.mean_color_palette = annex_config_data.combined_colors_country_flux
     annual_res_list = list()
 
     # Converting output_path into pathlib.Path object
@@ -81,7 +91,10 @@ def produce_plots(
 
         ### Get settings
         period = "monthly" if species in annex_config_data.monthly_species else "yearly"
-        start_date = annex_config_data.start_date[period]
+        # start_date = annex_config_data.start_date[period]
+        start_date = get_species_specific_settings(
+            species, period, annex_config_data.start_date
+        )
         models_country_flux = get_species_specific_settings(
             species, period, annex_config_data.models_country_flux
         )
@@ -116,6 +129,9 @@ def produce_plots(
                 add_sites_to_flux=True,
                 read_standard_run=True,
             )
+            # Some models (e.g. ITMS-D) have no 'inversion_system' attribute, which is used in fluxie warnings
+            for m, ds in ds_all_flux.items():
+                ds.attrs.setdefault("inversion_system", m.split("_")[0])
             ds_all_flux_scaled = slice_flux(
                 ds_all_flux,
                 config_data,
@@ -127,6 +143,13 @@ def produce_plots(
 
         # Define plotting colors and labels
         model_colors = set_model_colors(models_country_flux)
+        model_colors.update(
+            {
+                m: c
+                for m, c in annex_config_data.model_colors_country_flux.items()
+                if m in model_colors
+            }
+        )
         model_labels = set_model_labels(
             models_country_flux, config_data, get_labels_from_file=True
         )
@@ -144,6 +167,7 @@ def produce_plots(
             **annex_config_data.kwargs_country_flux_general,
             **kwargs_country_flux_species_specific,
         )
+        set_thin_lines(fig, annex_config_data.thin_lines_country_flux)
         full_path = output_path / f"{species}_country_flux_annual_longrun_{region}.png"
         fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
         plt.close()
@@ -183,6 +207,7 @@ def produce_plots(
                 **annex_config_data.kwargs_country_flux_general,
                 **kwargs_country_flux_species_specific,
             )
+            set_thin_lines(fig, annex_config_data.thin_lines_country_flux)
             full_path = (
                 output_path / f"{species}_country_flux_annual_parisonly_{region}.png"
             )
@@ -205,11 +230,43 @@ def produce_plots(
                 **annex_config_data.kwargs_country_flux_general,
                 **kwargs_country_flux_monthly_species_special,
             )
+            set_thin_lines(fig, annex_config_data.thin_lines_country_flux)
             full_path = (
                 output_path / f"{species}_country_flux_monthly_parisonly_{region}.png"
             )
             fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
             plt.close()
+
+            # 1.3) Plot mean seasonal cycle of country fluxes over PARIS time window
+            settings_seasonal_cycle = getattr(
+                annex_config_data, "kwargs_country_flux_seasonal_cycle", None
+            )
+            if settings_seasonal_cycle:
+                print(f"- Seasonal cycle of country fluxes {start_date} - {end_date}")
+                kwargs_country_flux_seasonal_cycle = get_species_specific_settings(
+                    species, period, settings_seasonal_cycle
+                )
+                # Species-specific settings override the general ones (e.g. plot_inventory)
+                fig, _ = plot_country_flux(
+                    ds_all_flux_scaled,
+                    species=species,
+                    model_colors=model_colors,
+                    model_labels=model_labels,
+                    start_date=start_date,
+                    end_date=end_date,
+                    config_data=config_data,
+                    **{
+                        **annex_config_data.kwargs_country_flux_general,
+                        **kwargs_country_flux_seasonal_cycle,
+                    },
+                )
+                set_thin_lines(fig, annex_config_data.thin_lines_country_flux)
+                full_path = (
+                    output_path
+                    / f"{species}_country_flux_seasonal_cycle_parisonly_{region}.png"
+                )
+                fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
+                plt.close()
 
         else:
             # Store results for .csv and table
@@ -217,24 +274,32 @@ def produce_plots(
 
         ### Spatial maps
         if "all" not in species:
-            # Select datasets to plot and re-slice the data
+            # Select datasets to plot and re-slice the data.
+            # "" = PARIS mean map, other keys = separate maps (e.g. "_ITMS")
             start_date = annex_config_data.start_date_spatial_maps
-            ds_all_flux = {m: ds_all_flux[m] for m in models_spatial_maps}
-            ds_all_flux_scaled = slice_flux(
-                ds_all_flux,
-                config_data,
-                start_date,
-                end_date,
-                species=species,
-                country_flux_units_print=annex_config_data.country_flux_units_print,
-                flux_units_print=annex_config_data.flux_units_print,
-            )
+            separate_maps = annex_config_data.separate_models_spatial_maps.get(species, {})
+            map_groups = {"": models_spatial_maps}
+            map_groups.update({f"_{s}": models for s, models in separate_maps.items()})
+            ds_maps = {
+                suffix: slice_flux(
+                    {m: ds_all_flux[m] for m in models},
+                    config_data,
+                    start_date,
+                    end_date,
+                    species=species,
+                    country_flux_units_print=annex_config_data.country_flux_units_print,
+                    flux_units_print=annex_config_data.flux_units_print,
+                )
+                for suffix, models in map_groups.items()
+            }
 
             # 2) Plot spatial map of the posterior fluxes averaged over PARIS time window
             print(f"- Average map {start_date} - {end_date}")
             dt = int(end_date[:4]) - int(start_date[:4])
-            fig = plot_flux_map_over_time(
-                ds_all_flux_scaled,
+            plot_maps_shared_scale(
+                ds_maps,
+                f"{species}_posterior_map_{region}",
+                output_path,
                 species=species,
                 model_labels=model_labels,
                 config_data=config_data,
@@ -246,15 +311,14 @@ def produce_plots(
                 **annex_config_data.kwargs_maps_general,
                 **annex_config_data.kwargs_maps_mean,
             )
-            full_path = output_path / f"{species}_posterior_map_{region}.png"
-            fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
-            plt.close()
 
             if species in annex_config_data.monthly_species:
                 # 3) Seasonnal maps
                 print(f"- Seasonnal map {start_date} - {end_date}")
-                fig = plot_flux_map_over_time(
-                    ds_all_flux_scaled,
+                plot_maps_shared_scale(
+                    ds_maps,
+                    f"{species}_seasonal_map_{region}",
+                    output_path,
                     species=species,
                     model_labels=model_labels,
                     config_data=config_data,
@@ -264,9 +328,13 @@ def produce_plots(
                     **annex_config_data.kwargs_maps_general,
                     **annex_config_data.kwargs_maps_seasonnal,
                 )
-                full_path = output_path / f"{species}_seasonal_map_{region}.png"
-                fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
-                plt.close()
+
+    ### Network comparison maps
+    for comparison in getattr(annex_config_data, "network_comparisons", []):
+        print(f"-- NETWORK COMPARISON {comparison['name']}")
+        plot_network_comparison_maps(
+            annex_config_data, config_data, comparison, region, output_path
+        )
 
     print("\n--- ALL PLOTS GENERATED SUCCESSFULLY! ---")
 
@@ -288,10 +356,183 @@ def produce_plots(
             annual_res,
             inventory_years,
             species_list,
-            table_start_date=annex_config_data.start_date_table,
+            table_start_date=(
+                annex_config_data.start_date_table_fgases
+                if name in ["hfc", "pfc"]
+                else annex_config_data.start_date_table
+            ),
         )
         make_table(sp_res, output_path / f"{name}_res_{region}.tex", inventory_years)
         sp_res.to_csv(output_path / f"{name}_res_{region}.csv", index=False)
 
     print("\n--- TABLES GENERATED SUCCESSFULLY! ---")
     return annual_res
+
+
+def set_thin_lines(fig, labels: list[str], linewidth: float = 1.5):
+    """
+    Set the line width of the posterior lines with the given labels (e.g. combined means that
+    should not be highlighted). plot_country_flux highlights all combined means in annex_mode.
+    """
+    for ax in fig.axes:
+        for line in ax.get_lines():
+            if line.get_label() in labels:
+                line.set_linewidth(linewidth)
+                
+
+def get_map_clim(fig):
+    """Return the colour limits (vmin, vmax) of the first map in a figure."""
+    for ax in fig.axes:
+        for collection in ax.collections:
+            if isinstance(collection, QuadMesh):
+                return collection.get_clim()
+    raise ValueError("No map found in figure")
+
+
+def plot_maps_shared_scale(ds_maps, file_stem, output_path, **kwargs):
+    """
+    Plot one spatial map figure per group of models (e.g. PARIS mean and ITMS-D),
+    all with the same colour scale, covering the limits of every group.
+    """
+    if len(ds_maps) > 1:
+        # Use the map bounds of the first group (PARIS mean) for all groups,
+        # so that all maps show the same area and have the same size
+        first_group = next(iter(ds_maps.values()))
+        kwargs["region"] = get_map_bounds(
+            kwargs["region"],
+            list(first_group.values()),
+            kwargs["config_data"],
+            zoom_degree=kwargs.get("zoom_degree", 1),
+        )
+        lims = []
+        for ds_group in ds_maps.values():
+            fig = plot_flux_map_over_time(ds_group, **kwargs)
+            lims.append(get_map_clim(fig))
+            plt.close(fig)
+        kwargs["set_fluxlim"] = (min(l[0] for l in lims), max(l[1] for l in lims))
+
+    for suffix, ds_group in ds_maps.items():
+        fig = plot_flux_map_over_time(ds_group, **kwargs)
+        full_path = output_path / f"{file_stem}{suffix}.png"
+        fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
+        plt.close(fig)
+
+
+def plot_network_comparison_maps(
+    annex_config_data: AnnexConfig,
+    config_data: dict,
+    comparison: dict,
+    region: str,
+    output_path: Path,
+) -> None:
+    """
+    Plot flux maps of the mean of two groups of models (e.g. all models with the PARIS network
+    and all models with a reduced network) and their difference, averaged from
+    `start_date_network_maps` to `end_date`, and save one figure per species.
+    The models of both groups are compared pairwise: for each species, a pair is only used if
+    both models have a "standard_run" entry for this species and both files exist, so that both
+    means are computed from the same inversion systems.
+
+    Args:
+        annex_config_data: annex settings (see config_annex_plot.py).
+        config_data: settings read from the json config files.
+        comparison: dictionary with keys "name", "species" and "groups" (see `network_comparisons` in config_annex_plot.py).
+        region: region/country of focus.
+        output_path: directory where to store the figures.
+    """
+    labels = list(comparison["groups"].keys())
+    groups = list(comparison["groups"].values())
+    if len(groups) != 2 or len(groups[0]) != len(groups[1]):
+        raise ValueError(
+            f"Network comparison '{comparison['name']}' must contain exactly two groups "
+            f"with the same number of models, got {comparison['groups']}."
+        )
+
+    start_date = annex_config_data.start_date_network_maps
+    end_date = annex_config_data.end_date
+    standard_run = config_data.get("models_info", {}).get("standard_run", {})
+
+    for species in comparison["species"]:
+        print(f"- {species.upper()} network comparison map {start_date} - {end_date}")
+        period = "monthly" if species in annex_config_data.monthly_species else "yearly"
+
+        # Each model needs its own standard run, otherwise both models of a pair could fall
+        # back to the same "default" run and the comparison would be meaningless
+        pairs = [
+            (a, b)
+            for a, b in zip(*groups)
+            if species in standard_run.get(a, {}) and species in standard_run.get(b, {})
+        ]
+        unused_pairs = [p for p in zip(*groups) if p not in pairs]
+        if unused_pairs:
+            logger.warning(
+                f"Network comparison '{comparison['name']}': no standard_run entry in models_info.json "
+                f"for {unused_pairs} ({species}). These pairs are not used."
+            )
+
+        models = [m for pair in pairs for m in pair]
+        ds_all_flux = read_model_output(
+            annex_config_data.data_dir,
+            "flux",
+            species,
+            models,
+            config_data,
+            period=period,
+            add_sites_to_flux=True,
+            read_standard_run=True,
+        )
+        pairs_missing_file = [
+            (a, b) for a, b in pairs if a not in ds_all_flux or b not in ds_all_flux
+        ]
+        if pairs_missing_file:
+            logger.warning(
+                f"Network comparison '{comparison['name']}': no {period} flux file found for "
+                f"{pairs_missing_file} ({species}). These pairs are not used."
+            )
+        pairs = [p for p in pairs if p not in pairs_missing_file]
+
+        if not pairs:
+            logger.warning(
+                f"Network comparison '{comparison['name']}': no model pair available for {species}. "
+                "Skipping this species."
+            )
+            continue
+
+        group_a_models = [a for a, _ in pairs]
+        group_b_models = [b for _, b in pairs]
+        print(f"  {labels[0]}: {group_a_models}")
+        print(f"  {labels[1]}: {group_b_models}")
+
+        ds_all_flux_scaled = slice_flux(
+            {m: ds_all_flux[m] for m in group_a_models + group_b_models},
+            config_data,
+            start_date,
+            end_date,
+            species=species,
+            country_flux_units_print=annex_config_data.country_flux_units_print,
+            flux_units_print=annex_config_data.flux_units_print,
+        )
+
+        fig = plot_flux_map_combined_models_comparison(
+            ds_all_flux_scaled,
+            group_a_models=group_a_models,
+            group_b_models=group_b_models,
+            species=species,
+            region=annex_config_data.kwargs_maps_general["region"],
+            config_data=config_data,
+            group_a_label=labels[0],
+            group_b_label=labels[1],
+            add_markers=annex_config_data.kwargs_maps_general["add_markers"],
+            set_fluxlim=annex_config_data.fluxlim.get(species, "auto"),
+            set_fluxlim_percentile=annex_config_data.fluxlim_percentile.get(
+                species, None
+            ),
+            **annex_config_data.kwargs_maps_network,
+        )
+        set_thin_lines(fig, annex_config_data.thin_lines_country_flux)
+        full_path = (
+            output_path
+            / f"{species}_network_comparison_{comparison['name']}_{region}.png"
+        )
+        fig.savefig(full_path, bbox_inches="tight", pad_inches=0.2, dpi=300)
+        plt.close()
