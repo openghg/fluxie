@@ -9,6 +9,7 @@ from typing import Literal, Tuple
 from pathlib import Path
 from datetime import date, datetime, timedelta
 from calendar import isleap, month_abbr, monthrange
+import scipy.optimize as opt
 
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
@@ -33,6 +34,8 @@ country_equivalent = {
     "NW_EU_CONTINENT": "NW CONTINENTAL EUROPE",
 }
 
+def lin(t, m, c):
+    return m*t + c
 
 def get_unit(ds_all: dict[str, xr.Dataset]) -> str:
     """
@@ -810,12 +813,12 @@ def add_legend(
         else:
             legend_loc = (0.5, 1.15)
         handles, labels = fig.axes[0].get_legend_handles_labels()
-        fig.legend(
+        leg = fig.legend(
             handles,
             labels,
             loc="upper center",
-            ncol=(
-                len(labels) if len(labels) <= 6 else len(labels) // 2 + len(labels) % 2
+            ncol=(1
+                #len(labels) if len(labels) <= 6 else len(labels) // 2 + len(labels) % 2
             ),
             borderpad=0.4,
             columnspacing=1.0,
@@ -831,7 +834,8 @@ def add_legend(
             n_inv = 0
         for ax in fig.axes:
             _, labels = ax.get_legend_handles_labels()
-            ncol = 3 if annex_mode else 2
+            #ncol = 3 if annex_mode else 2
+            ncol = 1
             leg = ax.legend(ncol=ncol, borderpad=0.4, columnspacing=1.0)
 
             handle_name = (
@@ -845,6 +849,7 @@ def add_legend(
             ]:
                 l.set_linewidth(3.0)
 
+    return leg
 
 def add_title(ax: Axes, country: str, r_data: dict, country_codes_as_titles: bool):
     """
@@ -978,6 +983,9 @@ def plot_country_flux(
     add_vline: list[str] | None = None,
     secondary_units: str | None = None,
     only_overlapping: bool = True,
+    plot_trend: bool = False,
+    trend_start_date: str | None = None,
+    trend_end_date: str | None = None,
 ) -> Figure | tuple[Figure, dict[str, dict]]:
     """
     Timeseries plot of prior and posterior country fluxes, from list of
@@ -1028,6 +1036,9 @@ def plot_country_flux(
         plot_grid: if True, add a faint grid to each subplot.
         add_vline: list of dates (str) where to add vertical lines on each plot. format 'YYYY-MM-DD'.
         secondary_units: If provided, add a secondary y-axis with these units.
+        plot_trend: If True, plots linear trend between trend_start_date and trend_end_date
+        trend_start_date: Start of period over which linear trend is calculated.
+        trend_end_date: End of period over which linear trend is calculated.
     Returns:
         fig: A plot per country/region.
         res_dict : If return_res, return also a dataframe containing the plotted results. The columns of this dataframe are "type" (possible values "prior"/"posterior"/"inventory"),
@@ -1146,11 +1157,57 @@ def plot_country_flux(
                 plotted_data_df = pd.concat(
                     [plotted_data_df, inventory_df], ignore_index=True
                 )
+                
             except KeyError as ke:
                 logger.warning(
                     f"Missing inventory data for {species} in {country}: {ke}"
                 )
-
+                
+        if plot_trend:
+            
+            data_for_trend = plotted_data_df[plotted_data_df['model'] == 'InTEM yearly'].reset_index()
+            inventory_for_trend = plotted_data_df[plotted_data_df['model'] == 'inventory_2026'].reset_index()
+                
+            inventory_times=inventory_for_trend["time"].values
+            
+            fit_inventory=[]
+            fit_inversion=[]
+            fit_times_inventory=[]
+            fit_times_inversion=[]
+            
+            s_inventory=[]
+            s_inversion=[]
+            
+            rounded_times = data_for_trend["time"].values.astype('datetime64[Y]').astype('datetime64[D]')
+            
+            for i,time_test in enumerate(rounded_times):
+                if np.datetime64(time_test) >= np.datetime64(trend_start_date) and np.datetime64(time_test) <= np.datetime64(trend_end_date):
+                    fit_inversion.append(data_for_trend["mean_val"][i])
+                    s_inversion.append(np.mean([data_for_trend["mean_val"][i]-data_for_trend["min_unc"][i], data_for_trend["max_unc"][i]-data_for_trend["mean_val"][i]]))
+                    fit_times_inversion.append(np.datetime64(str(time_test))+np.timedelta64(180,"D"))
+                    
+                    if time_test in inventory_times:
+                        
+                        inventory_time_id = np.where(inventory_times == time_test)[0][0]
+                        fit_inventory.append(inventory_for_trend["mean_val"][inventory_time_id])
+                        fit_times_inventory.append(np.datetime64(str(time_test))+np.timedelta64(180,"D"))
+                        
+            fit_times_inventory_float=[int(str(t)[:4]) for t in fit_times_inventory]
+            fit_times_inversion_float=[int(str(t)[:4]) for t in fit_times_inversion]
+            
+            popt, pcov = opt.curve_fit(lin, fit_times_inversion_float, fit_inversion,sigma=s_inversion)
+            grad, c = popt
+            print("Inversion fit:", grad,c)
+            print(fit_inversion)
+            
+            ax.plot(fit_times_inversion, grad*np.array(fit_times_inversion_float)+c,color=model_colors[m][0],linestyle=":",zorder=10)
+                
+            popt, pcov = opt.curve_fit(lin, fit_times_inventory_float, fit_inventory)
+            m, c = popt
+            print("Inventory fit:", m,c)
+            print(fit_inventory)
+            ax.plot(fit_times_inventory, m*np.array(fit_times_inventory_float)+c,color="black",linestyle=":",zorder=10)
+            
         # add vertical lines
         if add_vline is not None:
             add_vlines(ax, vline_dates=add_vline)
@@ -1185,8 +1242,15 @@ def plot_country_flux(
         axes[-1], yearly_freq, plotted_data_df, aggreg_month, xticks_at_centre
     )
 
-    add_legend(fig, set_global_leg, annex_mode, plot_inventory, inventory_years)
+    legend = add_legend(fig, set_global_leg, annex_mode, plot_inventory, inventory_years)
 
+    if plot_trend:
+        replacement_legend_text = {'InTEM yearly':f'InTEM yearly (gradient = {np.round(grad,2)})',
+                                'Inventory 2026':f'Inventory 2026 (gradient = {np.round(m,2)})'}
+
+        for text in legend.get_texts():
+            text.set_text(replacement_legend_text.get(text.get_text(),text.get_text()))
+        
     logger.info(
         "NOTE: If all the data is not within axis limits, adjust the fix_y_axes parameter"
     )
