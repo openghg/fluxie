@@ -9,6 +9,7 @@ from typing import Literal, Tuple
 from pathlib import Path
 from datetime import date, datetime, timedelta
 from calendar import isleap, month_abbr, monthrange
+import string
 
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
@@ -865,6 +866,25 @@ def add_title(ax: Axes, country: str, r_data: dict, country_codes_as_titles: boo
         ax.set_title(f"{print_country}")
 
 
+def add_subplot_label(axes: list[Axes], add_label: bool | str):
+
+    if not (add_label):
+        return
+
+    labels = string.ascii_lowercase
+    start_index = 0
+
+    # Get starting label if specified
+    if isinstance(add_label, str):
+        start_index = labels.index(add_label.lower())
+
+    for i, ax in enumerate(axes):
+        label = f"{labels[i+start_index]})"
+        ax.text(
+            0.02, 0.98, label, transform=ax.transAxes, fontsize=14, va="top", ha="left"
+        )
+
+
 def add_vlines(ax: Axes, vline_dates: list[str]):
     """
     Add vertical lines to matplotlib axes at specified dates.
@@ -978,6 +998,7 @@ def plot_country_flux(
     add_vline: list[str] | None = None,
     secondary_units: str | None = None,
     only_overlapping: bool = True,
+    add_label: bool | str = False,
 ) -> Figure | tuple[Figure, dict[str, dict]]:
     """
     Timeseries plot of prior and posterior country fluxes, from list of
@@ -1175,6 +1196,8 @@ def plot_country_flux(
                 unit=unit,
                 secondary_unit=secondary_units,
             )
+
+    add_subplot_label(axes, add_label)
 
     add_ylim(axes, "country", plot_regions, plotted_data_df, fix_y_axes, set_global_leg)
     yearly_freq = (
