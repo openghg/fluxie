@@ -1055,7 +1055,7 @@ def plot_country_flux(
         add_vline: list of dates (str) where to add vertical lines on each plot. format 'YYYY-MM-DD'.
         secondary_units: If provided, add a secondary y-axis with these units.
         add_label: if True, add roman letter labels at the top left corner of each panel (default False).
-            Labels will start at "a)" or at the designated letter if add_label is set to a string. 
+            Labels will start at "a)" or at the designated letter if add_label is set to a string.
     Returns:
         fig: A plot per country/region.
         res_dict : If return_res, return also a dataframe containing the plotted results. The columns of this dataframe are "type" (possible values "prior"/"posterior"/"inventory"),
