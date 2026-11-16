@@ -876,7 +876,10 @@ def add_subplot_label(axes: list[Axes], add_label: bool | str):
 
     # Get starting label if specified
     if isinstance(add_label, str):
-        start_index = labels.index(add_label.lower())
+        if add_label in labels:
+            start_index = labels.index(add_label.lower())
+        else:
+            raise KeyError(f"{add_label=} is not a valid option. It must be set to True/False or to an ascii lowercase letter.")
 
     for i, ax in enumerate(axes):
         label = f"{labels[i+start_index]})"
@@ -1049,6 +1052,8 @@ def plot_country_flux(
         plot_grid: if True, add a faint grid to each subplot.
         add_vline: list of dates (str) where to add vertical lines on each plot. format 'YYYY-MM-DD'.
         secondary_units: If provided, add a secondary y-axis with these units.
+        add_label: if True, add roman letter labels at the top left corner of each panel (default False).
+            Labels will start at "a)" or at the designated letter if add_label is set to a string. 
     Returns:
         fig: A plot per country/region.
         res_dict : If return_res, return also a dataframe containing the plotted results. The columns of this dataframe are "type" (possible values "prior"/"posterior"/"inventory"),
