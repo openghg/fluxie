@@ -879,7 +879,9 @@ def add_subplot_label(axes: list[Axes], add_label: bool | str):
         if add_label in labels:
             start_index = labels.index(add_label.lower())
         else:
-            raise KeyError(f"{add_label=} is not a valid option. It must be set to True/False or to an ascii lowercase letter.")
+            raise KeyError(
+                f"{add_label=} is not a valid option. It must be set to True/False or to an ascii lowercase letter."
+            )
 
     for i, ax in enumerate(axes):
         label = f"{labels[i+start_index]})"
