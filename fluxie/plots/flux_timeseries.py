@@ -910,23 +910,41 @@ def add_legend(
                 l.set_linewidth(3.0)
 
 
-def add_title(ax: Axes, country: str, r_data: dict, country_codes_as_titles: bool):
+def add_title(
+    ax: Axes,
+    country: str,
+    r_data: dict,
+    country_codes_as_titles: bool | None,
+    model: str | list[str] | None = None,
+):
     """
     Add title to matplotlib axes either as the region code or as the full region name whose flux are plotted.
+    If a subset of inversion systems are plotted in each subpanel, this is added to the title.
+
     Args:
         ax: axis to add title to.
         country: country name, should correspond to the data plotted on the axes.
         r_data: dictionnary containing infos on regions (like decomposition of "super-region2 -like BENELUX- or full name). See configs/regions_info.json.
         country_codes_as_titles: If True, write the list of country code in the title, under the region name.
+            If None, the country is ommited in the title.
+        model: model or list of models plotted in the subpanel.
+            If None, all models are being plotted and no model info is added to the title.
     """
 
-    # set title
+    # set model title
+    model_str = ""
+    if model:
+        model_str = f"{model}\n"
+
+    # set country title
     print_country = country_equivalent.get(country, country)
 
     if country_codes_as_titles and country in r_data["regions"].keys():
-        ax.set_title(f'{print_country}\n{r_data["regions"][country]}')
+        ax.set_title(f'{model_str}{print_country}\n{r_data["regions"][country]}')
     elif country_codes_as_titles == False:
-        ax.set_title(f"{print_country}")
+        ax.set_title(f"{model_str}{print_country}")
+    elif country_codes_as_titles == None:
+        ax.set_title(f"{model_str}".replace("\n", ""))
 
 
 def add_subplot_label(axes: list[Axes], add_label: bool | str):
@@ -1268,7 +1286,7 @@ def plot_country_flux(
             ax.grid(visible=True, which="major", alpha=0.4)
 
         # set ax title
-        add_title(ax, country, r_data, country_codes_as_titles)
+        add_title(ax, country, r_data, country_codes_as_titles, model)
 
         # add secondary axis
         if secondary_units is not None:
