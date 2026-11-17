@@ -161,7 +161,8 @@ def create_fig_and_axes(
         figsize=(n_cols * 6, n_rows * 4),
     )
     if isinstance(axes, np.ndarray):
-        axes = axes.flatten()[: n_rows * n_cols]
+        # NOTE: nb_subplots is prefered if split_models=False because it might differ from n_rows*n_cols (e.g. if nb_subplots=5)
+        axes = axes.flatten()[: n_rows * n_cols if split_models else nb_subplots]
     else:
         axes = [axes]
 
