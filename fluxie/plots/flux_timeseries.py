@@ -91,21 +91,64 @@ def determine_subplots_arrangement(subplot_number: int) -> tuple[int, int]:
 
 
 def create_fig_and_axes(
-    nb_subplots: int, transpose: bool = False
-) -> Tuple[Figure, Axes]:
+    nb_subplots: int,
+    transpose: bool = False,
+    regions: list[str] | None = None,
+    models: list[str] = [],
+    split_models: bool | list[str] | list[list[str]] = False,
+) -> Tuple[Figure, Axes, list[str] | None, list[str] | None]:
     """
-    Create matplotib figure and axes object based on the number of subplots asked for.
+    Create matplotib figure and axes object based on the number of subplots asked for and option to split models per panel.
+
     Args:
         nb_subplots: number of subplot wanted (should be the number of subregion to plot when used in plot_country_flux)
+        transpose: exchange rows by columns
+        regions: list of regions of the size of nb_subplots. Each element of the list will be replicated multiple times if split_models != False.
+        models: list of models to plot. Used to get unique list of inversion systems if split_models = True.
+        split_models: if True, the number of columns is set to the number of unique inversion system (default False, all models in all subpanels).
+            If set to a list, the number of columns is given by the length of the list.
+
     Returns:
-        fig, axes: fig and flattened axes
+        fig: figure
+        axes: flattened axes
+        panel_regions: list with the region to be plotted in each subpanel (None if regions not defined)
+        panel_models: list with the inversion systems to be plotted in each subpanel (None if all models)
     """
 
-    n_cols_rows = determine_subplots_arrangement(nb_subplots)
-    if transpose:
-        n_rows, n_cols = n_cols_rows
+    if isinstance(regions, list):
+        nb_regions = len(regions)
+        if nb_subplots != nb_regions:
+            raise KeyError(
+                f"nb_subplots is not equal to the number of subregions to plot: {nb_subplots=} and {regions=}"
+            )
+
+    if split_models and transpose:
+        logger.warning(
+            "Splitting models along subpanels. Option 'transpose' will be ignored."
+        )
+
+    # Create list with inversion systems to plot per column
+    if isinstance(split_models, list):
+        models_by_panel = split_models
+    elif split_models:
+        models_by_panel = list(
+            dict.fromkeys(os.path.basename(model).split("_")[0] for model in models)
+        )
+
+    # Get number of rows, colums and lists with regions/inversion systems per panel
+    if split_models:
+        n_cols = len(models_by_panel)
+        n_rows = nb_regions
+        panel_models = models_by_panel * n_rows
+        panel_regions = [country for country in regions for _ in range(n_cols)]
     else:
-        n_cols, n_rows = n_cols_rows
+        n_cols_rows = determine_subplots_arrangement(nb_subplots)
+        if transpose:
+            n_rows, n_cols = n_cols_rows
+        else:
+            n_cols, n_rows = n_cols_rows
+        panel_models = nb_subplots * [None]
+        panel_regions = regions
 
     fig, axes = plt.subplots(
         n_rows,
@@ -115,11 +158,11 @@ def create_fig_and_axes(
         figsize=(n_cols * 6, n_rows * 4),
     )
     if isinstance(axes, np.ndarray):
-        axes = axes.flatten()[:nb_subplots]
+        axes = axes.flatten()[: n_rows * n_cols]
     else:
         axes = [axes]
 
-    return fig, axes
+    return fig, axes, panel_regions, panel_models
 
 
 def prepare_data_to_plot(
@@ -1004,6 +1047,7 @@ def plot_country_flux(
     secondary_units: str | None = None,
     only_overlapping: bool = True,
     add_label: bool | str = False,
+    split_models: bool | list[str] | list[list[str]] = False,
 ) -> Figure | tuple[Figure, dict[str, dict]]:
     """
     Timeseries plot of prior and posterior country fluxes, from list of
@@ -1056,6 +1100,8 @@ def plot_country_flux(
         secondary_units: If provided, add a secondary y-axis with these units.
         add_label: if True, add roman letter labels at the top left corner of each panel (default False).
             Labels will start at "a)" or at the designated letter if add_label is set to a string.
+        split_models: if True, plots each inversion system in a different subpanel.
+            A list of inversion systems or a list per panel can also be specified (e.g. [["InTEM", "ELRIS"], ["InTEM", "RHIME"]] for 2 panels)
     Returns:
         fig: A plot per country/region.
         res_dict : If return_res, return also a dataframe containing the plotted results. The columns of this dataframe are "type" (possible values "prior"/"posterior"/"inventory"),
@@ -1098,13 +1144,24 @@ def plot_country_flux(
     }
 
     # Create figure
-    fig, axes = create_fig_and_axes(len(plot_regions))
+    fig, axes, panel_regions, panel_models = create_fig_and_axes(
+        len(plot_regions), False, plot_regions, list(ds_all.keys()), split_models
+    )
 
     # Iterate over each axes and regions
-    for ax, country in zip(axes, plot_regions):
+    for ax, country, model in zip(axes, panel_regions, panel_models):
+        # subset of ds to plot
+        if model:
+            ds_panel = {
+                m: ds
+                for m, ds in ds_all.items()
+                if os.path.basename(m).split("_")[0] in model
+            }
+        else:
+            ds_panel = ds_all
 
         # prepare model results
-        ds_all_region = extract_region_flux(ds_all, country, r_data, sectors=sector)
+        ds_all_region = extract_region_flux(ds_panel, country, r_data, sectors=sector)
         ds_to_plot = prepare_data_to_plot(
             ds_all_region=ds_all_region,
             model_labels=model_labels,
@@ -1323,10 +1380,10 @@ def plot_country_sector_flux_bar(
     # create figure
     if plot_inventory_or_prior == "inventory":
         n_plots = len(ds_to_plot.keys()) + len(inventory_years)
-        fig, axes = create_fig_and_axes(n_plots)
+        fig, axes, *_ = create_fig_and_axes(n_plots)
     elif plot_inventory_or_prior == "prior":
         n_plots = len(ds_to_plot.keys()) * 2
-        fig, axes = create_fig_and_axes(n_plots, transpose=True)
+        fig, axes, *_ = create_fig_and_axes(n_plots, transpose=True)
 
     for i, (m, ds) in enumerate(ds_to_plot.items()):
 
