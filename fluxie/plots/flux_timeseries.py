@@ -1301,7 +1301,9 @@ def plot_country_flux(
 
     add_subplot_label(axes, add_label)
 
-    add_ylim(axes, "country", panel_regions, plotted_data_df, fix_y_axes, set_global_leg)
+    add_ylim(
+        axes, "country", panel_regions, plotted_data_df, fix_y_axes, set_global_leg
+    )
     yearly_freq = (
         "yearly" in [ds.attrs["frequency"] for ds in ds_to_plot.values()]
         or resample == "year"
