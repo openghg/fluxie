@@ -1187,19 +1187,9 @@ def plot_country_flux(
 
     # Iterate over each axes and regions
     for ax, country, model in zip(axes, panel_regions, panel_models):
-        # subset of ds to plot
-        if model:
-            ds_panel = {
-                m: ds
-                for m, ds in ds_all.items()
-                if os.path.basename(m).split("_")[0] in model
-            }
-        else:
-            ds_panel = ds_all
-
         # prepare model results
-        ds_all_region = extract_region_flux(ds_panel, country, r_data, sectors=sector)
-        ds_to_plot = prepare_data_to_plot(
+        ds_all_region = extract_region_flux(ds_all, country, r_data, sectors=sector)
+        ds_all_to_plot = prepare_data_to_plot(
             ds_all_region=ds_all_region,
             model_labels=model_labels,
             model_colors=model_colors,
@@ -1213,6 +1203,16 @@ def plot_country_flux(
             aggreg_month=aggreg_month,
             only_overlapping=only_overlapping,
         )
+
+        # subset of ds to plot
+        if model:
+            ds_to_plot = {
+                m: ds
+                for m, ds in ds_all_to_plot.items()
+                if os.path.basename(m).split("_")[0] in model
+            }
+        else:
+            ds_to_plot = ds_all_to_plot
 
         # plot posterior and prior (if requested)
         for m, ds_region in ds_to_plot.items():
