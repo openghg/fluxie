@@ -16,6 +16,7 @@ from matplotlib.figure import Figure
 from matplotlib.dates import YearLocator, MonthLocator
 from matplotlib.ticker import NullFormatter
 from matplotlib import __version__ as mplt_version
+from matplotlib.container import BarContainer
 
 from fluxie import config
 from fluxie.operators.regions import extract_region_flux, format_plot_regions
@@ -853,14 +854,33 @@ def add_legend(
             legend_loc = (0.5, 1.1)
         else:
             legend_loc = (0.5, 1.15)
-        handles, labels = fig.axes[0].get_legend_handles_labels()
+
+        # Get all handles and labels
+        handles, labels = [], []
+        inv_handles, inv_labels = [], []
+        for ax in fig.axes:
+            h, l = ax.get_legend_handles_labels()
+            # Get inventory handles
+            for hi, li in zip(h, l):
+                if isinstance(hi, BarContainer):
+                    inv_handles.append(hi)
+                    inv_labels.append(li)
+                else:
+                    handles.append(hi)
+                    labels.append(li)
+        # Move inventory handles to the end
+        handles.extend(inv_handles)
+        labels.extend(inv_labels)
+        # Remove duplicated labels, keep original order
+        unique_labels = dict(zip(labels, handles))
+
+        n_labels = len(unique_labels)
+
         fig.legend(
-            handles,
-            labels,
+            unique_labels.values(),
+            unique_labels.keys(),
             loc="upper center",
-            ncol=(
-                len(labels) if len(labels) <= 6 else len(labels) // 2 + len(labels) % 2
-            ),
+            ncol=(n_labels if n_labels <= 6 else n_labels // 2 + n_labels % 2),
             borderpad=0.4,
             columnspacing=1.0,
             bbox_to_anchor=legend_loc,
