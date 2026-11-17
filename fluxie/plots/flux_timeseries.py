@@ -10,6 +10,7 @@ from pathlib import Path
 from datetime import date, datetime, timedelta
 from calendar import isleap, month_abbr, monthrange
 import string
+import itertools
 
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
@@ -239,12 +240,12 @@ def prepare_data_to_plot(
 
     # Assign default color list and label to input dataset
     model_colors = model_colors.copy()
+    missing_color = [m for m in ds_all_region if m not in model_colors]
+    default_colors = itertools.cycle(config.get_default_colors())
+    model_colors.update({m: [next(default_colors)] for m in missing_color})
     for m in ds_all_region.keys():
         ds_all_region[m].attrs["model_label"] = model_labels.get(m, m)
-        if m not in model_colors.keys():
-            model_colors[m] = config.get_default_colors()
         ds_all_region[m].attrs["model_colors"] = model_colors[m]
-    map_model_colors = {f"c{i}": m for i, m in enumerate(model_colors.values())}
 
     # Prepare list of dataset to plot
     ds_to_plot = dict()
@@ -336,24 +337,15 @@ def prepare_data_to_plot(
             ds_to_plot.update(ds_combined)
 
     # Determine plot color and label of each dataset
-    color_usage = {k: 0 for k in map_model_colors.keys()}
     i_comb = 0
     for m in ds_to_plot.keys():
-        include_label = ds_to_plot[m].attrs.get("model_label", None)
         if "combined" in m:
             model_color = config.mean_color_palette[
                 i_comb % len(config.mean_color_palette)
             ]
             i_comb += 1
         else:
-            key_mc = [
-                k
-                for k in map_model_colors.keys()
-                if map_model_colors[k] == ds_to_plot[m].attrs["model_colors"]
-            ][0]
-            nb = color_usage[key_mc]
-            model_color = map_model_colors[key_mc][nb % len(map_model_colors[key_mc])]
-            color_usage[key_mc] = color_usage[key_mc] + 1
+            model_color = model_colors[m][0]
 
         if ("_resample" in m) and plot_resample_and_original:
             ds_to_plot[m].attrs["model_label"] += " (resampled)"
