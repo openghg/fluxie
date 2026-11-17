@@ -135,6 +135,8 @@ def create_fig_and_axes(
         models_by_panel = list(
             dict.fromkeys(os.path.basename(model).split("_")[0] for model in models)
         )
+    else:
+        pass
 
     # Get number of rows, colums and lists with regions/inversion systems per panel
     if split_models:
@@ -945,6 +947,10 @@ def add_title(
         ax.set_title(f"{model_str}{print_country}")
     elif country_codes_as_titles == None:
         ax.set_title(f"{model_str}".replace("\n", ""))
+    else:
+        logger.warning(
+            "Title could not be generated. Either country_codes_as_titles is not set to True/False/None or region to plot was not found."
+        )
 
 
 def add_subplot_label(axes: list[Axes], add_label: bool | str):
