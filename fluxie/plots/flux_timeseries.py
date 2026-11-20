@@ -940,24 +940,23 @@ def add_title(
             If None, all models are being plotted and no model info is added to the title.
     """
 
-    # set model title
-    model_str = ""
-    if model:
-        model_str = f"{model}\n"
-
-    # set country title
+    # Build title
+    print_model = f"{model}\n" if model else ""
     print_country = country_equivalent.get(country, country)
+    title = ""
 
     if country_codes_as_titles and country in r_data["regions"].keys():
-        ax.set_title(f'{model_str}{print_country}\n{r_data["regions"][country]}')
+        title = f'{print_model}{print_country}\n{r_data["regions"][country]}'
     elif country_codes_as_titles == False:
-        ax.set_title(f"{model_str}{print_country}")
+        title = f"{print_model}{print_country}"
     elif country_codes_as_titles == None:
-        ax.set_title(f"{model_str}".replace("\n", ""))
+        title = f"{print_model}".replace("\n", "")
     else:
         logger.warning(
             "Title could not be generated. Either country_codes_as_titles is not set to True/False/None or region to plot was not found."
         )
+
+    ax.set_title(title)
 
 
 def add_subplot_label(axes: list[Axes], add_label: bool | str):
