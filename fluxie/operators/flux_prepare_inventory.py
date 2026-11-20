@@ -21,6 +21,7 @@ def retrieve_inventories(
 ) -> list[xr.Dataset]:
     """
     Load (in a list) inventories data to be plotted.
+
     If multiple sectors are asked for, each dataset of the list will have a sector dimension.
     NOTE: Call _retrieve_inventories_sector recursively for each sector.
 
@@ -36,11 +37,11 @@ def retrieve_inventories(
         inventory_years: List of inventory data from different years to include. If None, only plots the most recent inventory data.
         inventory_filename: Name of inventory file: {inventory_filename}_{species}_{inventory_year}
         sectors: Emissions sector(s), default 'total'
+
     Returns:
-        inventories_list : list of inventory data to be plotted.
+        inventories_list: list of inventory data to be plotted.
 
     """
-
     if not isinstance(inventory_years, list):
         inventory_years = [inventory_years]
 
@@ -118,12 +119,12 @@ def _retrieve_inventories_sector(
         inventory_years: List of inventory data from different years to include. If None, only plots the most recent inventory data.
         inventory_filename: Name of inventory file: {inventory_filename}_{species}_{inventory_year}
         sector: Emissions sector
+
     Returns:
-        inventories_list : list of inventory data to be plotted.
+        inventories_list: list of inventory data to be plotted.
         inventories_uncert_list: list of inventory uncertainty data.
 
     """
-
     inventories_list = list()
     inventories_uncert_list = list()
 

@@ -27,7 +27,9 @@ The publish job runs only when **all** of these conditions are true:
 1. Prepare the release commit on your devel branch.
 2. Run local checks before tagging:
     ```bash
-    black --check ./tests ./fluxie
+    black --check ./tests ./fluxie ./docs
+    ruff check ./fluxie ./docs
+    pydoclint ./fluxie ./docs
     pytest
     ```
 3. Ensure all release changes are committed and pushed to the remote repository.

@@ -17,24 +17,25 @@ def compute_mf_difference(
     ds_all: dict[str, xr.Dataset], models_to_subtract: list[str]
 ) -> dict[str, xr.Dataset]:
     """
-    Calculates the difference between two datasets with mole fraction data.
+    Calculate the difference between two datasets with mole fraction data.
+
     Only the timestamps/sites common to both datasets are used.
     Only mole fraction variables are subtracted and included in the return
     dataset.
 
     Args:
-        ds_all (dictionary of datasets):
+        ds_all:
             xarray datasets from all models, sliced between chosen dates.
-        models_to_subtract (list of str):
+        models_to_subtract:
             List with two elements which correspond to the names of the models
             to subtract.
+
     Returns:
-        ds_diff (dictionary of dataset):
+        ds_diff:
             Dictionary with one single key pointing to an xarray dataset.
             Key is given by the two elements in models_to_subtract separated
             by a minus sign (-).
     """
-
     models = list(ds_all.keys())
 
     if len(models_to_subtract) != 2:
@@ -126,13 +127,12 @@ def compute_mf_difference(
 
 
 def stats_mf(
-    ds_all: dict[str, dict],
+    ds_all: dict[str, xr.Dataset],
     stats_type: StatsType | list[StatsType] = "prior",
-    sites: list = None,
+    sites: list[str] | None = None,
 ) -> pd.DataFrame:
     """
-    Calculates multiple statistical measures of the fit between the posterior
-    mean mf and the observed mole fraction.
+    Calculate statistical measures of the fit between simulated and observed mole fractions.
 
     This calls :py:func:`fluxie.operators.stats.stats_observed_vs_simulated`
 
@@ -147,11 +147,11 @@ def stats_mf(
             BC contribution subtracted from both observation and simulation.
         sites:
             sites for which to make the stats.
+
     Returns:
-        stats (pandas.DataFrame):
+        stats:
             Dataframe containing the statistical measures.
     """
-
     if isinstance(stats_type, str):
         stats_type = [stats_type]
 

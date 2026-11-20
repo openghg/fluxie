@@ -1,6 +1,6 @@
 import itertools
 import logging
-from typing import Literal
+from typing import Any, Literal
 from enum import Enum
 import numpy as np
 
@@ -31,13 +31,32 @@ logger = logging.getLogger(__name__)
 
 
 class PlotTypes(Enum):
+    """Layouts available for the timeseries plots."""
+
     SEPARATE = "separate"
     TOGETHER = "together"
     DIFF = "diff"
     MULTIPLE_SITES = "multiple_sites"
 
 
-def plot_mf_timeseries(*args, **kwargs) -> plt.Figure:
+def plot_mf_timeseries(*args: object, **kwargs: object) -> plt.Figure:
+    """
+    Plot mole fraction timeseries (legacy wrapper of :py:func:`plot_timeseries`).
+
+    Handles the legacy position of the `include` argument (previously the
+    10th positional argument, now the 2nd) and sets a default `include`
+    (observations and posterior with percentile uncertainty) if not given.
+
+    Args:
+        *args:
+            Positional arguments passed to :py:func:`plot_timeseries`.
+        **kwargs:
+            Keyword arguments passed to :py:func:`plot_timeseries`.
+
+    Returns:
+        fig:
+            The matplotlib figure created by :py:func:`plot_timeseries`.
+    """
     # Solve the legacy position of the include argument
     LEGACY_INCLUDE_POSITION = 9
     NEW_INCLUDE_POSITION = 1
@@ -68,13 +87,19 @@ def plot_mf_timeseries(*args, **kwargs) -> plt.Figure:
 
 def _prepare_aggreg_month_var(da_var: xr.DataArray | xr.Dataset) -> xr.Dataset:
     """
-    Aggregate by month the dataset/array variable(s). The outputed dataset has two dimensions: "time" (array from 1 to 12)
+    Aggregate by month the dataset/array variable(s).
+
+    The outputed dataset has two dimensions: "time" (array from 1 to 12)
     and "percentile". The percentile coordinate has 3 values: "mean" corresonding to the mean value for the month and
     "lower"/"upper" corresponding to the 0.159/0.841 percentile of the variable for the month.
+
     Args:
-        da_var: datarray/dataset to aggregate by month
+        da_var:
+            Datarray/dataset to aggregate by month.
+
     Returns:
-        dataset of variable(s) aggregate by month, including their mean and spread.
+        ds_aggreg:
+            Dataset of variable(s) aggregated by month, including their mean and spread.
     """
     if isinstance(da_var, xr.DataArray):
         da_var = da_var.to_dataset()
@@ -99,20 +124,29 @@ def _prepare_aggreg_month_var(da_var: xr.DataArray | xr.Dataset) -> xr.Dataset:
 
 
 def _prepare_var(
-    ds: xr.Dataset, var: str, unc_var: str | None, model: str = None
+    ds: xr.Dataset, var: str, unc_var: str | None, model: str | None = None
 ) -> xr.Dataset:
     """
-    Format the required variable <var> and its uncertainty <unc_var> in one dataset containing one variable (named <var>).
+    Format the variable <var> and its uncertainty <unc_var> in one dataset.
+
+    The dataset contains one variable (named <var>).
     The variable thus created has two dimensions: "index" (corresponding to time) and "percentile". "percentile" can take 1 to 4
     values: "mean" (always present) being the main value, "lower" and "upper" (optionnals) which are the "upper" and "lower"
     boundaries of the associated uncertainty, and "std" (optionnal) which is the std / one side associated uncertainty.
+
     Args:
-        ds: dataset containing <var> and <unc_var>
-        var: main variable
-        unc_var: uncertainty corresponding to <var> (optionnal)
-        model: model name, just used to help if there is an error.
-    Return:
-        dataset containing one variable and 2 dimensions: index and percentile.
+        ds:
+            Dataset containing <var> and <unc_var>.
+        var:
+            Main variable.
+        unc_var:
+            Uncertainty corresponding to <var> (optionnal).
+        model:
+            Model name, just used to help if there is an error.
+
+    Returns:
+        ds_var:
+            Dataset containing one variable and 2 dimensions: index and percentile.
     """
     mean = ds[[var]]
     mean = mean.expand_dims(
@@ -162,18 +196,26 @@ def _prepare_var(
     return xr.merge([mean, unc], compat="no_conflicts", join="outer")
 
 
-def _retrieve_variable(ds, var, unc_var):
+def _retrieve_variable(ds: xr.Dataset, var: str, unc_var: str | None) -> xr.Dataset:
     """
-    Infer variable from dataset. Possibility are to substract the boundary conditions to a variable (var should then finis with "_above_BC")
+    Infer variable from dataset.
+
+    Possibility are to substract the boundary conditions to a variable (var should then finis with "_above_BC")
     or substract a variable from one another (var should then finis with "_diff").
     NOTE: the attribute of the new variable will be copied from the first of the original variable of the dataset used to infer it.
+
     Args:
-        ds: dataset to infer the new variable from
-        var: new variable to infer. Options are '<var1>_above_BC' and '<var1>_<var2>_diff' with <var1> and <var2> being one of
+        ds:
+            Dataset to infer the new variable from.
+        var:
+            New variable to infer. Options are '<var1>_above_BC' and '<var1>_<var2>_diff' with <var1> and <var2> being one of
             'prior' (for 'mf_prior'), 'posterior' (for 'mf_posterior'), 'observed' (for 'mf_observed').
-        unc_var: uncertainty to associated with the new variable. Currently not implemented. Will raise an error if not None.
+        unc_var:
+            Uncertainty to associate with the new variable. Currently not implemented. Will raise an error if not None.
+
     Returns:
-        ds: dataset with new variable inside.
+        ds:
+            Dataset with new variable inside.
     """
     if unc_var:
         raise NotImplementedError(
@@ -227,22 +269,32 @@ def _prepare_data_to_plot(
 ) -> dict[str, xr.Dataset]:
     """
     Create dictionnary of datasets containing all the data that will be plotted.
+
     Args:
-        ds_all: dictionnary of dataset from which the variable are taken
-        include: variables to plot in the main panel. If is a dictionnary : the keys are the variables to plot and the
+        ds_all:
+            Dictionnary of dataset from which the variable are taken.
+        include:
+            Variables to plot in the main panel. If is a dictionnary : the keys are the variables to plot and the
             values the uncertainty that will be shaded around them.
-        diff_include: variables that will be plot in the secondary (histogram) panel.
+        diff_include:
+            Variables that will be plot in the secondary (histogram) panel.
             In this function, they are treated as the ones passed with `include` parameter.
-        time_freq_min: Time frequency minimum of the timeserie that should be shown as continous line.
+        aggreg_month:
+            If True, the variables are aggregated by month (see :py:func:`_prepare_aggreg_month_var`)
+            and the requested uncertainties are replaced by the monthly spread.
+        time_freq_min:
+            Time frequency minimum of the timeserie that should be shown as continous line.
             If the frequency is lower than this, the line will be discontinous. For more information,
             see :py:func:`fluxie.operators.select.clean_timeseries_missing_data`
-        plot_type: type of plot. Just used to check that no uncertainty plotting is asked for in `include` when `plot_type="diff"`.
+        plot_type:
+            Type of plot. Just used to check that no uncertainty plotting is asked for in `include` when `plot_type="diff"`.
+
     Returns:
-        data_to_plot: dictionnary of dataset containing the variables to plot. Each variable as two dimensions: "index" (corresponding to time, sometimes named "time")
+        data_to_plot:
+            Dictionnary of dataset containing the variables to plot. Each variable as two dimensions: "index" (corresponding to time, sometimes named "time")
             and "percentile". "percentile" can take 4 values: "mean" (always present) being the main value, "lower" and "upper" (optionnals) which are the
             "upper" and "lower" boundaries of the associated uncertainty, and "std" (optionnal) which is the std / one side associated uncertainty.
     """
-
     plot_type = PlotTypes(plot_type)
 
     if not include:
@@ -326,20 +378,30 @@ def _prepare_data_to_plot(
 def _set_labels_and_colors(
     ds_dict: dict[str, xr.Dataset],
     model_labels: dict[str, str],
-    model_colors: dict[str, list],
+    model_colors: dict[str, list] | None,
     plot_type: PlotTypes,
 ) -> dict[str, xr.Dataset]:
     """
-    Set labels and colors, that will be used by add_line_scatter_plot and plot_histogram, as attributes of the variables dataset.
+    Set labels and colors as attributes of the variables dataset.
+
+    These are used by add_line_scatter_plot and plot_histogram.
     For variables "mf_observed" and "observed_above_BC", the color will be black (and not one of model_colors) if more than one variable is plotted.
+
     Args:
-        ds_dict: dictionnary containing the dataset with the variables to be plotted (and only them).
-        model_labels: dictionnary with same keys as ds_dict (unless plot_type="diff") that contains corresponding label
-        model_colors: dictionnary with same keys as ds_dict (unless plot_type="diff") that contains list of colors to be used with each model
-        plot_type: type of plot. If diff, look in model_labels for the labels of the two models used for the diff to construct the new label.
-            Otherwise use directly the model_labels value corresponding to the dataset from ds_dict
-    Return:
-        ds_dict: dictionnary of datasets where the label and color have been added as attributes of the dataset / dataset variables.
+        ds_dict:
+            Dictionnary containing the dataset with the variables to be plotted (and only them).
+        model_labels:
+            Dictionnary with same keys as ds_dict (unless plot_type="diff") that contains corresponding label.
+        model_colors:
+            Dictionnary with same keys as ds_dict (unless plot_type="diff") that contains list of colors to be used with each model.
+            If None, default colors are used.
+        plot_type:
+            Type of plot. If diff, look in model_labels for the labels of the two models used for the diff to construct the new label.
+            Otherwise use directly the model_labels value corresponding to the dataset from ds_dict.
+
+    Returns:
+        ds_dict:
+            Dictionnary of datasets where the label and color have been added as attributes of the dataset / dataset variables.
     """
     plot_type = PlotTypes(plot_type)
 
@@ -378,19 +440,27 @@ def _create_figure(
     plot_type: PlotTypes,
     histogram_type: str | None,
     aggreg_month: bool,
-) -> tuple[Figure, Axes]:
+) -> tuple[Figure, np.ndarray]:
     """
     Create figure and axes with size, number of columns and rows depending of the arguments.
-    Args:
-        models: list of models to use. Is the number of rows if plot_type=="separate". Otherwise unused.
-        plot_type: Options are "separate" (correspond to a plot where all models are separated), "together (all model on the same plot), "diff" (diff of the two models)
-            If plot_type is one of "together" or "diff", the figure will have one row, otherwise (plot_type="separate"), the number of rows will be the number of models.
-        histogram_type: type of histogramm that will be plotted. If not none, 2 columns will be created, unless aggreg_month is True.
-        aggreg_month: Wheter or not the data will be aggregated by month. If True, the plot size will be smaller than if False, and the histogram_type parameter will be ignored.
-    Return:
-        fig, ax: matplotlib figure and axes object with appropriate sizes.
-    """
 
+    Args:
+        models:
+            List of models to use. Is the number of rows if plot_type=="separate". Otherwise unused.
+        plot_type:
+            Options are "separate" (correspond to a plot where all models are separated), "together (all model on the same plot), "diff" (diff of the two models)
+            If plot_type is one of "together" or "diff", the figure will have one row, otherwise (plot_type="separate"), the number of rows will be the number of models.
+        histogram_type:
+            Type of histogramm that will be plotted. If not none, 2 columns will be created, unless aggreg_month is True.
+        aggreg_month:
+            Wheter or not the data will be aggregated by month. If True, the plot size will be smaller than if False, and the histogram_type parameter will be ignored.
+
+    Returns:
+        fig:
+            Matplotlib figure with appropriate size.
+        ax:
+            2D array (nrows, ncols) of matplotlib axes.
+    """
     plot_type = PlotTypes(plot_type)
 
     if plot_type == PlotTypes.SEPARATE:
@@ -423,13 +493,18 @@ def _create_figure(
 
 def _get_unit(ds_dict: dict[str, xr.Dataset]) -> str:
     """
-    Check if all variables in the datasets from the dictionnary have the same unit. If so returns it else raise an error.
-    Args:
-        ds_dict: dictionnary of dataset containing the variables to check (and only those).
-    Return:
-        the unit of the variables
-    """
+    Get the common unit of all variables in the datasets from the dictionnary.
 
+    Raises an error if the variables do not all have the same unit.
+
+    Args:
+        ds_dict:
+            Dictionnary of dataset containing the variables to check (and only those).
+
+    Returns:
+        unit:
+            The unit of the variables (empty string if no variable is found).
+    """
     plot_units = list()
 
     for m in ds_dict:
@@ -455,15 +530,24 @@ def _add_xlims_and_ticks(
     plotted_data_df: pd.DataFrame,
     aggreg_month: bool,
     rotate_xticks: bool = False,
-):
+) -> None:
     """
-    Add x limits, ticks and ticks labels to matplotlib axes. Optimize them by looking at if they are monthly, yearly, or monthly aggregated, and covered time range.
+    Add x limits, ticks and ticks labels to matplotlib axes.
+
+    Optimize them by looking at if they are monthly, yearly, or monthly aggregated, and covered time range.
+
     Args:
-        ax: axis to add xlim and xticks to.
-        yearly_freq: set to True if the data plotted have a yearly frequency.
-        res_dict: dictionnary containing the data plotted.
-        aggreg_month: if True, the data plotted are supposed to be a monthly aggregated so 12 ticks are created, whose labels are the 3 first letters of each month.
-        rotate_xticks: if True, rotate xticks with an angle of 70 degree.
+        ax:
+            Axis to add xlim and xticks to.
+        yearly_freq:
+            Set to True if the data plotted have a yearly frequency.
+        plotted_data_df:
+            Dataframe containing the data plotted (with a "time" column),
+            as returned by :py:func:`add_line_scatter_plot`.
+        aggreg_month:
+            If True, the data plotted are supposed to be a monthly aggregated so 12 ticks are created, whose labels are the 3 first letters of each month.
+        rotate_xticks:
+            If True, rotate xticks with an angle of 70 degree.
     """
     if aggreg_month:
         ax.set_xticks(np.arange(1, 13))
@@ -526,17 +610,23 @@ def _add_xlims_and_ticks(
     ax.set_xlim(xlim)
 
 
-def get_minmax_unc(ds: xr.Dataset) -> tuple[list, list] | tuple[None, None]:
-    """Get uncertainty min and max values in the dataset.
+def get_minmax_unc(
+    ds: xr.Dataset | xr.DataArray,
+) -> tuple[np.ndarray, np.ndarray] | tuple[None, None]:
+    """
+    Get uncertainty min and max values in the dataset.
 
     Args:
-        ds: dataset containing posterior/prior data
-    Return:
-        min_unc: list of the same size as ds.time containing
-            the minimum values of the uncertainty band to plot.
-        max_unc: same as min_unc but for the maximum values.
-    """
+        ds:
+            Dataset/dataarray containing posterior/prior data, with a "percentile" dimension.
 
+    Returns:
+        min_unc:
+            Array of the same size as ds.time containing
+            the minimum values of the uncertainty band to plot.
+        max_unc:
+            Same as min_unc but for the maximum values.
+    """
     if ds.percentile.size == 3:
         min_unc = ds.sel(percentile="lower").values
         max_unc = ds.sel(percentile="upper").values
@@ -556,15 +646,24 @@ def add_unc_plot(
     max_unc: list[np.float64],
     da: xr.DataArray,
     plot_type: Literal["Errorbar", "FillBetween"] | None = None,
-):
+) -> None:
     """
-    Get uncertainty min and max values to plot the uncertainty band in add_line_scatter_plot.
+    Plot the uncertainty band (or error bars) given its min and max values.
+
+    Used in add_line_scatter_plot.
+
     Args:
-        ax: axes on which to plot
-        min_unc: list of the same size as da.time containing the minimum values of the uncertainty band to plot.
-        max_unc: same as min_unc but for the maximum values.
-        da: dataarray to plot.
-        plot_type: type of plot to use for uncertainty ("Errorbar" or "FillBetween")
+        ax:
+            Axes on which to plot.
+        min_unc:
+            List of the same size as da.time containing the minimum values of the uncertainty band to plot.
+        max_unc:
+            Same as min_unc but for the maximum values.
+        da:
+            Dataarray to plot.
+        plot_type:
+            Type of plot to use for uncertainty ("Errorbar" or "FillBetween").
+            If None, nothing is plotted.
     """
 
     if plot_type is None:
@@ -609,16 +708,25 @@ def add_line_scatter_plot(
 ) -> pd.DataFrame:
     """
     Add line/scatter plot with uncertainty if requested.
-    Args:
-        ax: axes on which to plot
-        da: dataarray containing mole fraction data to plot
-        plot_type: used to determine labels to display
-        add_unc: if True, plot uncertainty
-        unc_type: type of plot to use for uncertainty ("Errorbar" or "FillBetween")
-    Return:
-        res: dataframe with data plotted
-    """
 
+    Args:
+        ax:
+            Axes on which to plot.
+        da:
+            Dataarray containing mole fraction data to plot.
+        plot_type:
+            Used to determine labels to display.
+        add_unc:
+            If True, plot uncertainty.
+        marker:
+            Matplotlib marker used for the scatter plots (observations or "diff" plot type).
+        unc_type:
+            Type of plot to use for uncertainty ("Errorbar" or "FillBetween").
+
+    Returns:
+        res:
+            Dataframe with data plotted.
+    """
     plot_type = PlotTypes(plot_type)
 
     kwargs = {
@@ -664,69 +772,87 @@ def plot_timeseries(
     include: VariableType,
     species: str | None = None,
     site: str | None = None,
-    model_colors: dict[str, str] | None = None,
-    model_labels: dict[str, dict] = {},
+    model_colors: dict[str, list[str]] | None = None,
+    model_labels: dict[str, str] = {},
     config_data: dict[str, dict] = {},
-    annotate_coords: dict[int, list] = {},
+    annotate_coords: dict[str, float] = {},
     presentation_mode: bool = False,
-    plot_type: PlotTypes = PlotTypes.SEPARATE,
+    plot_type: PlotTypes | str = PlotTypes.SEPARATE,
     diff_include: list[str] | None = None,
     y_lim: None | tuple[float | None, float | None] = None,
     n_bins: int = 30,
     time_freq_min: FrequencyType = None,
     intake_height: int | None = None,
     histogram_type: Literal["hist", "violin", "none"] | None = "hist",
-    hist_kwargs: dict[str, any] = {},
+    hist_kwargs: dict[str, Any] = {},
     aggreg_month: bool = False,
     unc_type: Literal["Errorbar", "FillBetween"] = "FillBetween",
-):
+) -> Figure:
     """
+    Plot timeseries of observations, modelled mole fractions and/or uncertainties.
+
     Timeseries plots of observations, modelled mole fractions, baseline mf and/or
     uncertainties from each model.
     Includes a histogram of the variables plotted in the timeseries plot or
     the difference between specified variables and observations.
 
     Args:
-        ds_all (dictionary of datasets):
+        ds_all:
             xarray datasets, scaled and sliced between chosen dates and for
             chosen site.
-        include (dict of str):
+        include:
             Dictionary keys are variables to include in the plot.
             The respective values are the uncertainty variables to plot as error bar/uncertainty band.
-        species (str):
+        species:
             Gas species, e.g. 'ch4'.
-        site (str):
+        site:
             Obs site, e.g. 'MHD'.
-        model_colors (dict of str):
-            Models and corresponding colours used to plot the model.
-        model_labels (dict of str):
-            Labels to use for each model
-        config_data (dict of dict):
+        model_colors:
+            Models and corresponding list of colours used to plot the model.
+            If None, default colors are used.
+        model_labels:
+            Labels to use for each model.
+        config_data:
             Dictionary with settings read from json file.
             Use json filenames as keys.
-        annotate_coords (dict of lists):
-            Coordinates to annotate histogram.
-        presentation_mode (logical) (optional):
+        annotate_coords:
+            Coordinates to annotate histogram (keys "x", "ytop" and "dy").
+            If empty, set by :py:func:`fluxie.config.set_print_settings`.
+        presentation_mode:
             If True, adjust annotation position and xlabel rotation to accomodate bigger fonts.
-        diff_include (list of str):
+        plot_type:
+            Layout of the plot, see :py:class:`PlotTypes`:
+            "separate" (one row per model), "together" (all models on the same axes)
+            or "diff" (difference between two models).
+        diff_include:
             Variables included in the 'obs - variable' difference histogram.
             If None, plots the histogram of the variables specified in include.
-        y_lim (list of float, optional):
+        y_lim:
             Mix/max y axis limits to apply to all plots.
-        n_bins (int):
+        n_bins:
             Number of bins to use in the histogram.
-        time_freq_min (FrequencyType, optional):
+        time_freq_min:
             Time frequency minimum of the timeserie that should be shown as continous
             line. If the frequency is lower than this, the line will be discontinous.
             see :py:func:`fluxie.operators.select.clean_timeseries_missing_data`
             for more information.
-        unc_type (str, optional):
+        intake_height:
+            Intake height (in m) of the site, added to the y-axis label if not None.
+        histogram_type:
+            Type of histogram plotted next to the timeseries: "hist", "violin",
+            or "none"/None for no histogram.
+        hist_kwargs:
+            Additional keyword arguments passed to :py:func:`plot_histogram`.
+        aggreg_month:
+            If True, plot the data aggregated by month (seasonal cycle).
+            No histogram is plotted in that case.
+        unc_type:
             Type of plot to use for uncertainty ("Errorbar" or "FillBetween"). Default is "FillBetween".
+
     Returns:
-        fig (figure):
+        fig:
             A timeseries and histogram plot for each model included.
     """
-
     plot_type = PlotTypes(plot_type)
 
     models = ds_all.keys()
@@ -895,8 +1021,11 @@ def plot_sites_timeseries(
             Horizontal space between datapoints from different models.
         separate_by_height:
             If True, separates obs by intake height and by site.
-    """
 
+    Returns:
+        fig:
+            The matplotlib figure.
+    """
     models = ds_all.keys()
     dt_start_date = np.datetime64(start_date) if start_date else None
     dt_end_date = np.datetime64(end_date) if end_date else None
@@ -1006,41 +1135,47 @@ def plot_histogram(
     vars_to_plot: list[str],
     diff_include: list[str] | None,
     presentation_mode: bool,
-    annotate_coords: dict[int, list],
+    annotate_coords: dict[str, float],
     annotate_index: int,
     plot_type: PlotTypes | str,
     n_bins: int = 30,
     violin: bool = False,
-    **kwargs,
+    **kwargs: object,
 ) -> None:
     """
     Plots a histogram on a specified axis.
 
     Args:
-        axis (matplotlib.axes.Axes):
+        ax:
             Matplotlib subplot axis where the histogram should be plotted.
-        ds (xarray dataset):
+        ds:
             Dataset with results from a particular model.
-        model (str):
+        model:
             Model name tag to which the dataset ds refers to.
             i.e. '<inversionModel>_<optional_identifying_tags>', preceded by subdirectory if applicable
-        vars_to_plot (list of str):
+        vars_to_plot:
             Variables plotted in the timeseries plot.
             These variables are directly plotted in the histogram if diff_include is None.
-        diff_include (list of str):
+        diff_include:
             Variables included in the 'obs - variable' difference histogram.
             If None, plots the histogram of the variables specified in vars_to_plot.
-        presentation_mode (logical) (optional):
+        presentation_mode:
             If True, adjust annotation position to accomodate bigger fonts.
-        annotate_coords (dict of lists):
-            Coordinates to annotate histogram.
-        annotate_index (int):
+        annotate_coords:
+            Coordinates to annotate histogram (keys "x", "ytop" and "dy").
+            If empty, set by :py:func:`fluxie.config.set_print_settings`.
+        annotate_index:
             Model index. Used to specify annotation location if plot_type == "together".
-        plot_type (PlotTypes | str):
+        plot_type:
             Type of timeseries plot in which the histogram will be plotted.
             Options for "separate", "together" and "diff".
+        n_bins:
+            Number of bins to use in the histogram.
+        violin:
+            If True, draw a violin plot instead of a histogram.
+        **kwargs:
+            Additional keyword arguments passed to `ax.violinplot` or `ax.hist`.
     """
-
     plot_type = PlotTypes(plot_type)
 
     if not annotate_coords:
@@ -1132,8 +1267,8 @@ def plot_sites_list_mf(
     sites: list[str] | None = None,
     species: str | None = None,
     include: VariableType = {"mf_posterior": None},
-    model_labels: dict[str, dict] = {},
-    model_colors: dict[str, list] = {},
+    model_labels: dict[str, str] = {},
+    model_colors: dict[str, list[str]] = {},
     aggreg_month: bool = False,
     config_data: dict[str, dict] = {},
     data_on_single_graph: Literal["models", "sites"] = "sites",
@@ -1142,27 +1277,41 @@ def plot_sites_list_mf(
 ) -> tuple[Figure, pd.DataFrame]:
     """
     Plot timeseries of multiple site, with subplots separated by site or model.
+
     Args:
-        ds_all: xarray datasets, scaled and sliced between chosen dates and for
-            chosen site.
-        sites: Obs sites list, e.g. ['MHD', 'CBW'].
-        species: Gas species, e.g. 'ch4'.
-        include (dict of str):
+        ds_all:
+            Xarray datasets, scaled and sliced between chosen dates.
+        sites:
+            Obs sites list, e.g. ['MHD', 'CBW'].
+            If None, the sites are determined by :py:func:`fluxie.operators.select.check_site_list`.
+        species:
+            Gas species, e.g. 'ch4'.
+        include:
             Dictionary keys are variables to include in the plot.
             The respective values are the uncertainty variables to plot as error bar/uncertainty band.
-        model_labels: labels to use for each model
-        aggreg_month: if True, plot the data aggregated by month.
+        model_labels:
+            Labels to use for each model.
+        model_colors:
+            Models and corresponding list of colours used to plot the model.
+            Models missing from it get the default colors.
+        aggreg_month:
+            If True, plot the data aggregated by month.
             Used to study seasonal cycle.
-        config_data: Dictionary with settings read from json file.
+        config_data:
+            Dictionary with settings read from json file.
             Use json filenames as keys.
-        data_on_single_graph: str, "sites" or "models", determines whether each axis has multiple sites or models.
-        unc_type: type of plot to use for uncertainty ("Errorbar" or "FillBetween"). Default is "FillBetween".
-        obs_markers: list of markers to use for observed data.
+        data_on_single_graph:
+            "sites" or "models", determines whether each axis has multiple sites or models.
+        unc_type:
+            Type of plot to use for uncertainty ("Errorbar" or "FillBetween"). Default is "FillBetween".
+        obs_markers:
+            List of markers to use for observed data.
+
     Returns:
-        fig: figure created
-        plotted_data_df: data plotted on the figure
-
-
+        fig:
+            Figure created.
+        plotted_data_df:
+            Data plotted on the figure.
     """
     ds_all_p = ds_all.copy()
 

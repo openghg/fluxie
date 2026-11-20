@@ -9,7 +9,8 @@ def sectors_group_from_config_or_dict(
     sectors_config: dict[str, str] | None = None,
     species: str | None = None,
 ) -> dict[str, list[str]]:
-    """Group sectors based on a configuration or a dictionary.
+    """
+    Group sectors based on a configuration or a dictionary.
 
     Args:
         sector_groups: A dictionary mapping sector names to their group names.
@@ -58,7 +59,8 @@ def group_sectors(
     sector_groups: dict[str, list[str]] | None = None,
     sectors_config: dict[str, str] | None = None,
 ) -> xr.Dataset:
-    """Group sectors in the dataset based on the provided sector groups.
+    """
+    Group sectors in the dataset based on the provided sector groups.
 
     One of the two must be provided:
     `sector_groups` or `sectors_config`.

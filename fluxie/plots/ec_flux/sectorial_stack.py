@@ -1,3 +1,5 @@
+from typing import Any
+
 import xarray as xr
 import pandas as pd
 import numpy as np
@@ -13,15 +15,19 @@ WIND_LABELS = {
 
 
 def _get_wind_bins_and_labels(n_bins: int) -> tuple[np.ndarray, list[str]]:
-    """Get wind bins and labels for a given number of bins.
+    """
+    Get wind bins and labels for a given number of bins.
 
     Args:
-        n_bins: Number of wind bins.
+        n_bins:
+            Number of wind bins.
+
     Returns:
-        A tuple containing:
-            - bins: Array of wind bin edges in radians.
-                Bins start and end at 0 and 2pi (duplicated bin for the start and end)
-            - labels: List of wind bin labels.
+        bins:
+            Array of wind bin edges in radians.
+            Bins start and end at 0 and 2pi (duplicated bin for the start and end).
+        labels:
+            List of wind bin labels.
     """
     if n_bins in WIND_LABELS:
         labels = WIND_LABELS[n_bins]
@@ -35,7 +41,16 @@ def _get_wind_bins_and_labels(n_bins: int) -> tuple[np.ndarray, list[str]]:
     return bins, labels
 
 
-def raise_var_missing(var_name, ds):
+def raise_var_missing(var_name: str, ds: xr.Dataset) -> None:
+    """
+    Raise a ValueError if a variable is not in the dataset.
+
+    Args:
+        var_name:
+            Name of the variable to look for.
+        ds:
+            Dataset expected to contain the variable.
+    """
     if var_name in ds:
         return
     raise ValueError(
@@ -44,7 +59,20 @@ def raise_var_missing(var_name, ds):
     )
 
 
-def raise_var_dims(var_name, ds, expected_dims):
+def raise_var_dims(
+    var_name: str, ds: xr.Dataset, expected_dims: tuple[str, ...]
+) -> None:
+    """
+    Raise a ValueError if a variable does not have exactly the expected dimensions.
+
+    Args:
+        var_name:
+            Name of the variable to check.
+        ds:
+            Dataset containing the variable.
+        expected_dims:
+            Expected dimensions of the variable, in order.
+    """
     if ds[var_name].dims != expected_dims:
         raise ValueError(
             f"Variable {var_name} must have dimensions {expected_dims}. "
@@ -56,44 +84,62 @@ def plot_stacked(
     ds: xr.Dataset,
     variable_simulated: str = "ecflux_sectorial_prior",
     variable_observed: str = "ecflux_observed",
-    season: str = None,
+    season: str | None = None,
     group_format: str = "%H",
     species: str = " ",
     area: bool = False,
-    y_lims: tuple[float, float] = (None, None),
+    y_lims: tuple[float | None, float | None] = (None, None),
     plot_observation_counts: bool = False,
-    sectors_config: dict[str, str] | None = None,
-    errorbar_kwargs: dict[str, any] | None = None,
+    sectors_config: dict[str, Any] | None = None,
+    errorbar_kwargs: dict[str, Any] | None = None,
     wind_bins: int = 8,
-):
-    """Plot stacked bar chart for sectorial fluxes.
+) -> tuple[plt.Figure, plt.Axes]:
+    """
+    Plot stacked bar chart for sectorial fluxes.
 
     Args:
-        ds: xarray Dataset containing the data to plot.
-        variable_simulated: Name of the simulated variable.
+        ds:
+            xarray Dataset containing the data to plot.
+        variable_simulated:
+            Name of the simulated variable.
             Simulated variable is expected to have a sectorial dimension.
-        variable_observed: Name of the observed variable.
+        variable_observed:
+            Name of the observed variable.
             Observed variable is expected to not have sectorial dimension.
-        season: Season to filter the data.
-        group_format: Format for grouping the data.
+        season:
+            Season to filter the data (e.g. 'JJA').
+        group_format:
+            Format for grouping the data.
             Typical values are:
                 * "%X" where x is a time identifier
                     ex: "%H" for hour of the day
                 * "wind_direction" or "wind" to group by wind direction sectors
                     This will require a "wind_direction" variable in the dataset.
                     The output will be a wind rose like plot.
-
-        species: Name of the species to plot.
-        area: Whether to plot the data as an area chart.
-        y_lims: Limits for the y-axis.
-        plot_observation_counts: Whether to plot observation counts.
-        sectors_config: Configuration for the sectors.
-        errorbar_kwargs: Keyword arguments for the error bars.
+        species:
+            Name of the species to plot.
+        area:
+            Whether to plot the data as an area chart.
+        y_lims:
+            Limits for the y-axis.
+        plot_observation_counts:
+            Whether to plot observation counts.
+        sectors_config:
+            Configuration for the sectors. Can contain 'sector_ordering' (list of
+            sector names in plotting order) and 'colors_of_sector' (mapping of
+            sector names to colors).
+        errorbar_kwargs:
+            Keyword arguments for the error bars.
             See matplotlib errorbar documentation for more details.
-        wind_bins: Number of wind bins to use if group_format is "wind_direction".
+        wind_bins:
+            Number of wind bins to use if group_format is "wind_direction".
 
+    Returns:
+        fig:
+            The matplotlib figure.
+        ax:
+            The axes with the stacked plot.
     """
-
     if sectors_config is None:
         sectors_config = {}
     if errorbar_kwargs is None:

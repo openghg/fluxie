@@ -6,15 +6,14 @@ from fluxie.operators.select import get_unique_sites, slice_site
 
 
 def stats_observed_vs_simulated(
-    ds_all: dict[str, dict],
+    ds_all: dict[str, xr.Dataset],
     obs_var: str,
     sim_var: str,
     sites: list[str] | None = None,
     stats_type: str | None = None,
 ) -> pd.DataFrame:
     """
-    Calculates multiple statistical measures of the fit between the observed
-    and simulated variables.
+    Calculate statistical measures of the fit between observed and simulated variables.
 
     Statistics are computed for each site and each model.
 
@@ -25,19 +24,19 @@ def stats_observed_vs_simulated(
         * Normalised root mean square error
 
     Args:
-        ds_all (dictionary of datasets):
+        ds_all:
             xarray datasets
-        obs_var (str):
+        obs_var:
             Name of the observed variable.
-        sim_var (str):
+        sim_var:
             Name of the simulated variable.
-        sites (list of str):
+        sites:
             Sites for which to make the stats.
-        stats_type (str):
+        stats_type:
             Type of data statistics being evaluated (see StatsType in fluxie.operators.mf).
 
     Returns:
-        stats (pandas.DataFrame):
+        stats:
             Statistical measures, for each site and for each model between observations and
             simulations. Columns:
                 * 'model': model string
@@ -64,7 +63,6 @@ def stats_observed_vs_simulated(
                 * 'q{05|25|75|95}_{sim|obs}': quantiles of the simulated/observed variable
 
     """
-
     logger = logging.getLogger(__name__)
 
     # names of sites
