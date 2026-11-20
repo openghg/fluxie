@@ -18,6 +18,7 @@ from matplotlib.dates import YearLocator, MonthLocator
 from matplotlib.ticker import NullFormatter
 from matplotlib import __version__ as mplt_version
 from matplotlib.container import BarContainer
+import matplotlib.colors as mcolors
 
 from fluxie import config
 from fluxie.operators.regions import extract_region_flux, format_plot_regions
@@ -243,6 +244,13 @@ def prepare_data_to_plot(
     missing_color = [m for m in ds_all_region if m not in model_colors]
     default_colors = itertools.cycle(config.get_default_colors())
     model_colors.update({m: [next(default_colors)] for m in missing_color})
+    # Add lighter default color to color list (needed if resample)
+    for m in missing_color:
+        # Blend some white
+        lighter_default_color = mcolors.to_hex(
+            tuple(0.6 * c + 0.4 for c in mcolors.to_rgb(model_colors[m][0]))
+        )
+        model_colors[m].append(lighter_default_color)
     for m in ds_all_region.keys():
         ds_all_region[m].attrs["model_label"] = model_labels.get(m, m)
         ds_all_region[m].attrs["model_colors"] = model_colors[m]
@@ -344,11 +352,17 @@ def prepare_data_to_plot(
                 i_comb % len(config.mean_color_palette)
             ]
             i_comb += 1
+        elif ("_resample" in m) and plot_resample_and_original:
+            # Use lighter color
+            m0 = m.removesuffix("_resample")
+            model_color = model_colors[m0][1]
+            ds_to_plot[m].attrs["model_label"] += " (resampled)"
+        elif "_resample" in m:
+            # Use main color
+            m0 = m.removesuffix("_resample")
+            model_color = model_colors[m0][0]
         else:
             model_color = model_colors[m][0]
-
-        if ("_resample" in m) and plot_resample_and_original:
-            ds_to_plot[m].attrs["model_label"] += " (resampled)"
 
         ds_to_plot[m].attrs["model_color"] = model_color
 
