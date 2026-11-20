@@ -9,6 +9,7 @@ from typing import Literal, Tuple
 from pathlib import Path
 from datetime import date, datetime, timedelta
 from calendar import isleap, month_abbr, monthrange
+import string
 
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
@@ -365,10 +366,8 @@ def add_line_plot(
             "Available options for 'variable' parameter are 'prior' and 'posterior'."
         )
 
-    time_as_datetime = ds.time.values.astype("datetime64[D]").tolist()
-
     ax.plot(
-        time_as_datetime,
+        ds.time.values,
         ds[variable],
         color=ds.attrs["model_color"],
         **kwargs_plot,
@@ -376,7 +375,7 @@ def add_line_plot(
 
     res = pd.DataFrame(
         {
-            "time": time_as_datetime,
+            "time": ds.time.values,
             "mean_val": ds[variable].values,
         }
     )
@@ -387,7 +386,7 @@ def add_line_plot(
 
     if add_unc:
         ax.fill_between(
-            time_as_datetime,
+            ds.time.values,
             ds[f"{variable}_lower"],
             ds[f"{variable}_upper"],
             alpha=alpha_unc,
@@ -474,7 +473,6 @@ def add_inventory_barplot(
 
     res = pd.DataFrame()
     for i_inv, inventory in enumerate(inventories_to_plot):
-        time_as_datetime = inventory.time.values.astype("datetime64[D]").tolist()
 
         this_uncert_to_plot = inventories_uncert_to_plot[i_inv]
 
@@ -487,9 +485,9 @@ def add_inventory_barplot(
             yerr = this_uncert_to_plot.values
 
         ax.bar(
-            time_as_datetime,
+            inventory.time.values,
             inventory,
-            timedelta(days=340 - i_inv * 20),
+            np.timedelta64(340 - i_inv * 20, "D"),
             edgecolor=inventory.plot_color,
             align="edge",
             fill=False,
@@ -501,7 +499,7 @@ def add_inventory_barplot(
 
         tmp = pd.DataFrame(
             {
-                "time": time_as_datetime,
+                "time": inventory.time.values,
                 "mean_val": inventory.values,
             }
         )
@@ -774,8 +772,8 @@ def add_xlims_and_ticks(
         ax.set_xticklabels(list(month_abbr)[1:])
         return
 
-    min_x = np.nanmin(plotted_data_df["time"])
-    max_x = np.nanmax(plotted_data_df["time"])
+    min_x = pd.to_datetime(plotted_data_df["time"]).min()
+    max_x = pd.to_datetime(plotted_data_df["time"]).max()
 
     # set xticks
     year_range = date(max_x.year, 1, 1) - date(min_x.year, 1, 1)
@@ -888,6 +886,30 @@ def add_title(
         ax.set_title(f'{print_country}\n{r_data["regions"][country]}')
     elif country_codes_as_titles == False:
         ax.set_title(f"{print_country}")
+
+
+def add_subplot_label(axes: list[Axes], add_label: bool | str):
+
+    if not (add_label):
+        return
+
+    labels = string.ascii_lowercase
+    start_index = 0
+
+    # Get starting label if specified
+    if isinstance(add_label, str):
+        if add_label in labels:
+            start_index = labels.index(add_label.lower())
+        else:
+            raise KeyError(
+                f"{add_label=} is not a valid option. It must be set to True/False or to an ascii lowercase letter."
+            )
+
+    for i, ax in enumerate(axes):
+        label = f"{labels[i+start_index]})"
+        ax.text(
+            0.02, 0.98, label, transform=ax.transAxes, fontsize=14, va="top", ha="left"
+        )
 
 
 def add_vlines(ax: Axes, vline_dates: list[str]) -> None:
@@ -1016,7 +1038,8 @@ def plot_country_flux(
     add_vline: list[str] | None = None,
     secondary_units: str | None = None,
     only_overlapping: bool = True,
-) -> Figure | tuple[Figure, pd.DataFrame]:
+    add_label: bool | str = False,
+) -> Figure | tuple[Figure, dict[str, dict]]:
     """
     Timeseries plot of prior and posterior country fluxes, from list of areas in plot_regions.
 
@@ -1068,6 +1091,8 @@ def plot_country_flux(
         only_overlapping: if True, only includes data from years when all models are available. If False,
             includes all available data.
 
+        add_label: if True, add roman letter labels at the top left corner of each panel (default False).
+            Labels will start at "a)" or at the designated letter if add_label is set to a string.
     Returns:
         fig: A plot per country/region.
         plotted_data_df: If return_res, return also a dataframe containing the plotted results. The columns of this dataframe are "type" (possible values "prior"/"posterior"/"inventory"),
@@ -1215,6 +1240,8 @@ def plot_country_flux(
                 unit=unit,
                 secondary_unit=secondary_units,
             )
+
+    add_subplot_label(axes, add_label)
 
     add_ylim(axes, "country", plot_regions, plotted_data_df, fix_y_axes, set_global_leg)
     yearly_freq = (
