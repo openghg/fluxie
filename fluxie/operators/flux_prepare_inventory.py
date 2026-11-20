@@ -131,7 +131,7 @@ def _retrieve_inventories_sector(
     if len(inventory_years) > 1:
         inv_colors = [inv_cmap(i) for i in np.linspace(0.5, 0.9, len(inventory_years))]
     else:
-        inv_colors = ['black']
+        inv_colors = ["black"]
 
     for year, inv_color in zip(inventory_years, inv_colors):
         ds_inv, ds_inv_stdev = extract_region_inventory_flux(
