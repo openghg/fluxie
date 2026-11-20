@@ -950,8 +950,7 @@ def add_legend(
             labels,
             loc="upper center",
             ncol=(
-                1
-                # len(labels) if len(labels) <= 6 else len(labels) // 2 + len(labels) % 2
+                len(labels) if len(labels) <= 6 else len(labels) // 2 + len(labels) % 2
             ),
             borderpad=0.4,
             columnspacing=1.0,
@@ -970,8 +969,7 @@ def add_legend(
         leg_all = []
         for ax in fig.axes:
             _, labels = ax.get_legend_handles_labels()
-            # ncol = 3 if annex_mode else 2
-            ncol = 1
+            ncol = 3 if annex_mode else 2
             leg = ax.legend(ncol=ncol, borderpad=0.4, columnspacing=1.0)
             leg_all.append(leg)
 
