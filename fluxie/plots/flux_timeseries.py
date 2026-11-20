@@ -34,6 +34,7 @@ country_equivalent = {
     "NW_EU_CONTINENT": "NW CONTINENTAL EUROPE",
 }
 
+
 def get_unit(ds_all: dict[str, xr.Dataset]) -> str:
     """
     Determine unit of posterior estimations from datasets. If incoherencies between datasets, an error is raised.
@@ -313,23 +314,26 @@ def prepare_data_to_plot(
 
         ds_to_plot[m].attrs["model_color"] = model_color
 
-    return ds_to_plot,model_colors
+    return ds_to_plot, model_colors
+
 
 def lin(t, m, c):
-    return m*t + c
+    return m * t + c
 
-def calc_and_plot_trend(plotted_data_df: pd.DataFrame,
-                        model_labels: dict[str, str],
-                        trend_models: list[int] | None,
-                        trend_inventory: list[int],
-                        country: str,
-                        trend_start_date: str | None,
-                        trend_end_date: str | None,
-                        grad_model_all: dict[str, dict[str, str]],
-                        grad_inven_all: dict[str, dict[str, str]],
-                        ax: plt.Axes,
-                        model_colors: dict[int, list[str]],
-                        ) -> dict[str,dict]:
+
+def calc_and_plot_trend(
+    plotted_data_df: pd.DataFrame,
+    model_labels: dict[str, str],
+    trend_models: list[int] | None,
+    trend_inventory: list[int],
+    country: str,
+    trend_start_date: str | None,
+    trend_end_date: str | None,
+    grad_model_all: dict[str, dict[str, str]],
+    grad_inven_all: dict[str, dict[str, str]],
+    ax: plt.Axes,
+    model_colors: dict[int, list[str]],
+) -> dict[str, dict]:
     """
     Args:
         plotted_data_df: dataframe containing the plotted data
@@ -343,25 +347,29 @@ def calc_and_plot_trend(plotted_data_df: pd.DataFrame,
         model_colors: dictionary mapping trend model indices to colors
 
     Returns:
-
+        grad_model_all,grad_inven_all: dictionaries of gradient info for the legend(s), by model/inventory and by country
     """
-    
+
     if trend_models is None:
         trend_models = list(model_labels.keys())
 
     for trend_m in trend_models:
-        
+
         if trend_m not in model_labels.keys():
-            raise KeyError(f"Requested trend model {trend_m} not found in plotted data."
-                           )
-        
-        if model_labels[trend_m] not in plotted_data_df['model'].values:
-            raise KeyError(f"Requested trend model {trend_m} not found in plotted data."
-                           )
-            
-        data_for_trend = plotted_data_df[(plotted_data_df['model'] == model_labels[trend_m]) 
-                                         & (plotted_data_df['type'] == 'posterior') 
-                                         & (plotted_data_df["country"] == country)].reset_index()
+            raise KeyError(
+                f"Requested trend model {trend_m} not found in plotted data."
+            )
+
+        if model_labels[trend_m] not in plotted_data_df["model"].values:
+            raise KeyError(
+                f"Requested trend model {trend_m} not found in plotted data."
+            )
+
+        data_for_trend = plotted_data_df[
+            (plotted_data_df["model"] == model_labels[trend_m])
+            & (plotted_data_df["type"] == "posterior")
+            & (plotted_data_df["country"] == country)
+        ].reset_index()
 
         trend_model_times = data_for_trend["time"].values
 
@@ -369,40 +377,78 @@ def calc_and_plot_trend(plotted_data_df: pd.DataFrame,
             trend_start_date = trend_model_times[0]
         if trend_end_date == None:
             trend_end_date = trend_model_times[-1]
-            
-        time_mask_m = (trend_model_times >= np.datetime64(trend_start_date)) & (trend_model_times <= np.datetime64(trend_end_date))
+
+        time_mask_m = (trend_model_times >= np.datetime64(trend_start_date)) & (
+            trend_model_times <= np.datetime64(trend_end_date)
+        )
         fit_inversion = data_for_trend["mean_val"].values[time_mask_m]
         fit_times_inversion = trend_model_times[time_mask_m]
 
-        s_inversion = [np.mean([fit_inversion[f]-data_for_trend["min_unc"][time_mask_m][f],
-                                data_for_trend["max_unc"][time_mask_m][f]-fit_inversion[f]]) for f in range(fit_inversion.shape[0])]
+        s_inversion = [
+            np.mean(
+                [
+                    fit_inversion[f] - data_for_trend["min_unc"][time_mask_m][f],
+                    data_for_trend["max_unc"][time_mask_m][f] - fit_inversion[f],
+                ]
+            )
+            for f in range(fit_inversion.shape[0])
+        ]
 
-        fit_times_inversion_float = ((fit_times_inversion - fit_times_inversion[0])/np.timedelta64(1,"D"))/365.25
-                
-        (grad_model, c_model), pcov = opt.curve_fit(lin, fit_times_inversion_float, fit_inversion,sigma=s_inversion)
-        grad_model_all[country][model_labels[trend_m]] = f'(gradient = {np.round(grad_model,2)})'
-        
-        ax.plot(fit_times_inversion, grad_model*np.array(fit_times_inversion_float)+c_model,color=model_colors[trend_m][0],linestyle=":",zorder=10)
+        fit_times_inversion_float = (
+            (fit_times_inversion - fit_times_inversion[0]) / np.timedelta64(1, "D")
+        ) / 365.25
 
-            
+        (grad_model, c_model), pcov = opt.curve_fit(
+            lin, fit_times_inversion_float, fit_inversion, sigma=s_inversion
+        )
+        grad_model_all[country][
+            model_labels[trend_m]
+        ] = f"(gradient = {np.round(grad_model,2)})"
+
+        ax.plot(
+            fit_times_inversion,
+            grad_model * np.array(fit_times_inversion_float) + c_model,
+            color=model_colors[trend_m][0],
+            linestyle=":",
+            zorder=10,
+        )
+
     for trend_i in trend_inventory:
-                
-        inventory_for_trend = plotted_data_df[(plotted_data_df['model'] == f'inventory_{trend_i}') & (plotted_data_df["country"] == country)].reset_index()
+
+        inventory_for_trend = plotted_data_df[
+            (plotted_data_df["model"] == f"inventory_{trend_i}")
+            & (plotted_data_df["country"] == country)
+        ].reset_index()
 
         trend_inventory_times = inventory_for_trend["time"].values
 
-        time_mask_i = (trend_inventory_times >= np.datetime64(trend_start_date)) & (trend_inventory_times <= np.datetime64(trend_end_date))
+        time_mask_i = (trend_inventory_times >= np.datetime64(trend_start_date)) & (
+            trend_inventory_times <= np.datetime64(trend_end_date)
+        )
         fit_inventory = inventory_for_trend["mean_val"].values[time_mask_i]
-        fit_times_inventory = trend_inventory_times[time_mask_i] + np.timedelta64(180,'D')
-        
-        fit_times_inventory_float = ((fit_times_inventory - fit_times_inventory[0])/np.timedelta64(1,"D"))/365.25
-    
-        (grad_inven, c_inven), pcov = opt.curve_fit(lin, fit_times_inventory_float, fit_inventory)
-        grad_inven_all[country][trend_i] = f'(gradient = {np.round(grad_inven,2)})'
-        
-        ax.plot(fit_times_inventory, grad_inven*np.array(fit_times_inventory_float)+c_inven,color="black",linestyle=":",zorder=10)
+        fit_times_inventory = trend_inventory_times[time_mask_i] + np.timedelta64(
+            180, "D"
+        )
 
-    return grad_model_all,grad_inven_all
+        fit_times_inventory_float = (
+            (fit_times_inventory - fit_times_inventory[0]) / np.timedelta64(1, "D")
+        ) / 365.25
+
+        (grad_inven, c_inven), pcov = opt.curve_fit(
+            lin, fit_times_inventory_float, fit_inventory
+        )
+        grad_inven_all[country][trend_i] = f"(gradient = {np.round(grad_inven,2)})"
+
+        ax.plot(
+            fit_times_inventory,
+            grad_inven * np.array(fit_times_inventory_float) + c_inven,
+            color="black",
+            linestyle=":",
+            zorder=10,
+        )
+
+    return grad_model_all, grad_inven_all
+
 
 def add_line_plot(
     ax: Axes,
@@ -903,14 +949,15 @@ def add_legend(
             handles,
             labels,
             loc="upper center",
-            ncol=(1
-                #len(labels) if len(labels) <= 6 else len(labels) // 2 + len(labels) % 2
+            ncol=(
+                1
+                # len(labels) if len(labels) <= 6 else len(labels) // 2 + len(labels) % 2
             ),
             borderpad=0.4,
             columnspacing=1.0,
             bbox_to_anchor=legend_loc,
         )
-        
+
         return [leg_all]
 
     else:
@@ -923,7 +970,7 @@ def add_legend(
         leg_all = []
         for ax in fig.axes:
             _, labels = ax.get_legend_handles_labels()
-            #ncol = 3 if annex_mode else 2
+            # ncol = 3 if annex_mode else 2
             ncol = 1
             leg = ax.legend(ncol=ncol, borderpad=0.4, columnspacing=1.0)
             leg_all.append(leg)
@@ -940,6 +987,7 @@ def add_legend(
                 l.set_linewidth(3.0)
 
         return leg_all
+
 
 def add_title(ax: Axes, country: str, r_data: dict, country_codes_as_titles: bool):
     """
@@ -1152,7 +1200,7 @@ def plot_country_flux(
     unit = get_unit(ds_all)
 
     plotted_data_df = pd.DataFrame()
-    
+
     grad_model_all = {}
     grad_inven_all = {}
 
@@ -1183,7 +1231,7 @@ def plot_country_flux(
 
         # prepare model results
         ds_all_region = extract_region_flux(ds_all, country, r_data, sectors=sector)
-        ds_to_plot,model_colors = prepare_data_to_plot(
+        ds_to_plot, model_colors = prepare_data_to_plot(
             ds_all_region=ds_all_region,
             model_labels=model_labels,
             model_colors=model_colors,
@@ -1252,32 +1300,33 @@ def plot_country_flux(
                 plotted_data_df = pd.concat(
                     [plotted_data_df, inventory_df], ignore_index=True
                 )
-                
+
             except KeyError as ke:
                 logger.warning(
                     f"Missing inventory data for {species} in {country}: {ke}"
                 )
-                
+
         if plot_trend:
-            
+
             if aggreg_month:
                 raise ValueError("plot_trend cannot be used with aggreg_month")
-            
+
             grad_model_all[country] = {}
             grad_inven_all[country] = {}
-            
-            grad_model_all,grad_inven_all = calc_and_plot_trend(plotted_data_df=plotted_data_df,
-                        model_labels=model_labels,
-                        trend_models=trend_models,
-                        trend_inventory=trend_inventory,
-                        country=country,
-                        trend_start_date=trend_start_date,
-                        trend_end_date=trend_end_date,
-                        grad_model_all=grad_model_all,
-                        grad_inven_all=grad_inven_all,
-                        ax=ax,
-                        model_colors=model_colors,
-                        )
+
+            grad_model_all, grad_inven_all = calc_and_plot_trend(
+                plotted_data_df=plotted_data_df,
+                model_labels=model_labels,
+                trend_models=trend_models,
+                trend_inventory=trend_inventory,
+                country=country,
+                trend_start_date=trend_start_date,
+                trend_end_date=trend_end_date,
+                grad_model_all=grad_model_all,
+                grad_inven_all=grad_inven_all,
+                ax=ax,
+                model_colors=model_colors,
+            )
 
         # add vertical lines
         if add_vline is not None:
@@ -1314,25 +1363,32 @@ def plot_country_flux(
     )
 
     if plot_trend == True and set_global_leg == True and len(plot_regions) > 1:
-        logger.warning("A global legend cannot be used with plot_trend and more than one region, so set_global_leg is being set to False")
+        logger.warning(
+            "A global legend cannot be used with plot_trend and more than one region, so set_global_leg is being set to False"
+        )
         set_global_leg = False
-        
-    legends = add_legend(fig, set_global_leg, annex_mode, plot_inventory, inventory_years)
-    
-    if plot_trend: 
+
+    legends = add_legend(
+        fig, set_global_leg, annex_mode, plot_inventory, inventory_years
+    )
+
+    if plot_trend:
         inventory_label = "NID" if annex_mode else "Inventory"
-        
-        for leg,country in zip(legends, plot_regions):
-            gradients_text = {**grad_model_all[country],
-                              **{f"{inventory_label} {year}": gradient
-                                 for year, gradient in grad_inven_all[country].items()},
+
+        for leg, country in zip(legends, plot_regions):
+            gradients_text = {
+                **grad_model_all[country],
+                **{
+                    f"{inventory_label} {year}": gradient
+                    for year, gradient in grad_inven_all[country].items()
+                },
             }
-            
+
             for text in leg.get_texts():
                 label = text.get_text()
                 if label in gradients_text:
                     text.set_text(f"{label} {gradients_text[label]}")
-        
+
     logger.info(
         "NOTE: If all the data is not within axis limits, adjust the fix_y_axes parameter"
     )
@@ -1408,7 +1464,7 @@ def plot_country_sector_flux_bar(
 
     # prepare data
     ds_all_region = extract_region_flux(ds_all, plot_region, r_data, sectors=sectors)
-    ds_to_plot,model_colors = prepare_data_to_plot(
+    ds_to_plot, model_colors = prepare_data_to_plot(
         ds_all_region,
         model_labels,
         model_colors,
@@ -1615,7 +1671,7 @@ def plot_all_species_stacked_bar(
         ds_all_region = extract_region_flux(
             ds_all_flux_scaled[species], regions, r_data, sectors=sector
         )
-        ds_to_plot[species],model_colors = prepare_data_to_plot(
+        ds_to_plot[species], model_colors = prepare_data_to_plot(
             ds_all_region=ds_all_region,
             model_labels=model_labels,
             model_colors=model_colors,
