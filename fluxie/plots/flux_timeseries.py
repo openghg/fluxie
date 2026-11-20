@@ -10,6 +10,7 @@ from pathlib import Path
 from datetime import date, datetime, timedelta
 from calendar import isleap, month_abbr, monthrange
 import scipy.optimize as opt
+import string
 
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
@@ -1006,6 +1007,30 @@ def add_title(ax: Axes, country: str, r_data: dict, country_codes_as_titles: boo
         ax.set_title(f"{print_country}")
 
 
+def add_subplot_label(axes: list[Axes], add_label: bool | str):
+
+    if not (add_label):
+        return
+
+    labels = string.ascii_lowercase
+    start_index = 0
+
+    # Get starting label if specified
+    if isinstance(add_label, str):
+        if add_label in labels:
+            start_index = labels.index(add_label.lower())
+        else:
+            raise KeyError(
+                f"{add_label=} is not a valid option. It must be set to True/False or to an ascii lowercase letter."
+            )
+
+    for i, ax in enumerate(axes):
+        label = f"{labels[i+start_index]})"
+        ax.text(
+            0.02, 0.98, label, transform=ax.transAxes, fontsize=14, va="top", ha="left"
+        )
+
+
 def add_vlines(ax: Axes, vline_dates: list[str]):
     """
     Add vertical lines to matplotlib axes at specified dates.
@@ -1124,6 +1149,7 @@ def plot_country_flux(
     trend_inventory: list[str] | None = None,
     trend_start_date: str | None = None,
     trend_end_date: str | None = None,
+    add_label: bool | str = False,
 ) -> Figure | tuple[Figure, dict[str, dict]]:
     """
     Timeseries plot of prior and posterior country fluxes, from list of
@@ -1175,8 +1201,12 @@ def plot_country_flux(
         add_vline: list of dates (str) where to add vertical lines on each plot. format 'YYYY-MM-DD'.
         secondary_units: If provided, add a secondary y-axis with these units.
         plot_trend: If True, plots linear trend between trend_start_date and trend_end_date
+        trend_models: Optional list of models for which trends are plotted.
+        trend_inventory: Optional list of inventory dates, for which trends are plotted.
         trend_start_date: Start of period over which linear trend is calculated.
         trend_end_date: End of period over which linear trend is calculated.
+        add_label: if True, add roman letter labels at the top left corner of each panel (default False).
+            Labels will start at "a)" or at the designated letter if add_label is set to a string.
     Returns:
         fig: A plot per country/region.
         res_dict : If return_res, return also a dataframe containing the plotted results. The columns of this dataframe are "type" (possible values "prior"/"posterior"/"inventory"),
@@ -1350,6 +1380,8 @@ def plot_country_flux(
                 unit=unit,
                 secondary_unit=secondary_units,
             )
+
+    add_subplot_label(axes, add_label)
 
     add_ylim(axes, "country", plot_regions, plotted_data_df, fix_y_axes, set_global_leg)
     yearly_freq = (
