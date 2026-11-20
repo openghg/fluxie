@@ -27,7 +27,7 @@ from fluxie.operators.flux_timeseries_resample import resample_flux
 from fluxie.operators.flux_combine import combine_dataset
 from fluxie.operators.flux_prepare_inventory import retrieve_inventories
 from fluxie.operators.convert import convert_units_co2eq
-from fluxie.plots.utils import update_list_params
+from fluxie.plots.utils import update_list_params, autocomplete_model_colors
 
 logger = logging.getLogger(__name__)
 
@@ -240,17 +240,7 @@ def prepare_data_to_plot(
         }
 
     # Assign default color list and label to input dataset
-    model_colors = model_colors.copy()
-    missing_color = [m for m in ds_all_region if m not in model_colors]
-    default_colors = itertools.cycle(config.get_default_colors())
-    model_colors.update({m: [next(default_colors)] for m in missing_color})
-    # Add lighter default color to color list (needed if resample)
-    for m in missing_color:
-        # Blend some white
-        lighter_default_color = mcolors.to_hex(
-            tuple(0.6 * c + 0.4 for c in mcolors.to_rgb(model_colors[m][0]))
-        )
-        model_colors[m].append(lighter_default_color)
+    model_colors = autocomplete_model_colors(ds_all_region.keys(), model_colors)
     for m in ds_all_region.keys():
         ds_all_region[m].attrs["model_label"] = model_labels.get(m, m)
         ds_all_region[m].attrs["model_colors"] = model_colors[m]
