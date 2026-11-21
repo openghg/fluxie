@@ -1,3 +1,6 @@
+import xarray as xr
+import pandas as pd
+import numpy as np
 import logging
 from pathlib import Path
 import pytest
@@ -186,7 +189,7 @@ def test_country_flux_with_inventory():
     plot_country_flux(
         ds_all_flux_scaled,
         species,
-        data_dir=data_dir / "sector_flux",
+        data_dir=data_dir,
         plot_inventory=True,
         inventory_years=None,
     )
@@ -582,29 +585,26 @@ def test_plot_flux_map_over_time():
     )
 
 
-def test_plot_country_sector_flux_bar():
+def _prepare_sector_flux(start_date: str, end_date: str) -> dict:
+    """Read the ch4 test fluxes and split them into sectors."""
 
-    species = "ch4"  # options for individual species, or 'all_hfc' or 'all_pfc'
+    species = "ch4"
     models = [
         "InTEM_NAME_EUROPE_EDGAR_old_format",
         "ELRIS_NAME_EUROPE_EDGAR_old_format",
         "RHIME_NAME_EUROPE_EDGAR_old_format",
     ]
     regions = ["GERMANY", "UK", "BENELUX", "NW_EU2"]
-    period = "monthly"  # use to override standard inversion periods, must be a list the same length as models, e.g. ['monthly','yearly']
+    period = "monthly"
     country_flux_units_print = "Gg yr-1"
-    start_date = "2022-01-01"  # inclusive. Option to set as list of dates, e.g. ['2018-01-01','2019-01-01'] which is required for total fgases if one model is missing obs for a year
-    end_date = "2024-01-01"  # not inclusive. Option to set as list of dates, e.g. ['2023-01-01','2022-01-01'] which is required for total fgases if one model is missing obs for a year
-    get_labels_from_file = False
     sector_file = "EUROPE_EDGAR"
     create_region_sector_totals = True  # if True, uses country_fraction variable to sum spatial sector fluxes to region sector fluxes
-
-    ds_all_flux_scaled = {}
 
     ds_all_flux = read_model_output(
         data_dir, "flux", species, models, config_data, period=period
     )
 
+    ds_all_flux_scaled = {}
     for m in models:
         ds_all_flux_scaled[m] = slice_flux(
             {m: ds_all_flux[m]},
@@ -615,7 +615,7 @@ def test_plot_country_sector_flux_bar():
             country_flux_units_print=country_flux_units_print,
         )[m]
 
-    ds_all_flux_scaled = scale_by_sector_proportions(
+    return scale_by_sector_proportions(
         data_dir=data_dir,
         ds_all=ds_all_flux_scaled,
         species=species,
@@ -627,10 +627,15 @@ def test_plot_country_sector_flux_bar():
         cell_area_test_file=True,
     )
 
+
+def test_plot_country_sector_flux_bar():
+
+    ds_all_flux_scaled = _prepare_sector_flux("2022-01-01", "2024-01-01")
+
     fig = plot_country_sector_flux_bar(
         ds_all_flux_scaled,
-        species,
-        regions[1],
+        "ch4",
+        "UK",
         config_data,
         model_colors,
         model_labels,
@@ -639,6 +644,62 @@ def test_plot_country_sector_flux_bar():
         inventory_filename="UNFCCC_inventory",
         sectors=["agriculture", "waste", "energy", "industry"],
     )
+
+
+def test_plot_country_sector_flux_bar_inventory(tmp_path):
+    """Inventory mode with several sectors and the default inventory year."""
+
+    sectors = ["agriculture", "waste", "energy", "industry"]
+    ds_all_flux_scaled = _prepare_sector_flux("2022-01-01", "2024-01-01")
+
+    # Small inventory overlapping the model period, with distinct values per sector
+    times = pd.date_range("2022-01-01", periods=2, freq="YS")
+    countries = ["UK", "DE"]
+    data_vars = {}
+    for i, sector in enumerate(sectors, start=1):
+        values = np.full((len(times), len(countries)), 10.0 * i)
+        data_vars[f"flux_{sector}_inventory_country"] = (
+            ("time", "country"),
+            values,
+            {"units": "Gg/yr"},
+        )
+        data_vars[f"stdev_flux_{sector}_inventory_country"] = (
+            ("time", "country"),
+            np.full_like(values, 1.0),
+            {"units": "Gg/yr"},
+        )
+    (tmp_path / "inventory").mkdir()
+    xr.Dataset(data_vars, coords={"time": times, "country": countries}).to_netcdf(
+        tmp_path / "inventory" / "EUROPE_EDGAR_ch4_2024.nc"
+    )
+
+    fig, plotted_data_df = plot_country_sector_flux_bar(
+        ds_all_flux_scaled,
+        "ch4",
+        "UK",
+        config_data,
+        model_colors,
+        model_labels,
+        plot_inventory_or_prior="inventory",
+        inventory_years=None,
+        inventory_filename="EUROPE_EDGAR",
+        data_dir=tmp_path,
+        sectors=sectors,
+    )
+
+    inv_df = plotted_data_df[plotted_data_df.type == "inventory"]
+    assert set(inv_df.sector) == set(sectors)
+    assert set(inv_df.model) == {"inventory"}
+
+    # Each sector must be stacked on top of the previous ones
+    inv_ax = fig.axes[-1]
+    tops = [patch.get_y() + patch.get_height() for patch in inv_ax.patches]
+    n_times = inv_df.time.nunique()
+    assert n_times > 0
+    expected = np.repeat(
+        np.cumsum([10.0 * i for i in range(1, len(sectors) + 1)]), n_times
+    )
+    np.testing.assert_allclose(tops, expected)
 
 
 def test_plot_flux_map_combined_models_comparison():
