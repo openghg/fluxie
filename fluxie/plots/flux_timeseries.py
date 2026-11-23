@@ -10,12 +10,15 @@ from pathlib import Path
 from datetime import date, datetime, timedelta
 from calendar import isleap, month_abbr, monthrange
 import string
+import itertools
 
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.dates import YearLocator, MonthLocator
 from matplotlib.ticker import NullFormatter
 from matplotlib import __version__ as mplt_version
+from matplotlib.container import BarContainer
+import matplotlib.colors as mcolors
 
 from fluxie import config
 from fluxie.operators.regions import extract_region_flux, format_plot_regions
@@ -24,7 +27,7 @@ from fluxie.operators.flux_timeseries_resample import resample_flux
 from fluxie.operators.flux_combine import combine_dataset
 from fluxie.operators.flux_prepare_inventory import retrieve_inventories
 from fluxie.operators.convert import convert_units_co2eq
-from fluxie.plots.utils import update_list_params
+from fluxie.plots.utils import update_list_params, autocomplete_model_colors
 
 logger = logging.getLogger(__name__)
 
@@ -91,21 +94,32 @@ def determine_subplots_arrangement(subplot_number: int) -> tuple[int, int]:
 
 
 def create_fig_and_axes(
-    nb_subplots: int, transpose: bool = False
+    nb_subplots: int,
+    transpose: bool = False,
+    nb_model_panels: int = 1,
 ) -> Tuple[Figure, Axes]:
     """
-    Create matplotib figure and axes object based on the number of subplots asked for.
+    Create matplotib figure and axes object based on the number of subplots asked for and number of model panels.
+
     Args:
         nb_subplots: number of subplot wanted (should be the number of subregion to plot when used in plot_country_flux)
+        transpose: exchange rows by columns
+        nb_model_panels: number of model panels. If >1, it increases the number of subplots to nb_subplots*nb_model_panels.
+
     Returns:
         fig, axes: fig and flattened axes
     """
 
-    n_cols_rows = determine_subplots_arrangement(nb_subplots)
-    if transpose:
-        n_rows, n_cols = n_cols_rows
+    # Get number of rows and colums
+    if nb_model_panels > 1:
+        n_rows = nb_subplots
+        n_cols = nb_model_panels
     else:
-        n_cols, n_rows = n_cols_rows
+        n_cols_rows = determine_subplots_arrangement(nb_subplots)
+        if transpose:
+            n_rows, n_cols = n_cols_rows
+        else:
+            n_cols, n_rows = n_cols_rows
 
     fig, axes = plt.subplots(
         n_rows,
@@ -115,7 +129,7 @@ def create_fig_and_axes(
         figsize=(n_cols * 6, n_rows * 4),
     )
     if isinstance(axes, np.ndarray):
-        axes = axes.flatten()[:nb_subplots]
+        axes = axes.flatten()[: nb_subplots * nb_model_panels]
     else:
         axes = [axes]
 
@@ -191,13 +205,10 @@ def prepare_data_to_plot(
         }
 
     # Assign default color list and label to input dataset
-    model_colors = model_colors.copy()
+    model_colors = autocomplete_model_colors(ds_all_region.keys(), model_colors)
     for m in ds_all_region.keys():
         ds_all_region[m].attrs["model_label"] = model_labels.get(m, m)
-        if m not in model_colors.keys():
-            model_colors[m] = config.get_default_colors()
         ds_all_region[m].attrs["model_colors"] = model_colors[m]
-    map_model_colors = {f"c{i}": m for i, m in enumerate(model_colors.values())}
 
     # Prepare list of dataset to plot
     ds_to_plot = dict()
@@ -289,27 +300,24 @@ def prepare_data_to_plot(
             ds_to_plot.update(ds_combined)
 
     # Determine plot color and label of each dataset
-    color_usage = {k: 0 for k in map_model_colors.keys()}
     i_comb = 0
     for m in ds_to_plot.keys():
-        include_label = ds_to_plot[m].attrs.get("model_label", None)
         if "combined" in m:
             model_color = config.mean_color_palette[
                 i_comb % len(config.mean_color_palette)
             ]
             i_comb += 1
-        else:
-            key_mc = [
-                k
-                for k in map_model_colors.keys()
-                if map_model_colors[k] == ds_to_plot[m].attrs["model_colors"]
-            ][0]
-            nb = color_usage[key_mc]
-            model_color = map_model_colors[key_mc][nb % len(map_model_colors[key_mc])]
-            color_usage[key_mc] = color_usage[key_mc] + 1
-
-        if ("_resample" in m) and plot_resample_and_original:
+        elif ("_resample" in m) and plot_resample_and_original:
+            # Use lighter color
+            m0 = m.removesuffix("_resample")
+            model_color = model_colors[m0][1]
             ds_to_plot[m].attrs["model_label"] += " (resampled)"
+        elif "_resample" in m:
+            # Use main color
+            m0 = m.removesuffix("_resample")
+            model_color = model_colors[m0][0]
+        else:
+            model_color = model_colors[m][0]
 
         ds_to_plot[m].attrs["model_color"] = model_color
 
@@ -810,14 +818,33 @@ def add_legend(
             legend_loc = (0.5, 1.1)
         else:
             legend_loc = (0.5, 1.15)
-        handles, labels = fig.axes[0].get_legend_handles_labels()
+
+        # Get all handles and labels
+        handles, labels = [], []
+        inv_handles, inv_labels = [], []
+        for ax in fig.axes:
+            h, l = ax.get_legend_handles_labels()
+            # Get inventory handles
+            for hi, li in zip(h, l):
+                if isinstance(hi, BarContainer):
+                    inv_handles.append(hi)
+                    inv_labels.append(li)
+                else:
+                    handles.append(hi)
+                    labels.append(li)
+        # Move inventory handles to the end
+        handles.extend(inv_handles)
+        labels.extend(inv_labels)
+        # Remove duplicated labels, keep original order
+        unique_labels = dict(zip(labels, handles))
+
+        n_labels = len(unique_labels)
+
         fig.legend(
-            handles,
-            labels,
+            unique_labels.values(),
+            unique_labels.keys(),
             loc="upper center",
-            ncol=(
-                len(labels) if len(labels) <= 6 else len(labels) // 2 + len(labels) % 2
-            ),
+            ncol=(n_labels if n_labels <= 6 else n_labels // 2 + n_labels % 2),
             borderpad=0.4,
             columnspacing=1.0,
             bbox_to_anchor=legend_loc,
@@ -847,23 +874,44 @@ def add_legend(
                 l.set_linewidth(3.0)
 
 
-def add_title(ax: Axes, country: str, r_data: dict, country_codes_as_titles: bool):
+def add_title(
+    ax: Axes,
+    country: str,
+    r_data: dict,
+    country_codes_as_titles: bool | None,
+    model: str | list[str] | None = None,
+):
     """
     Add title to matplotlib axes either as the region code or as the full region name whose flux are plotted.
+    If a subset of inversion systems are plotted in each subpanel, this is added to the title.
+
     Args:
         ax: axis to add title to.
         country: country name, should correspond to the data plotted on the axes.
         r_data: dictionnary containing infos on regions (like decomposition of "super-region2 -like BENELUX- or full name). See configs/regions_info.json.
         country_codes_as_titles: If True, write the list of country code in the title, under the region name.
+            If None, the country is ommited in the title.
+        model: model or list of models plotted in the subpanel.
+            If None, all models are being plotted and no model info is added to the title.
     """
 
-    # set title
+    # Build title
+    print_model = f"{model}\n" if model else ""
     print_country = country_equivalent.get(country, country)
+    title = ""
 
     if country_codes_as_titles and country in r_data["regions"].keys():
-        ax.set_title(f'{print_country}\n{r_data["regions"][country]}')
+        title = f'{print_model}{print_country}\n{r_data["regions"][country]}'
     elif country_codes_as_titles == False:
-        ax.set_title(f"{print_country}")
+        title = f"{print_model}{print_country}"
+    elif country_codes_as_titles == None:
+        title = f"{print_model}".replace("\n", "")
+    else:
+        logger.warning(
+            "Title could not be generated. Either country_codes_as_titles is not set to True/False/None or region to plot was not found."
+        )
+
+    ax.set_title(title)
 
 
 def add_subplot_label(axes: list[Axes], add_label: bool | str):
@@ -1004,6 +1052,7 @@ def plot_country_flux(
     secondary_units: str | None = None,
     only_overlapping: bool = True,
     add_label: bool | str = False,
+    split_models: bool | list[str] | list[list[str]] = False,
 ) -> Figure | tuple[Figure, dict[str, dict]]:
     """
     Timeseries plot of prior and posterior country fluxes, from list of
@@ -1056,6 +1105,8 @@ def plot_country_flux(
         secondary_units: If provided, add a secondary y-axis with these units.
         add_label: if True, add roman letter labels at the top left corner of each panel (default False).
             Labels will start at "a)" or at the designated letter if add_label is set to a string.
+        split_models: if True, plots each inversion system in a different subpanel.
+            A list of inversion systems or a list per panel can also be specified (e.g. [["InTEM", "ELRIS"], ["InTEM", "RHIME"]] for 2 panels)
     Returns:
         fig: A plot per country/region.
         res_dict : If return_res, return also a dataframe containing the plotted results. The columns of this dataframe are "type" (possible values "prior"/"posterior"/"inventory"),
@@ -1097,15 +1148,29 @@ def plot_country_flux(
         k: ds.sel(time=slice(start_date[k], end_date[k])) for k, ds in ds_all.items()
     }
 
-    # Create figure
-    fig, axes = create_fig_and_axes(len(plot_regions))
+    # Get models per panel
+    plot_models = [None]  # All models in the same panel
+    if split_models:
+        if isinstance(split_models, list):
+            plot_models = split_models
+        else:
+            # Get unique inversion systems
+            plot_models = list(
+                dict.fromkeys(
+                    os.path.basename(model).split("_")[0] for model in ds_all.keys()
+                )
+            )
+    nb_plot_models = len(plot_models)
 
-    # Iterate over each axes and regions
-    for ax, country in zip(axes, plot_regions):
+    # Create figure
+    fig, axes = create_fig_and_axes(len(plot_regions), False, nb_plot_models)
+
+    # Iterate over each regions
+    for i, country in enumerate(plot_regions):
 
         # prepare model results
         ds_all_region = extract_region_flux(ds_all, country, r_data, sectors=sector)
-        ds_to_plot = prepare_data_to_plot(
+        ds_all_to_plot = prepare_data_to_plot(
             ds_all_region=ds_all_region,
             model_labels=model_labels,
             model_colors=model_colors,
@@ -1120,93 +1185,122 @@ def plot_country_flux(
             only_overlapping=only_overlapping,
         )
 
-        # plot posterior and prior (if requested)
-        for m, ds_region in ds_to_plot.items():
-            highlighted_post = ("combined" in m) & annex_mode
-            add_post_unc = (("combined" in m) & plot_combined_unc) | (
-                ("combined" not in m) & plot_separate_unc
+        # Get subset of axes per region
+        iax0 = i * nb_plot_models
+        iax1 = (i + 1) * nb_plot_models
+
+        # For each region, iterate over each axis
+        for ax, model in zip(axes[iax0:iax1], plot_models):
+            # subset of ds to plot
+            if model:
+                ds_to_plot = {
+                    m: ds
+                    for m, ds in ds_all_to_plot.items()
+                    if os.path.basename(m).split("_")[0] in model
+                }
+            else:
+                ds_to_plot = ds_all_to_plot
+
+            # plot posterior and prior (if requested)
+            for m, ds_region in ds_to_plot.items():
+                highlighted_post = ("combined" in m) & annex_mode
+                add_post_unc = (("combined" in m) & plot_combined_unc) | (
+                    ("combined" not in m) & plot_separate_unc
+                )
+                if "posterior" in ds_region.data_vars:
+                    posterior_df = add_line_plot(
+                        ax,
+                        ds_region,
+                        variable="posterior",
+                        highlighted_line=highlighted_post,
+                        add_unc=add_post_unc,
+                    )
+                    plotted_data_df = pd.concat(
+                        [plotted_data_df, posterior_df], ignore_index=True
+                    )
+
+                if add_prior and "prior" in ds_region:
+                    prior_df = add_line_plot(
+                        ax,
+                        ds_region,
+                        variable="prior",
+                        highlighted_line=not annex_mode,
+                        add_unc=add_prior_unc,
+                    )
+                    plotted_data_df = pd.concat(
+                        [plotted_data_df, prior_df], ignore_index=True
+                    )
+
+            # plot inventory
+            if plot_inventory:
+                get_dates = lambda dict_: [v for v in dict_.values() if v is not None]
+
+                try:
+                    inventory_df = add_inventory_barplot(
+                        ax,
+                        data_dir,
+                        country,
+                        species,
+                        (
+                            min(min_dates)
+                            if (min_dates := get_dates(start_date))
+                            else None
+                        ),
+                        max(max_dates) if (max_dates := get_dates(end_date)) else None,
+                        unit,
+                        s_data,
+                        r_data,
+                        inventory_years,
+                        inventory_filename,
+                        sector,
+                        annex_mode,
+                        plot_inventory_uncertainty,
+                    )
+                    plotted_data_df = pd.concat(
+                        [plotted_data_df, inventory_df], ignore_index=True
+                    )
+                except KeyError as ke:
+                    logger.warning(
+                        f"Missing inventory data for {species} in {country}: {ke}"
+                    )
+
+            # add vertical lines
+            if add_vline is not None:
+                add_vlines(ax, vline_dates=add_vline)
+
+            # set y label
+            add_ylabel(
+                ax, s_data, species, unit, plot_type="country_plot", sector=sector
             )
-            if "posterior" in ds_region.data_vars:
-                posterior_df = add_line_plot(
-                    ax,
-                    ds_region,
-                    variable="posterior",
-                    highlighted_line=highlighted_post,
-                    add_unc=add_post_unc,
+
+            # set grid
+            if plot_grid:
+                ax.grid(visible=True, which="major", alpha=0.4)
+
+            # set ax title
+            add_title(ax, country, r_data, country_codes_as_titles, model)
+
+            # add secondary axis
+            if secondary_units is not None:
+                add_secondary_yaxis(
+                    ax=ax,
+                    s_data=s_data,
+                    species=species,
+                    sector=sector,
+                    unit=unit,
+                    secondary_unit=secondary_units,
                 )
-                plotted_data_df = pd.concat(
-                    [plotted_data_df, posterior_df], ignore_index=True
-                )
-
-            if add_prior and "prior" in ds_region:
-                prior_df = add_line_plot(
-                    ax,
-                    ds_region,
-                    variable="prior",
-                    highlighted_line=not annex_mode,
-                    add_unc=add_prior_unc,
-                )
-                plotted_data_df = pd.concat(
-                    [plotted_data_df, prior_df], ignore_index=True
-                )
-
-        # plot inventory
-        if plot_inventory:
-            get_dates = lambda dict_: [v for v in dict_.values() if v is not None]
-
-            try:
-                inventory_df = add_inventory_barplot(
-                    ax,
-                    data_dir,
-                    country,
-                    species,
-                    min(min_dates) if (min_dates := get_dates(start_date)) else None,
-                    max(max_dates) if (max_dates := get_dates(end_date)) else None,
-                    unit,
-                    s_data,
-                    r_data,
-                    inventory_years,
-                    inventory_filename,
-                    sector,
-                    annex_mode,
-                    plot_inventory_uncertainty,
-                )
-                plotted_data_df = pd.concat(
-                    [plotted_data_df, inventory_df], ignore_index=True
-                )
-            except KeyError as ke:
-                logger.warning(
-                    f"Missing inventory data for {species} in {country}: {ke}"
-                )
-
-        # add vertical lines
-        if add_vline is not None:
-            add_vlines(ax, vline_dates=add_vline)
-
-        # set y label
-        add_ylabel(ax, s_data, species, unit, plot_type="country_plot", sector=sector)
-
-        # set grid
-        if plot_grid:
-            ax.grid(visible=True, which="major", alpha=0.4)
-
-        # set ax title
-        add_title(ax, country, r_data, country_codes_as_titles)
-
-        # add secondary axis
-        if secondary_units is not None:
-            add_secondary_yaxis(
-                ax=ax,
-                s_data=s_data,
-                species=species,
-                sector=sector,
-                unit=unit,
-                secondary_unit=secondary_units,
-            )
 
     add_subplot_label(axes, add_label)
 
-    add_ylim(axes, "country", plot_regions, plotted_data_df, fix_y_axes, set_global_leg)
+    add_ylim(
+        axes,
+        "country",
+        [x for x in plot_regions for _ in range(nb_plot_models)],
+        plotted_data_df,
+        fix_y_axes,
+        set_global_leg,
+    )
     yearly_freq = (
         "yearly" in [ds.attrs["frequency"] for ds in ds_to_plot.values()]
         or resample == "year"
