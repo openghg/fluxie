@@ -985,7 +985,7 @@ def add_legend(
 
         n_labels = len(unique_labels)
 
-        fig.legend(
+        leg_all = fig.legend(
             unique_labels.values(),
             unique_labels.keys(),
             loc="upper center",
@@ -1334,7 +1334,7 @@ def plot_country_flux(
 
         # prepare model results
         ds_all_region = extract_region_flux(ds_all, country, r_data, sectors=sector)
-        ds_to_plot, model_colors = prepare_data_to_plot(
+        ds_all_to_plot, model_colors = prepare_data_to_plot(
             ds_all_region=ds_all_region,
             model_labels=model_labels,
             model_colors=model_colors,
