@@ -1107,7 +1107,7 @@ def plot_histogram(
             )
 
     # Write number of obs
-    if plot_type == PlotTypes.SEPARATE and len(hist_to_plot) == 1:
+    if plot_type == PlotTypes.SEPARATE: #and len(hist_to_plot) == 1:
         var = list(vars_to_plot)[0]
         values = ds[var].values
         mask_not_nan = ~np.isnan(values)
