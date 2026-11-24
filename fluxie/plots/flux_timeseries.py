@@ -322,31 +322,41 @@ def lin(t, m, c):
     return m * t + c
 
 
+def fit_linear_trend(
+    times_float: np.ndarray, values: np.ndarray, sigma: np.ndarray | None
+):
+
+    (gradient, intercept), _ = opt.curve_fit(lin, times_float, values, sigma=sigma)
+
+    return gradient, intercept
+
+
 def calc_and_plot_trend(
     plotted_data_df: pd.DataFrame,
     model_labels: dict[str, str],
-    trend_models: list[int] | None,
-    trend_inventory: list[int],
+    model_colors: dict[int, list[str]],
     country: str,
-    trend_start_date: str | None,
-    trend_end_date: str | None,
     grad_model_all: dict[str, dict[str, str]],
     grad_inven_all: dict[str, dict[str, str]],
     ax: plt.Axes,
-    model_colors: dict[int, list[str]],
+    trend_models: list[int] | None,
+    trend_inventory: list[int] | None,
+    trend_start_date: str | None,
+    trend_end_date: str | None,
 ) -> dict[str, dict]:
     """
     Args:
-        plotted_data_df: dataframe containing the plotted data
+        plotted_data_df: dataframe containing all plotted data
         model_labels: dictionary mapping model names to model labels, used to extract data from plotted_data_df
-        trend_models: list of indices of the trend models to calculate
+        model_colors: dictionary mapping trend model indices to colors
         country: country for which to calculate the trend
+        grad_model_all: dictionary to store the calculated gradients
+        grad_inven_all: dictionary to store the calculated gradients for the inventory
+        ax: matplotlib axis to plot the trend line
+        trend_models: list of model names for which to calculate the trend
+        trend_inventory: list of inventory names for which to calculate the trend
         trend_start_date: start date for the trend calculation
         trend_end_date: end date for the trend calculation
-        grad_model_all: dictionary to store the calculated gradients
-        ax: matplotlib axis to plot the trend line
-        model_colors: dictionary mapping trend model indices to colors
-
     Returns:
         grad_model_all,grad_inven_all: dictionaries of gradient info for the legend(s), by model/inventory and by country
     """
@@ -388,8 +398,8 @@ def calc_and_plot_trend(
         s_inversion = [
             np.mean(
                 [
-                    fit_inversion[f] - data_for_trend["min_unc"][time_mask_m][f],
-                    data_for_trend["max_unc"][time_mask_m][f] - fit_inversion[f],
+                    fit_inversion[f] - data_for_trend["min_unc"][time_mask_m].values[f],
+                    data_for_trend["max_unc"][time_mask_m].values[f] - fit_inversion[f],
                 ]
             )
             for f in range(fit_inversion.shape[0])
@@ -399,9 +409,10 @@ def calc_and_plot_trend(
             (fit_times_inversion - fit_times_inversion[0]) / np.timedelta64(1, "D")
         ) / 365.25
 
-        (grad_model, c_model), pcov = opt.curve_fit(
-            lin, fit_times_inversion_float, fit_inversion, sigma=s_inversion
+        grad_model, c_model = fit_linear_trend(
+            fit_times_inversion_float, fit_inversion, sigma=s_inversion
         )
+
         grad_model_all[country][
             model_labels[trend_m]
         ] = f"(gradient = {np.round(grad_model,2)})"
@@ -435,8 +446,8 @@ def calc_and_plot_trend(
             (fit_times_inventory - fit_times_inventory[0]) / np.timedelta64(1, "D")
         ) / 365.25
 
-        (grad_inven, c_inven), pcov = opt.curve_fit(
-            lin, fit_times_inventory_float, fit_inventory
+        grad_inven, c_inven = fit_linear_trend(
+            fit_times_inventory_float, fit_inventory, sigma=None
         )
         grad_inven_all[country][trend_i] = f"(gradient = {np.round(grad_inven,2)})"
 
@@ -1345,15 +1356,15 @@ def plot_country_flux(
             grad_model_all, grad_inven_all = calc_and_plot_trend(
                 plotted_data_df=plotted_data_df,
                 model_labels=model_labels,
-                trend_models=trend_models,
-                trend_inventory=trend_inventory,
+                model_colors=model_colors,
                 country=country,
-                trend_start_date=trend_start_date,
-                trend_end_date=trend_end_date,
                 grad_model_all=grad_model_all,
                 grad_inven_all=grad_inven_all,
                 ax=ax,
-                model_colors=model_colors,
+                trend_models=trend_models,
+                trend_inventory=trend_inventory,
+                trend_start_date=trend_start_date,
+                trend_end_date=trend_end_date,
             )
 
         # add vertical lines
