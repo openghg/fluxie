@@ -11,6 +11,7 @@ from typing import Literal
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib.collections import LineCollection
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 from copy import deepcopy
 
 from fluxie import config
@@ -1019,3 +1020,42 @@ def stack_plot(
         bbox_to_anchor=(1, 0.5),
     )
     return ax
+
+
+def get_lighter_color(color: str | tuple[float]) -> str:
+    """
+    Blends some white into the original color
+    """
+
+    return mcolors.to_hex(tuple(0.6 * c + 0.4 for c in mcolors.to_rgb(color)))
+
+
+def autocomplete_model_colors(
+    models: list[str], model_colors: dict[str, list[str | tuple[float]]]
+) -> dict[str, list[str | tuple[float]]]:
+    """
+    Completes model_colors dictionary with missing models/colors by asigning default colors based on config.get_default_colors().
+
+    Args:
+        models: list of models for plotting
+        model_colors: dictionary with model keys and list of colors
+
+    Returns:
+        model_colors: update dictionary with all models and colors for plotting
+    """
+
+    model_colors = {m: color_list.copy() for m, color_list in model_colors.items()}
+
+    # Add second lighter color if not present
+    for color_list in model_colors.values():
+        if len(color_list) == 1:
+            color_list.append(get_lighter_color(color_list[0]))
+
+    # Add default colors to missing models
+    missing_models = [m for m in models if m not in model_colors]
+    default_colors = itertools.cycle(config.get_default_colors())
+    for m in missing_models:
+        new_color = next(default_colors)
+        model_colors[m] = [new_color, get_lighter_color(new_color)]
+
+    return model_colors
