@@ -97,8 +97,8 @@ def plot_flux_map(
             Value added to the latitude and longitude bounds of the plot.
             Positive values expand the plot area, while negative values zoom in by reducing the bounds.
             Example: `zoom_degree=1` adds 1 degree to the bounds, while `zoom_degree=-1` subtracts 1 degree.
-        only (str, optional):
-            Option to plot only "posterior" or "prior" or "diff"
+        only (str | list[str], optional):
+            Option to plot subset of variables. Options are "posterior", "prior" and "diff".
         fallback_sites (list[str] | None):
             A list of site names to use as a fallback if 'sites' is not found in the datasets.
             If None, the first available 'sites' in the datasets will be used as fallback.
