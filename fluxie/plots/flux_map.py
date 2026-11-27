@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Tuple, get_args
 
 import matplotlib.pyplot as plt
 import xarray as xr
@@ -25,6 +25,9 @@ from fluxie.plots.utils import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+VarType = Literal["prior", "posterior", "diff"]
 
 
 def plot_flux_map(
