@@ -135,7 +135,7 @@ def plot_flux_map(
         zoom_degree=zoom_degree,
     )
 
-    # Define variables
+    # Define variables to plot
     var_prior = f"flux_{sector}_prior"
     var_posterior = f"flux_{sector}_posterior"
     var_diff = "posterior_prior_diff"
@@ -145,18 +145,23 @@ def plot_flux_map(
         var_posterior += "_inversion_grid"
         var_diff += "_inversion_grid"
 
-    if only == "posterior":
-        vars_list = [var_posterior]
-        var_fluxlim = var_posterior
-    elif only == "prior":
-        vars_list = [var_prior]
-        var_fluxlim = var_prior
-    elif only == "diff":
-        vars_list = [var_diff]
-        var_fluxlim = var_diff
-    else:
-        vars_list = [var_prior, var_posterior, var_diff]
-        var_fluxlim = var_posterior  # TODO Flux limits based on posterior, is this the right way to do?
+    all_vars = [var_prior, var_posterior, var_diff]
+    vars_list = all_vars
+    var_fluxlim = var_posterior  # TODO Flux limits based on posterior, is this the right way to do?
+    if only:
+        # Check input options
+        if isinstance(only, str):
+            only = [only]
+        valid_vars = get_args(VarType)
+        for var in only:
+            if var not in valid_vars:
+                raise ValueError(
+                    f"'{var}' is not a valid variable. Options are: {valid_vars}"
+                )
+        # Get list of variables to plot
+        vars_list = [var for v, var in zip(valid_vars, all_vars) if v in only]
+        if "posterior" not in only:
+            var_fluxlim = var_prior if "prior" in only else var_diff
 
     # Prepare datasets and resample over the whole time period (season=None) or a given season
     ds_dict = {
