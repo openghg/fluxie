@@ -27,7 +27,11 @@ from fluxie.operators.flux_timeseries_resample import resample_flux
 from fluxie.operators.flux_combine import combine_dataset
 from fluxie.operators.flux_prepare_inventory import retrieve_inventories
 from fluxie.operators.convert import convert_units_co2eq
-from fluxie.plots.utils import update_list_params, autocomplete_model_colors
+from fluxie.plots.utils import (
+    update_list_params,
+    autocomplete_model_colors,
+    get_combined_models_dict,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -243,30 +247,9 @@ def prepare_data_to_plot(
 
     # Add combined dataset(s) to plot
     if any(plot_combined):
-        if is_plot_combined_single_true:
-            if combined_models_dict is None:
-                combined_models_dict = {"Mean": list(ds_all_region.keys())}
-            else:
-                combined_model_list = sum(combined_models_dict.values(), [])
-                check_missing_models = set(combined_model_list) - set(
-                    ds_all_region.keys()
-                )
-                if check_missing_models:
-                    raise ValueError(
-                        f"Models in `combined_model_list` are not available: {check_missing_models}. "
-                        f"Available models: {list(ds_all_region.keys())}"
-                    )
-        else:
-            if combined_models_dict is not None:
-                logger.warning(
-                    "`combined_models_dict` will be re-written according to the elements of `plot_combined`. Label 'Mean' will be used in the plots."
-                    " To combine the models listed in `combined_models_dict`, please set `plot_combined = True`."
-                )
-            combined_models_dict = {
-                "Mean": [
-                    m for (i, m) in enumerate(ds_all_region.keys()) if plot_combined[i]
-                ]
-            }
+        combined_models_dict = get_combined_models_dict(
+            ds_all_region.keys(), plot_combined, combined_models_dict
+        )
 
         combined_resample = [
             resamp for comb, resamp in zip(plot_combined, resample) if comb
