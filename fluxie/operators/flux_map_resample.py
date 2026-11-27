@@ -176,7 +176,14 @@ def calculate_resampled_dataset(
         else:
             output_vars[var] = calculate_resampled_flux(da, groups)
 
-    return xr.Dataset(output_vars)
+    ds_resampled = xr.Dataset(output_vars)
+
+    # Keep some attributes
+    attrs_to_keep = ["exp_name", "model_label"]
+    for attr in attrs_to_keep:
+        ds_resampled.attrs[attr] = ds.attrs.get(attr, None)
+
+    return ds_resampled
 
 
 def average_over_dates_list(

@@ -347,7 +347,7 @@ def plot_flux_map(
             # Add titles
             # Column titles
             if row == 0 and include_title_and_labels:
-                ax_i.set_title(model_labels.get(model, model))
+                ax_i.set_title(ds.attrs["model_label"])
             # Row titles
             if col == 0 and include_title_and_labels:
                 ax_i.set_ylabel(define_flux_label(var))
