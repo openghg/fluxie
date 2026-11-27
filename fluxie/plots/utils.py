@@ -1059,3 +1059,52 @@ def autocomplete_model_colors(
         model_colors[m] = [new_color, get_lighter_color(new_color)]
 
     return model_colors
+
+
+def get_combined_models_dict(
+    models: list[str],
+    plot_combined: bool | list[bool],
+    combined_models_dict: dict[str, list[str]] | None,
+) -> dict[str, list[str]]:
+    """
+    Define dictionary with models to combine.
+
+    Args:
+        models (list):
+            List of models to plot.
+        plot_combined (bool | list of bool):
+            If True, the model is included in combined average result to be plotted. List must be of same size as models, e.g. [False, True, True].
+            If a single boolean is provided, the same flag is assumed for all models.
+        combined_models_dict (dict of lists):
+            Dictionary defining the different combined models to plot if plot_combined = True. Keys are the name of the combined model.
+
+    Returns:
+        combined_models_dict (dict of lists):
+            Updated dictionary defining the different combined models to plot.
+    """
+
+    if isinstance(plot_combined, bool) and plot_combined:
+        if combined_models_dict is None:
+            # combine all models
+            combined_models_dict = {"Mean": list(models)}
+        else:
+            # check if models to combine exist in the dataset
+            combined_model_list = sum(combined_models_dict.values(), [])
+            check_missing_models = set(combined_model_list) - set(models)
+            if check_missing_models:
+                raise ValueError(
+                    f"Models in `combined_model_list` are not available: {check_missing_models}. "
+                    f"Available models: {list(models)}"
+                )
+    else:
+        # get models to combine from list of booleans
+        if combined_models_dict is not None:
+            logger.warning(
+                "`combined_models_dict` will be re-written according to the elements of `plot_combined`. Label 'Mean' will be used in the plots."
+                " To combine the models listed in `combined_models_dict`, please set `plot_combined = True`."
+            )
+        combined_models_dict = {
+            "Mean": [m for (i, m) in enumerate(models) if plot_combined[i]]
+        }
+
+    return combined_models_dict

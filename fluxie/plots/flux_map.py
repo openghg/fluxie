@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Tuple, get_args
 
 import matplotlib.pyplot as plt
 import xarray as xr
@@ -22,13 +22,105 @@ from fluxie.plots.utils import (
     plot_country_borders,
     print_cbar_label,
     set_flux_limits,
+    get_combined_models_dict,
 )
 
 logger = logging.getLogger(__name__)
 
 
+VarType = Literal["prior", "posterior", "diff"]
+
+
+def prepare_map_data_to_plot(
+    ds_all: dict[str, xr.Dataset],
+    var: str | list[str],
+    sector: str,
+    model_labels: dict[str, str],
+    plot_combined: bool | list[bool],
+    combined_models_dict: dict[str, list[str]] | None,
+    dt: int | None = None,
+    chop_by: str | list[str] | list[float] | list[list[float]] | None = None,
+    resample_uncert_correlation: bool = False,
+) -> Tuple[dict[str, xr.Dataset], list[str]]:
+    """
+    Combine and resample gridded data according to plotting options.
+
+    Args:
+        ds_all (dictionary of datasets):
+            Dictionary of fluxes xarray datasets.
+        var (str | list of str):
+            Variable or list of variables to plot.
+        sector (str):
+            Emissions sector to plot.
+        model_labels (dict of str):
+            Labels of each dataset.
+        plot_combined (bool | list of bool):
+            If True, the model is included in combined average result to be plotted. List must be of same size as models, e.g. [False, True, True].
+            If a single boolean is provided, the same flag is assumed for all models.
+        combined_models_dict (dict of lists):
+            Dictionnary defining the different combined models to plot if plot_combined = True. Keys are the name of the combined model.
+        dt (int):
+            If chop_by = 'year' or 'month', dt is the number of time steps (in chop_by units) to use in the averaging
+        chop_by (str or list):
+            Time units to perform the average, options for 'year', 'month' and 'season'.
+            Alternatively, a list of starting dates or months number can be provided.
+        resample_uncert_correlation (bool):
+            If True, uncertainties are averaged directly.
+            If False, uncertainties are calculated as RMSE-like aggregation.
+
+    Returns:
+        ds_to_plot (dictionary of datasets):
+            Dictionary of datasets combined and resampled over the specified periods.
+        time_labels (list of str):
+            Labels for each resampled period (e.g., "2020", "2020/03—2020/05").
+    """
+
+    # Prepare dataset with variables to plot
+    ds_dict = {m: define_var_plot(ds, var, sector) for m, ds in ds_all.items()}
+
+    ds_to_plot = dict()
+
+    if plot_combined:
+        combined_models_dict = get_combined_models_dict(
+            list(ds_dict.keys()), plot_combined, combined_models_dict
+        )
+
+        # Get dictionary of combined datasets
+        for group_label, model_list in combined_models_dict.items():
+            ds_to_combine = {m: ds for m, ds in ds_dict.items() if m in model_list}
+            ds_to_combine = align_map_data(ds_to_combine)
+            ds_combined = combine_map_dataset(ds_to_combine)
+
+            ds_combined["combined"].attrs["model_label"] = group_label
+            ds_combined = {
+                f"combined_{group_label.replace(' ', '_')}": ds_combined["combined"]
+            }  # rename key to include group label
+
+            ds_to_plot.update(ds_combined)
+    else:
+        for m, ds in ds_dict.items():
+            ds.attrs["model_label"] = model_labels.get(m, m)
+        ds_to_plot = ds_dict
+
+    # Resample over time
+    time_labels = {}
+    for key, ds in ds_to_plot.items():
+        ds_to_plot[key], time_labels[key] = resample_over_period(
+            ds, dt, chop_by, resample_uncert_correlation
+        )
+
+    if all([v == time_labels[key] for v in time_labels.values()]):
+        time_labels = time_labels[key]
+    else:
+        raise ValueError(
+            f"Uncoherent `time_labels` derived : {time_labels}. Most probable reason is difference between start and end dates of the datasets, slicing them to their common period should resolve the issue."
+        )
+
+    return ds_to_plot, time_labels
+
+
 def plot_flux_map(
-    ds_all: dict[xr.Dataset],
+    ds_all: dict[str, xr.Dataset],
     species: str,
     region: Region = None,
     config_data: dict[str, any] = {},
@@ -44,7 +136,7 @@ def plot_flux_map(
     set_fluxlim_percentile: float = None,
     plot_inversion_grid_flux: bool = False,
     zoom_degree: float = 1,
-    only: Literal["posterior", "prior", "diff"] | None = None,
+    only: VarType | list[VarType] | None = None,
     fallback_sites: list[str] | None = None,
     resample_uncert_correlation: bool = False,
     sector: str = "total",
@@ -52,6 +144,8 @@ def plot_flux_map(
     site_marker: str = "o",
     city_marker: str = "^",
     marker_color: str | None = None,
+    plot_combined: bool | list[bool] = False,
+    combined_models_dict: dict[str, list[str]] | None = None,
 ) -> plt.Figure:
     """
     Plot posterior and prior fluxes and the difference between them for all models, time averaged.
@@ -97,8 +191,8 @@ def plot_flux_map(
             Value added to the latitude and longitude bounds of the plot.
             Positive values expand the plot area, while negative values zoom in by reducing the bounds.
             Example: `zoom_degree=1` adds 1 degree to the bounds, while `zoom_degree=-1` subtracts 1 degree.
-        only (str, optional):
-            Option to plot only "posterior" or "prior" or "diff"
+        only (str | list[str], optional):
+            Option to plot subset of variables. Options are "posterior", "prior" and "diff".
         fallback_sites (list[str] | None):
             A list of site names to use as a fallback if 'sites' is not found in the datasets.
             If None, the first available 'sites' in the datasets will be used as fallback.
@@ -115,6 +209,11 @@ def plot_flux_map(
             Marker for city locations.
         marker_color (str):
             Marker color.
+        plot_combined (bool | list[bool], optional):
+            If True, the model is included in combined average result to be plotted. List must be of same size as models, e.g. [False, True, True].
+            If a single boolean is provided, the same flag is assumed for all models.
+        combined_models_dict (dict, optional):
+            Dictionnary defining the different combined models to plot if plot_combined = True. Keys are the name of the combined model.
     Returns:
         fig (figure):
             Three maps, for each model, of the flux prior, the flux posterior and the difference between both.
@@ -135,7 +234,7 @@ def plot_flux_map(
         zoom_degree=zoom_degree,
     )
 
-    # Define variables
+    # Define variables to plot
     var_prior = f"flux_{sector}_prior"
     var_posterior = f"flux_{sector}_posterior"
     var_diff = "posterior_prior_diff"
@@ -145,28 +244,35 @@ def plot_flux_map(
         var_posterior += "_inversion_grid"
         var_diff += "_inversion_grid"
 
-    if only == "posterior":
-        vars_list = [var_posterior]
-        var_fluxlim = var_posterior
-    elif only == "prior":
-        vars_list = [var_prior]
-        var_fluxlim = var_prior
-    elif only == "diff":
-        vars_list = [var_diff]
-        var_fluxlim = var_diff
-    else:
-        vars_list = [var_prior, var_posterior, var_diff]
-        var_fluxlim = var_posterior  # TODO Flux limits based on posterior, is this the right way to do?
+    all_vars = [var_prior, var_posterior, var_diff]
+    vars_list = all_vars
+    var_fluxlim = var_posterior  # TODO Flux limits based on posterior, is this the right way to do?
+    if only:
+        # Check input options
+        if isinstance(only, str):
+            only = [only]
+        valid_vars = get_args(VarType)
+        for var in only:
+            if var not in valid_vars:
+                raise ValueError(
+                    f"'{var}' is not a valid variable. Options are: {valid_vars}"
+                )
+        # Get list of variables to plot
+        vars_list = [var for v, var in zip(valid_vars, all_vars) if v in only]
+        if "posterior" not in only:
+            var_fluxlim = var_prior if "prior" in only else var_diff
 
     # Prepare datasets and resample over the whole time period (season=None) or a given season
-    ds_dict = {
-        m: resample_over_period(
-            define_var_plot(ds, vars_list, sector),
-            chop_by=season,
-            resample_uncert_correlation=resample_uncert_correlation,
-        )[0]
-        for m, ds in ds_all.items()
-    }
+    ds_dict, _ = prepare_map_data_to_plot(
+        ds_all,
+        vars_list,
+        sector,
+        model_labels,
+        plot_combined,
+        combined_models_dict,
+        chop_by=season,
+        resample_uncert_correlation=resample_uncert_correlation,
+    )
 
     # Load country lines and species information
     country_lines = compute_boundary_geometry(map_bounds)
@@ -241,7 +347,7 @@ def plot_flux_map(
             # Add titles
             # Column titles
             if row == 0 and include_title_and_labels:
-                ax_i.set_title(model_labels.get(model, model))
+                ax_i.set_title(ds.attrs["model_label"])
             # Row titles
             if col == 0 and include_title_and_labels:
                 ax_i.set_ylabel(define_flux_label(var))
@@ -258,13 +364,26 @@ def plot_flux_map(
                     city_marker,
                 )
 
-            if include_title_and_labels:
+            if include_title_and_labels and (var_diff in vars_list):
                 cbar_label_format = ["variable", "species", "units", "time"]
             else:
                 cbar_label_format = ["species", "units", "time"]
 
-            # Add colorbar (only for the last column)
-            if col == n_cols - 1:
+            # Add colorbar
+            if (col == n_cols - 1) and (var_diff in vars_list):
+                # only for the last column if one per variable
+                colorbar_type = "row"
+                target_ax = ax_i
+                print_colorbar = True
+            elif (col == n_cols - 1) and (row == n_rows - 1):
+                # only for the last column and row if global colorbar
+                colorbar_type = "figure"
+                target_ax = ax
+                print_colorbar = True
+            else:
+                print_colorbar = False
+
+            if print_colorbar:
                 cbar_label = print_cbar_label(
                     ds,
                     species_info,
@@ -273,13 +392,13 @@ def plot_flux_map(
                 )  # TODO Here, based on the last iteration. Check if consistent for all models?
                 add_colorbar(
                     fig,
-                    ax_i,
+                    target_ax,
                     im,
                     extend_i,
                     label=cbar_label,
                     n_cbar=n_rows,
                     idx_cbar=row,
-                    colorbar_type="row",
+                    colorbar_type=colorbar_type,
                 )
     return fig
 
@@ -545,6 +664,7 @@ def plot_flux_map_over_time(
     site_marker: str = "o",
     city_marker: str = "^",
     marker_color: str | None = None,
+    combined_models_dict: dict[str, list[str]] | None = None,
 ) -> plt.Figure:
     """
     Plot a given flux variable averaged over specific time intervals, for all models or the model mean.
@@ -607,6 +727,8 @@ def plot_flux_map_over_time(
             Marker for city locations.
         marker_color (str):
             Marker color.
+        combined_models_dict (dict, optional):
+            Dictionnary defining the different combined models to plot if plot_combined = True. Keys are the name of the combined model.
     Returns:
         fig (figure):
             A plot of spatial flux of the variable specified in var
@@ -629,24 +751,17 @@ def plot_flux_map_over_time(
     )
 
     # Prepare datasets and resample over given periods
-    ds_dict = {m: define_var_plot(ds, var, sector) for m, ds in ds_all.items()}
-
-    if plot_combined:
-        ds_dict = align_map_data(ds_dict)
-        ds_dict = combine_map_dataset(ds_dict)
-
-    time_labels = {}
-    for key, ds in ds_dict.items():
-        ds_dict[key], time_labels[key] = resample_over_period(
-            ds, dt, chop_by, resample_uncert_correlation
-        )
-
-    if all([v == time_labels[key] for v in time_labels.values()]):
-        time_labels = time_labels[key]
-    else:
-        raise ValueError(
-            f"Uncoherent `time_labels` derived : {time_labels}. Most probable reason is difference between start and end dates of the datasets, slicing them to their common period should resolve the issue."
-        )
+    ds_dict, time_labels = prepare_map_data_to_plot(
+        ds_all,
+        var,
+        sector,
+        model_labels,
+        plot_combined,
+        combined_models_dict,
+        dt,
+        chop_by,
+        resample_uncert_correlation,
+    )
 
     # Load country lines, species and sites information
     country_lines = compute_boundary_geometry(map_bounds)
