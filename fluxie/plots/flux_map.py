@@ -364,13 +364,26 @@ def plot_flux_map(
                     city_marker,
                 )
 
-            if include_title_and_labels:
+            if include_title_and_labels and (var_diff in vars_list):
                 cbar_label_format = ["variable", "species", "units", "time"]
             else:
                 cbar_label_format = ["species", "units", "time"]
 
-            # Add colorbar (only for the last column)
-            if col == n_cols - 1:
+            # Add colorbar
+            if (col == n_cols - 1) and (var_diff in vars_list):
+                # only for the last column if one per variable
+                colorbar_type = "row"
+                target_ax = ax_i
+                print_colorbar = True
+            elif (col == n_cols - 1) and (row == n_rows - 1):
+                # only for the last column and row if global colorbar
+                colorbar_type = "figure"
+                target_ax = ax
+                print_colorbar = True
+            else:
+                print_colorbar = False
+
+            if print_colorbar:
                 cbar_label = print_cbar_label(
                     ds,
                     species_info,
@@ -379,13 +392,13 @@ def plot_flux_map(
                 )  # TODO Here, based on the last iteration. Check if consistent for all models?
                 add_colorbar(
                     fig,
-                    ax_i,
+                    target_ax,
                     im,
                     extend_i,
                     label=cbar_label,
                     n_cbar=n_rows,
                     idx_cbar=row,
-                    colorbar_type="row",
+                    colorbar_type=colorbar_type,
                 )
     return fig
 
